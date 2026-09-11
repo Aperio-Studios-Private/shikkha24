@@ -25,6 +25,12 @@ Production-grade, Bengali-first **education** news portal. Domain: **shikkha24.c
 | `AGENTS.md` / `GEMINI.md` / `CLAUDE.md` | **Mandatory agent rules** — three synced mirrors, rules 1–13 identical in all three |
 | `docs/education-feature-inventory.md` | ✅ **APPROVED** — education feature inventory: 8-category tree + level filter, 10 new education features |
 | `docs/education-competitors.md` | Education competitor landscape (5 groups) and where Shikkha24 can win |
+| **`docs/performance-budget.md`** | Lighthouse/Web Vitals budgets, per-asset byte budgets, measurement method, CI gate |
+| **`docs/seo-plan.md`** | Full SEO plan: per-template metadata + schema matrix, sitemaps, keyword clusters, redirects |
+| **`docs/security.md`** | Threat model, attack surface, auth, headers/CSP, rate limiting, PII, supply chain, email auth |
+| **`docs/reliability.md`** | Failure modes, error pages, graceful degradation, capacity/overload, monitoring, incident playbook |
+| **`docs/backup-and-recovery.md`** | What is protected, backup tiers, RPO/RTO, restore runbook, DR scenarios |
+| **`docs/testing-and-qa.md`** | Quality gates, test strategy, WCAG AA accessibility, browser/device matrix, Bengali render audit |
 | `docs/audit-third-party.md` | Independent adversarial audit of the docs and plans (2026-09-11) + remediation status |
 | `docs/data-sources.md` | Every live-data widget: provider, free-tier terms, rate limit, fallback |
 | `docs/master-plan.md` | ⚠️ **OBSOLETE as a build input** — 87-feature *general-news* inventory. Reference only |

@@ -123,22 +123,31 @@ Expected DianaHost footprint after this split: **≈400–700 MB**, leaving head
 
 | Gate | Condition |
 |------|-----------|
-| **S0 exit** | Payload-on-cPanel-Passenger smoke test passes AND TypeScript 7 toolchain validated with Astro 7 + Payload 3 |
+| **S0 exit** | Payload CMS 3 on cPanel Passenger smoke test passes |
+| **S0 exit** | TypeScript 7 toolchain validated with Astro 7 + Payload 3 |
 | **S0 exit** | **Next.js `output: 'standalone'` deploy size measured** — must land ≈300–600 MB to fit the 2 GB host |
 | **S0 exit** | **Cloudflare R2 can be enabled on the owner's account without a payment method** — if not, apply the documented media fallback |
 | **S0 exit** | **DianaHost provides Node.js ≥22.12** (Astro 7 requires it; Payload requires ≥20.9). The vendor publishes no Node version — confirm with DianaHost before building |
 | **S0 exit** | **DianaHost inode/file-count quota confirmed** — a Next.js install contains tens of thousands of files |
-| **S0 exit** | **SQLite WAL concurrency proven with 5+ concurrent writers** (moved from S12 — this is a foundational decision and must not be validated at the finish line) |
+| **S0 exit** | **SQLite WAL concurrency proven with 5+ concurrent writers** (moved from S12 — a foundational decision must not be validated at the finish line) |
 | **S0 exit** | CI rebuild strategy settled (debounce/batch, or public repo for unlimited minutes) |
-| S1 entry | Education feature inventory + category tree — ✅ **SATISFIED 2026-09-11** (`docs/education-feature-inventory.md`) |
+| **S0 exit** | **CI quality gates live** — Lighthouse CI with per-page budgets, link check, JSON-LD validation, `npm audit` policy (`docs/performance-budget.md`, `docs/testing-and-qa.md`) |
+| **S0 exit** | **Backup automated off-host AND a restore performed successfully** — an untested backup is not a backup (`docs/backup-and-recovery.md`) |
+| **S0 exit** | **Feature-flag mechanism designed** so heavy/fragile features can be disabled without a redeploy (`docs/reliability.md`) |
+| **S0 exit** | **Monitoring/alerting tool selected** — card-free and verified, alerting to a channel the owner actually reads |
+| S1 entry | Education feature inventory — ✅ **SATISFIED 2026-09-11** (`docs/education-feature-inventory.md`) |
+| S1 entry | Education category tree — ✅ **SATISFIED 2026-09-11** (8 categories + level filter) |
 | **S1 entry** | **Publishing velocity / headcount decided** — ⏳ **NOT SATISFIED.** The 45–70/day target implies 15–23 editorial staff; the plan states 5. Options in `docs/education-feature-inventory.md` §7 |
-| S2 entry | Domain ✅ `shikkha24.com` · **portal display name + logo — ⏳ NOT SATISFIED** |
+| S2 entry | Domain decided — ✅ **SATISFIED 2026-09-11** (`shikkha24.com`) |
+| **S2 entry** | **Portal display name + logo decided** — ⏳ **NOT SATISFIED** |
 | S6 entry | Bengali search quality tested on a real Bengali corpus |
 | S9 entry | Newsletter sending path confirmed (free-tier ESP reachable, or cPanel SMTP fallback accepted) |
 | **S10 entry** | Every remaining data-backed element has a confirmed free provider, or is descoped |
+| **S12 entry** | Monitoring + alerting live (`docs/reliability.md`) |
+| **S12 entry** | Full restore drill completed and timed against the RPO/RTO targets |
 | Every section exit | Full Definition of Done passes (build, typecheck, lint, performance targets) + explicit user approval |
 
-> **This table is the authoritative gate list.** `.sps/task.md` mirrors it inline per section — if a gate changes, change it in both files in the same commit (rule 13).
+> **This table is the authoritative gate list.** `.sps/task.md` mirrors it inline per section at a finer granularity (it also labels each section's DoD as a gate). The two are kept **semantically equivalent, not row-for-row identical** — if a gate changes, change it in both files in the same commit (rule 13). Verified 2026-09-11: every gate here has a counterpart there and vice versa.
 
 ---
 
@@ -200,6 +209,31 @@ Pages under measurement: homepage, article page, category listing, search result
 ## Data sources
 
 All live-data widgets depend on free public APIs. Provider, rate limit, cost and fallback behaviour per widget are recorded in **`docs/data-sources.md`**. Any widget without a credible free source is descoped rather than assumed.
+
+---
+
+## Operational plans (added 2026-09-11)
+
+Six domains had no coverage. They are now documented, and each is a build input for the sections noted.
+
+| Document | Covers | Drives |
+|---|---|---|
+| `docs/performance-budget.md` | Lighthouse/Web Vitals budgets, per-asset byte budgets, measurement method, the CI gate, the AdSense-vs-≥95 trade-off | S0 (CI gate), S2 (fonts), all UI sections, S12 |
+| `docs/seo-plan.md` | Per-template metadata + schema matrix, education-specific schema, sitemaps/feeds, keyword clusters, redirect policy, slug-language decision | S4, S5, S11 |
+| `docs/security.md` | Threat model, attack surface, auth/2FA, security headers + CSP, input validation, rate limiting (incl. the Cloudflare-free-tier limitation), PII, supply-chain scanning, SPF/DKIM/DMARC | S0, S1, S4 (comments), S9 |
+| `docs/reliability.md` | Failure-mode analysis, error pages, graceful degradation, capacity model, traffic-spike playbook, monitoring/alerting, incident playbook, feature flags | S0, S8, S12 |
+| `docs/backup-and-recovery.md` | Backup tiers, RPO 24h / RTO 4h, restore runbook, four DR scenarios, verification drills | S0 (automation), S12 (drill) |
+| `docs/testing-and-qa.md` | Quality gates, test strategy, **WCAG 2.2 AA** accessibility, browser/device matrix (incl. UC Browser / Opera Mini), Bengali rendering audit, pre-launch checklist | S0 (CI gates), S2, S12 |
+
+**Two cross-cutting requirements these introduce that were previously absent:**
+1. A **feature-flag mechanism** so heavy or fragile features can be disabled without a redeploy (`docs/reliability.md` §5). This is an S0/S8 design requirement.
+2. A **verified card-free monitoring/alerting tool** (`docs/reliability.md` §6) — not yet selected.
+
+---
+
+## Accessibility commitment
+
+**WCAG 2.2 Level AA**, with Lighthouse accessibility ≥90 as the automated floor. The superseded plan claimed "WCAG AAA" for dark mode, which is not realistic and has been corrected. See `docs/testing-and-qa.md` §3.
 
 ---
 

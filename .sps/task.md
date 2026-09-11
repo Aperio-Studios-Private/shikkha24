@@ -23,6 +23,11 @@
 - [ ] **GATE: SQLite WAL concurrency proven with 5+ concurrent writers** — blocking. **Moved here from S12**: this is a foundational decision and must not be validated at the finish line
 - [ ] **GATE: Cloudflare R2 can be enabled without a payment method** — blocking. If not, apply the documented media fallback
 - [ ] **GATE: CI rebuild strategy settled** — debounce/batch (e.g. one rebuild per 10 min) or public repo for unlimited minutes. At 45–70 articles/day, one build per publish exceeds the 2,000 min/month private-repo quota
+- [ ] **GATE: CI quality gates live** — Lighthouse CI with per-page budgets, broken-link check, JSON-LD validation, `npm audit` policy (`docs/performance-budget.md`, `docs/testing-and-qa.md`)
+- [ ] **GATE: backup automated off-host AND a restore performed successfully** — an untested backup is not a backup (`docs/backup-and-recovery.md`)
+- [ ] **GATE: feature-flag mechanism designed** so heavy/fragile features can be disabled without a redeploy (`docs/reliability.md`)
+- [ ] **GATE: monitoring/alerting tool selected** — must be verified card-free, and alert to a channel the owner actually reads
+- [ ] Security baseline applied: `.env` + SQLite outside the web root, security headers, CSP drafted, `npm audit` policy, Dependabot enabled (`docs/security.md`)
 - [ ] Cloudflare Pages project wired for the Astro frontend
 - [ ] Env skeleton (`.env.example` only — no secrets committed)
 - [ ] Bengali fonts pipeline (Hind Siliguri + Noto Sans Bengali + Inter, WOFF2)
@@ -113,5 +118,11 @@
 ## S12 — Deployment, QA & Launch
 - [ ] Cloudflare Pages + R2 setup; GitHub Actions pipeline; DianaHost Passenger config
 - [ ] Lighthouse ≥95 **and accessibility ≥90**; LCP <1.5s; INP <100ms; CLS <0.02; TTFB <200ms (measured here, in production behind Cloudflare); initial payload <1.2MB; data-saver <30KB
-- [ ] Bengali font audit, accessibility audit, load test, mobile device test
+- [ ] **AdSense-vs-≥95 trade-off resolved** — two measurement profiles (`docs/performance-budget.md`)
+- [ ] **GATE: monitoring + alerting live** on a verified card-free tool (`docs/reliability.md`)
+- [ ] **GATE: full restore drill completed and timed** against RPO 24h / RTO 4h (`docs/backup-and-recovery.md`)
+- [ ] **SPF / DKIM / DMARC configured** + dedicated bulk-sending subdomain (`docs/security.md`)
+- [ ] **WCAG 2.2 AA**: automated pass + **manual keyboard and screen-reader pass** (`docs/testing-and-qa.md`)
+- [ ] Browser/device matrix incl. **UC Browser and Opera Mini**, plus a low-end Symphony/Walton-class device
+- [ ] Bengali font + conjunct rendering audit; error/404 pages verified; pre-launch QA checklist completed
 - [ ] S12 DoD evidence → **user approval → LAUNCH**
