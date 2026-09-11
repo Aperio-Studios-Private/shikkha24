@@ -12,7 +12,7 @@
 ## Budget
 - Zero recurring software/platform fees
 - Domain + DianaHost PNR 3GB SSD (৳6,999/year) + Cloudflare free CDN
-- Open to free cloud backend for Listmonk or Payload if shared hosting struggles
+- NO paid third-party services; NO limited free-tier SaaS for core infrastructure — self-hosted/self-built preferred, genuinely free & unlimited only
 
 ## Mobile / performance policy
 - Mobile default: mobile-first (90%+ of BD readers on mobile)
@@ -32,6 +32,8 @@
 - Deploy Target: DianaHost PNR 3GB SSD (cPanel + Passenger)
 - CI/CD: GitHub Actions (automated build + deploy)
 - Newsletter: Listmonk 6.2 (self-hosted email marketing)
+- Newsletter fallback: self-built Payload newsletter via DianaHost cPanel SMTP → Oracle Cloud Always Free VPS for Listmonk (user-approved 2026-09-11)
+- Workflow: section-by-section with explicit user approval; zero assumptions (ask first, research before build); immediate commit after every finished task — full rules in AGENTS.md / GEMINI.md
 
 ## Language
 - Bengali only UI (NO English toggle)
@@ -63,7 +65,7 @@
 - ALL features on Day 1 (no phasing — "quality over speed")
 - 87+ features across 8 categories
 - 10 unique innovations no BD portal has
-- See master plan artifact for full inventory
+- Full inventory to be exported from the Antigravity session into `docs/` (prompt: `.sps/antigravity-export-prompt.md`)
 
 ## Explicit approvals
 - ✅ Plan approved (2026-09-11T20:41+06:00)
@@ -74,6 +76,10 @@
 - ✅ Listmonk newsletter
 - ✅ GitHub Actions CI/CD
 - ✅ Bengali-only UI
+- ✅ Agent rules codified in AGENTS.md / GEMINI.md (2026-09-11)
+- ✅ Git repo initialized; immediate-commit workflow (2026-09-11)
+- ✅ Newsletter fallback: self-built cPanel SMTP → Oracle Always Free VPS (2026-09-11)
+- ✅ Stack versions verified against live registries (2026-09-11)
 
 ## Explicit rejections
 - ❌ Strapi 5 CE (missing review workflows, versioning, scheduled publish in free tier)
@@ -81,3 +87,5 @@
 - ❌ Bilingual UI toggle (portal is Bangladesh-focused, Bengali only)
 - ❌ Manual FTP deployment (GitHub Actions chosen)
 - ❌ AMP (obsolete in 2026, Astro static is faster)
+- ❌ Paid third-party services & limited free-tier SaaS for core infrastructure (Railway/Render free-tier fallbacks rejected 2026-09-11)
+- ❌ Initial root plan doc (Strapi-based) — deleted 2026-09-11; `.sps/plan.md` is the only plan

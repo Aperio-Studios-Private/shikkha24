@@ -6,6 +6,8 @@
 - **Phase:** APPROVED — Ready to build S0 (Foundation & Toolchain)
 - **`/sps` required for this project:** YES
 - **Plan approved:** 2026-09-11T20:41+06:00
+- **Binding rules:** AGENTS.md / GEMINI.md (synced mirrors) — mandatory for every agent, every task
+- **Docs audit:** 2026-09-11 — plan/profile/handoff corrected, stack versions verified, `.sps/task.md` recreated, git initialized, old root plan removed
 
 ## Capabilities
 
