@@ -148,7 +148,7 @@ DianaHost runs **Node.js 20.18.2**. `astro@7.3.2` requires `>=22.12.0` and `vite
 | **S0 exit** | **DianaHost limits confirmed via support** — inode/file-count quota, CPU/memory/process limits, hourly email send limits, and whether account-level backups exist. **None are published in their knowledge base** |
 | **S0 exit** | **SQLite WAL concurrency proven with 5+ concurrent writers** (moved from S12 — a foundational decision must not be validated at the finish line) |
 | **S0 exit** | CI rebuild strategy settled (debounce/batch, or public repo for unlimited minutes) |
-| **S0 exit** | **CI quality gates live** — Lighthouse CI with per-page budgets, link check, JSON-LD validation, `npm audit` policy (`docs/performance-budget.md`, `docs/testing-and-qa.md`) |
+| **S0 exit** | **CI quality gates live** — Lighthouse CI with per-page budgets, link check, JSON-LD validation, `pnpm audit` policy (`docs/performance-budget.md`, `docs/testing-and-qa.md`) |
 | **S0 exit** | **Backup automated off-host AND a restore performed successfully** — an untested backup is not a backup (`docs/backup-and-recovery.md`) |
 | **S0 exit** | **Feature-flag mechanism designed** so heavy/fragile features can be disabled without a redeploy (`docs/reliability.md`) |
 | **S0 exit** | **Monitoring/alerting tool selected** — card-free and verified, alerting to a channel the owner actually reads |

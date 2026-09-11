@@ -25,11 +25,11 @@
 - [ ] **GATE: SQLite WAL concurrency proven with 5+ concurrent writers** — blocking. **Moved here from S12**: this is a foundational decision and must not be validated at the finish line
 - [ ] **GATE: Cloudflare R2 enabled and verified** — a payment method is on file, so R2 is enableable. Verify with `wrangler login && wrangler r2 bucket list`, then set an **80% usage alert** (overage is billable once a card is on file)
 - [ ] **GATE: CI rebuild strategy settled** — adaptive batching (15–30 min quiet, 5 min peak, on-demand for `is_breaking`). Two quotas apply: GitHub Actions 2,000 min/month (private repo) and **Cloudflare Pages 500 builds/month**. At the chosen baseline of 15–20 articles/day + bursts, a ~30s incremental build fits comfortably; a multi-minute build does not. See `docs/hosting-and-deployment.md`
-- [ ] **GATE: CI quality gates live** — Lighthouse CI with per-page budgets, broken-link check, JSON-LD validation, `npm audit` policy (`docs/performance-budget.md`, `docs/testing-and-qa.md`)
+- [ ] **GATE: CI quality gates live** — Lighthouse CI with per-page budgets, broken-link check, JSON-LD validation, `pnpm audit` policy (`docs/performance-budget.md`, `docs/testing-and-qa.md`)
 - [ ] **GATE: backup automated off-host AND a restore performed successfully** — an untested backup is not a backup (`docs/backup-and-recovery.md`)
 - [ ] **GATE: feature-flag mechanism designed** so heavy/fragile features can be disabled without a redeploy (`docs/reliability.md`)
 - [ ] **GATE: monitoring/alerting tool selected** — must be verified card-free, and alert to a channel the owner actually reads
-- [ ] Security baseline applied: `.env` + SQLite outside the web root, security headers, CSP drafted, `npm audit` policy, Dependabot enabled (`docs/security.md`)
+- [ ] Security baseline applied: `.env` + SQLite outside the web root, security headers, CSP drafted, `pnpm audit` policy, Dependabot enabled (`docs/security.md`)
 - [ ] Cloudflare Pages project wired for the Astro frontend
 - [ ] Env skeleton (`.env.example` only — no secrets committed)
 - [ ] Bengali fonts pipeline (Hind Siliguri + Noto Sans Bengali + Inter, WOFF2)

@@ -1,6 +1,9 @@
 {
+  // NOTE: `baseUrl` was REMOVED here, not forgotten. TypeScript 7 deleted the
+  // option (error TS5102), and Payload's blank template still sets it. Without
+  // `baseUrl`, TS 7 resolves `paths` relative to this file, which is what the
+  // "./src/*" entries below already assume.
   "compilerOptions": {
-    "baseUrl": ".",
     "lib": [
       "DOM",
       "DOM.Iterable",

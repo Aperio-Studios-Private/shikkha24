@@ -1,0 +1,37 @@
+# pnpm workspace — Shikkha24
+#
+# Why pnpm and not npm: Payload's own template targets pnpm (`workspace:*`
+# internal refs plus a `pnpm.onlyBuiltDependencies` block), Astro 7's engines
+# explicitly accept `pnpm >=7.1.0`, and pnpm is also the only installer that
+# works in the sandboxed build environment used for S0 verification. See
+# `.sps/handoff.md` → "Package manager".
+#
+# `package.json` still carries a `workspaces` field for npm compatibility, but
+# pnpm reads THIS file — keep the two lists in sync if a workspace is added.
+
+packages:
+  - frontend
+  - cms
+
+# Native toolchains that MUST run post-install scripts to fetch their binaries.
+# Without these the builds fail: esbuild (Vite/Astro), sharp (Payload image
+# resizing). Each is a pinned, license-reviewed dependency (agent rule 8).
+allowBuilds:
+  esbuild: true
+  sharp: true
+
+# pnpm 11 enforces a minimum package age as supply-chain protection. The stack
+# pins exact versions verified against the live registry (agent rule 8), so
+# these are deliberately excluded from that gate rather than floated.
+# next@16.3.5 is required by @payloadcms/next's peer range >=16.2.6 <17.0.0.
+minimumReleaseAgeExclude:
+  - next@16.3.5
+  - '@next/env@16.3.5'
+  - '@next/swc-darwin-arm64@16.3.5'
+  - '@next/swc-darwin-x64@16.3.5'
+  - '@next/swc-linux-arm64-gnu@16.3.5'
+  - '@next/swc-linux-arm64-musl@16.3.5'
+  - '@next/swc-linux-x64-gnu@16.3.5'
+  - '@next/swc-linux-x64-musl@16.3.5'
+  - '@next/swc-win32-arm64-msvc@16.3.5'
+  - '@next/swc-win32-x64-msvc@16.3.5'

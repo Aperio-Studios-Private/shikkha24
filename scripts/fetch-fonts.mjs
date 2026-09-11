@@ -17,8 +17,8 @@
  *
  * Output: `frontend/public/fonts/*.woff2` + `frontend/src/styles/fonts.css`
  */
-import { mkdir, writeFile, readdir, rm } from 'node:fs/promises'
-import { join, dirname, basename } from 'node:path'
+import { mkdir, readdir, rm, writeFile } from 'node:fs/promises'
+import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -109,7 +109,9 @@ async function main() {
     for (const face of faces) {
       let file = byUrl.get(face.src)
       if (!file) {
-        const short = basename(new URL(face.src).pathname).replace(/\.woff2$/, '').slice(0, 10)
+        const short = basename(new URL(face.src).pathname)
+          .replace(/\.woff2$/, '')
+          .slice(0, 10)
         file = `${fam.label}-${face.subset}-${short}.woff2`
         const res = await fetch(face.src, { headers: { 'User-Agent': UA } })
         if (!res.ok) throw new Error(`Font download failed: ${face.src}`)

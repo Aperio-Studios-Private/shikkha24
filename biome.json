@@ -13,14 +13,16 @@
       "**/*.mjs",
       "**/*.cjs",
       "**/*.json",
-      "!**/node_modules/**",
-      "!**/dist/**",
-      "!**/.astro/**",
-      "!**/.next/**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/.astro",
+      "!**/.next",
       "!**/payload-types.ts",
       "!**/importMap.js",
       "!**/package-lock.json",
-      "!**/tsconfig.json"
+      "!**/pnpm-lock.yaml",
+      "!**/tsconfig.json",
+      "!cms/src/app/(payload)"
     ]
   },
   "formatter": {
@@ -32,7 +34,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "preset": "recommended"
     }
   },
   "javascript": {

@@ -3,6 +3,13 @@ node_modules/
 .pnp/
 .pnp.js
 
+# This project is pnpm-only (see pnpm-workspace.yaml). Two lockfiles would drift,
+# and `pnpm-lock.yaml` is the one that is committed. Block npm artifacts so a
+# stray `npm install` cannot reintroduce a second source of truth.
+package-lock.json
+yarn.lock
+.pnpm-store/
+
 # ─── Build output ────────────────────────────────────────────────────────────
 # Astro (frontend)
 dist/

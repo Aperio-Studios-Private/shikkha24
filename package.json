@@ -4,25 +4,26 @@
   "private": true,
   "description": "Shikkha24 (শিক্ষা২৪) — Bengali-first education news portal. Monorepo: Astro static frontend + Payload CMS 3.",
   "license": "UNLICENSED",
-  "workspaces": [
-    "frontend",
-    "cms"
-  ],
+  "packageManager": "pnpm@11.22.0",
   "engines": {
-    "node": ">=20.9.0",
-    "npm": ">=9.6.5"
+    "node": ">=22.12.0",
+    "pnpm": ">=9"
   },
   "scripts": {
-    "dev": "npm run dev -w frontend",
-    "dev:cms": "npm run dev -w cms",
-    "build": "npm run build:frontend && npm run build:cms",
-    "build:frontend": "npm run build -w frontend",
-    "build:cms": "npm run build -w cms",
-    "typecheck": "npm run typecheck -w frontend && npm run typecheck -w cms",
+    "dev": "pnpm --filter @shikkha24/frontend dev",
+    "dev:cms": "pnpm --filter @shikkha24/cms dev",
+    "build": "pnpm run build:frontend && pnpm run build:cms",
+    "build:frontend": "pnpm --filter @shikkha24/frontend build",
+    "build:cms": "pnpm --filter @shikkha24/cms build",
+    "typecheck": "pnpm run typecheck:frontend && pnpm run typecheck:cms",
+    "typecheck:frontend": "pnpm --filter @shikkha24/frontend typecheck",
+    "typecheck:cms": "pnpm --filter @shikkha24/cms typecheck",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "test": "npm run test -w cms",
-    "verify": "npm run typecheck && npm run lint && npm run build",
-    "audit:ci": "npm audit --audit-level=high"
+    "verify": "pnpm run lint && pnpm run typecheck && pnpm run build",
+    "audit:ci": "pnpm audit --audit-level=high"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.13"
   }
 }

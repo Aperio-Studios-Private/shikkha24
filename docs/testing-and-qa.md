@@ -16,7 +16,7 @@
 | HTML validation | Every CI run | Deploy (warn first) |
 | JSON-LD / schema validation | Every CI run | Deploy |
 | Broken-link check | Every CI run | Deploy (warn first) |
-| `npm audit` | Every CI run | Policy in `docs/security.md` §9 |
+| `pnpm audit` | Every CI run | Policy in `docs/security.md` §9 |
 | Bengali render audit | Manual, per section | Section approval |
 | Device / browser matrix | Manual, at S12 and after major UI changes | Launch |
 | Restore drill | Manual, pre-launch + every 6 months | Launch (`docs/backup-and-recovery.md`) |

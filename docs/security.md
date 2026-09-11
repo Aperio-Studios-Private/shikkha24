@@ -138,10 +138,10 @@ Document the limits chosen, and note that on a 2 GB shared host a flood can exha
 
 - Commit the lockfile; pin exact versions (already agent rule 8).
 - Enable **Dependabot** (free on GitHub) for security advisories.
-- Run `npm audit` in CI; decide an explicit policy on what severity fails the build.
-- **Review install scripts.** Native-binary packages (Astro's Rust compiler, Tailwind Oxide, Rolldown, TypeScript 7's Go binaries, Pagefind) run post-install steps — treat major-version bumps as reviewable events, not routine.
+- Run `pnpm audit` in CI; decide an explicit policy on what severity fails the build.
+- **Review install scripts.** Native-binary packages (Astro's Rust compiler, Tailwind Oxide, Rolldown, TypeScript 7's Go binaries, Pagefind) run post-install steps — treat major-version bumps as reviewable events, not routine. pnpm blocks post-install scripts by default; the allowed ones are listed explicitly in `pnpm-workspace.yaml` (`allowBuilds`), so a newly-added native dependency cannot silently execute code until someone adds it there.
 - **Record the known freshness risk:** Payload 3.89.0 was published one day before being pinned (`.sps/plan.md`). An S0 decision on hold-vs-pin already exists.
-- Never `npm install` an unreviewed package on the production host.
+- Never add an unreviewed package on the production host.
 
 ---
 
@@ -171,7 +171,7 @@ This was undocumented before. It is an S9 dependency.
 
 - [ ] Verify whether Payload 3.89 supports TOTP 2FA natively; if not, record it as an accepted gap
 - [ ] Confirm the SQLite file and `.env` are outside the web root on DianaHost
-- [ ] Decide the `npm audit` failure policy (which severity blocks the build)
+- [ ] Decide the `pnpm audit` failure policy (which severity blocks the build)
 - [ ] Write the actual CSP for both profiles (with and without ads)
 - [ ] Set SPF/DKIM/DMARC and choose the bulk-sending subdomain
 - [ ] Decide whether `/admin` can be IP-restricted

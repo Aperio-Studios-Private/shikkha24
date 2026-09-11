@@ -4,8 +4,9 @@
 - **Prior host:** Antigravity (original discovery and planning session, 2026-09-11)
 - **SPS Version:** 4.0.0 (skill version stamp; `sps-cms` 2.3.0)
 - **Session Started:** 2026-09-11T19:58+06:00
-- **Last refreshed:** 2026-09-12T02:50+06:00
-- **Phase:** S0 IN PROGRESS — foundation built (commit `aa1afe6`); **verification blocked** because `npm install` is denied by the build environment's filesystem broker (see `.sps/handoff.md` → "S0 blocker"). No DoD evidence yet.
+- **Last refreshed:** 2026-09-12T03:10+06:00
+- **Phase:** S0 **COMPLETE — awaiting owner approval.** Every S0 gate measured with real evidence; the npm blocker was resolved with pnpm (no security hook disabled). Next: S1 (CMS content models + RBAC). S2 remains blocked on the portal display name + logo.
+- **Package manager:** **pnpm 11.22.0** (`pnpm-workspace.yaml`). npm is unusable in the build environment — a filesystem broker refuses its `mkdir` calls. See `.sps/handoff.md`.
 - **`/sps` required for this project:** YES
 - **Plan approved:** 2026-09-11T20:41+06:00 — **scope amended 2026-09-11 (education portal)**
 - **Binding rules:** `AGENTS.md` / `GEMINI.md` / `CLAUDE.md` (three synced mirrors, rules 1–13 identical) — mandatory for every agent, every task

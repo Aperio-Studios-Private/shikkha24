@@ -37,8 +37,7 @@ export const Media: CollectionConfig = {
       type: 'text',
       required: true,
       admin: {
-        description:
-          'বাংলায় ছবির বিবরণ লিখুন। অলংকরণমূলক ছবির ক্ষেত্রে খালি রাখুন (alt="")।',
+        description: 'বাংলায় ছবির বিবরণ লিখুন। অলংকরণমূলক ছবির ক্ষেত্রে খালি রাখুন (alt="")।',
       },
     },
     {
@@ -63,9 +62,7 @@ export const Media: CollectionConfig = {
         if (!file) return data
 
         if (!ALLOWED_MIME_TYPES.includes(file.mimetype ?? '')) {
-          throw new Error(
-            `অনুমোদিত নয় এমন ফাইল ধরন: ${file.mimetype}. শুধু ছবি আপলোড করা যাবে।`,
-          )
+          throw new Error(`অনুমোদিত নয় এমন ফাইল ধরন: ${file.mimetype}. শুধু ছবি আপলোড করা যাবে।`)
         }
 
         if (typeof file.size === 'number' && file.size > MAX_UPLOAD_BYTES) {

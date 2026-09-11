@@ -1,7 +1,7 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { withPayload } from '@payloadcms/next/withPayload'
 import type { NextConfig } from 'next'
-import path from 'path'
-import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(__filename)
@@ -31,7 +31,17 @@ const nextConfig: NextConfig = {
     return webpackConfig
   },
   turbopack: {
-    root: path.resolve(dirname),
+    /**
+     * Monorepo fix. Next detects the workspace root by finding the nearest
+     * package-manager lockfile — here `pnpm-lock.yaml` at the repository root —
+     * and pnpm hoists `next` there rather than into `cms/node_modules`.
+     *
+     * Payload's blank template pins this to the cms directory, which is correct
+     * for a standalone app and breaks a pnpm monorepo with:
+     *   "Could not find the Next.js package (next/package.json)"
+     * Point it at the repository root instead.
+     */
+    root: path.resolve(dirname, '..'),
   },
 }
 

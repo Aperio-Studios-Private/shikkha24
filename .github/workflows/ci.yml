@@ -4,12 +4,6 @@
 # touch GitHub. Publishing fires a webhook and CI turns a publish into static
 # HTML. Full explanation: docs/hosting-and-deployment.md §1.
 #
-# ⚠️ THIS WORKFLOW IS THE VERIFICATION PATH. S0's build/typecheck/lint evidence
-# could not be produced locally — `npm install` is denied by the build
-# environment's filesystem broker (see .sps/handoff.md → "S0 blocker"). The owner
-# elected to defer verification to CI, so this file has never been executed.
-# Expect to iterate on it during the first run.
-#
 # CI-MINUTES BUDGET (agent rule 7 + docs/hosting-and-deployment.md §2):
 # the repository is private, so GitHub Actions is capped at 2,000 minutes/month.
 # Cloudflare Pages is capped at 500 builds/month — the tighter of the two. So:
@@ -17,6 +11,7 @@
 #   - everything runs in ONE job so the install happens once, not three times
 #   - publish-triggered rebuilds are adaptively batched (separate deploy workflow)
 #
+# Package manager is pnpm (see pnpm-workspace.yaml for why).
 # Node 24 per .sps/plan.md. Astro 7 / Vite 8 cannot run on DianaHost's Node
 # 20.18.2, so this is the ONLY place the frontend is ever built.
 
@@ -44,44 +39,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.22.0
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
+          cache: pnpm
 
-      # `npm ci` needs a committed lockfile. The lockfile could not be generated
-      # locally (the install was blocked), so on the first run this falls back to
-      # `npm install` and warns loudly. `docs/security.md` §9 requires a
-      # committed lockfile, so commit the generated one and this warning goes away.
       - name: Install dependencies
-        run: |
-          set -euo pipefail
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            echo "::warning::package-lock.json is missing — falling back to 'npm install'. Commit the generated lockfile (docs/security.md §9) to restore reproducible installs."
-            npm install --no-audit --no-fund
-          fi
+        run: pnpm install --frozen-lockfile
 
       - name: Lint
         # One Biome invocation over the whole repo — biome.json lives at the root
-        # and its `files.includes` patterns are resolved relative to it.
-        run: npm run lint
+        # and resolves its include patterns relative to itself.
+        run: pnpm run lint
 
       # ── Frontend ────────────────────────────────────────────────────────────
       - name: Astro sync (generate content + env types)
         # `astro sync` writes .astro/types.d.ts, which tsconfig.json includes.
         # Running it first stops the typecheck failing on missing generated types.
-        run: npm run astro -w frontend -- sync
+        run: pnpm --filter @shikkha24/frontend exec astro sync
 
       - name: Typecheck (frontend)
         # `tsc --noEmit`, not `astro check`: @astrojs/check rejects TypeScript 7
         # (peer range ^5 || ^6). Consequence: .astro templates are NOT
         # type-checked. See .sps/handoff.md item 41.
-        run: npm run typecheck -w frontend
+        run: pnpm run typecheck:frontend
 
       - name: Build (frontend)
-        run: npm run build -w frontend
+        run: pnpm run build:frontend
 
       - name: Byte budget — build output
         # Coarse guard for docs/performance-budget.md §3. The real 1.2 MB target is
@@ -105,20 +93,9 @@ jobs:
           retention-days: 7
 
       # ── CMS ─────────────────────────────────────────────────────────────────
-      - name: Generate Payload types and import map
-        # Both are build inputs that are git-ignored. Regenerating them in CI keeps
-        # the committed schema as the single source of truth.
-        run: |
-          set -euo pipefail
-          npm run generate:types -w cms
-          npm run generate:importmap -w cms
-        env:
-          PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
-          DATABASE_URI: file:./data/ci.db
-
       - name: Build (CMS, standalone)
         # `next build` performs its own type checking, so a type error fails here.
-        run: npm run build -w cms
+        run: pnpm run build:cms
         env:
           PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
           DATABASE_URI: file:./data/ci.db
@@ -126,27 +103,42 @@ jobs:
       - name: Typecheck (CMS)
         # Runs AFTER the build on purpose: `next build` writes .next/types, which
         # tsconfig.json includes. Running this first would fail on missing files.
-        run: npm run typecheck -w cms
+        run: pnpm run typecheck:cms
 
-      - name: Measure standalone deploy size
-        # S0 gate: must land ≈300–600 MB to fit the 2 GB DianaHost plan.
+      - name: Assemble and measure the standalone deploy bundle
+        # Two things this asserts, both learned the hard way at S0:
+        #   1. In a pnpm monorepo the entry point is .next/standalone/cms/server.js,
+        #      NOT .next/standalone/server.js.
+        #   2. Next does NOT copy .next/static into the bundle — the deploy must.
+        #      Without it the admin loads but every asset 404s.
         run: |
           set -euo pipefail
-          if [ ! -d cms/.next/standalone ]; then
-            echo "::error::Next.js standalone output missing — check output:'standalone' in cms/next.config.ts"
+          ROOT=cms/.next/standalone
+          if [ ! -f "$ROOT/cms/server.js" ]; then
+            echo "::error::standalone entry point missing at $ROOT/cms/server.js"
             exit 1
           fi
-          mb=$(du -sm cms/.next/standalone | cut -f1)
-          echo "cms/.next/standalone = ${mb} MB (target 300-600 MB)"
+          mkdir -p "$ROOT/cms/.next/static"
+          cp -R cms/.next/static/. "$ROOT/cms/.next/static/"
+          mb=$(du -sm "$ROOT" | cut -f1)
+          echo "standalone bundle = ${mb} MB (target 300-600 MB)"
+          echo "Measured at S0 on this exact stack: 114 MB."
           if [ "$mb" -gt 700 ]; then
             echo "::error::standalone bundle exceeds 700 MB and will not fit the 2 GB host"
             exit 1
           fi
 
+      - name: Upload standalone bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: cms-standalone
+          path: cms/.next/standalone
+          retention-days: 7
+
       # ── Supply chain ────────────────────────────────────────────────────────
       - name: Dependency audit
         # Policy: docs/security.md §9 — high and critical block the build.
-        run: npm audit --audit-level=high
+        run: pnpm audit --audit-level=high
 
       # ── Deliberately not yet wired ──────────────────────────────────────────
       # Lighthouse CI, broken-link check and JSON-LD validation need real page

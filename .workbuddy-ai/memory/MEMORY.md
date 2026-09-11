@@ -52,11 +52,11 @@ Curated long-term facts. Only durable, cross-session truths belong here — not 
 - Agents must never assume. Ask the owner, or research it first and cite the source.
 
 ## Open decisions
-- **⛔ S0 verification blocked** — `npm install` is denied by the build environment's filesystem broker, so no build/typecheck/lint evidence exists. Options are in `.sps/handoff.md`.
 - **Portal display name + logo** — blocking S2 entry. Placeholder SVG is in place; "Shikkha24" assumed from the domain.
-- **Owner-only S0 gates still open:** `wrangler pages deploy` quota check, DianaHost support ticket (inode/CPU/memory/email/backup limits), DNS for shikkha24.com, Payload-on-cPanel-Passenger smoke test.
+- **Owner-only S0 gates still open:** `wrangler pages deploy` quota check, DianaHost support ticket (inode/CPU/memory/email/backup limits), DNS for shikkha24.com, Payload-on-cPanel-Passenger smoke test, R2 80% usage alert.
 - **`.astro` template type-checking is unavailable** while TypeScript 7 is pinned (`@astrojs/check` rejects TS 7). Revisit when it supports TS 7, or pin TS 6 for the frontend only.
 - **Font budget headroom is thin** — 179.7 KB of the 200 KB ceiling. Any new family or weight needs a budget amendment.
+- **Re-measure the Astro incremental build time once real content volume exists.** The 1s figure came from a 1-page site and should not be used to justify the CI batching strategy on its own.
 - **Monitoring/alerting tool** — not yet selected; must be verified card-free (`docs/reliability.md` §6).
 - Legal details for the E-E-A-T pages (Trade License, TIN, Ministry of Information registration) — owner provides before final deploy.
 - Hands-on audit of the two direct competitors (Dainik Shiksha, Shiksha Sangbad).
