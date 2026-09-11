@@ -129,7 +129,7 @@ Expected DianaHost footprint after this split: **≈400–700 MB**, leaving head
 | **S0 exit** | **DianaHost inode/file-count quota confirmed** — a Next.js install contains tens of thousands of files |
 | **S0 exit** | **SQLite WAL concurrency proven with 5+ concurrent writers** (moved from S12 — this is a foundational decision and must not be validated at the finish line) |
 | **S0 exit** | CI rebuild strategy settled (debounce/batch, or public repo for unlimited minutes) |
-| S1 entry | Education feature inventory exported into `docs/` — **NOT SATISFIED** (the existing inventory is general-news and obsolete) |
+| S1 entry | Education feature inventory **approved by the owner** — draft at `docs/education-feature-inventory.md` (reclassified from the original 87 features + 12 proposed new ones). **Awaiting owner approval.** |
 | S2 entry | Portal display name + logo decided (domain ✅ shikkha24.com) |
 | S6 entry | Bengali search quality tested on a real Bengali corpus |
 | S9 entry | Newsletter sending path confirmed (ESP free tier reachable, or cPanel SMTP fallback accepted) |
@@ -203,14 +203,14 @@ All live-data widgets depend on free public APIs. Provider, rate limit, cost and
 Plan informed by analysis of:
 - **BD news portals (obsolete for this scope):** Prothom Alo, bdnews24, Daily Star, Samakal, Jugantor, Kaler Kantho, Jago News 24, Bangla Tribune, Ittefaq
 - **International portals (obsolete for this scope):** BBC, Guardian, Al Jazeera, CNN, NYT, NHK, NDTV
-- **Required next:** an education-portal competitor set. `docs/competitive-analysis.md` must be redone — its Part 4 is also incomplete (the per-portal international breakdown was truncated from the source session and never recovered).
+- **Education competitor set — DONE 2026-09-11:** `docs/education-competitors.md`. Five groups: dedicated education portals (Dainik Shiksha, Shiksha Sangbad), education sections of general portals, official government portals (educationboardresults.gov.bd, xiclassadmission.gov.bd), third-party SEO aggregators (xiadmission.bd, xiclassbd, eduboardresults.bd), and exam-prep platforms (bcsstudy.com, xam.bd). Key opening identified: the aggregators rank on the highest-intent queries with slow, ad-heavy pages — a fast, zero-CLS, Bengali-first page on the same queries is winnable.
+- **Feature inventory — DRAFTED 2026-09-11, awaiting approval:** `docs/education-feature-inventory.md`
 
 ---
 
 ## Open decisions (block S1 entry)
 
-- [ ] Education feature inventory (requires a discovery round)
-- [ ] Education category tree approval (proposal in `.sps/profile.md`)
-- [ ] Education competitor set
+- [ ] **Approve the education feature inventory** (`docs/education-feature-inventory.md`) — category tree, the 12 proposed `[NEW]` features, whether to keep weather/prayer utilities, whether BCS/job-circular content is in scope
 - [ ] Portal display name and logo
-- [ ] Whether to revise the 45–70/day velocity target now or after hiring
+- [ ] Hands-on audit of the two direct competitors (Dainik Shiksha, Shiksha Sangbad)
+- [ ] Whether to revise the 45–70/day velocity target now that the subject is narrower than general news

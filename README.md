@@ -23,6 +23,8 @@ Production-grade, Bengali-first **education** news portal. Domain: **shikkha24.c
 | `.sps/antigravity-export-prompt.md` | Prompt to recover planning artifacts from the prior Antigravity session |
 | `.sps/third-party-audit-prompt.md` | Prompt for an independent adversarial audit (read-only, no building) |
 | `AGENTS.md` / `GEMINI.md` / `CLAUDE.md` | **Mandatory agent rules** — three synced mirrors, rules 1–13 identical in all three |
+| `docs/education-feature-inventory.md` | ⏳ **PROPOSED — awaiting approval.** Education feature inventory: original 87 features reclassified + 12 new education features |
+| `docs/education-competitors.md` | Education competitor landscape (5 groups) and where Shikkha24 can win |
 | `docs/audit-third-party.md` | Independent adversarial audit of the docs and plans (2026-09-11) + remediation status |
 | `docs/data-sources.md` | Every live-data widget: provider, free-tier terms, rate limit, fallback |
 | `docs/master-plan.md` | ⚠️ **OBSOLETE as a build input** — 87-feature *general-news* inventory. Reference only |
@@ -43,7 +45,7 @@ Production-grade, Bengali-first **education** news portal. Domain: **shikkha24.c
 
 | Gate | Status |
 |---|---|
-| **Education feature inventory** (S1 entry) | ❌ Not satisfied — requires a discovery round |
+| **Education feature inventory approved** (S1 entry) | ⏳ Drafted — `docs/education-feature-inventory.md`, awaiting owner approval |
 | Portal display name + logo (S2 entry) | ⏳ Domain ✅ `shikkha24.com`; name + logo pending |
 | Payload-on-cPanel-Passenger smoke test (S0 exit) | ⏳ Pending |
 | TypeScript 7 toolchain validation (S0 exit) | ⏳ Pending |

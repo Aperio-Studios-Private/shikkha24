@@ -31,9 +31,9 @@
 - [ ] S0 DoD evidence posted → **user approval**
 
 ## S1 — CMS Content Models & RBAC
-- [ ] **GATE: education feature inventory exported into `docs/`** — ❌ **NOT SATISFIED.** The existing inventory (`docs/master-plan.md`) is a general-news inventory and is obsolete for this scope. Requires a discovery round with the owner.
-- [ ] **GATE: education category tree approved** — proposal in `.sps/profile.md`
-- [ ] Collections: Articles, Categories, **Subcategories**, Authors, Tags, Ads, Settings, Polls, Quizzes, FactChecks, Jobs, Comments, LiveBlogs, **Newsletter Subscribers**, **Photo Galleries**, **Pages**
+- [ ] **GATE: education feature inventory approved** — ⏳ **DRAFTED, awaiting owner approval.** See `docs/education-feature-inventory.md` (original 87 features reclassified into retained / re-scoped / descoped, plus 12 proposed `[NEW]` education features)
+- [ ] **GATE: education category tree approved** — proposal in `docs/education-feature-inventory.md` §1 (8 categories)
+- [ ] Collections: Articles, Categories, **Subcategories**, Authors, Tags, Ads, Settings, Polls, Quizzes, FactChecks, Jobs, Comments, LiveBlogs, **Newsletter Subscribers**, **Photo Galleries**, **Pages**, plus the education opportunity collections from the approved inventory (scholarships, admission deadlines, institution directory)
   - *(the four bolded collections were dropped from an earlier revision and restored by the audit — Subcategories is required by the category tree, Newsletter Subscribers by the newsletter decision, Photo Galleries by the gallery feature, Pages by the E-E-A-T pages)*
 - [ ] 5 RBAC roles: Reporter, Section Editor, Editor-in-Chief, Ad Manager, Super Admin
 - [ ] Bengali admin labels

@@ -79,9 +79,10 @@ Derived from the owner's stated pillars. Dynamic and admin-editable.
 
 ## Feature scope
 - ALL features on Day 1 (no phasing — "quality over speed")
-- **The 87-feature general-news inventory in `docs/master-plan.md` is now obsolete.** It was built for a general news portal and covers politics, business, sports, entertainment, cricket scores, DSE tickers, gold prices and commodity prices — none of which belong in an education portal. That document is retained for reference only and must not be used as the feature list.
-- **A new education feature inventory is required.** It cannot be invented by an agent — it requires a discovery round with the owner. Open until that round happens.
-- Content velocity: the owner has elected to keep the 45–70 articles/day target **and plan to hire**. Team size is therefore a launch prerequisite, not a fixed constraint. (Note: the plan's own desk allocation sums to 42–56/day, which must be reconciled with 45–70 during re-planning.)
+- **The 87-feature general-news inventory in `docs/master-plan.md` is obsolete.** It covers politics, business, sports, entertainment, cricket scores, DSE tickers, gold and commodity prices — none of which belong in an education portal. Reference only.
+- **Education feature inventory drafted 2026-09-11:** `docs/education-feature-inventory.md`. Built by reclassifying the original 87 features into retained-unchanged / re-scoped / descoped, plus 12 new education-specific features marked `[NEW]`. **Status: PROPOSAL — awaiting owner approval.** Nothing in it has been invented; every `[NEW]` item is explicitly flagged for a decision.
+- **Education competitor set researched 2026-09-11:** `docs/education-competitors.md`. Direct competitors are Dainik Shiksha and Shiksha Sangbad; the sharpest opening is the third-party SEO aggregators, who rank on the highest-intent queries with slow, ad-heavy pages.
+- Content velocity: the owner has elected to keep the 45–70 articles/day target **and plan to hire**. Team size is therefore a launch prerequisite, not a fixed constraint. (Note: the plan's own desk allocation sums to 42–56/day, which must be reconciled with 45–70 during re-planning — and the desk allocation itself is general-news scope and needs redrawing.)
 
 ## Explicit approvals
 - ✅ Plan approved (2026-09-11T20:41+06:00) — **superseded in scope by the education re-scope below**
@@ -116,8 +117,8 @@ Derived from the owner's stated pillars. Dynamic and admin-editable.
 - ❌ The 87-feature general-news inventory — obsolete after the education re-scope
 
 ## Open decisions (require the owner)
+- [ ] **Approve the education feature inventory** (`docs/education-feature-inventory.md`) — the 8-category tree, the 12 `[NEW]` features, whether weather/prayer utilities stay, whether BCS/job-circular content is in scope
 - [ ] Portal display name confirmation (Shikkha24 / শিক্ষা২৪?) and logo
-- [ ] Education feature inventory — requires a discovery round
-- [ ] Education category tree approval (proposal above)
-- [ ] Education competitor set — the existing `docs/competitive-analysis.md` analyses general news portals and must be redone against education portals
+- [ ] Hands-on audit of the two direct competitors (Dainik Shiksha, Shiksha Sangbad) — page speed, ad density, actual feature set
 - [ ] Whether the 45–70/day velocity target is revised now or after hiring
+- [ ] Whether to publish BCS/job-circular content (high traffic, but adjacent to "education")
