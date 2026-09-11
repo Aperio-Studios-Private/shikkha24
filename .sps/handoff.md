@@ -2,9 +2,9 @@
 
 ## Current Phase
 - **Status:** PRE-BUILD — docs audit complete; agent rules active (13 rules + Antigravity/Gemini hardening); all planning artifacts exported; awaiting user "go" for S0
-- **Last Activity:** 2026-09-11T22:20+06:00
+- **Last Activity:** 2026-09-11T22:36+06:00
 - **Next Action:** on user's "go" signal — build S0 (Foundation & Toolchain), one section at a time with approval gates
-- **User instruction (latest):** "add rule: if I ask to add/modify anything not covered in the docs, agents must update the docs first to keep build ↔ plan consistent; learn Gemini models & Antigravity known problems and rewrite GEMINI.md to avoid those mistakes — do not start building yet"
+- **User instruction (latest):** "learn about Antigravity and Gemini-model mistakes from the COMMUNITY (not just official docs) and strengthen GEMINI.md accordingly"
 
 ## Completed
 1. ✅ Discovery round 1 (project identity, language, type, team, features, monetization, design, hosting, timeline)
@@ -33,6 +33,7 @@
 24. ✅ Artifacts exported from Antigravity to docs/ (master plan, competitive analysis, stack research, original checklist)
 25. ✅ Agent rule 13 (docs consistency / plan ↔ build parity) added to both mirrors; GEMINI.md rewritten with Antigravity/Gemini hardening grounded in documented failure modes (Antigravity drive-wipe Dec 2025; PromptArmor prompt-injection Nov 2025; model/quota "bait and switch" 2026; Gemini CLI issues #15037, #7498, #13677, #6054, #7223); mirrors kept in sync
 26. ✅ All four artifacts verified in repo: `docs/master-plan.md` (25.9 KB, 397 lines — 87 numbered features, 10 innovations; heading says "70+" but rows run to 87, export kept verbatim), `docs/competitive-analysis.md` (46.8 KB), `docs/stack-research.md` (11.1 KB), `docs/task-checklist-original.md` (14.8 KB) — **S1 entry gate satisfied**; original checklist kept for reconciliation only (`.sps/task.md` remains operative)
+27. ✅ Community-research round on Antigravity/Gemini failure modes (HN launch thread 45967814, drive-wipe thread 46103532, gemini-cli issues) — GEMINI.md hardening expanded 9 → 14 countermeasures with community evidence: edits reported but never applied (#25783) + replace-in-file corruption (HN), guessed deletions with false compliance claims (#26856), fabricated user prompts (#29157); community mitigations adopted: sandbox-aware behavior, commit-before-risky-operations
 
 ## Key Decisions Made
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)
