@@ -43,7 +43,7 @@ These are the widgets an education portal actually needs. None has a provider id
 | University / institution directory | **Editorially maintained** collection | Recommended |
 | Study-abroad cost calculator | Local arithmetic + the FX APIs above | No external dependency |
 
-**Recommendation:** treat the education data layer as **editorially curated content in Payload**, not as API integrations. That is more accurate for BD education (no authoritative APIs exist), costs nothing, and keeps the 45–70/day editorial engine as the source of truth.
+**Recommendation:** treat the education data layer as **editorially curated content in Payload**, not as API integrations. That is more accurate for BD education (no authoritative APIs exist) and costs nothing. (Publishing volume is an open decision — see `docs/education-feature-inventory.md` §7.)
 
 ---
 

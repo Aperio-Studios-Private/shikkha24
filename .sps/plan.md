@@ -39,7 +39,7 @@ Positioning (owner's words):
 | Portal type | Education portal | 2026-09-11 |
 | Audio reader | Browser Web Speech API; audio bulletin descoped | 2026-09-11 |
 | Utility widgets | Free public APIs only; descope anything with no free source | 2026-09-11 |
-| Content velocity | Keep 45–70/day and plan to hire | 2026-09-11 |
+| Content velocity | ⚠️ **OPEN** — see Open decisions. (Was "keep 45–70/day and plan to hire", superseded 2026-09-11: 45–70/day implies 15–23 staff but the plan states 5) | — |
 | Portal display name / logo | Open — Shikkha24 assumed from the domain, needs owner confirmation | — |
 | Education feature inventory | **Open — requires a discovery round** | — |
 
@@ -124,16 +124,21 @@ Expected DianaHost footprint after this split: **≈400–700 MB**, leaving head
 | Gate | Condition |
 |------|-----------|
 | **S0 exit** | Payload-on-cPanel-Passenger smoke test passes AND TypeScript 7 toolchain validated with Astro 7 + Payload 3 |
+| **S0 exit** | **Next.js `output: 'standalone'` deploy size measured** — must land ≈300–600 MB to fit the 2 GB host |
 | **S0 exit** | **Cloudflare R2 can be enabled on the owner's account without a payment method** — if not, apply the documented media fallback |
 | **S0 exit** | **DianaHost provides Node.js ≥22.12** (Astro 7 requires it; Payload requires ≥20.9). The vendor publishes no Node version — confirm with DianaHost before building |
 | **S0 exit** | **DianaHost inode/file-count quota confirmed** — a Next.js install contains tens of thousands of files |
 | **S0 exit** | **SQLite WAL concurrency proven with 5+ concurrent writers** (moved from S12 — this is a foundational decision and must not be validated at the finish line) |
 | **S0 exit** | CI rebuild strategy settled (debounce/batch, or public repo for unlimited minutes) |
-| S1 entry | Education feature inventory — ✅ **SATISFIED 2026-09-11.** `docs/education-feature-inventory.md` approved: 8-category tree + cross-cutting level filter, 10 new education features, BCS/job circulars in scope, weather + prayer utilities retained |
-| S2 entry | Portal display name + logo decided (domain ✅ shikkha24.com) |
+| S1 entry | Education feature inventory + category tree — ✅ **SATISFIED 2026-09-11** (`docs/education-feature-inventory.md`) |
+| **S1 entry** | **Publishing velocity / headcount decided** — ⏳ **NOT SATISFIED.** The 45–70/day target implies 15–23 editorial staff; the plan states 5. Options in `docs/education-feature-inventory.md` §7 |
+| S2 entry | Domain ✅ `shikkha24.com` · **portal display name + logo — ⏳ NOT SATISFIED** |
 | S6 entry | Bengali search quality tested on a real Bengali corpus |
-| S9 entry | Newsletter sending path confirmed (ESP free tier reachable, or cPanel SMTP fallback accepted) |
+| S9 entry | Newsletter sending path confirmed (free-tier ESP reachable, or cPanel SMTP fallback accepted) |
+| **S10 entry** | Every remaining data-backed element has a confirmed free provider, or is descoped |
 | Every section exit | Full Definition of Done passes (build, typecheck, lint, performance targets) + explicit user approval |
+
+> **This table is the authoritative gate list.** `.sps/task.md` mirrors it inline per section — if a gate changes, change it in both files in the same commit (rule 13).
 
 ---
 

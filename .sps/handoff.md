@@ -1,7 +1,7 @@
 # SPS Handoff
 
 ## Current Phase
-- **Status:** PRE-BUILD — audit remediated; **education scope fully re-planned and approved**. S1 entry gate is now **SATISFIED**; the only remaining blocker is the publishing-velocity / headcount decision
+- **Status:** PRE-BUILD — audit remediated; **education scope re-planned and approved**. S1 entry gate is **partially satisfied** (inventory ✅, publishing-velocity decision ⏳ — the last remaining blocker)
 - **Last Activity:** 2026-09-11T23:50+06:00
 - **Next Action:** owner decision on publishing velocity (`docs/education-feature-inventory.md` §7). Then S0/S1 may proceed on the owner's "go", subject to the S0 exit gates in `.sps/plan.md`
 - **User instruction (latest):** "which is the best practice chose that" (delegated the category tree and the new-feature set to the agent) + "keep" weather/prayer + BCS/job content in scope + "i dont understand the question" (velocity) — see item 37
@@ -49,7 +49,7 @@
    - **Weather + prayer times: retained** as light header utilities (server-fetched, cached, deferred, zero CLS).
    - **BCS / job-circular content: in scope** — matches Dainik Shiksha's own positioning and is a proven BD traffic engine.
    - **Publishing velocity: still open** — the agent explained in plain language that 45–70/day ÷ 5 staff = 9–14 articles per person per day (3–5× a normal reporter's output), that the plan's own desk breakdown contradicts the target (42–56 vs 45–70), and that education publishing is spiky rather than flat. Recommended a **baseline 15–20/day + burst to 40+ on result/admission days** model; the alternative is hiring to 15–23 editorial staff.
-   - **Downstream effect:** S1, S3, S9 and S10 are now fully re-scoped in `.sps/task.md`; `.sps/content-model.md` gained 8 education collections/taxonomies; the S1 entry gate is **satisfied**.
+   - **Downstream effect:** S1, S3, S9 and S10 are now fully re-scoped in `.sps/task.md`; `.sps/content-model.md` gained 8 education collections/taxonomies. The S1 entry gate is **partially satisfied** — the inventory and category tree are approved; the publishing-velocity decision is still open (see item 37, last bullet).
 
 ## Key Decisions Made
 - **Portal type: education portal** (2026-09-11) — domain `shikkha24.com`; general-news scope retired
@@ -68,7 +68,7 @@
 - Typography: Hind Siliguri (headlines) + Noto Sans Bengali (body) + Inter (English)
 - **Audio reader: Browser Web Speech API; the twice-daily audio bulletin is descoped**
 - **Utility widgets: free public APIs only; descope anything with no free source**
-- **Content velocity: 45–70 articles/day retained, with hiring as a launch prerequisite**
+- **Content velocity: ⚠️ OPEN** — the 45–70/day target was retained on 2026-09-11 but is now reopened: it implies 15–23 editorial staff while the plan states 5. Recommended model: baseline 15–20/day + burst to 40+ on result/admission days
 - Features: ALL features on Day 1 (no phasing) — performance budget enforced **per page template**, not "per feature"
 - Workflow: section-by-section approval gates; zero assumptions; immediate commits; docs consistency (docs updated first when scope changes)
 - Agent rules: mandatory, codified in AGENTS.md / GEMINI.md / CLAUDE.md (rules 1–13 identical in all three; hardening H1–H14 in GEMINI.md only)
@@ -84,7 +84,7 @@
 - [ ] Confirm with DianaHost: Node.js version availability (≥22.12 required) and the inode/file-count quota
 - [ ] Confirm Cloudflare R2 can be enabled without a payment method (S0 exit gate)
 - [ ] Decide the CI rebuild strategy (debounce/batch vs public repo)
-- [ ] Reconcile the 45–70/day velocity target against the plan's own desk allocation (42–56/day) during re-planning
+- [ ] Reconcile the desk allocation with whatever velocity is chosen — the general-news desk split (which sums to 42–56/day) must be redrawn around education desks
 - [ ] Build S0 → S12 (one section at a time, approval-gated)
 - [ ] `.sps/lock.json` intentionally NOT created — the `sps` skill references removing it but defines no schema; inventing one would violate rule 3. The lock is asserted via the three root mirrors. Revisit if the skill defines a schema (see `.sps/mistakes.md`)
 - [ ] Optional: upstream a `workbuddy` host entry into Shahid-Personal-SkillSet (`install.sh` `SYNC_PATHS` + `skills/sps/hosts/workbuddy.md`) so WorkBuddy installs/updates automatically instead of needing the manual re-sync below

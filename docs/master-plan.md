@@ -285,7 +285,7 @@ Dedicated fact-check section: 🔴 মিথ্যা / 🟡 বিভ্রা�
 - **Target: 45-70 articles/day** (minimum to signal a 24/7 newsroom)
 - ⚠️ **Two problems with this target, recorded 2026-09-11:**
   1. **Arithmetic mismatch.** The desk allocation below sums to **42–56/day**, not 45–70. The two figures must be reconciled during re-planning.
-  2. **Team-size mismatch.** With the stated team of 5+ reporters/editors, 45–70/day means **9–14 articles per person per day, seven days a week**. The owner has elected to **keep the target and plan to hire** — team size is therefore a launch prerequisite, not a fixed constraint.
+  2. **Team-size mismatch.** With the stated team of 5+ reporters/editors, 45–70/day means **9–14 articles per person per day, seven days a week** — 3–5× a normal reporter's output. ⚠️ **Updated 2026-09-11:** the target is now **OPEN**, not retained. It was briefly kept with hiring as a prerequisite, then reopened when the arithmetic was examined. Recommended model: baseline 15–20/day + burst to 40+ on result/admission days. See `docs/education-feature-inventory.md` §7.
 - ⚠️ The desk allocation is general-news scope and is obsolete for the education portal. It must be redrawn around education desks.
 - **Desk allocation (general-news, obsolete):**
   - জাতীয় ও রাজনীতি: 14-18/day
