@@ -4,11 +4,18 @@
 # touch GitHub. Publishing fires a webhook and CI turns a publish into static
 # HTML. Full explanation: docs/hosting-and-deployment.md §1.
 #
+# ⚠️ THIS WORKFLOW IS THE VERIFICATION PATH. S0's build/typecheck/lint evidence
+# could not be produced locally — `npm install` is denied by the build
+# environment's filesystem broker (see .sps/handoff.md → "S0 blocker"). The owner
+# elected to defer verification to CI, so this file has never been executed.
+# Expect to iterate on it during the first run.
+#
 # CI-MINUTES BUDGET (agent rule 7 + docs/hosting-and-deployment.md §2):
 # the repository is private, so GitHub Actions is capped at 2,000 minutes/month.
-# Cloudflare Pages is capped at 500 builds/month — the tighter of the two. This
-# workflow therefore runs on pull requests and on `main`, and NEVER per publish.
-# Publish-triggered rebuilds are adaptively batched (see the deploy workflow).
+# Cloudflare Pages is capped at 500 builds/month — the tighter of the two. So:
+#   - this runs on pull requests and on `main`, NEVER per publish
+#   - everything runs in ONE job so the install happens once, not three times
+#   - publish-triggered rebuilds are adaptively batched (separate deploy workflow)
 #
 # Node 24 per .sps/plan.md. Astro 7 / Vite 8 cannot run on DianaHost's Node
 # 20.18.2, so this is the ONLY place the frontend is ever built.
@@ -19,7 +26,6 @@ on:
   push:
     branches: [main]
   pull_request:
-  # Manual escape hatch — do not schedule this, it would burn the minute budget.
   workflow_dispatch:
 
 concurrency:
@@ -30,9 +36,11 @@ permissions:
   contents: read
 
 jobs:
-  frontend:
-    name: Frontend — typecheck, lint, build
+  verify:
+    name: Verify
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
     steps:
       - uses: actions/checkout@v4
 
@@ -41,70 +49,91 @@ jobs:
           node-version: 24
           cache: npm
 
+      # `npm ci` needs a committed lockfile. The lockfile could not be generated
+      # locally (the install was blocked), so on the first run this falls back to
+      # `npm install` and warns loudly. `docs/security.md` §9 requires a
+      # committed lockfile, so commit the generated one and this warning goes away.
       - name: Install dependencies
-        run: npm ci
-
-      - name: Typecheck
-        run: npm run typecheck -w frontend
-
-      - name: Lint
-        run: npm run lint -w frontend
-
-      - name: Build
-        run: npm run build -w frontend
-
-      - name: Byte budget — initial payload
-        # Enforces docs/performance-budget.md §3. The 1.2 MB target is a
-        # page-level measurement, so this is a coarse build-output guard, not a
-        # substitute for the Lighthouse CI gate below.
         run: |
           set -euo pipefail
-          total=$(du -sk frontend/dist | cut -f1)
-          echo "frontend/dist = ${total} KB"
-          if [ "$total" -gt 12288 ]; then
-            echo "::error::frontend/dist exceeds the 1.2 MB initial-payload budget"
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "::warning::package-lock.json is missing — falling back to 'npm install'. Commit the generated lockfile (docs/security.md §9) to restore reproducible installs."
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Lint
+        # One Biome invocation over the whole repo — biome.json lives at the root
+        # and its `files.includes` patterns are resolved relative to it.
+        run: npm run lint
+
+      # ── Frontend ────────────────────────────────────────────────────────────
+      - name: Astro sync (generate content + env types)
+        # `astro sync` writes .astro/types.d.ts, which tsconfig.json includes.
+        # Running it first stops the typecheck failing on missing generated types.
+        run: npm run astro -w frontend -- sync
+
+      - name: Typecheck (frontend)
+        # `tsc --noEmit`, not `astro check`: @astrojs/check rejects TypeScript 7
+        # (peer range ^5 || ^6). Consequence: .astro templates are NOT
+        # type-checked. See .sps/handoff.md item 41.
+        run: npm run typecheck -w frontend
+
+      - name: Build (frontend)
+        run: npm run build -w frontend
+
+      - name: Byte budget — build output
+        # Coarse guard for docs/performance-budget.md §3. The real 1.2 MB target is
+        # a per-page measurement and belongs to Lighthouse CI (wired at S3+, when
+        # real page templates exist — asserting it against the S0 placeholder
+        # would prove nothing).
+        run: |
+          set -euo pipefail
+          kb=$(du -sk frontend/dist | cut -f1)
+          echo "frontend/dist = ${kb} KB"
+          if [ "$kb" -gt 12288 ]; then
+            echo "::error::frontend/dist exceeds the 1.2 MB budget"
             exit 1
           fi
 
-      - name: Upload build output
+      - name: Upload frontend build output
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
           path: frontend/dist
           retention-days: 7
 
-  cms:
-    name: CMS — typecheck, lint, build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      # ── CMS ─────────────────────────────────────────────────────────────────
+      - name: Generate Payload types and import map
+        # Both are build inputs that are git-ignored. Regenerating them in CI keeps
+        # the committed schema as the single source of truth.
+        run: |
+          set -euo pipefail
+          npm run generate:types -w cms
+          npm run generate:importmap -w cms
+        env:
+          PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
+          DATABASE_URI: file:./data/ci.db
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Typecheck
-        run: npm run typecheck -w cms
-
-      - name: Lint
-        run: npm run lint -w cms
-
-      - name: Build (standalone)
+      - name: Build (CMS, standalone)
+        # `next build` performs its own type checking, so a type error fails here.
         run: npm run build -w cms
         env:
           PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
           DATABASE_URI: file:./data/ci.db
+
+      - name: Typecheck (CMS)
+        # Runs AFTER the build on purpose: `next build` writes .next/types, which
+        # tsconfig.json includes. Running this first would fail on missing files.
+        run: npm run typecheck -w cms
 
       - name: Measure standalone deploy size
         # S0 gate: must land ≈300–600 MB to fit the 2 GB DianaHost plan.
         run: |
           set -euo pipefail
           if [ ! -d cms/.next/standalone ]; then
-            echo "::error::Next.js standalone output missing — check output:'standalone'"
+            echo "::error::Next.js standalone output missing — check output:'standalone' in cms/next.config.ts"
             exit 1
           fi
           mb=$(du -sm cms/.next/standalone | cut -f1)
@@ -114,31 +143,12 @@ jobs:
             exit 1
           fi
 
-  # ── Quality gates ──────────────────────────────────────────────────────────
-  # Defined in docs/testing-and-qa.md §1 and docs/performance-budget.md §6.
-  # These run inside the debounced build, never per publish.
-  quality-gates:
-    name: Quality gates
-    runs-on: ubuntu-latest
-    needs: [frontend]
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
+      # ── Supply chain ────────────────────────────────────────────────────────
       - name: Dependency audit
         # Policy: docs/security.md §9 — high and critical block the build.
         run: npm audit --audit-level=high
 
-      - name: Build frontend for audits
-        run: npm run build -w frontend
-
-      # Lighthouse CI, broken-link check and JSON-LD validation are wired at the
-      # point where real page templates exist (S3+). Running them against the S0
-      # placeholder would assert nothing meaningful. See .sps/handoff.md.
+      # ── Deliberately not yet wired ──────────────────────────────────────────
+      # Lighthouse CI, broken-link check and JSON-LD validation need real page
+      # templates. They are wired at S3+ per docs/testing-and-qa.md §1. Running
+      # them against the S0 placeholder would assert nothing.

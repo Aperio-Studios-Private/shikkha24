@@ -19,7 +19,8 @@
     "build:frontend": "npm run build -w frontend",
     "build:cms": "npm run build -w cms",
     "typecheck": "npm run typecheck -w frontend && npm run typecheck -w cms",
-    "lint": "npm run lint -w frontend && npm run lint -w cms",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
     "test": "npm run test -w cms",
     "verify": "npm run typecheck && npm run lint && npm run build",
     "audit:ci": "npm audit --audit-level=high"

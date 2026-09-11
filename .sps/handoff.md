@@ -3,8 +3,8 @@
 ## Current Phase
 - **Status:** S0 IN PROGRESS — foundation built, **verification BLOCKED** (see "S0 blocker" below)
 - **Last Activity:** 2026-09-12T02:45+06:00
-- **Next Action:** unblock `npm install`, then run build + typecheck + lint and measure the three measurable S0 gates
-- **User instruction (latest):** "read plans very carefully and then start building" — S0 foundation executed
+- **Next Action:** push and let `.github/workflows/ci.yml` produce the first verification evidence; commit the generated `package-lock.json`; then measure Astro incremental build time and prove SQLite WAL concurrency
+- **User instruction (latest):** "read plans very carefully and then start building" → then chose **"defer verification to CI"** for the npm-install blocker
 
 ## ⛔ S0 blocker — `npm install` cannot run in the build environment
 
@@ -36,12 +36,27 @@ including `astro` and `@payloadcms`) was created before the first denial.
 **Consequence.** No build, typecheck or lint has been run. **No S0 DoD evidence
 exists yet.** The commit `aa1afe6` is explicitly labelled unverified scaffolding.
 
-**Options for the owner** (not acted on — this is a security control):
-1. Run `npm install` manually in a normal terminal, then I continue verification.
-2. Authorise running the install with `CODEBUDDY_BROKERED_FS_HOOK_ENABLED=0` for
-   that single command, which disables the fs broker.
-3. Accept CI-only verification: the architecture already builds both workspaces in
-   CI (`.github/workflows/ci.yml`), so verification happens on first push.
+**Owner decision (2026-09-12): option 3 — defer verification to CI.** No bypass
+was applied. Consequences to be aware of on the first push:
+
+- **`package-lock.json` does not exist.** `npm ci` requires one, so the CI install
+  step falls back to `npm install` with a loud warning. `docs/security.md` §9
+  requires a committed lockfile — commit the generated one to restore
+  reproducible installs.
+- **The workflow has never been executed.** It is written defensively (Astro
+  `sync` before frontend typecheck; CMS typecheck *after* `next build` so
+  `.next/types` exists), but expect to iterate on it during the first run.
+- Lighthouse CI, the broken-link check and JSON-LD validation are deliberately
+  not wired yet — they need real page templates (S3+).
+- The three measurable S0 gates (**Astro incremental build time**, **Next
+  standalone deploy size**, **SQLite WAL 5-writer concurrency**) will produce
+  their first real numbers from that run. The standalone-size check is asserted
+  in CI (≤700 MB); build time and WAL concurrency still need a manual measurement
+  afterwards.
+
+The three options considered were: (1) the owner runs `npm install` manually;
+(2) run the install with `CODEBUDDY_BROKERED_FS_HOOK_ENABLED=0` to disable the fs
+broker; (3) accept CI-only verification.
 
 ## S0 progress — built vs. blocked
 
