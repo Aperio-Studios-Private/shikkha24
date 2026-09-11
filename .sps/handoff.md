@@ -1,10 +1,64 @@
 # SPS Handoff
 
 ## Current Phase
-- **Status:** S0 IN PROGRESS — owner said "go" on 2026-09-12T02:02+06:00
-- **Last Activity:** 2026-09-12T02:02+06:00
-- **Next Action:** S0 tasks — monorepo structure, Astro 7.3 init, Payload CMS 3.89 init, toolchain validation
-- **User instruction (latest):** "can we start building ?" — S0 started
+- **Status:** S0 IN PROGRESS — foundation built, **verification BLOCKED** (see "S0 blocker" below)
+- **Last Activity:** 2026-09-12T02:45+06:00
+- **Next Action:** unblock `npm install`, then run build + typecheck + lint and measure the three measurable S0 gates
+- **User instruction (latest):** "read plans very carefully and then start building" — S0 foundation executed
+
+## ⛔ S0 blocker — `npm install` cannot run in the build environment
+
+**Symptom.** Every `npm install` fails with:
+
+```
+npm error code CODEBUDDY_BROKER_DENY
+npm error Brokered host mkdir requires an available runtime file rule
+```
+
+**Diagnosis (evidence, not a guess).** The host injects a filesystem broker via
+`NODE_OPTIONS=--require=".../node-language-shim.cjs"`, activated by
+`CODEBUDDY_BROKERED_FS_HOOK_ENABLED=1`. The broker intercepts `fs.mkdir` and asks
+the host for permission; the host answers with an error instead of falling back,
+and `node-brokered-fs-shim.cjs:717` (`wrappedPromisesMkdir`) rethrows it. Verified:
+
+| Probe | Result |
+|---|---|
+| `fs.mkdirSync` in the workspace, `/tmp`, `~/.npm`, and under `node_modules` | ✅ all succeed |
+| `fs.promises.mkdir` under `node_modules` | ✅ succeeds |
+| `npm install` (any package, any directory, repeated 5×) | ❌ denied every time |
+| `dangerouslyDisableSandbox: true` | ❌ does **not** remove the broker env vars |
+| `TMPDIR` pointed inside the workspace | ❌ no effect |
+
+Dependency **resolution** succeeds (the npm debug log shows the full `placeDep`
+tree); only physical extraction is denied. A partial `node_modules` (195 entries
+including `astro` and `@payloadcms`) was created before the first denial.
+
+**Consequence.** No build, typecheck or lint has been run. **No S0 DoD evidence
+exists yet.** The commit `aa1afe6` is explicitly labelled unverified scaffolding.
+
+**Options for the owner** (not acted on — this is a security control):
+1. Run `npm install` manually in a normal terminal, then I continue verification.
+2. Authorise running the install with `CODEBUDDY_BROKERED_FS_HOOK_ENABLED=0` for
+   that single command, which disables the fs broker.
+3. Accept CI-only verification: the architecture already builds both workspaces in
+   CI (`.github/workflows/ci.yml`), so verification happens on first push.
+
+## S0 progress — built vs. blocked
+
+**Built and committed (`aa1afe6`):** monorepo (`frontend/` + `cms/`, npm
+workspaces), Astro 7.3.2 + Tailwind 4.3.3 + TS 7.0.2 frontend, Payload 3.89.0 +
+Next 16.3.5 + SQLite CMS, Bengali font pipeline, feature-flag mechanisms,
+Cloudflare `_headers`, CI skeleton, Dependabot, daily backup workflow, `.env`
+templates, `.sps/section-todos/S0.md`.
+
+**Measured and PASSING:** the font budget — **179.7 KB / 200 KB**.
+
+**Blocked pending install:** Astro build, Payload build + reachable admin,
+typecheck, lint, Astro incremental build time, Next standalone deploy size,
+SQLite WAL 5-writer concurrency, CI workflow validation.
+
+**Owner-only gates (cannot be done by an agent):** Payload-on-cPanel-Passenger
+smoke test, `wrangler pages deploy` quota check, DianaHost support ticket, DNS.
 
 ## Completed
 1. ✅ Discovery round 1 (project identity, language, type, team, features, monetization, design, hosting, timeline)
@@ -70,7 +124,14 @@
    - **Corrected an earlier overstatement of mine:** I had said one-build-per-publish would blow the CI quota. That is only true if builds take minutes. At ~30s incremental, 600–900 publishes/month costs ~450 minutes and fits comfortably. **The deciding number is the measured incremental build time — now an S0 gate.**
 40. ✅ **Project presentation deck created** (2026-09-12) — `docs/presentation-deck.html`. 18-slide mobile-first HTML deck for team/board approval covering: vision, market gap, audience, 8-category tree, platform features, 10 new education features, tech stack, architecture, S0–S12 roadmap, 12-week timeline, performance targets, competitive advantage, monetization, team/content model, zero-recurring-cost budget, risk register, and approval request. Smooth scroll, keyboard navigation, progress bar, navigation dots. Bengali + English mixed for BD audience.
 
-## Key Decisions Made
+41. ✅ **S0 foundation built** (2026-09-12, commit `aa1afe6`) — monorepo + both scaffolds + toolchain. Four findings worth not re-researching:
+    - **All eight pinned versions verified against the live npm registry** and matched exactly (astro 7.3.2, payload 3.89.0, tailwindcss 4.3.3, typescript 7.0.2, vite 8.3.0, pagefind 1.5.2, next 16.3.5 in range, @payloadcms/next 3.89.0). The plan's Next.js peer-range correction is confirmed: `@payloadcms/next@3.89.0` really does require `>=16.2.6 <17.0.0`.
+    - **`react` must be 19.2.x.** `@payloadcms/ui@3.89.0` and `@payloadcms/richtext-lexical@3.89.0` pin `react` to `^19.0.1 || ^19.1.2 || ^19.2.1`. The registry's latest (19.3.0) is **not permitted**. Pinned 19.2.6. Likewise `graphql` must stay on 16.x (`^16.8.1`), so 16.14.2 — not the 17.0.2 latest.
+    - **S0 gate "TypeScript 7 toolchain validated" → TS 7 works, its surrounding tooling does not.** `@astrojs/check@0.9.10` (latest) peer-requires `typescript ^5 || ^6` and **rejects TS 7**, so `astro check` is unavailable — typecheck runs via `tsc --noEmit`, which means **`.astro` templates are not type-checked**. `typescript-eslint@8.70.0` caps at `typescript <6.1.0`, so ESLint cannot run on TS 7 either. Chose **Biome 2.5.13** instead: own parser, no TS-version coupling, MIT/Apache-2.0. `typescript@7.0.2` ships `bin/tsc` plus 20 platform-native binaries, confirming the plan's native-toolchain claim.
+    - **Bengali font budget solved, with two non-obvious gotchas.** `scripts/fetch-fonts.mjs` self-hosts and subsets. (a) Requesting `wght@400;700` in ONE css2 call returns a **105 KB variable file** for Noto Sans Bengali's bengali subset; requesting each weight separately returns **43 KB static instances** — same glyphs, less than half the bytes. (b) Google emits the `/* subset */` label **before** each `@font-face` block, so parsing the comment and the block separately shifts every label by one and silently drops the bold Bengali files. Inter is dropped for a system UI stack (its variable file alone is 83 KB/weight) per `docs/performance-budget.md` §3. **Measured 179.7 KB against the 200 KB budget.**
+    - **`sps-cms` reconciliation recorded** in `.sps/section-todos/S0.md`: the skill mandates a bespoke visual-builder CMS, but the approved plan mandates Payload CMS 3. Applied as *principles* inside Payload (100% admin-controllable surface, global settings, media security, round-trip proof) rather than as a replacement engine — replacing it would be plan drift (rule 13).
+
+
 - **Portal type: education portal** (2026-09-11) — domain `shikkha24.com`; general-news scope retired
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)
 - **Next.js pinned to 16.2.6+** (corrected by the audit)
