@@ -30,6 +30,7 @@
 21. ✅ Git repo initialized — baseline + audit commits; immediate-commit rule active
 22. ✅ Antigravity export prompt created (`.sps/antigravity-export-prompt.md`)
 23. ✅ README.md created
+24. ✅ Artifacts exported from Antigravity to docs/ (master plan, competitive analysis, stack research, original checklist)
 
 ## Key Decisions Made
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)
@@ -49,9 +50,9 @@
 - Agent rules: mandatory, codified in AGENTS.md / GEMINI.md
 
 ## Pending
-- [ ] Run Antigravity export prompt → `docs/` (master plan, competitive analysis, stack research)
 - [ ] Portal name decision
 - [ ] Logo creation
 - [ ] Domain purchase
 - [ ] DianaHost plan purchase
 - [ ] Build S0 → S12 (one section at a time, approval-gated)
+
