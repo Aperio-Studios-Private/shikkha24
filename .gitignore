@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.astro/
+
+# Environment & secrets — never commit real keys
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+
+# Logs
+*.log
