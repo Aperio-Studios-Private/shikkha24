@@ -68,6 +68,7 @@
    - **Logo:** placeholder SVG created at `docs/assets/logo-placeholder.svg`, and the logo is a **CMS-managed Site Settings field** so the real asset swaps in without a code change.
    - Domain **registered** (DNS to follow); legal details for E-E-A-T pages promised **before final deploy**.
    - **Corrected an earlier overstatement of mine:** I had said one-build-per-publish would blow the CI quota. That is only true if builds take minutes. At ~30s incremental, 600–900 publishes/month costs ~450 minutes and fits comfortably. **The deciding number is the measured incremental build time — now an S0 gate.**
+40. ✅ **Project presentation deck created** (2026-09-12) — `docs/presentation-deck.html`. 18-slide mobile-first HTML deck for team/board approval covering: vision, market gap, audience, 8-category tree, platform features, 10 new education features, tech stack, architecture, S0–S12 roadmap, 12-week timeline, performance targets, competitive advantage, monetization, team/content model, zero-recurring-cost budget, risk register, and approval request. Smooth scroll, keyboard navigation, progress bar, navigation dots. Bengali + English mixed for BD audience.
 
 ## Key Decisions Made
 - **Portal type: education portal** (2026-09-11) — domain `shikkha24.com`; general-news scope retired
