@@ -1,10 +1,10 @@
 # SPS Handoff
 
 ## Current Phase
-- **Status:** PRE-BUILD — audit remediated; education re-scope drafted. S1 gate now **awaiting owner approval** of the education feature inventory rather than blocked on missing research
-- **Last Activity:** 2026-09-11T23:40+06:00
-- **Next Action:** owner review of `docs/education-feature-inventory.md` (8-category tree, 12 proposed `[NEW]` features, weather/prayer utility question, BCS-scope question). On approval → fold into `.sps/plan.md`, rewrite `.sps/task.md` per section, clear the S1 entry gate. S0 may proceed independently once the owner says "go", subject to the S0 exit gates.
-- **User instruction (latest):** "Please continue with the task." — education competitor research + feature inventory drafted (items 35, 36)
+- **Status:** PRE-BUILD — audit remediated; **education scope fully re-planned and approved**. S1 entry gate is now **SATISFIED**; the only remaining blocker is the publishing-velocity / headcount decision
+- **Last Activity:** 2026-09-11T23:50+06:00
+- **Next Action:** owner decision on publishing velocity (`docs/education-feature-inventory.md` §7). Then S0/S1 may proceed on the owner's "go", subject to the S0 exit gates in `.sps/plan.md`
+- **User instruction (latest):** "which is the best practice chose that" (delegated the category tree and the new-feature set to the agent) + "keep" weather/prayer + BCS/job content in scope + "i dont understand the question" (velocity) — see item 37
 
 ## Completed
 1. ✅ Discovery round 1 (project identity, language, type, team, features, monetization, design, hosting, timeline)
@@ -42,7 +42,14 @@
 33. ✅ **Agent rules amended and a third mirror added** — `CLAUDE.md` created; rules 1–13 verified byte-identical across all three files (4,283 bytes each); rule 4 gained a read-only/audit carve-out; rule 7 gained the no-international-card hard constraint; rule 9 gained page-level wording, an accessibility target and the S12-only TTFB gate; GEMINI.md hardening renumbered H1–H14.
 34. ✅ New documents created: `docs/data-sources.md` (per-widget provider, free-tier terms, rate limit, fallback), `.sps/content-model.md`, `.sps/mistakes.md`, `.sps/lock.json` — ⚠️ correction: `.sps/lock.json` was **deliberately NOT created**; the `sps` skill references removing it but defines no schema (see `.sps/mistakes.md`).
 35. ✅ **Education competitor landscape researched** (2026-09-11) — `docs/education-competitors.md`. Five groups mapped with URLs: dedicated education portals (Dainik Shiksha, Shiksha Sangbad — the direct competitors), education sections of general portals, official government portals (educationboardresults.gov.bd, xiclassadmission.gov.bd), third-party SEO aggregators (xiadmission.bd, xiclass.bd, eduboardresults.bd, sscresult.govt.bd), and exam-prep platforms (bcsstudy.com, xam.bd, bdjobprep.com). Key finding: the aggregators rank on the highest-intent queries with slow, ad-heavy pages — the same "faster, cleaner, zero-CLS" wedge the original research identified against Prothom Alo, applied to a market with much weaker incumbents.
-36. ✅ **Education feature inventory drafted** (2026-09-11) — `docs/education-feature-inventory.md`, status **PROPOSAL awaiting approval**. Built by reclassifying the original 87 approved features into retained-unchanged / re-scoped / descoped, plus **12 new education features marked `[NEW]`**. Nothing was invented: every new item is explicitly flagged for an owner decision. Also proposes the 8-category education tree and notes that S10 shrinks in technical risk because most education "widgets" are editorially curated rather than API-driven.
+36. ✅ **Education feature inventory drafted** (2026-09-11) — `docs/education-feature-inventory.md`. Built by reclassifying the original 87 approved features into retained-unchanged / re-scoped / descoped, plus 12 new education features marked `[NEW]`. Nothing was invented.
+37. ✅ **Education feature inventory APPROVED** (2026-09-11) — owner delegated the two structural choices to the agent and answered three directly:
+   - **Category tree: 8 categories + a cross-cutting level filter.** The agent rejected splitting out স্কুল-কলেজ because it is an audience segment, not a topic — as a top-level category it would overlap শিক্ষা সংবাদ, ভর্তি and পরীক্ষা ও ফলাফল simultaneously and split SEO authority. Level (প্রাথমিক → স্নাতকোত্তর) and District become filter axes instead.
+   - **New features: all 10 for Day 1** (12 proposed; N2+N9 merged into "Academic calendar & deadlines", N3+N7 merged into "Results & merit lists hub" to stop the portal competing with itself for the same query). Two ship with a curated starter dataset rather than empty: institution directory, study-abroad guides (8 destinations).
+   - **Weather + prayer times: retained** as light header utilities (server-fetched, cached, deferred, zero CLS).
+   - **BCS / job-circular content: in scope** — matches Dainik Shiksha's own positioning and is a proven BD traffic engine.
+   - **Publishing velocity: still open** — the agent explained in plain language that 45–70/day ÷ 5 staff = 9–14 articles per person per day (3–5× a normal reporter's output), that the plan's own desk breakdown contradicts the target (42–56 vs 45–70), and that education publishing is spiky rather than flat. Recommended a **baseline 15–20/day + burst to 40+ on result/admission days** model; the alternative is hiring to 15–23 editorial staff.
+   - **Downstream effect:** S1, S3, S9 and S10 are now fully re-scoped in `.sps/task.md`; `.sps/content-model.md` gained 8 education collections/taxonomies; the S1 entry gate is **satisfied**.
 
 ## Key Decisions Made
 - **Portal type: education portal** (2026-09-11) — domain `shikkha24.com`; general-news scope retired
@@ -67,9 +74,11 @@
 - Agent rules: mandatory, codified in AGENTS.md / GEMINI.md / CLAUDE.md (rules 1–13 identical in all three; hardening H1–H14 in GEMINI.md only)
 
 ## Pending
-- [ ] **Owner approval of `docs/education-feature-inventory.md`** (blocks S1 entry) — category tree, the 12 `[NEW]` features, weather/prayer utility question, BCS-scope question, velocity revision
+- [ ] **Publishing velocity / headcount decision** — the only remaining blocker. See `docs/education-feature-inventory.md` §7
 - [ ] Hands-on audit of the two direct competitors (Dainik Shiksha, Shiksha Sangbad) — page speed, ad density, real feature set
 - [ ] Portal display name confirmation (Shikkha24 / শিক্ষা২৪?) and logo creation (blocks S2 entry)
+- [x] ~~Education feature inventory + category tree approved~~ — ✅ 2026-09-11
+- [x] ~~Education competitor set~~ — ✅ 2026-09-11
 - [x] Domain purchase — ✅ `shikkha24.com` (reachability not verified from the audit environment)
 - [x] DianaHost plan purchase — ✅ PNR 2 GB SSD NVMe
 - [ ] Confirm with DianaHost: Node.js version availability (≥22.12 required) and the inode/file-count quota

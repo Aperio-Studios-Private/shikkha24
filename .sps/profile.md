@@ -63,26 +63,27 @@
 - Ad Manager: Ad units and campaigns only
 - Super Admin: Full access
 
-## Categories (PROPOSED — requires owner approval)
-Derived from the owner's stated pillars. Dynamic and admin-editable.
+## Categories — APPROVED 2026-09-11
+Dynamic and admin-editable. Full detail in `docs/education-feature-inventory.md`.
 
-- শিক্ষা সংবাদ (Education News)
-- বৃত্তি ও স্কলারশিপ (Scholarship)
-- ভর্তি (Admission)
-- বিশ্ববিদ্যালয় (University)
-- উচ্চশিক্ষা (Higher Study)
-- বিদেশে পড়াশোনা (Study Abroad) — from "দেশ-বিদেশের"
-- পরীক্ষা ও ফলাফল (Exams & Results)
-- চাকরি ও ক্যারিয়ার (Jobs & Career)
+**Top-level (8):** শিক্ষা সংবাদ · বৃত্তি ও স্কলারশিপ · ভর্তি · বিশ্ববিদ্যালয় · উচ্চশিক্ষা · বিদেশে পড়াশোনা · পরীক্ষা ও ফলাফল · চাকরি ও ক্যারিয়ার
+
+**Cross-cutting filter axes (separate from categories):**
+- **Level:** প্রাথমিক · মাধ্যমিক · উচ্চ মাধ্যমিক · স্নাতক · স্নাতকোত্তর
+- **District:** 64 districts (আমার জেলা)
+
+**Why no স্কুল-কলেজ category:** it is an audience segment, not a topic. Top-level placement would overlap শিক্ষা সংবাদ, ভর্তি and পরীক্ষা ও ফলাফল simultaneously, split internal linking, and put two of the portal's own pages in competition for the same query. School/college readers are served by the **level filter** across the whole site; a dedicated hub page, if wanted, is a special section built on that filter.
 
 **Out of scope (from the superseded general-news plan):** রাজনীতি, ব্যবসা-বাণিজ্য, খেলাধুলা, বিনোদন, প্রযুক্তি, আন্তর্জাতিক, লাইফস্টাইল, মতামত, স্বাস্থ্য, সত্যতা যাচাই.
+
+**Retained as light header utilities:** weather (Open-Meteo) and prayer times + Hijri date (Aladhan) — owner decision 2026-09-11. Server-side fetched, cached, deferred, zero CLS.
 
 ## Feature scope
 - ALL features on Day 1 (no phasing — "quality over speed")
 - **The 87-feature general-news inventory in `docs/master-plan.md` is obsolete.** It covers politics, business, sports, entertainment, cricket scores, DSE tickers, gold and commodity prices — none of which belong in an education portal. Reference only.
-- **Education feature inventory drafted 2026-09-11:** `docs/education-feature-inventory.md`. Built by reclassifying the original 87 features into retained-unchanged / re-scoped / descoped, plus 12 new education-specific features marked `[NEW]`. **Status: PROPOSAL — awaiting owner approval.** Nothing in it has been invented; every `[NEW]` item is explicitly flagged for a decision.
-- **Education competitor set researched 2026-09-11:** `docs/education-competitors.md`. Direct competitors are Dainik Shiksha and Shiksha Sangbad; the sharpest opening is the third-party SEO aggregators, who rank on the highest-intent queries with slow, ad-heavy pages.
-- Content velocity: the owner has elected to keep the 45–70 articles/day target **and plan to hire**. Team size is therefore a launch prerequisite, not a fixed constraint. (Note: the plan's own desk allocation sums to 42–56/day, which must be reconciled with 45–70 during re-planning — and the desk allocation itself is general-news scope and needs redrawing.)
+- **Education feature inventory — ✅ APPROVED 2026-09-11:** `docs/education-feature-inventory.md`. Built by reclassifying the original 87 features into retained-unchanged / re-scoped / descoped, plus **10 new education-specific features** (12 proposed, 2 pairs merged to avoid self-cannibalisation). Two of the ten ship with a curated starter dataset rather than empty (institution directory; study-abroad guides). Nothing was invented — every new item is now an approved decision with recorded rationale.
+- **Education competitor set — ✅ researched 2026-09-11:** `docs/education-competitors.md`. Direct competitors are Dainik Shiksha and Shiksha Sangbad; the sharpest opening is the third-party SEO aggregators, who rank on the highest-intent queries with slow, ad-heavy pages.
+- Content velocity: **still open.** The 45–70/day target implies **15–23 editorial staff**, but the plan states 5 people — at 2–4 articles/person/day, 5 people realistically produce 15–20/day. Education publishing is also **spiky, not flat** (result days and admission days are bursts). Recommended: **baseline 15–20/day + burst to 40+ on event days**. Options in `docs/education-feature-inventory.md` §7.
 
 ## Explicit approvals
 - ✅ Plan approved (2026-09-11T20:41+06:00) — **superseded in scope by the education re-scope below**
@@ -101,7 +102,8 @@ Derived from the owner's stated pillars. Dynamic and admin-editable.
 - ✅ **Newsletter: self-built Payload list + free-tier ESP delivery; cPanel SMTP as fallback** (2026-09-11) — supersedes the Listmonk decision
 - ✅ **Audio reader: Browser Web Speech API; audio bulletin descoped** (2026-09-11)
 - ✅ **Utility widgets: free public APIs only; descope anything with no free source** (2026-09-11)
-- ✅ **Content velocity: keep 45–70/day and plan to hire** (2026-09-11)
+- ✅ **Content velocity: keep 45–70/day and plan to hire** (2026-09-11) — ⚠️ superseded 2026-09-11: the target is now **open** pending the headcount decision (see Feature scope)
+- ✅ **Education feature inventory approved** (2026-09-11) — 8-category tree + cross-cutting level filter; 10 new education features; BCS/job-circular content in scope; weather + prayer utilities retained as light header utilities; স্কুল-কলেজ handled as a level filter rather than a category
 - ✅ **Delete the superseded Strapi root plan** (2026-09-11)
 
 ## Explicit rejections
@@ -117,8 +119,11 @@ Derived from the owner's stated pillars. Dynamic and admin-editable.
 - ❌ The 87-feature general-news inventory — obsolete after the education re-scope
 
 ## Open decisions (require the owner)
-- [ ] **Approve the education feature inventory** (`docs/education-feature-inventory.md`) — the 8-category tree, the 12 `[NEW]` features, whether weather/prayer utilities stay, whether BCS/job-circular content is in scope
-- [ ] Portal display name confirmation (Shikkha24 / শিক্ষা২৪?) and logo
+- [ ] **Publishing velocity / headcount** — the only remaining blocker for S1. 45–70/day needs 15–23 staff; the plan says 5. Recommended: baseline 15–20/day + burst to 40+. Options in `docs/education-feature-inventory.md` §7
+- [ ] Portal display name confirmation (Shikkha24 / শিক্ষা২৪?) and logo — blocks S2 entry
 - [ ] Hands-on audit of the two direct competitors (Dainik Shiksha, Shiksha Sangbad) — page speed, ad density, actual feature set
-- [ ] Whether the 45–70/day velocity target is revised now or after hiring
-- [ ] Whether to publish BCS/job-circular content (high traffic, but adjacent to "education")
+- [x] ~~Education feature inventory~~ — ✅ approved 2026-09-11
+- [x] ~~Education category tree~~ — ✅ approved 2026-09-11
+- [x] ~~Education competitor set~~ — ✅ researched 2026-09-11
+- [x] ~~BCS/job-circular content in scope?~~ — ✅ yes
+- [x] ~~Weather + prayer utilities?~~ — ✅ retained

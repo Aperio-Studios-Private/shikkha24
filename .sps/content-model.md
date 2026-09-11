@@ -58,6 +58,45 @@ title · slug · body
 
 ---
 
+## Education collections (added 2026-09-11 — approved inventory)
+
+These are the data models behind the ten new education features in `docs/education-feature-inventory.md` §4. **Most are editorially curated, not API-fed** — which is why S10's technical risk dropped.
+
+### Scholarships
+title · provider · level (relation: Level) · country · funding_type (enum: full / partial / tuition) · amount · deadline (date) · eligibility · apply_url · description · is_international · is_active
+*(backs N1 scholarship tracker — deadline-sorted, filterable by level/country/funding)*
+
+### Deadlines / Academic Calendar
+title · type (enum: admission / result / exam_routine / scholarship_deadline / holiday / circular) · date_start · date_end · level (relation) · district (optional relation) · description · related_article (optional relation)
+*(backs N2 academic calendar and N5 exam routine hub — one dated-events model serves both)*
+
+### Institutions
+name_bn · name_en · slug · type (enum: public / private / madrasa / college) · level_offered (relation, multiple) · district (relation) · established · website · logo · address · description · is_verified
+*(backs N4 institution directory — Day 1 ships a starter set: public universities + top private, marked "growing")*
+
+### Circulars
+title · organisation · type (enum: education / bcs / government_job / private_job) · level (relation, optional) · published_date · deadline · vacancy_count · circular_image · apply_url · description
+*(backs N8 circular tracker — education + BCS/job circulars, now in scope)*
+
+### Result Links
+title · exam_name · board_or_institution · level (relation) · publication_date · official_url · how_to_steps (rich text) · merit_list_url · is_published
+*(backs N3 results & merit lists hub — the "explain the official system" layer around the government portals)*
+
+### Study Abroad Guides
+country · slug · visa_requirements (rich text) · tuition_range · living_cost_range · intakes · application_steps · scholarship_notes · is_featured
+*(backs N10 — Day 1 ships 8 destinations: UK, USA, Canada, Australia, Malaysia, Japan, South Korea, Germany)*
+
+### Level (taxonomy collection)
+name_bn · slug · sort_order
+Values: প্রাথমিক · মাধ্যমিক · উচ্চ মাধ্যমিক · স্নাতক · স্নাতকোত্তর
+*(the cross-cutting audience filter — deliberately NOT a category, to avoid overlapping শিক্ষা সংবাদ / ভর্তি / পরীক্ষা ও ফলাফল)*
+
+### Saved Deadlines (reader-owned)
+reader (relation) · deadline (relation) · remind_at · notified (bool)
+*(backs N7 deadline reminders — reuses the push + bookmark infrastructure already planned in S9)*
+
+---
+
 ## RBAC roles
 
 | Role | Scope |
@@ -81,7 +120,9 @@ Editor-in-Chief may publish directly.
 
 ## Open items for S1
 
-- [ ] Re-scope every collection's fields to education (the list above still carries general-news fields such as `press_card_no` and `comparison_images`)
-- [ ] Confirm the education category tree before seeding
-- [ ] Bengali admin labels (i18n bundle) — no pre-built Bengali locale exists in Payload; write it
-- [ ] Seed initial education categories + a handful of Bengali test articles
+- [x] ~~Confirm the education category tree~~ — ✅ approved 2026-09-11 (8 categories + level filter)
+- [ ] Re-scope remaining general-news fields on the legacy collections (e.g. `press_card_no` on Authors, `comparison_images` on Fact Checks)
+- [ ] Bengali admin labels (i18n bundle) — Payload ships no pre-built Bengali locale; write it
+- [ ] Seed the 8 education categories + the 5 levels + 64 districts
+- [ ] Seed a handful of Bengali test articles
+- [ ] Decide whether `Subcategories` is a separate collection or a self-relation on `Categories` (currently modelled as `parent_category` on Categories)

@@ -99,7 +99,7 @@ Expected DianaHost footprint after this split: **≈400–700 MB**, leaving head
 
 ## 13-Section Build Order
 
-> Deliverables inside each section must be re-scoped to education before that section starts.
+> Section deliverables are now re-scoped to education — see `docs/education-feature-inventory.md` (approved 2026-09-11) for the feature set, category tree and per-section changes.
 
 | # | Section | Key Deliverables |
 |---|---------|-----------------|
@@ -129,7 +129,7 @@ Expected DianaHost footprint after this split: **≈400–700 MB**, leaving head
 | **S0 exit** | **DianaHost inode/file-count quota confirmed** — a Next.js install contains tens of thousands of files |
 | **S0 exit** | **SQLite WAL concurrency proven with 5+ concurrent writers** (moved from S12 — this is a foundational decision and must not be validated at the finish line) |
 | **S0 exit** | CI rebuild strategy settled (debounce/batch, or public repo for unlimited minutes) |
-| S1 entry | Education feature inventory **approved by the owner** — draft at `docs/education-feature-inventory.md` (reclassified from the original 87 features + 12 proposed new ones). **Awaiting owner approval.** |
+| S1 entry | Education feature inventory — ✅ **SATISFIED 2026-09-11.** `docs/education-feature-inventory.md` approved: 8-category tree + cross-cutting level filter, 10 new education features, BCS/job circulars in scope, weather + prayer utilities retained |
 | S2 entry | Portal display name + logo decided (domain ✅ shikkha24.com) |
 | S6 entry | Bengali search quality tested on a real Bengali corpus |
 | S9 entry | Newsletter sending path confirmed (ESP free tier reachable, or cPanel SMTP fallback accepted) |
@@ -210,7 +210,10 @@ Plan informed by analysis of:
 
 ## Open decisions (block S1 entry)
 
-- [ ] **Approve the education feature inventory** (`docs/education-feature-inventory.md`) — category tree, the 12 proposed `[NEW]` features, whether to keep weather/prayer utilities, whether BCS/job-circular content is in scope
-- [ ] Portal display name and logo
+- [x] **Education feature inventory — ✅ APPROVED 2026-09-11** (`docs/education-feature-inventory.md`)
+- [x] Education competitor set — ✅ researched 2026-09-11 (`docs/education-competitors.md`)
+- [x] Weather + prayer utilities — ✅ retained as light header utilities
+- [x] BCS / job-circular content — ✅ in scope
+- [ ] **Publishing velocity** — the 45–70/day target implies 15–23 editorial staff; the plan states 5. Options and reasoning in `docs/education-feature-inventory.md` §7. Recommended: baseline 15–20/day + burst to 40+ on event days
+- [ ] Portal display name and logo (blocks S2 entry)
 - [ ] Hands-on audit of the two direct competitors (Dainik Shiksha, Shiksha Sangbad)
-- [ ] Whether to revise the 45–70/day velocity target now that the subject is narrower than general news

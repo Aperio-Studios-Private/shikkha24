@@ -4,7 +4,7 @@
 **Status legend:** `[ ]` pending · `[~]` in progress · `[x]` done · `[b]` blocked
 **Commit rule:** commit immediately after every finished task (`type(scope): summary`).
 
-> ⚠️ **Scope amended 2026-09-11:** this is an **education** portal (`shikkha24.com`). The per-section deliverables below were written for a general news portal and must be re-scoped to education before each section starts. `docs/master-plan.md` is reference-only.
+> ✅ **Scope resolved 2026-09-11:** this is an **education** portal (`shikkha24.com`). Sections S1, S3, S9 and S10 below are already re-scoped. The approved feature set, 8-category tree and level filter are in `docs/education-feature-inventory.md`. `docs/master-plan.md` is reference-only.
 
 ---
 
@@ -31,10 +31,13 @@
 - [ ] S0 DoD evidence posted → **user approval**
 
 ## S1 — CMS Content Models & RBAC
-- [ ] **GATE: education feature inventory approved** — ⏳ **DRAFTED, awaiting owner approval.** See `docs/education-feature-inventory.md` (original 87 features reclassified into retained / re-scoped / descoped, plus 12 proposed `[NEW]` education features)
-- [ ] **GATE: education category tree approved** — proposal in `docs/education-feature-inventory.md` §1 (8 categories)
-- [ ] Collections: Articles, Categories, **Subcategories**, Authors, Tags, Ads, Settings, Polls, Quizzes, FactChecks, Jobs, Comments, LiveBlogs, **Newsletter Subscribers**, **Photo Galleries**, **Pages**, plus the education opportunity collections from the approved inventory (scholarships, admission deadlines, institution directory)
+- [x] **GATE: education feature inventory approved** — ✅ 2026-09-11 (`docs/education-feature-inventory.md`)
+- [x] **GATE: education category tree approved** — ✅ 8 categories + cross-cutting level filter
+- [ ] **GATE: publishing velocity / headcount decided** — ⏳ open; 45–70/day implies 15–23 staff but the plan says 5. See inventory §7
+- [ ] Collections: Articles, Categories, **Subcategories**, Authors, Tags, Ads, Settings, Polls, Quizzes, FactChecks, Jobs, Comments, LiveBlogs, **Newsletter Subscribers**, **Photo Galleries**, **Pages**
   - *(the four bolded collections were dropped from an earlier revision and restored by the audit — Subcategories is required by the category tree, Newsletter Subscribers by the newsletter decision, Photo Galleries by the gallery feature, Pages by the E-E-A-T pages)*
+- [ ] **Education collections:** Scholarships, Deadlines / Academic Calendar, Institutions, Circulars, Result Links, Study Abroad Guides, Saved Deadlines — see `.sps/content-model.md`
+- [ ] **Taxonomies seeded:** Category (8) + Level (5) + District (64)
 - [ ] 5 RBAC roles: Reporter, Section Editor, Editor-in-Chief, Ad Manager, Super Admin
 - [ ] Bengali admin labels
 - [ ] Versioning + draft/review/publish workflow verified
@@ -50,7 +53,12 @@
 - [ ] S2 DoD evidence → **user approval**
 
 ## S3 — Homepage
-- [ ] Breaking ticker, lead story, category grids, trending/most-read, latest feed, ad slots (zero-CLS)
+- [ ] Lead education story + breaking ticker (result days, circular releases, exam postponements)
+- [ ] **Scholarship / admission deadline strip** (N1, N2)
+- [ ] Category grids for the **8 approved education categories**
+- [ ] **Level filter** (প্রাথমিক · মাধ্যমিক · উচ্চ মাধ্যমিক · স্নাতক · স্নাতকোত্তর) + district selector (আমার জেলা)
+- [ ] Header utilities: weather + prayer times + Hijri date (server-fetched, cached, deferred, zero CLS)
+- [ ] Trending/most-read, latest feed, ad slots (zero-CLS)
 - [ ] Mobile-first + low-end Android pass (Symphony/Walton class, 3G)
 - [ ] S3 DoD evidence → **user approval**
 
@@ -83,9 +91,18 @@
 - [ ] **GATE: newsletter sending path confirmed** — free-tier ESP reachable, or the cPanel SMTP low-volume fallback explicitly accepted
 - [ ] S9 DoD evidence → **user approval**
 
-## S10 — Utility Widgets & Specialized Sections
-- [ ] Education utility widgets per `docs/data-sources.md` — each with a confirmed free provider, rate limit and fallback behaviour
-- [ ] **GATE: every widget has a free data source or is descoped** — no widget may ship on an unidentified or paid provider
+## S10 — Education Features & Specialized Sections
+- [ ] **N1** Scholarship tracker (deadline-sorted, filterable by level / country / funding)
+- [ ] **N2** Academic calendar & deadlines (shared dated-events model)
+- [ ] **N3** Results & merit lists hub (links + how-to guides around the official portals)
+- [ ] **N4** Institution directory — starter set: public universities + top private, marked "growing"
+- [ ] **N5** Exam routine & syllabus hub (shares the N2 data model)
+- [ ] **N6** GPA / grade calculator (SSC/HSC, client-side, zero backend)
+- [ ] **N8** Circular tracker (education + BCS/job circulars)
+- [ ] **N9** District-first opportunities
+- [ ] **N10** Study-abroad country guides — starter set: UK, USA, Canada, Australia, Malaysia, Japan, South Korea, Germany
+- [ ] Header utilities finalised per `docs/data-sources.md` (weather, prayer times + Hijri date — both verified free, no key)
+- [ ] **GATE: every remaining data-backed element has a confirmed free provider or is descoped** — no widget may ship on an unidentified or paid provider
 - [ ] S10 DoD evidence → **user approval**
 
 ## S11 — SEO, Feeds & AI Optimization
