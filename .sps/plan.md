@@ -39,7 +39,12 @@ Positioning (owner's words):
 | Portal type | Education portal | 2026-09-11 |
 | Audio reader | Browser Web Speech API; audio bulletin descoped | 2026-09-11 |
 | Utility widgets | Free public APIs only; descope anything with no free source | 2026-09-11 |
-| Content velocity | ⚠️ **OPEN** — see Open decisions. (Was "keep 45–70/day and plan to hire", superseded 2026-09-11: 45–70/day implies 15–23 staff but the plan states 5) | — |
+| Content velocity | ✅ **Baseline 15–20/day + burst to 40+ on event days** (replaces the 45–70/day flat target, which implied 15–23 staff) | 2026-09-11 |
+| Editorial team | 5 people already in place — no hiring prerequisite | 2026-09-11 |
+| Content | Greenfield launch — no migration | 2026-09-11 |
+| Repository | Private (caps GitHub Actions at 2,000 min/month) | 2026-09-11 |
+| Logo | Placeholder SVG, CMS-editable (`docs/assets/logo-placeholder.svg`) | 2026-09-11 |
+| Social login | Facebook + Google — kept; both are free (app review is a process, not a cost) | 2026-09-11 |
 | Portal display name / logo | Open — Shikkha24 assumed from the domain, needs owner confirmation | — |
 | Education feature inventory | **Open — requires a discovery round** | — |
 
@@ -93,7 +98,17 @@ Expected DianaHost footprint after this split: **≈400–700 MB**, leaving head
 
 **Fallback if R2 cannot be enabled without a payment method:** media stays on DianaHost under a strict upload quota (aggressive WebP/AVIF, originals discarded, per-day upload cap). This is workable but constrains publishing volume.
 
-**CI minutes constraint:** GitHub Actions gives 2,000 minutes/month on private repos. At 45–70 articles/day, one build per publish is 1,350–2,100 builds/month, which exceeds the quota. Rebuilds must be **debounced or batched** (e.g. one rebuild every 10 minutes via a scheduled workflow), or the repository must be public for unlimited minutes. This must be settled in S0.
+**CI minutes constraint:** GitHub Actions gives 2,000 minutes/month on private repos. At the **chosen baseline of 15–20 articles/day plus bursts** (≈600–900 publishes/month), a per-publish build costs ~450 minutes if an incremental build is ~30s (comfortable) but ~4,500 minutes if it is a 5-minute full rebuild (over budget). **The deciding number is the measured incremental build time — an S0 gate.** Rebuilds are **adaptively batched** (15–30 min in quiet hours, 5 min at peak, on-demand for `is_breaking`).
+
+⚠️ **Two additional hard limits found 2026-09-11** (see `docs/hosting-and-deployment.md`):
+- **Cloudflare Pages free = 500 builds/month** — tighter than the GitHub quota if Pages builds are Git-triggered
+- **Cloudflare Pages free = 20,000 files/site** — reached in roughly 2–3 years at the target publishing rate
+
+### Node.js version on DianaHost — an open security risk
+
+DianaHost runs **Node.js 20.18.2**. `astro@7.3.2` requires `>=22.12.0` and `vite@8.3.0` requires `^20.19.0 || >=22.12.0`, so **neither can run on the host** — they build in CI only. This independently justifies the Cloudflare Pages split: had the frontend been built on the host, Astro 7 would have been impossible.
+
+`next@16.3.4` (`>=20.9.0`) and `@payloadcms/next@3.89.0` (`^18.20.2 || >=20.9.0`) **do** accept 20.18.2, so Payload can run there. **But Node 20 reached end-of-life on 2026-04-30** — no security patches, on a public-facing admin handling editor credentials and reader PII. DianaHost's cPanel exposes a **Node.js Selector with a version drop-down**; selecting 22.x or 24.x resolves this if offered.
 
 ---
 
@@ -126,9 +141,11 @@ Expected DianaHost footprint after this split: **≈400–700 MB**, leaving head
 | **S0 exit** | Payload CMS 3 on cPanel Passenger smoke test passes |
 | **S0 exit** | TypeScript 7 toolchain validated with Astro 7 + Payload 3 |
 | **S0 exit** | **Next.js `output: 'standalone'` deploy size measured** — must land ≈300–600 MB to fit the 2 GB host |
-| **S0 exit** | **Cloudflare R2 can be enabled on the owner's account without a payment method** — if not, apply the documented media fallback |
-| **S0 exit** | **DianaHost provides Node.js ≥22.12** (Astro 7 requires it; Payload requires ≥20.9). The vendor publishes no Node version — confirm with DianaHost before building |
-| **S0 exit** | **DianaHost inode/file-count quota confirmed** — a Next.js install contains tens of thousands of files |
+| **S0 exit** | **Cloudflare R2 enabled and verified** — a payment method is on file (owner-confirmed), so R2 is enableable. Verify with `wrangler r2 bucket list`, then set an **80% usage alert** (a card on file means overage is billable) |
+| **S0 exit** | **DianaHost Node.js version resolved** — the host runs **20.18.2, which is end-of-life**. Payload/Next accept it, but select 22/24 from the cPanel Node.js Selector if offered; otherwise record the EOL runtime as an accepted risk |
+| **S0 exit** | **Astro incremental build time measured** — decides the entire batching strategy and whether the CI quota is comfortable (~30s) or critical (minutes) |
+| **S0 exit** | **`wrangler pages deploy` verified not to consume the 500/month Pages build quota** (direct upload vs Git-triggered build) |
+| **S0 exit** | **DianaHost limits confirmed via support** — inode/file-count quota, CPU/memory/process limits, hourly email send limits, and whether account-level backups exist. **None are published in their knowledge base** |
 | **S0 exit** | **SQLite WAL concurrency proven with 5+ concurrent writers** (moved from S12 — a foundational decision must not be validated at the finish line) |
 | **S0 exit** | CI rebuild strategy settled (debounce/batch, or public repo for unlimited minutes) |
 | **S0 exit** | **CI quality gates live** — Lighthouse CI with per-page budgets, link check, JSON-LD validation, `npm audit` policy (`docs/performance-budget.md`, `docs/testing-and-qa.md`) |
@@ -137,7 +154,7 @@ Expected DianaHost footprint after this split: **≈400–700 MB**, leaving head
 | **S0 exit** | **Monitoring/alerting tool selected** — card-free and verified, alerting to a channel the owner actually reads |
 | S1 entry | Education feature inventory — ✅ **SATISFIED 2026-09-11** (`docs/education-feature-inventory.md`) |
 | S1 entry | Education category tree — ✅ **SATISFIED 2026-09-11** (8 categories + level filter) |
-| **S1 entry** | **Publishing velocity / headcount decided** — ⏳ **NOT SATISFIED.** The 45–70/day target implies 15–23 editorial staff; the plan states 5. Options in `docs/education-feature-inventory.md` §7 |
+| S1 entry | Publishing velocity decided — ✅ **SATISFIED 2026-09-11**: baseline 15–20/day + burst to 40+ on event days |
 | S2 entry | Domain decided — ✅ **SATISFIED 2026-09-11** (`shikkha24.com`) |
 | **S2 entry** | **Portal display name + logo decided** — ⏳ **NOT SATISFIED** |
 | S6 entry | Bengali search quality tested on a real Bengali corpus |
@@ -218,6 +235,7 @@ Six domains had no coverage. They are now documented, and each is a build input 
 
 | Document | Covers | Drives |
 |---|---|---|
+| `docs/hosting-and-deployment.md` | **Why CI exists at all** (the editor never touches GitHub), the deploy pipeline, both rebuild quotas (GitHub 2,000 min · Cloudflare Pages 500 builds), the 20,000-file ceiling, the Node.js version finding, and the escalation ladder | S0, S12 |
 | `docs/performance-budget.md` | Lighthouse/Web Vitals budgets, per-asset byte budgets, measurement method, the CI gate, the AdSense-vs-≥95 trade-off | S0 (CI gate), S2 (fonts), all UI sections, S12 |
 | `docs/seo-plan.md` | Per-template metadata + schema matrix, education-specific schema, sitemaps/feeds, keyword clusters, redirect policy, slug-language decision | S4, S5, S11 |
 | `docs/security.md` | Threat model, attack surface, auth/2FA, security headers + CSP, input validation, rate limiting (incl. the Cloudflare-free-tier limitation), PII, supply-chain scanning, SPF/DKIM/DMARC | S0, S1, S4 (comments), S9 |
@@ -247,12 +265,18 @@ Plan informed by analysis of:
 
 ---
 
-## Open decisions (block S1 entry)
+## Open decisions
 
-- [x] **Education feature inventory — ✅ APPROVED 2026-09-11** (`docs/education-feature-inventory.md`)
-- [x] Education competitor set — ✅ researched 2026-09-11 (`docs/education-competitors.md`)
-- [x] Weather + prayer utilities — ✅ retained as light header utilities
-- [x] BCS / job-circular content — ✅ in scope
-- [ ] **Publishing velocity** — the 45–70/day target implies 15–23 editorial staff; the plan states 5. Options and reasoning in `docs/education-feature-inventory.md` §7. Recommended: baseline 15–20/day + burst to 40+ on event days
-- [ ] Portal display name and logo (blocks S2 entry)
+**Resolved 2026-09-11:** education feature inventory ✅ · category tree ✅ · competitor set ✅ · weather + prayer utilities retained ✅ · BCS/job circulars in scope ✅ · **publishing velocity: baseline 15–20/day + burst ✅** · editorial team of 5 in place ✅ · greenfield launch ✅ · repository private ✅ · R2 enableable (card on file) ✅ · AdSense activated ✅ · social login kept (free) ✅ · logo placeholder in place, CMS-editable ✅
+
+**Still open:**
+- [ ] **Check the cPanel Node.js Selector for Node 22/24** — the host runs 20.18.2, which is **end-of-life**
+- [ ] **One DianaHost support ticket** — inode quota, CPU/memory/process limits, hourly email limits, backup policy
+- [ ] **Verify R2 is enabled** (`wrangler login && wrangler r2 bucket list`) and set an 80% usage alert
+- [ ] **DNS configuration for shikkha24.com** — owner will provide
+- [ ] **Real logo** — placeholder SVG stands in for now
+- [ ] **Legal details for the E-E-A-T pages** — Trade License, TIN, Ministry of Information registration; owner provides **before final deploy**
+- [ ] Portal display name final confirmation
 - [ ] Hands-on audit of the two direct competitors (Dainik Shiksha, Shiksha Sangbad)
+- [ ] Start the Meta app review for Facebook Login early (free, but slow)
+- [ ] Repository visibility if the CI quota proves tight

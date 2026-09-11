@@ -26,7 +26,10 @@ Ranked by realistic likelihood × impact.
 | # | Failure | Impact | Likelihood | Detection | Mitigation |
 |---|---|---|---|---|---|
 | 1 | **Passenger kills the idle Node process** (common on shared hosting) | CMS offline; publishing stops | **High** | Uptime monitor on `/admin` | Auto-restart via cPanel; accept a cold-start delay; document the manual restart step |
-| 2 | **CI minutes exhausted** | No new content published | **High** at 45–70/day | Actions quota warning | Debounced/batched builds; or public repo for unlimited minutes |
+| 2 | **CI minutes exhausted** (2,000/month, private repo) | No new content published | **Medium** — depends on measured build time | Actions quota warning | Adaptive batching; or public repo for unlimited minutes. See `docs/hosting-and-deployment.md` |
+| 2b | **Cloudflare Pages 500 builds/month exhausted** | No new deployments | **Medium–High** if Pages builds are Git-triggered | Pages build log | Verify whether `wrangler` direct upload bypasses the quota; else batch harder, or fall back to DianaHost `public_html` |
+| 2c | **Cloudflare Pages 20,000-file ceiling reached** | Cannot deploy new pages | **Low** now, certain in ~2–3 years | Deploy failure | Keep images on R2; plan the Workers Static Assets or `public_html` migration |
+| 2d | **Node.js 20 end-of-life on the host** | Unpatched vulnerabilities in the CMS runtime | **Standing** | Not detectable by monitoring | Select Node 22/24 in the cPanel Node.js Selector; otherwise compensate with admin hardening (`docs/security.md` §3) |
 | 3 | **2 GB storage full** | Uploads fail; account may be suspended | **High** over months | Storage alert at 80% | Media on R2, not the host; storage monitor |
 | 4 | **Payload 3.89.0 regression** (pinned one day after release) | Varies | Medium | Smoke test after deploy | S0 hold-vs-pin decision; pin and upgrade deliberately |
 | 5 | **SQLite lock contention** during simultaneous publishes | Individual publish failures | Medium | Editor reports; logs | WAL mode (validated at S0); serialise heavy writes |
@@ -76,9 +79,11 @@ Ranked by realistic likelihood × impact.
 
 - **Reader traffic: effectively unbounded.** Cloudflare Pages serves static assets from the edge with unlimited bandwidth on the free tier. A viral spike is a non-event for readers.
 - **The real bottlenecks are editorial, not reader-facing:**
-  1. **Publishing throughput** — bounded by CI minutes, not by server capacity
-  2. **Storage** — 2 GB on the host (media is offloaded to R2, so this is mostly the app + DB)
-  3. **Simultaneous editors** — SQLite WAL, validated at S0 for 5+ concurrent writers
+  1. **Publishing throughput** — bounded by **two** quotas, not by server capacity: GitHub Actions (2,000 min/month) and Cloudflare Pages (**500 builds/month**). Full detail in `docs/hosting-and-deployment.md`.
+  2. **Storage** — 2 GB on the host (media is offloaded to R2, so this is mostly the app + DB). R2 itself is capped at 10 GB, and a payment method is on file, so overage is **billable** — set an 80% alert.
+  3. **Simultaneous editors** — SQLite WAL, validated at S0 for 5+ concurrent writers.
+  4. **Deployed file count** — Cloudflare Pages allows 20,000 files/site; reached in roughly 2–3 years at the target publishing rate.
+  5. **Runtime patch level** — Node 20 is end-of-life on the host.
 - **The CMS origin sees only editor traffic.** A reader spike does not touch it.
 
 ### Traffic spike playbook

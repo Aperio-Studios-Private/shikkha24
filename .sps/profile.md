@@ -4,8 +4,9 @@
 - `/sps` required for this project: yes
 
 ## Project identity
-- Name: **Shikkha24 (শিক্ষা২৪)** — derived from the confirmed domain `shikkha24.com`; owner confirmation of the display name/logo still pending
-- Domain: **shikkha24.com** — decided. Reachability unverified (DNS lookup failed from the auditing environment on 2026-09-11)
+- Name: **Shikkha24 (শিক্ষা২৪)** — working display name, derived from the domain. **CMS-editable** via Site Settings; final confirmation still pending.
+- Domain: **shikkha24.com** — ✅ **registered** (owner-confirmed 2026-09-11). DNS configuration not yet provided; the owner will supply it later. Reachability could not be verified from the auditing environment.
+- Logo: **placeholder SVG for now** (owner decision 2026-09-11) — `docs/assets/logo-placeholder.svg`. The real logo will be supplied later. The logo is a **CMS-managed field** (Site Settings global), so it can be replaced without a code change.
 - Goal: Bangladesh's best **education** news and opportunity portal — production-grade, Bengali-first
 - Positioning (owner's words, verbatim):
   - 🎓 Education News | Scholarship | Admission | University | Higher Study
@@ -22,10 +23,19 @@
 - Hosting purchased: **DianaHost PNR 2 GB SSD NVMe** — 2 GB storage, 200 GB/month bandwidth, 3 addon domains, 30 sub-domains, 30 FTP accounts, 50 databases, unlimited email accounts, cPanel, SSH on demand, Python/Ruby/Node.js support (~$47.04/year)
 
 ## Hosting & storage architecture (decided 2026-09-11)
-- **Frontend (Astro static) → Cloudflare Pages** — free, unlimited bandwidth, no card required. Removes the 200 GB/month origin bandwidth cap.
-- **Media → Cloudflare R2** — 10 GB free tier, zero egress fees. **S0 gate: confirm R2 can be enabled on the owner's Cloudflare account without a payment method.** Fallback if it cannot: media stays on DianaHost under a strict upload quota.
+- **Frontend (Astro static) → Cloudflare Pages** — free, unlimited bandwidth. Removes the 200 GB/month origin bandwidth cap.
+- **Media → Cloudflare R2** — 10 GB free tier, zero egress fees. **The owner has a payment method on the Cloudflare account** (confirmed 2026-09-11), so R2 can be enabled. ⚠️ Because a card is on file, exceeding 10 GB would incur real charges — **set a usage alert at 80%**. Verification command: `wrangler login && wrangler r2 bucket list`.
 - **Payload CMS → DianaHost PNR 2 GB**, built in CI with Next.js `output: 'standalone'` so only dependency-traced modules ship (≈300–600 MB) instead of a full `node_modules` (0.7–1.2 GB).
 - Rationale: a full `node_modules` plus media cannot fit in 2 GB. Offloading the frontend and media, and building slim in CI, brings the host footprint to roughly 400–700 MB.
+- **Deployment model:** both builds run in GitHub Actions on **Node 24**; only artifacts ship. Full detail, quotas and escalation ladder in **`docs/hosting-and-deployment.md`**.
+- **Repository: PRIVATE** (owner decision). This caps GitHub Actions at 2,000 minutes/month and makes the rebuild strategy load-bearing.
+
+## Node.js version on DianaHost — open risk
+- DianaHost runs **Node.js 20.18.2** (owner-confirmed 2026-09-11).
+- `astro@7.3.2` needs `>=22.12.0` and `vite@8.3.0` needs `^20.19.0 || >=22.12.0` → **both fail on 20.18.2**. They therefore build in CI only, never on the host. This independently justifies the Cloudflare Pages split: had the frontend been built on the host, Astro 7 would have been impossible.
+- `next@16.3.4` (`>=20.9.0`) and `@payloadcms/next@3.89.0` (`^18.20.2 || >=20.9.0`) **do** accept 20.18.2, so Payload can run there.
+- ⚠️ **But Node 20 reached end-of-life on 2026-04-30** — no security patches, on a public-facing CMS admin handling editor credentials and reader PII.
+- **Owner action:** cPanel → Software → *Select Node.js Version* → Edit → **Change Node.js version** → select 22.x or 24.x if offered. If only 20.x is available, this becomes a documented accepted risk.
 
 ## Mobile / performance policy
 - Mobile default: mobile-first (90%+ of BD readers on mobile per the research; note the Prothom Alo desk figure of 51% mobile in `docs/competitive-analysis.md:18` measures all visitors including desktop-heavy direct traffic — the two are not the same metric and the docs must not present them as equivalent)
@@ -43,7 +53,7 @@
 - Design Reference: Prothom Alo (layout), Bangla Tribune (typography/whitespace), BBC (dark mode), Guardian (live blog)
 - CDN: Cloudflare Free Tier
 - Deploy Target: Cloudflare Pages (frontend) + DianaHost PNR 2 GB (Payload CMS)
-- CI/CD: GitHub Actions (automated build + deploy). **CI minutes constraint:** 2,000 min/month on private repos; at 45–70 articles/day one build per publish exceeds that. Rebuilds must be debounced/batched (e.g. one rebuild per 10 minutes), or the repo must be public for unlimited minutes.
+- CI/CD: GitHub Actions (automated build + deploy). **Repository is private** → 2,000 Actions minutes/month, plus **Cloudflare Pages 500 builds/month**. Rebuilds are **adaptively batched** (15–30 min quiet, 5 min peak, on-demand for breaking news). Whether the quota is comfortable depends on the measured incremental build time — an S0 gate. Full detail: `docs/hosting-and-deployment.md`.
 - Newsletter: **self-built subscriber list and campaign module inside Payload** (owner's data stays self-hosted) with delivery via a free-tier ESP API (e.g. Brevo, 300/day, no card required). Documented fallback: DianaHost cPanel SMTP at low volume.
   - Why not Listmonk: it needs its own PostgreSQL and a VPS. There is no free VPS without a card, and **Oracle Cloud Always Free is not usable** (requires a card at signup).
   - Why not bulk-send from cPanel SMTP: cPanel enforces per-domain hourly send caps, and bulk sending from a shared IP risks blacklisting the domain — which would also break password resets and contact forms. This is why the ESP is primary and cPanel SMTP is only a fallback.
@@ -83,7 +93,9 @@ Dynamic and admin-editable. Full detail in `docs/education-feature-inventory.md`
 - **The 87-feature general-news inventory in `docs/master-plan.md` is obsolete.** It covers politics, business, sports, entertainment, cricket scores, DSE tickers, gold and commodity prices — none of which belong in an education portal. Reference only.
 - **Education feature inventory — ✅ APPROVED 2026-09-11:** `docs/education-feature-inventory.md`. Built by reclassifying the original 87 features into retained-unchanged / re-scoped / descoped, plus **10 new education-specific features** (12 proposed, 2 pairs merged to avoid self-cannibalisation). Two of the ten ship with a curated starter dataset rather than empty (institution directory; study-abroad guides). Nothing was invented — every new item is now an approved decision with recorded rationale.
 - **Education competitor set — ✅ researched 2026-09-11:** `docs/education-competitors.md`. Direct competitors are Dainik Shiksha and Shiksha Sangbad; the sharpest opening is the third-party SEO aggregators, who rank on the highest-intent queries with slow, ad-heavy pages.
-- Content velocity: **still open.** The 45–70/day target implies **15–23 editorial staff**, but the plan states 5 people — at 2–4 articles/person/day, 5 people realistically produce 15–20/day. Education publishing is also **spiky, not flat** (result days and admission days are bursts). Recommended: **baseline 15–20/day + burst to 40+ on event days**. Options in `docs/education-feature-inventory.md` §7.
+- Content velocity — ✅ **DECIDED 2026-09-11: baseline + burst.** Baseline **15–20 articles/day** with the existing 5-person team, surging to **40+ on result days, admission days and circular days**. This replaces the 45–70/day flat target, which implied 15–23 staff. Rationale: education publishing is spiky, not flat, and 45–70/day ÷ 5 people = 9–14 articles per person per day (3–5× a normal reporter's output). See `docs/education-feature-inventory.md` §7.
+- Editorial team: **5 people already in place** (confirmed 2026-09-11) — no hiring prerequisite.
+- Content: **greenfield launch** — no migration from an existing site (confirmed 2026-09-11).
 
 ## Explicit approvals
 - ✅ Plan approved (2026-09-11T20:41+06:00) — **superseded in scope by the education re-scope below**
@@ -102,9 +114,17 @@ Dynamic and admin-editable. Full detail in `docs/education-feature-inventory.md`
 - ✅ **Newsletter: self-built Payload list + free-tier ESP delivery; cPanel SMTP as fallback** (2026-09-11) — supersedes the Listmonk decision
 - ✅ **Audio reader: Browser Web Speech API; audio bulletin descoped** (2026-09-11)
 - ✅ **Utility widgets: free public APIs only; descope anything with no free source** (2026-09-11)
-- ✅ **Content velocity: keep 45–70/day and plan to hire** (2026-09-11) — ⚠️ superseded 2026-09-11: the target is now **open** pending the headcount decision (see Feature scope)
+- ✅ ~~Content velocity: keep 45–70/day and plan to hire~~ — **superseded twice**; final decision 2026-09-11 is **baseline 15–20/day + burst to 40+** with the existing 5-person team (see Feature scope)
 - ✅ **Education feature inventory approved** (2026-09-11) — 8-category tree + cross-cutting level filter; 10 new education features; BCS/job-circular content in scope; weather + prayer utilities retained as light header utilities; স্কুল-কলেজ handled as a level filter rather than a category
 - ✅ **Delete the superseded Strapi root plan** (2026-09-11)
+- ✅ **Publishing velocity: baseline 15–20/day + burst to 40+ on event days** (2026-09-11) — replaces the 45–70/day flat target
+- ✅ **Editorial team: 5 people already in place** (2026-09-11) — no hiring prerequisite
+- ✅ **Content: greenfield launch** (2026-09-11) — no migration
+- ✅ **Repository: private** (2026-09-11)
+- ✅ **Cloudflare account has a payment method on file** (2026-09-11) → R2 is enableable
+- ✅ **AdSense account activated** (2026-09-11) → AdSense is definitely shipping, so the two-profile Lighthouse measurement (≥95 no-ads, ≥85 with-ads) is adopted
+- ✅ **Social login (Facebook/Google): keep** (2026-09-11) — Meta Login and Google OAuth are **free**; only app review (a process, not a cost) is required. No cost → no reason to drop them
+- ✅ **Logo: placeholder SVG now, CMS-editable** (2026-09-11)
 
 ## Explicit rejections
 - ❌ Strapi 5 CE (missing review workflows, versioning, scheduled publish in free tier)
@@ -119,11 +139,13 @@ Dynamic and admin-editable. Full detail in `docs/education-feature-inventory.md`
 - ❌ The 87-feature general-news inventory — obsolete after the education re-scope
 
 ## Open decisions (require the owner)
-- [ ] **Publishing velocity / headcount** — the only remaining blocker for S1. 45–70/day needs 15–23 staff; the plan says 5. Recommended: baseline 15–20/day + burst to 40+. Options in `docs/education-feature-inventory.md` §7
-- [ ] Portal display name confirmation (Shikkha24 / শিক্ষা২৪?) and logo — blocks S2 entry
-- [ ] Hands-on audit of the two direct competitors (Dainik Shiksha, Shiksha Sangbad) — page speed, ad density, actual feature set
-- [x] ~~Education feature inventory~~ — ✅ approved 2026-09-11
-- [x] ~~Education category tree~~ — ✅ approved 2026-09-11
-- [x] ~~Education competitor set~~ — ✅ researched 2026-09-11
-- [x] ~~BCS/job-circular content in scope?~~ — ✅ yes
-- [x] ~~Weather + prayer utilities?~~ — ✅ retained
+- [ ] **Check the cPanel Node.js Selector for Node 22/24** — DianaHost currently runs **Node 20.18.2, which is end-of-life since 2026-04-30**. Payload/Next work on it, but it is a security risk. Select 22/24 if offered.
+- [ ] **Raise one DianaHost support ticket** covering: inode/file-count quota, CPU/memory/process limits, hourly email send limits, and whether account-level backups exist and can be restored. **None of these are published in their knowledge base.**
+- [ ] **Verify R2 is enabled** — `wrangler login && wrangler r2 bucket list` (wrangler 4.125.0 is installed locally but not authenticated). Then set a usage alert at 80% of 10 GB, since a card is on file.
+- [ ] **DNS configuration for shikkha24.com** — owner will provide
+- [ ] **Real logo** — placeholder SVG is in place; final asset pending
+- [ ] **Legal details for the E-E-A-T pages** — Trade License, TIN, Ministry of Information registration. Owner will provide **before final deploy**.
+- [ ] Portal display name final confirmation (Shikkha24 / শিক্ষা২৪?)
+- [ ] Hands-on audit of the two direct competitors (Dainik Shiksha, Shiksha Sangbad)
+- [ ] Decide repository visibility if the CI quota proves tight (public = unlimited minutes)
+- [ ] Start the Meta app review for Facebook Login early (free, but slow)

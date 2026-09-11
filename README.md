@@ -25,6 +25,7 @@ Production-grade, Bengali-first **education** news portal. Domain: **shikkha24.c
 | `AGENTS.md` / `GEMINI.md` / `CLAUDE.md` | **Mandatory agent rules** — three synced mirrors, rules 1–13 identical in all three |
 | `docs/education-feature-inventory.md` | ✅ **APPROVED** — education feature inventory: 8-category tree + level filter, 10 new education features |
 | `docs/education-competitors.md` | Education competitor landscape (5 groups) and where Shikkha24 can win |
+| **`docs/hosting-and-deployment.md`** | **Why CI exists** (editors never touch GitHub), the deploy pipeline, both rebuild quotas, the 20,000-file ceiling, the Node.js version finding, escalation ladder |
 | **`docs/performance-budget.md`** | Lighthouse/Web Vitals budgets, per-asset byte budgets, measurement method, CI gate |
 | **`docs/seo-plan.md`** | Full SEO plan: per-template metadata + schema matrix, sitemaps, keyword clusters, redirects |
 | **`docs/security.md`** | Threat model, attack surface, auth, headers/CSP, rate limiting, PII, supply chain, email auth |
@@ -52,15 +53,17 @@ Production-grade, Bengali-first **education** news portal. Domain: **shikkha24.c
 | Gate | Status |
 |---|---|
 | **Education feature inventory approved** (S1 entry) | ✅ 2026-09-11 — 8-category tree + level filter, 10 new education features |
-| **Publishing velocity / headcount** (S1 entry) | ⏳ Open — 45–70/day implies 15–23 staff; the plan says 5 |
-| Portal display name + logo (S2 entry) | ⏳ Domain ✅ `shikkha24.com`; name + logo pending |
+| **Publishing velocity** (S1 entry) | ✅ 2026-09-11 — baseline 15–20/day + burst to 40+; 5-person team in place |
+| Portal display name + logo (S2 entry) | ⏳ Domain ✅ registered; placeholder logo in place; final name + logo pending |
 | Payload-on-cPanel-Passenger smoke test (S0 exit) | ⏳ Pending |
 | TypeScript 7 toolchain validation (S0 exit) | ⏳ Pending |
-| Cloudflare R2 enablement without a payment method (S0 exit) | ⏳ Pending |
-| DianaHost Node.js ≥22.12 confirmed (S0 exit) | ⏳ Pending |
-| DianaHost inode quota confirmed (S0 exit) | ⏳ Pending |
+| Astro incremental build time measured (S0 exit) | ⏳ Pending — decides the CI/batching strategy |
+| `wrangler` direct upload vs the 500/month Pages quota (S0 exit) | ⏳ Pending |
+| DianaHost Node.js 22/24 available via cPanel selector (S0 exit) | ⏳ Host runs **20.18.2, which is EOL** |
+| DianaHost inode quota + other limits confirmed (S0 exit) | ⏳ Not published — needs a support ticket |
+| Cloudflare R2 enabled + usage alert set (S0 exit) | ⏳ Payment method on file, so enableable |
 | SQLite WAL 5-writer concurrency proven (S0 exit) | ⏳ Pending — moved from S12 |
-| CI rebuild strategy settled (S0 exit) | ⏳ Pending |
+| CI quality gates + backup automation + feature flags (S0 exit) | ⏳ Pending |
 
 ## Workflow (summary — full rules in AGENTS.md)
 

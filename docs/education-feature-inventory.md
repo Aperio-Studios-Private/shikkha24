@@ -15,7 +15,7 @@
 | Which `[NEW]` features for Day 1? | **All 10** (12 proposed, 2 pairs merged). Two ship with a curated starter dataset. | Agent (delegated) |
 | Weather and prayer times? | **Keep** as light header utilities. | Owner |
 | BCS / job-circular content? | **In scope.** High traffic, and it matches the direct competitor's own positioning. | Owner |
-| 45–70 articles/day target? | **Still open** — see §7. The target implies 15–23 editorial staff; the plan says 5. | Pending |
+| Publishing velocity? | ✅ **Baseline 15–20/day + burst to 40+ on event days** — replaces the 45–70/day flat target. 5-person team already in place. | Owner |
 
 ---
 
@@ -131,41 +131,22 @@ The S0→S12 technical sequence in `.sps/plan.md` still holds. Three sections ch
 
 ---
 
-## 7. The one open question — publishing velocity
+## 7. Publishing velocity — ✅ DECIDED 2026-09-11
 
-**This is the only item still unresolved, and it needs you.** Explained in plain language.
+**Decision: baseline + burst.**
 
-### What the plan currently says
-
-- Target: **45–70 articles every day**
-- Editorial team: **5 people**
-
-### Why that does not add up
-
-45–70 articles ÷ 5 people = **9 to 14 articles per person, every day, seven days a week.**
-
-A typical news reporter files **2–4 articles a day**. So the plan asks each person to produce **3 to 5 times** a normal workload. With 5 people the realistic output is **15–20 articles/day**.
-
-There is also an internal contradiction: the plan's own desk-by-desk breakdown adds up to **42–56/day**, not 45–70.
-
-### A second problem specific to education
-
-Education publishing is **spiky, not flat**. Result days, admission circular days and scholarship deadlines produce enormous traffic bursts; the off-season is much quieter. A single flat daily number is the wrong shape for this subject.
-
-### Recommendation
-
-**A baseline + burst model, with the number tied to actual headcount:**
-
-- **Baseline:** 15–20 articles/day (achievable with 5 people)
-- **Burst:** 40+ on result days, admission days and circular days
-- **If 45–70/day is kept as the baseline**, the honest consequence is a team of roughly **15–23 editorial staff**
-
-### Options
-
-| Option | What it means |
+| | |
 |---|---|
-| **A. Baseline + burst (recommended)** | Baseline 15–20/day with 5 people; surge on event days. Honest, matches the subject, no hiring prerequisite. |
-| **B. Keep 45–70/day and hire** | Requires ~15–23 editorial staff before launch. Ambitious; makes hiring a hard prerequisite. |
-| **C. Middle** | Hire to ~10 people and target 30–35/day baseline. |
+| **Baseline** | **15–20 articles/day** — achievable with the existing 5-person team |
+| **Burst** | **40+ on result days, admission days and circular days** |
+| **Superseded** | the flat 45–70/day target, which implied 15–23 editorial staff |
 
-Everything else in this inventory is approved and ready. Answer this one and S1 is fully unblocked.
+**Why this replaced the old target** (kept here for the record):
+
+- 45–70 articles ÷ 5 people = **9 to 14 articles per person, per day, seven days a week** — 3–5× a normal reporter's 2–4/day.
+- The plan's own desk-by-desk breakdown summed to **42–56/day**, contradicting the 45–70 headline.
+- Education publishing is **spiky, not flat** — result days and admission days are floods, the off-season is quiet. A single flat daily number was the wrong shape for the subject.
+
+**Editorial team:** 5 people already in place (confirmed 2026-09-11) — no hiring prerequisite.
+
+⚠️ **Consequence for the build pipeline:** a spiky publishing pattern makes rebuild batching harder, not easier — bursts are exactly when you want fast publishing and when CI minutes vanish. See `docs/hosting-and-deployment.md` §3 for the adaptive batching strategy and §2 for the two quotas.

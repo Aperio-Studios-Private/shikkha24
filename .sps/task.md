@@ -18,11 +18,13 @@
 - [ ] **GATE: Payload CMS 3 on cPanel Passenger smoke test** — blocking; if it fails: STOP and ask the user
 - [ ] **GATE: TypeScript 7 (Go-based) compatibility with Astro 7 + Payload 3 validated** — blocking. Builds should run in CI (Astro/Tailwind/Vite/Pagefind/TS all ship native Rust/Go binaries)
 - [ ] **GATE: Next.js `output: 'standalone'` deploy size measured** — must land ≈300–600 MB to fit the 2 GB host
-- [ ] **GATE: DianaHost provides Node.js ≥22.12** — blocking. Astro 7 requires ≥22.12; Payload requires ≥20.9. The vendor publishes no Node version
-- [ ] **GATE: DianaHost inode / file-count quota confirmed** — blocking. A Next.js install contains tens of thousands of files
+- [ ] **GATE: DianaHost Node.js version resolved** — the host runs **20.18.2, which is end-of-life since 2026-04-30**. Payload/Next accept it (`>=20.9.0`); Astro 7 and Vite 8 do not, so they build in CI only. Select 22/24 from the cPanel **Node.js Selector** drop-down if offered, else record the EOL runtime as an accepted risk
+- [ ] **GATE: Astro incremental build time measured** — decides the whole batching strategy and whether the CI quota is comfortable (~30s) or critical (minutes). See `docs/hosting-and-deployment.md`
+- [ ] **GATE: `wrangler pages deploy` verified not to consume the 500/month Pages build quota** (direct upload vs Git-triggered build)
+- [ ] **GATE: DianaHost limits confirmed via support ticket** — inode/file-count quota, CPU/memory/process limits, hourly email send limits, account-level backup policy. **None are published in their knowledge base**
 - [ ] **GATE: SQLite WAL concurrency proven with 5+ concurrent writers** — blocking. **Moved here from S12**: this is a foundational decision and must not be validated at the finish line
-- [ ] **GATE: Cloudflare R2 can be enabled without a payment method** — blocking. If not, apply the documented media fallback
-- [ ] **GATE: CI rebuild strategy settled** — debounce/batch (e.g. one rebuild per 10 min) or public repo for unlimited minutes. At 45–70 articles/day, one build per publish exceeds the 2,000 min/month private-repo quota
+- [ ] **GATE: Cloudflare R2 enabled and verified** — a payment method is on file, so R2 is enableable. Verify with `wrangler login && wrangler r2 bucket list`, then set an **80% usage alert** (overage is billable once a card is on file)
+- [ ] **GATE: CI rebuild strategy settled** — adaptive batching (15–30 min quiet, 5 min peak, on-demand for `is_breaking`). Two quotas apply: GitHub Actions 2,000 min/month (private repo) and **Cloudflare Pages 500 builds/month**. At the chosen baseline of 15–20 articles/day + bursts, a ~30s incremental build fits comfortably; a multi-minute build does not. See `docs/hosting-and-deployment.md`
 - [ ] **GATE: CI quality gates live** — Lighthouse CI with per-page budgets, broken-link check, JSON-LD validation, `npm audit` policy (`docs/performance-budget.md`, `docs/testing-and-qa.md`)
 - [ ] **GATE: backup automated off-host AND a restore performed successfully** — an untested backup is not a backup (`docs/backup-and-recovery.md`)
 - [ ] **GATE: feature-flag mechanism designed** so heavy/fragile features can be disabled without a redeploy (`docs/reliability.md`)
@@ -38,7 +40,7 @@
 ## S1 — CMS Content Models & RBAC
 - [x] **GATE: education feature inventory approved** — ✅ 2026-09-11 (`docs/education-feature-inventory.md`)
 - [x] **GATE: education category tree approved** — ✅ 8 categories + cross-cutting level filter
-- [ ] **GATE: publishing velocity / headcount decided** — ⏳ open; 45–70/day implies 15–23 staff but the plan says 5. See inventory §7
+- [x] **GATE: publishing velocity decided** — ✅ 2026-09-11: **baseline 15–20/day + burst to 40+ on event days**, with the existing 5-person team
 - [ ] Collections: Articles, Categories, **Subcategories**, Authors, Tags, Ads, Settings, Polls, Quizzes, FactChecks, Jobs, Comments, LiveBlogs, **Newsletter Subscribers**, **Photo Galleries**, **Pages**
   - *(the four bolded collections were dropped from an earlier revision and restored by the audit — Subcategories is required by the category tree, Newsletter Subscribers by the newsletter decision, Photo Galleries by the gallery feature, Pages by the E-E-A-T pages)*
 - [ ] **Education collections:** Scholarships, Deadlines / Academic Calendar, Institutions, Circulars, Result Links, Study Abroad Guides, Saved Deadlines — see `.sps/content-model.md`

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Shikkha24 — PLACEHOLDER LOGO (2026-09-11)
+  ==========================================
+  This is a temporary brand mark. It exists so S2 (Design System) has something
+  real to lay out with before the final logo is supplied.
+
+  DO NOT treat this as the brand identity. It is deliberately simple.
+
+  Replacement path: the logo is a CMS-managed field on the Site Settings global
+  in Payload, so the real logo can be swapped in without a code change.
+  See .sps/content-model.md -> Site Settings -> logo.
+
+  Brand colours used: red #DA1C25, charcoal #1F1F1F.
+  The Bengali wordmark relies on a system Bengali font; it is a rasterisation
+  risk in some SVG renderers, which is one more reason this is a placeholder.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="72" viewBox="0 0 320 72" role="img" aria-label="Shikkha24 placeholder logo">
+  <title>Shikkha24 — placeholder logo</title>
+
+  <!-- Mark: an open book reduced to two strokes plus a rising bar (progress / higher study) -->
+  <g transform="translate(8,12)">
+    <rect x="0" y="0" width="48" height="48" rx="10" fill="#DA1C25"/>
+    <path d="M12 30.5c4.5-2.6 8-2.6 12 0 4-2.6 7.5-2.6 12 0" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+    <path d="M12 21.5c4.5-2.6 8-2.6 12 0 4-2.6 7.5-2.6 12 0" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+    <rect x="21" y="36" width="6" height="6" rx="1.5" fill="#FFFFFF" opacity="0.85"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="68" y="34"
+        font-family="'Noto Sans Bengali','Hind Siliguri','Nirmala UI','Vrinda',system-ui,sans-serif"
+        font-size="26" font-weight="700" fill="#1F1F1F">শিক্ষা২৪</text>
+
+  <!-- Latin lockup / descriptor -->
+  <text x="69" y="52"
+        font-family="Inter,'Helvetica Neue',Arial,sans-serif"
+        font-size="11.5" font-weight="600" letter-spacing="2.4" fill="#DA1C25">SHIKKHA24</text>
+</svg>

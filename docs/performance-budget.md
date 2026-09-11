@@ -18,7 +18,16 @@
 | Initial page payload | **< 1.2 MB** | CI | Per page template |
 | Data-saver payload | **< 30 KB** | CI | Ultra-lite mode |
 
-**Honest caveat — AdSense versus Lighthouse ≥95.** Google's own ad script is third-party, render-blocking, and unpredictable. A page carrying AdSense will rarely hold ≥95. Mitigation: load ads **after** LCP, never above the fold in the initial payload, and measure **two profiles** — "no ads" (must be ≥95) and "with ads" (must be ≥85). If a single ≥95 across all pages is a hard requirement, AdSense must be excluded from the measured templates. **This is an open decision** (§7).
+**AdSense vs Lighthouse ≥95 — RESOLVED 2026-09-11.** The owner confirmed an **activated AdSense account**, so AdSense is definitely shipping. The project therefore adopts **two measurement profiles**:
+
+| Profile | Pages | Target |
+|---|---|---|
+| **No-ads** | Templates without ad slots | **Lighthouse ≥ 95** |
+| **With-ads** | The same templates with AdSense loaded | **Lighthouse ≥ 85** |
+
+Rationale: Google's ad script is third-party, render-blocking and unpredictable; a page carrying AdSense will rarely hold ≥95. Rather than pretend otherwise, the gate is split so that regressions are still caught. Mitigation that must be implemented: **ads load after LCP**, never above the fold in the initial payload, and never block render.
+
+⚠️ AdSense account activation is not the same as AdSense *serving* — Google requires a live site with content before ads actually deliver. Expect a review period after launch.
 
 ---
 
@@ -94,7 +103,9 @@ Fail the build if any measured page misses its budget. Implementation is an S0/S
 
 ## 7. Open items
 
-- [ ] **Decide the AdSense-vs-≥95 trade-off** (§1) — either accept ≥85 on ad-bearing pages, or exclude AdSense from measured templates
+- [x] ~~Decide the AdSense-vs-≥95 trade-off~~ — ✅ resolved 2026-09-11: two profiles, ≥95 no-ads / ≥85 with-ads
+- [ ] **Measure a real Astro incremental build time** — this is also the deciding input for the CI quota (`docs/hosting-and-deployment.md`)
+- [ ] Confirm the Cloudflare Pages **20,000-file ceiling** against projected article volume
 - [ ] Validate every byte budget in §3 against a real build
 - [ ] Decide whether Inter is needed at all, or a system UI stack suffices
 - [ ] Choose the free uptime/monitoring tool — must not require a card (see `docs/reliability.md`)
