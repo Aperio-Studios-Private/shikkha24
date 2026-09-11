@@ -20,7 +20,7 @@
 | Newsletter fallback | Self-built Payload newsletter via DianaHost cPanel SMTP (preferred) → Oracle Cloud Always Free VPS self-hosting Listmonk (second). Paid services & limited free-tier SaaS rejected | 2026-09-11 |
 | Build pipeline | GitHub Actions (automated CI/CD) | 2026-09-11 |
 | Language | Bengali-only UI (no English toggle) | 2026-09-11 |
-| Agent rules | Mandatory rules codified in AGENTS.md / GEMINI.md: readable commented code, section-by-section approval, zero assumptions (ask first, research before build), immediate commits | 2026-09-11 |
+| Agent rules | Mandatory rules codified in AGENTS.md / GEMINI.md: readable commented code, section-by-section approval, zero assumptions (ask first, research before build), immediate commits, docs consistency (plan ↔ build parity) | 2026-09-11 |
 | Git workflow | Repo initialized 2026-09-11; commit immediately after every finished task | 2026-09-11 |
 | Initial root plan doc | Deleted (superseded) — this file is the single source of truth | 2026-09-11 |
 | Portal name | TBD (placeholder until decided) | — |
@@ -79,7 +79,7 @@
 | Gate | Condition |
 |------|-----------|
 | S0 exit | Payload-on-cPanel-Passenger smoke test passes AND TypeScript 7 toolchain validated with Astro 7 + Payload 3 |
-| S1 entry | Master plan (87+ features) exported from Antigravity into `docs/` |
+| S1 entry | Master plan (87+ features) exported from Antigravity into `docs/` — ✅ satisfied 2026-09-11 (`docs/master-plan.md`) |
 | S2 entry | Portal name, logo, and domain decided |
 | Every section exit | Full Definition of Done passes (build, typecheck, lint, performance targets) + explicit user approval |
 

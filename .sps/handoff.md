@@ -1,10 +1,10 @@
 # SPS Handoff
 
 ## Current Phase
-- **Status:** PRE-BUILD — docs audit complete & corrected; agent rules active; awaiting user "go" for S0
-- **Last Activity:** 2026-09-11T21:46+06:00
-- **Next Action:** (1) user runs the Antigravity export prompt (`.sps/antigravity-export-prompt.md`) to recover the master-plan artifacts into `docs/`; (2) on user's "go" signal — build S0
-- **User instruction (latest):** "fix all docs problems + add agent rules (code style, section-by-section approvals, zero assumptions, immediate commits) — do not start building yet"
+- **Status:** PRE-BUILD — docs audit complete; agent rules active (13 rules + Antigravity/Gemini hardening); all planning artifacts exported; awaiting user "go" for S0
+- **Last Activity:** 2026-09-11T22:20+06:00
+- **Next Action:** on user's "go" signal — build S0 (Foundation & Toolchain), one section at a time with approval gates
+- **User instruction (latest):** "add rule: if I ask to add/modify anything not covered in the docs, agents must update the docs first to keep build ↔ plan consistent; learn Gemini models & Antigravity known problems and rewrite GEMINI.md to avoid those mistakes — do not start building yet"
 
 ## Completed
 1. ✅ Discovery round 1 (project identity, language, type, team, features, monetization, design, hosting, timeline)
@@ -31,6 +31,8 @@
 22. ✅ Antigravity export prompt created (`.sps/antigravity-export-prompt.md`)
 23. ✅ README.md created
 24. ✅ Artifacts exported from Antigravity to docs/ (master plan, competitive analysis, stack research, original checklist)
+25. ✅ Agent rule 13 (docs consistency / plan ↔ build parity) added to both mirrors; GEMINI.md rewritten with Antigravity/Gemini hardening grounded in documented failure modes (Antigravity drive-wipe Dec 2025; PromptArmor prompt-injection Nov 2025; model/quota "bait and switch" 2026; Gemini CLI issues #15037, #7498, #13677, #6054, #7223); mirrors kept in sync
+26. ✅ All four artifacts verified in repo: `docs/master-plan.md` (25.9 KB, 397 lines — 87 numbered features, 10 innovations; heading says "70+" but rows run to 87, export kept verbatim), `docs/competitive-analysis.md` (46.8 KB), `docs/stack-research.md` (11.1 KB), `docs/task-checklist-original.md` (14.8 KB) — **S1 entry gate satisfied**; original checklist kept for reconciliation only (`.sps/task.md` remains operative)
 
 ## Key Decisions Made
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)
@@ -46,8 +48,8 @@
 - CDN: Cloudflare free tier
 - Typography: Hind Siliguri (headlines) + Noto Sans Bengali (body) + Inter (English)
 - Features: ALL 87+ features on Day 1 (no phasing) — performance budget enforced per feature
-- Workflow: section-by-section approval gates; zero assumptions; immediate commits
-- Agent rules: mandatory, codified in AGENTS.md / GEMINI.md
+- Workflow: section-by-section approval gates; zero assumptions; immediate commits; docs consistency (docs updated first when scope changes)
+- Agent rules: mandatory, codified in AGENTS.md / GEMINI.md (13 rules + Antigravity/Gemini hardening in GEMINI.md only)
 
 ## Pending
 - [ ] Portal name decision
@@ -55,4 +57,3 @@
 - [ ] Domain purchase
 - [ ] DianaHost plan purchase
 - [ ] Build S0 → S12 (one section at a time, approval-gated)
-

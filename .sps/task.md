@@ -20,7 +20,7 @@
 - [ ] S0 DoD evidence posted → **user approval**
 
 ## S1 — CMS Content Models & RBAC
-- [ ] **GATE: master plan (87+ features) exported from Antigravity into `docs/`** — blocking
+- [x] **GATE: master plan (87+ features) exported from Antigravity into `docs/`** — satisfied 2026-09-11 (`docs/master-plan.md`: 87 numbered features, 10 innovations, competitive intel; note: export's inventory heading says "70+" but rows are numbered to 87)
 - [ ] Collections: Articles, Categories, Authors, Tags, Ads, Settings, Polls, Quizzes, FactChecks, Jobs, Comments, LiveBlogs
 - [ ] 5 RBAC roles: Reporter, Section Editor, Editor-in-Chief, Ad Manager, Super Admin
 - [ ] Bengali admin labels
