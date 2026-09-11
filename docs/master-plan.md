@@ -1,7 +1,16 @@
 # 🏆 The Definitive Master Plan — Bangladesh's Best News Portal
 
+> [!WARNING]
+> **OBSOLETE AS A BUILD INPUT (marked 2026-09-11).**
+> This document was produced for a **general news portal**. The portal is an **education** portal — `shikkha24.com`. Positioning: *Education News | Scholarship | Admission | University | Higher Study / দেশ-বিদেশের শিক্ষার সর্বশেষ খবর ও সুযোগ*.
+> Retained for reference only. **Do not use this inventory, category tree or competitive framing as the feature list.** A new education inventory is required (see `.sps/profile.md` open decisions).
+> Specifically out of scope for an education portal: politics, business, sports and cricket, entertainment, gold/DSE/commodity tickers, and the general-news category tree.
+> **Known defects corrected on 2026-09-11:** the Next.js row was wrong (now `>=16.2.6 <17.0.0`); the Listmonk row documented a rejected option; the TTS features had no viable implementation path under the zero-cost constraint (now Browser Web Speech API, audio bulletin descoped); the content-velocity target was unachievable with the stated team; the checklist count was wrong; the heading understated the feature count.
+> **Corrected in `docs/competitive-analysis.md` instead:** that file's "Adopt a Headless SSR Architecture" takeaway contradicted this project's static-output architecture and has been removed there.
+> Also corrected: the "charcoal" token is no longer used for two different hex values (brand #1F1F1F vs dark-mode base #121212); the E-E-A-T `/about` row now includes Ministry of Information registration; `hreflang` was replaced by `inLanguage: bn-BD` on a single-language site; the checklist count and the feature-count heading were fixed; the content-velocity arithmetic mismatch is now recorded.
+
 > [!IMPORTANT]
-> This plan is built on competitive intelligence from **15+ portals** — every top Bangladeshi portal (Prothom Alo, bdnews24, Daily Star, Samakal, Jugantor, Kaler Kantho, Jago News 24, Bangla Tribune, Ittefaq) and 7 world-class international portals (BBC, Guardian, Al Jazeera, CNN, NYT, NHK, NDTV). Every feature below is either proven by a competitor or is an innovation no BD portal has yet.
+> This plan is built on competitive intelligence from **15+ portals** — every top Bangladeshi portal (Prothom Alo, bdnews24, Daily Star, Samakal, Jugantor, Kaler Kantho, Jago News 24, Bangla Tribune, Ittefaq) and 7 world-class international portals (BBC, Guardian, Al Jazeera, CNN, NYT, NHK, NDTV). ⚠️ **The international per-portal analysis is incomplete** — it was truncated from the source session and never recovered (see `docs/competitive-analysis.md` Part 4). Every feature below is either proven by a competitor or is an innovation no BD portal has yet.
 
 ---
 
@@ -26,17 +35,20 @@
 |-------|-----------|---------|------|
 | **Frontend** | Astro | 7.3.2 | Static HTML, Rust compiler, incremental builds |
 | **CMS** | Payload CMS | 3.89.0 | Headless admin, editorial workflows, versioning |
-| **CMS Runtime** | Next.js | 15.x | Payload runs inside Next.js (admin only) |
+| **CMS Runtime** | Next.js | **16.2.6+** | Payload runs inside Next.js (admin only). ⚠️ Corrected 2026-09-11 — the previous "15.x" was wrong: the real `@payloadcms/next@3.89.0` peer range is `>=15.2.9 <15.3.0 \|\| >=15.3.9 <15.4.0 \|\| >=15.4.11 <15.5.0 \|\| >=16.2.6 <17.0.0`, which excludes Next 15.5.x and 16.0.0–16.2.5 |
 | **Styling** | Tailwind CSS | 4.3.3 | Oxide engine, CSS-first config |
 | **Database (launch)** | SQLite | 3.53.4 | Zero-config, embedded |
 | **Database (scale)** | PostgreSQL | 18.6 | Full-text search, JSONB |
-| **Runtime** | Node.js | 24 LTS | Krypton, long-term support |
-| **Types** | TypeScript | 7.0.2 | Go-based compiler |
+| **Runtime** | Node.js | 24 LTS | Krypton. ⚠️ Active LTS ends 2026-10-20; EOL 2028-04-30. Node 26 becomes LTS 2026-10-28 |
+| **Types** | TypeScript | 7.0.2 | Go-based compiler (ships 20 platform-specific native binaries) |
 | **Build** | Vite | 8.3.0 | Used by Astro 7 + Tailwind 4.3 |
-| **Search** | Pagefind | 1.5.2 | Build-time, zero-server, Bengali support |
+| **Search** | Pagefind | 1.5.2 | Build-time, zero-server, Bengali support **unverified** |
+| **Frontend host** | Cloudflare Pages | free tier | Unlimited bandwidth, no card required — added 2026-09-11 |
+| **Media storage** | Cloudflare R2 | 10 GB free | Zero egress fees — added 2026-09-11 |
 | **CDN** | Cloudflare Free | — | Edge cache, DDoS, SSL, analytics |
-| **Newsletter** | Listmonk | 6.2.0 | Self-hosted email marketing |
-| **Push Notifications** | Web Push API + FCM | — | Segmented breaking alerts |
+| **Newsletter** | Self-built Payload module + free-tier ESP | — | ⚠️ **Listmonk 6.2.0 REJECTED 2026-09-11** — it requires its own PostgreSQL and a VPS, and no free VPS is obtainable without a credit card (Oracle Cloud Always Free requires a card at signup) |
+| **Push Notifications** | Web Push API | — | Segmented breaking alerts. FCM removed — it needs a Google Cloud project and is unnecessary for web push |
+| **Hosting (CMS)** | DianaHost PNR **2 GB** SSD NVMe | 2 GB / 200 GB | Purchased. Built in CI with Next.js `output: 'standalone'` (~300–600 MB) |
 | **Analytics** | Cloudflare Web Analytics | — | Free, cookie-less |
 | **Bengali Fonts** | Hind Siliguri + Noto Sans Bengali | Google Fonts | Headlines + body (WOFF2, subsetted) |
 | **English Font** | Inter | v4 variable | UI elements |
@@ -81,8 +93,9 @@ Dedicated section for 10M+ NRBs: live SAR/AED/USD→BDT rates, govt 2.5% incenti
 ### 6. 📍 District-First Local News (আমার জেলা — 64 Districts)
 1-tap district selector with cookie memory. Personalizes homepage: local news, weather, river flood gauge from FFWC, prayer times. **Samakal has basic drilldown; we do personalized homepage.**
 
-### 7. 🔊 AI Bangla Voice Reader (সংবাদ শুনুন)
-Every article has an audio player: "এই সংবাদটি শুনুন (১:১৫)". Plus twice-daily 3-min audio bulletin (সকাল ৮টা ও রাত ৮টা). **Daily Star has basic TTS; we do it with high-quality Bangla AI voice + daily podcast.**
+### 7. 🔊 Bangla Voice Reader (সংবাদ শুনুন) — implementation resolved 2026-09-11
+Every article has an audio player: "এই সংবাদটি শুনুন". **Implementation: Browser Web Speech API** (`speechSynthesis`) — client-side, free, no server cost, no storage, no recurring fee. The player degrades gracefully where no Bengali voice is installed on the device.
+⚠️ **The twice-daily 3-minute audio bulletin is DESCOPED.** Web Speech API is a live browser capability and cannot pre-generate podcast audio; a self-hosted or paid TTS engine would be required, and the owner has no international card. Original text: *"Plus twice-daily 3-min audio bulletin (সকাল ৮টা ও রাত ৮টা). Daily Star has basic TTS; we do it with high-quality Bangla AI voice + daily podcast."* — the "high-quality Bangla AI voice" had no viable implementation path under the zero-cost constraint.
 
 ### 8. 📜 Story Timeline Drawer (ঘটনার টাইমলাইন)
 Expandable timeline for long-running stories: "দেখুন এই ঘটনার পেছনের ইতিহাস" → visual chronological milestones. **Readers catch up on months of context in 30 seconds. Nobody does this.**
@@ -95,7 +108,9 @@ Dedicated fact-check section: 🔴 মিথ্যা / 🟡 বিভ্রা�
 
 ---
 
-## Complete Feature Inventory (70+ Features)
+## Complete Feature Inventory (87 Features)
+
+> Corrected 2026-09-11: the heading previously read "70+ Features" while the rows run to 87 (subtotals 19+22+8+7+7+4+12+8 = 87). ⚠️ **This entire inventory is general-news scope and is obsolete for the education portal.**
 
 ### 🗞️ Content & Editorial (19 Features)
 
@@ -126,7 +141,7 @@ Dedicated fact-check section: 🔴 মিথ্যা / 🟡 বিভ্রা�
 | # | Feature | Inspired By |
 |---|---------|-------------|
 | 20 | Mobile-first responsive design (375px minimum) | Standard |
-| 21 | Dark mode (charcoal #121212, not pure black) | BBC GEL |
+| 21 | Dark mode (base #121212, not pure black — distinct from the brand charcoal #1F1F1F) | BBC GEL |
 | 22 | Text size adjustment (আ font controls) | BBC, Prothom Alo |
 | 23 | Reading progress bar (slim 2px red) | NYT, Prothom Alo |
 | 24 | Full-text search (Pagefind, Bengali) | Standard |
@@ -139,8 +154,8 @@ Dedicated fact-check section: 🔴 মিথ্যা / 🟡 বিভ্রা�
 | 31 | Bengali date/time (১১ সেপ্টেম্বর ২০২৬, বৃহস্পতিবার + বঙ্গাব্দ + হিজরি) | Prothom Alo |
 | 32 | Print-friendly article view | Standard |
 | 33 | Data-saver ultra-lite mode (<30KB) | Innovation #2 |
-| 34 | AI Bangla voice reader ("সংবাদ শুনুন") | Innovation #7 |
-| 35 | Daily 3-min audio bulletin (morning + evening) | Innovation #7 |
+| 34 | Bangla voice reader ("সংবাদ শুনুন") — Browser Web Speech API | Innovation #7 |
+| 35 | ~~Daily 3-min audio bulletin~~ **DESCOPED 2026-09-11** (no viable zero-cost implementation) | Innovation #7 |
 | 36 | Comments with social login (Facebook/Google) | Custom Payload |
 | 37 | Reader bookmarks / save for later | Prothom Alo |
 | 38 | Push notifications (segmented by topic) | Innovation via CNN |
@@ -228,7 +243,7 @@ Dedicated fact-check section: 🔴 মিথ্যা / 🟡 বিভ্রা�
 
 | Page | Content |
 |------|---------|
-| `/about` | Legal entity, Trade License, TIN, ownership transparency |
+| `/about` | Legal entity, Trade License, TIN, ownership transparency, **Ministry of Information registration** (added 2026-09-11 — was missing) |
 | `/editorial-team` | Real names, photos, bios, beat, social links — NO anonymous bylines |
 | `/corrections-policy` | How errors are investigated and corrected |
 | `/fact-checking-policy` | Two-source verification rules, rumor handling |
@@ -267,8 +282,12 @@ Dedicated fact-check section: 🔴 মিথ্যা / 🟡 বিভ্রা�
 ### How to Rank a NEW Portal Against Established Giants
 
 #### Content Velocity Strategy
-- **Target: 45-70 articles/day** (minimum to signal 24/7 newsroom)
-- **Desk allocation:**
+- **Target: 45-70 articles/day** (minimum to signal a 24/7 newsroom)
+- ⚠️ **Two problems with this target, recorded 2026-09-11:**
+  1. **Arithmetic mismatch.** The desk allocation below sums to **42–56/day**, not 45–70. The two figures must be reconciled during re-planning.
+  2. **Team-size mismatch.** With the stated team of 5+ reporters/editors, 45–70/day means **9–14 articles per person per day, seven days a week**. The owner has elected to **keep the target and plan to hire** — team size is therefore a launch prerequisite, not a fixed constraint.
+- ⚠️ The desk allocation is general-news scope and is obsolete for the education portal. It must be redrawn around education desks.
+- **Desk allocation (general-news, obsolete):**
   - জাতীয় ও রাজনীতি: 14-18/day
   - অর্থনীতি ও ব্যবসা: 8-10/day
   - খেলাধুলা: 6-8/day
@@ -323,7 +342,7 @@ Breaking Story Published
 | **S8** | Live Blog & Interactive | Live blog engine (auto-refresh, key events filter, timestamped cards), polls with live chart results, daily news quiz, before/after image slider, infographic blocks, scrollytelling templates |
 | **S9** | Media, Newsletter & Engagement | Photo gallery, video embeds, QR-verified photo card generator, Listmonk integration, push notifications (Web Push API, segmented topics), bookmarks, social login, citizen journalism submission form |
 | **S10** | Utility Widgets & Specialized Sections | Live cricket pill + drawer, AQI ribbon, weather widget, prayer times, currency/remittance rates, gold price, commodity prices, DSE ticker, disaster warning banner, jobs section (চাকরি), education section (পড়াশোনা), expatriate corner (প্রবাসী), fact-check section |
-| **S11** | SEO, Feeds & AI Optimization | News sitemap (48hr rolling), standard sitemap, RSS (full + per-category), Open Graph + Twitter Cards, auto-generated OG images, canonical URLs, hreflang, robots.txt (AI bot friendly), llms.txt, Google Publisher Center setup, E-E-A-T governance pages |
+| **S11** | SEO, Feeds & AI Optimization | News sitemap (48hr rolling), standard sitemap, RSS (full + per-category), Open Graph + Twitter Cards, auto-generated OG images, canonical URLs, `inLanguage: bn-BD` (hreflang removed 2026-09-11 — pointless on a single-language site), robots.txt (AI bot friendly), llms.txt, Google Publisher Center setup, E-E-A-T governance pages |
 | **S12** | Deployment, QA & Launch | cPanel deployment scripts, GitHub Actions pipeline, Cloudflare setup, Lighthouse audit (target ≥95), mobile testing (375px), Bengali font rendering audit, ad viewability test, load testing, accessibility audit |
 
 ---
@@ -393,5 +412,6 @@ BUILD PIPELINE (GitHub Actions):
 
 > Plan approved by user on **2026-09-11T20:41+06:00**.
 > - `.sps/plan.md` stamped as approved
-> - `task.md` checklist created (150+ tasks)
+> - `task.md` checklist created — ⚠️ corrected 2026-09-11: the original checklist has **198 items**; the operative `.sps/task.md` has **50** (it lost ~75% of the detail and four CMS collections). The operative file has since been restored by the audit.
 > - Ready to begin **Section S0: Foundation & Toolchain** on user's build command
+> - ⚠️ Scope amended 2026-09-11: this plan is for a **general news portal**; the portal is an **education** portal. See the banner at the top of this file.

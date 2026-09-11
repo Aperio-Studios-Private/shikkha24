@@ -1,8 +1,17 @@
 # Stack Research Notes — Sep 11, 2026
 
 > Compiled from web research during planning session.
-> Source conversation: `f20130b8-a34c-4c80-af5c-19e1aa38859c`
+> Source conversation: `f20130b8-a34c-4c80-af5c-19e1aa38859c` *(not resolvable from this repository — an external session reference)*
 > Methodology: For each technology, searched npm/official docs/release notes for latest stable version, checked compatibility, and noted caveats.
+
+> [!WARNING]
+> **Corrected 2026-09-11 by the third-party audit.** Four claims in this document were wrong or contradicted the approved plan:
+> 1. **Node 24 "Active LTS until April 2028"** — wrong. Active LTS ended **2026-10-20**; April 2028 is end-of-life.
+> 2. **Next.js "15.x or 16.x"** — wrong and dangerous. The real peer range excludes most of those versions.
+> 3. **PostgreSQL fallback "free-tier cloud PostgreSQL (Supabase, Neon, Railway)"** — contradicts the approved plan, which explicitly rejects limited free-tier SaaS for core infrastructure.
+> 4. **Listmonk fallback "Railway.app free tier or Render free tier"** — the same contradiction, and doubly moot: the owner has no international card, so neither free tier is obtainable, and Oracle Cloud Always Free is not an option either.
+>
+> All four are corrected inline below. **All pinned versions in this document were independently re-verified against live registries on 2026-09-11 and matched exactly.**
 
 ---
 
@@ -42,8 +51,11 @@
 - **Admin UI i18n:** Supports custom locale bundles — Bengali admin labels achievable.
 - **Rich text editor:** Lexical-based block editor with custom blocks.
 - **GraphQL + REST API:** Both available out of the box.
-- **Version:** 3.89.0 released Sep 10, 2026.
-- **Requirements:** Node.js 20.9.0+, Next.js 15.x or 16.x.
+- **Version:** 3.89.0 released Sep 10, 2026 (verified: published 2026-09-10T14:49:21Z — **one day before being pinned**, so S0 should evaluate holding 3.89.0 vs pinning the prior minor).
+- **Requirements:** Node.js 20.9.0+ (package `engines`: `^18.20.2 || >=20.9.0`).
+- **Next.js peer range (CORRECTED 2026-09-11):** the previous entry said "Next.js 15.x or 16.x". That is wrong. `@payloadcms/next@3.89.0` declares:
+  `next: >=15.2.9 <15.3.0 || >=15.3.9 <15.4.0 || >=15.4.11 <15.5.0 || >=16.2.6 <17.0.0`
+  This **excludes** Next 15.3.0–15.3.8, 15.4.0–15.4.10, all of 15.5.x and above within the 15 line, 16.0.0–16.2.5, and 17.x. A naive `npm install next@15` resolves to 15.5.x and produces a peer-dependency conflict. **Pin Next 16.2.6+.**
 
 ### Caveats
 - **Payload on cPanel Passenger:** Assumed to work (Passenger runs Node.js apps), but not documented by Payload or DianaHost. Needs testing in S0.
@@ -91,13 +103,14 @@
 **Actual latest LTS:** 24.x
 
 ### Key findings
-- **Long-term support** — Active LTS until April 2028.
+- **Long-term support — CORRECTED 2026-09-11.** The previous entry said "Active LTS until April 2028". That is wrong. Per `github.com/nodejs/Release` `schedule.json`: Node 24 entered LTS on **2025-10-28**, enters Maintenance on **2026-10-20** (i.e. Active LTS ends ~5 weeks after this plan was approved), and reaches **end-of-life on 2028-04-30**. Node 26 becomes LTS on **2026-10-28**. Verified latest 24.x: **v24.21.0** (2026-09-07), codename **Krypton**.
+- **Implication:** the runtime choice should be revisited at S0 rather than assumed to be a long-horizon decision.
 - **Native fetch** — Built-in `fetch()` API, no need for `node-fetch`.
 - **Built-in test runner** — `node:test` module for unit testing.
 - **Performance** — V8 engine improvements, faster startup.
 
 ### Caveats
-- DianaHost PNR hosting must support Node 24. PNR stands for Python/Node/Ruby — Node.js is supported, but exact version availability needs confirmation.
+- ⚠️ **DianaHost, verified 2026-09-11.** The purchased plan is **PNR 2 GB SSD NVMe**: 2 GB storage, 200 GB/month bandwidth, 3 addon domains, 30 sub-domains, 30 FTP accounts, 50 databases, unlimited email accounts, cPanel, SSH on demand, and Python/Ruby/Node.js support. The vendor publishes **no Node.js version**, so Node ≥22.12 availability is unverified and is an S0 exit gate. The vendor also publishes **no inode/file-count quota**, which matters because a Next.js install contains tens of thousands of files — also an S0 exit gate.
 
 ---
 
@@ -140,7 +153,7 @@
 ### Key findings
 - **Scale-up database** — Full-text search, JSONB, concurrent connections, replication.
 - **Payload CMS adapter** — `@payloadcms/db-postgres` available.
-- **DianaHost support** — PNR hosting may not include PostgreSQL. Fallback: free-tier cloud PostgreSQL (Supabase, Neon, Railway).
+- **DianaHost support** — PNR hosting does not include PostgreSQL (the plan bundles SQLite only). ⚠️ **CORRECTED 2026-09-11:** the previous fallback here was *"free-tier cloud PostgreSQL (Supabase, Neon, Railway)"*. That **contradicts the approved plan**, which explicitly rejects limited free-tier SaaS for core infrastructure. It is also moot in practice — the owner has no international card, so none of those free tiers is obtainable. PostgreSQL is a scale-up target to be funded and chosen later, not a free-tier stopgap.
 
 ### Caveats
 - Not used at launch. SQLite first, PostgreSQL when scaling. The switch is a single config change in Payload.
@@ -178,7 +191,9 @@
 - **Free and open-source** — AGPL license.
 
 ### Caveats
-- **Hosting risk:** Listmonk is a Go binary that needs PostgreSQL. DianaHost shared hosting likely can't run it. **Fallback plan:** Deploy Listmonk on Railway.app free tier or Render free tier (both support Go + PostgreSQL). The Astro frontend calls Listmonk's API remotely.
+- **Hosting risk:** Listmonk is a Go binary that needs PostgreSQL. DianaHost's PNR plans list only **Python, Ruby and Node.js** support — **no Go** — so Listmonk cannot run on the purchased host. It is effectively impossible, not merely unlikely.
+- ⚠️ **CORRECTED 2026-09-11 — Listmonk is REJECTED.** The previous fallback here was *"Deploy Listmonk on Railway.app free tier or Render free tier"*. That contradicted the approved plan's rejection of limited free-tier SaaS, and is moot: the owner has **no international card**, so Railway, Render and Oracle Cloud Always Free are all unobtainable.
+- **Current decision:** self-built subscriber list and campaign module inside Payload, with delivery via a **free-tier ESP API** (e.g. Brevo, 300/day, no card required). Documented fallback: DianaHost cPanel SMTP at low volume — noting that cPanel enforces per-domain hourly send caps and that bulk sending from a shared IP risks blacklisting the domain.
 
 ---
 
@@ -241,8 +256,9 @@
 
 ### Key findings
 - **Free tier:** 2,000 minutes/month for private repos, unlimited for public repos.
-- **Workflow:** Payload publish → webhook → GitHub Actions → Astro incremental build → deploy to DianaHost via SSH/SFTP.
+- **Workflow (updated 2026-09-11 for the Cloudflare architecture):** Payload publish → webhook → GitHub Actions → Astro build (+ Pagefind index) → deploy to **Cloudflare Pages**; Payload itself built with Next.js `output: 'standalone'` → deploy to DianaHost via SSH.
 - **Estimated build time:** Astro incremental rebuild = 10-30 seconds (only changed pages). Full rebuild = 2-5 minutes for 10,000 pages.
+- ⚠️ **CI minutes constraint (added 2026-09-11).** At the plan's 45–70 articles/day target, **one build per publish is 1,350–2,100 builds/month**. Even at 3 minutes each that is 4,050–6,300 minutes — **two to three times the 2,000-minute private-repo quota**. Rebuilds must therefore be **debounced or batched** (e.g. a scheduled workflow that rebuilds every 10 minutes and coalesces pending changes), or the repository must be public for unlimited minutes. This must be settled in S0, before the pipeline is built.
 
 ### Caveats
 - Need SSH access to DianaHost cPanel for automated deployment. Verify DianaHost provides SSH (PNR plans should).

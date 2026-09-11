@@ -188,3 +188,49 @@ The following could not be independently verified in this session and are flagge
 For every dimension above, the checks performed are stated alongside the findings so that coverage can be judged independently of the conclusions. No dimension was rubber-stamped: the version-verification dimension, where the documentation is strongest, still produced one refuted claim and one incomplete claim, and the agent-rules dimension, which is largely sound, still produced four findings.
 
 *Report generated 2026-09-11 against commit `c5e9e49`. No repository state was modified by the audit itself.*
+
+---
+
+## 6. Remediation log (added 2026-09-11)
+
+All findings were remediated on 2026-09-11 at the owner's direction. Commits: `5124534` (docs/plan), `1af50bc` (agent rules), and the commit containing this file.
+
+| Finding | Status | What changed |
+|---|---|---|
+| **C1** 3 GB storage | ✅ Fixed | Architecture rewritten for the **purchased DianaHost PNR 2 GB** plan: Cloudflare Pages (frontend) + Cloudflare R2 (media) + slim CI-built Payload using Next.js `output: 'standalone'`. Expected host footprint ≈400–700 MB. Documented R2 fallback. **New finding surfaced during remediation: the plan said 3 GB / ৳6,999 but the plan actually purchased is 2 GB / ~$47 — corrected everywhere.** |
+| **C2** Stale Strapi plan | ✅ Fixed | The file has **actually been deleted** (owner-approved). The three false claims carry visible `CORRECTION` notes rather than being silently rewritten. |
+| **C3** Newsletter fallback | ✅ Fixed | Oracle Cloud removed (requires a card the owner does not have). New path: self-built Payload subscriber list + campaign module, delivery via a free-tier ESP API, cPanel SMTP as a low-volume fallback. |
+| **H1** No data sources | ✅ Fixed | `docs/data-sources.md` created. Five providers **verified live with no API key** (Aladhan, Open-Meteo weather, Open-Meteo air quality, open.er-api.com, exchangerate.host, Frankfurter). Widgets with no free source are explicitly descoped. |
+| **H2** TTS with no path | ✅ Fixed | Browser Web Speech API adopted. The twice-daily audio bulletin is **descoped** — it cannot be pre-generated client-side. |
+| **H3** Next.js range wrong | ✅ Fixed | Pinned to `>=16.2.6 <17.0.0`; the full real peer range is now recorded in `.sps/plan.md` and `docs/stack-research.md`. |
+| **H4** "per feature, not per page" | ✅ Fixed | Rewritten as page-level, with the measured page templates enumerated. |
+| **H5** Velocity vs team size | ✅ Fixed | Owner chose to keep 45–70/day **and plan to hire**; team size is now a launch prerequisite. The 42–56 vs 45–70 arithmetic mismatch is recorded. |
+| **M1** SQLite gate at S12 | ✅ Fixed | Concurrency gate moved to **S0 exit**. |
+| **M2** Node 24 LTS wrong | ✅ Fixed | Corrected: Active LTS ends 2026-10-20, EOL 2028-04-30, Node 26 LTS 2026-10-28. |
+| **M3** Payload 3.89.0 one day old | ✅ Fixed | Freshness risk recorded; S0 now includes a hold-vs-pin decision. |
+| **M4** Four collections dropped | ✅ Fixed | Subcategories, Newsletter Subscribers, Photo Galleries and Pages restored in `.sps/task.md` and `.sps/content-model.md`. |
+| **M5** "150+ tasks" false | ✅ Fixed | Corrected to 198 (original) / 50 (operative, before restoration). |
+| **M6** No accessibility target | ✅ Fixed | Lighthouse accessibility ≥90 added to `.sps/plan.md` and to agent rule 9. |
+| **M7** No URL architecture | ✅ Fixed | `/:category/:subcategory/:id/:slug` + shortlink, recorded in `.sps/plan.md`. |
+| **M8** Research contradicted budget | ✅ Fixed | Supabase/Neon/Railway and Railway/Render recommendations removed from `docs/stack-research.md` with the contradiction explained. |
+| **M9** SSR recommendation | ✅ Fixed | Removed from `docs/competitive-analysis.md`, struck through with the reasoning preserved. |
+| **M10** Motion contradiction | ✅ Fixed | Reconciled in `.sps/profile.md`: minimal by default, richer motion only in lazy-loaded S8 islands. |
+| **M11** 90% vs 51% mobile | ✅ Fixed | Clarified in `docs/competitive-analysis.md` — two different metrics, neither to be cited as measured fact. |
+| **M12** README stale | ✅ Fixed | README rewritten: doc map, status notes and blocking-gate table. |
+| **M13** Rule 4 vs audit protocol | ✅ Fixed | Rule 4 gained an explicit read-only/audit carve-out. |
+| **M14** Rule 7 vs paid host | ✅ Fixed | Reworded to scope new fees, and now records the no-international-card constraint. |
+| **M15** Rule 9 TTFB unenforceable | ✅ Fixed | TTFB gated at S12 only; measurement context specified. |
+| **M16** Rule numbering ambiguous | ✅ Fixed | Hardening renumbered **H1–H14**. |
+| **M17** Build topology unstated | ✅ Fixed | Documented in `.sps/plan.md`; DianaHost Node-version and inode-quota checks added as S0 exit gates. |
+| **L1–L8** | ✅ Fixed | Feature count 87; velocity figures reconciled; `.sps/content-model.md` + `mistakes.md` created; `.sps/agent.md` refreshed; `hreflang` → `inLanguage`; 1.2 MB payload budget recorded; Ministry of Information registration added; charcoal token disambiguated. |
+
+**Not remediated, deliberately:**
+- **`.sps/lock.json`** — the `sps` skill references removing it but defines **no schema**. Creating one would be a guess, which rule 3 forbids. The lock is asserted through the three root mirrors. Recorded in `.sps/mistakes.md`.
+- **The truncated international competitive research** — not recoverable from this repository. The plan's claim to intelligence from "7 world-class international portals" is now marked unsupported in both `docs/master-plan.md` and `docs/competitive-analysis.md`.
+
+**New findings raised during remediation** (not in the original audit):
+1. The purchased hosting plan is **2 GB**, not the 3 GB every document claimed.
+2. The portal is an **education** portal (`shikkha24.com`), not a general news portal — which makes the 87-feature inventory, category tree and competitor set obsolete.
+3. **GitHub Actions minutes**: at 45–70 articles/day, one build per publish is 1,350–2,100 builds/month against a 2,000-minute private-repo quota. Rebuilds must be debounced or batched.
+
+**Outstanding (blocks S1 entry):** the education feature inventory, category tree and competitor set. These require a discovery round with the owner and were deliberately **not invented**.

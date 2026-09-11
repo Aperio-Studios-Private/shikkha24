@@ -1,9 +1,14 @@
 # 📋 News Portal — Build Checklist (Original at Plan Approval)
 
+> [!WARNING]
+> **ARCHIVE ONLY — do not build from this file (marked 2026-09-11).** The operative checklist is `.sps/task.md`.
+> This is the 198-item checklist created at plan approval. The operative checklist had been reduced to 50 items and lost four CMS collections; the audit restored them. Both checklists are **general-news scope** and must be re-scoped to education.
+> One item from this file was promoted into the operative plan by the 2026-09-11 audit: **Lighthouse accessibility ≥ 90** (previously present only here).
+
 > Plan approved: 2026-09-11 | Status: **Ready to build**
 >
 > **Note:** This is the original checklist created at plan approval time (2026-09-11T20:47+06:00).
-> A post-approval audit added items (Bengali date utilities in S2, Listmonk deployment tasks in S12).
+> ⚠️ Corrected 2026-09-11: the note below previously claimed "a post-approval audit added items (Bengali date utilities in S2, Listmonk deployment tasks in S12)" — **those items do not appear anywhere in this file**. The claim was inaccurate and has been removed.
 > The live working copy is `.sps/task.md` — use that for build tracking.
 
 ---

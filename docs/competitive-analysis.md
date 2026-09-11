@@ -1,7 +1,16 @@
 # Competitive Analysis — 15+ News Portals
 
 > Compiled from 4 parallel research subagents (2026-09-11).
-> Source conversation: `f20130b8-a34c-4c80-af5c-19e1aa38859c`
+> Source conversation: `f20130b8-a34c-4c80-af5c-19e1aa38859c` *(external session reference — not resolvable from this repository)*
+
+> [!WARNING]
+> **OBSOLETE AS A BUILD INPUT (marked 2026-09-11).** This analysis covers **general news portals**. The portal is an **education** portal (`shikkha24.com`). An education-portal competitor set is required and does not exist yet.
+> **Corrected 2026-09-11 by the third-party audit:**
+> - The "Adopt a Headless SSR Architecture" takeaway contradicted this project's Astro **static** architecture and has been removed.
+> - Prothom Alo's publishing velocity was given as two different figures in this file; reconciled.
+> - The mobile share of readers was given as both 51% and 90%+ in this file without reconciliation; clarified.
+> - Part 4 (international portals) is **incomplete** — the per-portal breakdown was truncated from the source session and never recovered. The document no longer claims otherwise.
+> - The subagent UUIDs throughout are external references and cannot be verified from this repository.
 
 ---
 
@@ -34,7 +43,7 @@
 * **Wikipedia Dominance**: Prothom Alo is cited thousands of times across both the Bengali Wikipedia (bn.wikipedia.org) and English Wikipedia as primary secondary literature, providing immense semantic backlink trust.
 
 #### C. Content Velocity & Freshness (QDF - Query Deserves Freshness)
-* **24/7 Continuous Publishing Engine**: An estimated **300–500+ unique articles, reports, and briefs published per day**.
+* **24/7 Continuous Publishing Engine**: an estimated **250–350+ unique articles, reports, and briefs published per day**. *(Reconciled 2026-09-11 — this file previously said "300–500+" here and "250–350+" in the content-velocity table below. The two figures are now consistent. Neither could be independently verified in this audit.)*
 * **Instant QDF Triggering**: Whenever breaking news occurs in Bangladesh, Prothom Alo's newsroom publishes within 60–120 seconds. This triggers Google's QDF algorithm, instantly placing them at the top of SERPs and Google Top Stories.
 
 #### D. Automated Structured Data (Schema.org JSON-LD via Quintype)
@@ -238,7 +247,7 @@ Sold directly to top brands (Telcos: Grameenphone, Robi, Banglalink; Banks/Finte
 
 ### Key Strategic Takeaways for Our New Portal
 
-1. **Adopt a Headless SSR Architecture**: Emulate their **React/Next.js + Headless CMS** model to guarantee sub-second LCP.
+1. ~~**Adopt a Headless SSR Architecture**: Emulate their **React/Next.js + Headless CMS** model to guarantee sub-second LCP.~~ **REMOVED 2026-09-11 — this contradicted the approved architecture.** Prothom Alo runs SSR because Quintype Bold is an SSR platform; this project deliberately chose **Astro static output** for sub-second LCP at a fraction of the infrastructure cost. Adopting SSR here would contradict `.sps/plan.md` and would not fit the 2 GB host. Retained as a struck-through note so the reasoning is not silently lost.
 2. **Commission / License a Distinctive Bengali Typeface**: Crisp Bengali typography with correct line-height is fundamental to perceived quality.
 3. **Automate Schema.org Rigorously**: Implement automated JSON-LD schemas (`NewsArticle`, `LiveBlogPosting`, `Author`, `BreadcrumbList`) from day one.
 4. **Capitalize on Push Notifications**: Deploy segmented web push notifications with breaking news and topic subscriptions.
@@ -550,7 +559,8 @@ Google tracks who published a story first — applies "Highly Cited" label. Rewr
 
 ### 6. Mobile-First Indexing
 
-**90%+ of BD news readers are on mobile.** Specific rules:
+**Mobile is the dominant platform for BD news readers.** Specific rules:
+> ⚠️ **Clarified 2026-09-11.** This file previously asserted "90%+ of BD news readers are on mobile" while its own Prothom Alo table (Part 1) reported **~51% mobile / ~49% desktop**. These are not the same metric and must not be presented as equivalent: the 51% figure is Similarweb's *all-visitor* split for one portal, which includes desktop-heavy direct and branded traffic; the 90%+ figure is a general claim about the BD reader *population*. The 90%+ figure could not be independently verified in this audit. **Treat mobile-first as the design default, but do not cite 90%+ as a measured fact** — validate the real split against this portal's own analytics after launch.
 - **Bengali min 17-18px body font** on mobile with `line-height: 1.65`
 - **48×48px minimum touch targets** with 8px spacing
 - **Total initial page payload under 1.2 MB**
@@ -638,7 +648,7 @@ Allow: /
 
 **Source subagent:** `69748972-82e1-46c3-950a-655fe4c6cd91` (UX innovation analyst)
 
-> **Note:** The full per-portal breakdown (BBC, Guardian, Al Jazeera, CNN, NYT, NHK, NDTV) was delivered in an earlier session turn that has since been truncated from context. The 10 innovation recommendations below were synthesized from that report and are preserved in full in the master plan. The per-portal findings that survive in session context are summarized here.
+> **Note (amended 2026-09-11):** The full per-portal breakdown (BBC, Guardian, Al Jazeera, CNN, NYT, NHK, NDTV) was delivered in an earlier session turn that has since been truncated from context, and **was never recovered**. The 10 innovation recommendations below were synthesized from that report. ⚠️ **Consequence:** the plan's claim to competitive intelligence from "7 world-class international portals" is **not supported by any artifact in this repository** — only the summary list below survives. Either the analysis is recovered from the original session, or the plan stops making that claim.
 
 ### Portals Analyzed
 1. **BBC News** — interactive features, accessibility, dark mode, GEL design system, responsive design
@@ -664,4 +674,4 @@ Allow: /
 
 ---
 
-*Report compiled 2026-09-11. Source subagent transcripts archived in Antigravity brain.*
+*Report compiled 2026-09-11. Source subagent transcripts are held outside this repository — the reference to an external "Antigravity brain" cannot be resolved from here, so none of the subagent findings can be independently re-verified. Flagged by the 2026-09-11 audit.*
