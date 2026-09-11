@@ -1,31 +1,61 @@
-# NewPortal — Bangladesh Bengali News Portal
+# Shikkha24 — Bangladesh Education News Portal
 
-Production-grade, Bengali-first news portal. **Status: planning approved — PRE-BUILD. Nothing has been built yet; do not build until the user says "go" for S0.**
+Production-grade, Bengali-first **education** news portal. Domain: **shikkha24.com**.
+
+> 🎓 Education News | Scholarship | Admission | University | Higher Study
+> 🌍 দেশ-বিদেশের শিক্ষার সর্বশেষ খবর ও সুযোগ
+> 📚 শিক্ষার খবর, সুযোগ ও সম্ভাবনা—এক ঠিকানায়।
+
+**Status: planning approved — PRE-BUILD. Nothing has been built yet. Do not build until the owner says "go" for S0.**
 
 ## Documentation map
 
 | File | Purpose |
 |---|---|
 | `.sps/plan.md` | ✅ **THE approved implementation plan — single source of truth** |
-| `.sps/profile.md` | Project identity, rules, explicit approvals/rejections |
+| `.sps/profile.md` | Project identity, rules, explicit approvals/rejections, open decisions |
 | `.sps/handoff.md` | Session memory: what's done, key decisions, what's next |
-| `.sps/task.md` | S0→S12 task checklist with blocking gates |
+| `.sps/task.md` | S0→S12 task checklist with blocking gates (operative) |
 | `.sps/agent.md` | SPS agent identity |
+| `.sps/content-model.md` | CMS collection inventory (populated in S1) |
+| `.sps/mistakes.md` | Project mistake log — do-not-repeat list |
+| `.sps/lock.json` | `/sps` lock metadata |
 | `.sps/antigravity-export-prompt.md` | Prompt to recover planning artifacts from the prior Antigravity session |
-| `.sps/third-party-audit-prompt.md` | Prompt for an independent adversarial audit of docs & plans (read-only, no building) |
-| `AGENTS.md` / `GEMINI.md` | **Mandatory agent rules** (synced mirrors — read before any task) |
-| `docs/` | Exported planning artifacts: master plan (87 features), competitive analysis, stack research, original checklist |
+| `.sps/third-party-audit-prompt.md` | Prompt for an independent adversarial audit (read-only, no building) |
+| `AGENTS.md` / `GEMINI.md` / `CLAUDE.md` | **Mandatory agent rules** — three synced mirrors, rules 1–13 identical in all three |
+| `docs/audit-third-party.md` | Independent adversarial audit of the docs and plans (2026-09-11) + remediation status |
+| `docs/data-sources.md` | Every live-data widget: provider, free-tier terms, rate limit, fallback |
+| `docs/master-plan.md` | ⚠️ **OBSOLETE as a build input** — 87-feature *general-news* inventory. Reference only |
+| `docs/competitive-analysis.md` | ⚠️ **OBSOLETE as a build input** — general-news competitor set. Reference only |
+| `docs/stack-research.md` | Stack research notes (versions verified 2026-09-11) |
+| `docs/task-checklist-original.md` | Original 198-item checklist from plan approval. Archive only |
 
 ## Status notes
 
-- **Stack versions verified** against live registries on 2026-09-11 (Astro 7.3.2, Payload 3.89.0, Tailwind 4.3.3, TS 7.0.2, Vite 8.3.0, Pagefind 1.5.2, Node 24 LTS, PostgreSQL 18.6, SQLite 3.53.4, Listmonk 6.2.0).
-- The old Strapi-based root plan document was **deleted (user-approved 2026-09-11)** — `.sps/plan.md` is the only plan. The original is preserved in git history (baseline commit).
-- **Master plan received** (2026-09-11): `docs/master-plan.md` — 87 numbered features, 10 innovations, competitive intel (exported from Antigravity). Still awaiting: competitive-analysis & stack-research exports — prompt at `.sps/antigravity-export-prompt.md`.
-- Blocking gates before/during build: Antigravity artifact export (S1 entry), portal name + logo + domain (S2 entry), Payload-on-cPanel-Passenger smoke test + TS 7 toolchain validation (S0 exit).
+- **Portal scope amended (2026-09-11):** this is an **education** portal, not a general news portal. `docs/master-plan.md` and `docs/competitive-analysis.md` were produced for a general news portal and are **retained for reference only**. A new education feature inventory, category tree and competitor set are required — see the open decisions in `.sps/profile.md`.
+- **Stack versions verified** against live registries on 2026-09-11 (Astro 7.3.2, Payload 3.89.0, Tailwind 4.3.3, TS 7.0.2, Vite 8.3.0, Pagefind 1.5.2, Node 24 LTS 24.21.0, PostgreSQL 18.6, SQLite 3.53.4). **Next.js corrected to `>=16.2.6 <17.0.0`.**
+- **The old Strapi-based root plan document was deleted (owner-approved 2026-09-11).** `.sps/plan.md` is the only plan. The original is preserved in git history at commit `acfb128`.
+- **All four planning artifacts are present** in `docs/`: master plan (87 features), competitive analysis, stack research, original checklist.
+- **Independent third-party audit completed 2026-09-11** — see `docs/audit-third-party.md`. Findings were remediated the same day.
+- **Hosting/storage:** DianaHost PNR **2 GB** SSD NVMe (purchased) + Cloudflare Pages (frontend) + Cloudflare R2 (media). See the Hosting & Storage Architecture section of `.sps/plan.md`.
+
+## Blocking gates before/during build
+
+| Gate | Status |
+|---|---|
+| **Education feature inventory** (S1 entry) | ❌ Not satisfied — requires a discovery round |
+| Portal display name + logo (S2 entry) | ⏳ Domain ✅ `shikkha24.com`; name + logo pending |
+| Payload-on-cPanel-Passenger smoke test (S0 exit) | ⏳ Pending |
+| TypeScript 7 toolchain validation (S0 exit) | ⏳ Pending |
+| Cloudflare R2 enablement without a payment method (S0 exit) | ⏳ Pending |
+| DianaHost Node.js ≥22.12 confirmed (S0 exit) | ⏳ Pending |
+| DianaHost inode quota confirmed (S0 exit) | ⏳ Pending |
+| SQLite WAL 5-writer concurrency proven (S0 exit) | ⏳ Pending — moved from S12 |
+| CI rebuild strategy settled (S0 exit) | ⏳ Pending |
 
 ## Workflow (summary — full rules in AGENTS.md)
 
 1. One section at a time (S0 → S12), each ending with evidence + explicit user approval.
 2. Zero assumptions: ask the user; research from the internet before building with anything unfamiliar.
 3. Commit immediately after every finished task.
-4. Zero recurring fees; no paid services, no limited free-tier SaaS — self-hosted/self-built preferred.
+4. Zero recurring fees; no paid services, no limited free-tier SaaS. **The owner has no international card**, so any service requiring one is unusable.
