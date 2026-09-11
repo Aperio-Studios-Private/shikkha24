@@ -2,7 +2,7 @@
 
 ## Current Phase
 - **Status:** PRE-BUILD — docs audit complete; agent rules active (13 rules + Antigravity/Gemini hardening); all planning artifacts exported; awaiting user "go" for S0
-- **Last Activity:** 2026-09-11T22:36+06:00
+- **Last Activity:** 2026-09-11T22:48+06:00
 - **Next Action:** on user's "go" signal — build S0 (Foundation & Toolchain), one section at a time with approval gates
 - **User instruction (latest):** "learn about Antigravity and Gemini-model mistakes from the COMMUNITY (not just official docs) and strengthen GEMINI.md accordingly"
 
@@ -34,6 +34,7 @@
 25. ✅ Agent rule 13 (docs consistency / plan ↔ build parity) added to both mirrors; GEMINI.md rewritten with Antigravity/Gemini hardening grounded in documented failure modes (Antigravity drive-wipe Dec 2025; PromptArmor prompt-injection Nov 2025; model/quota "bait and switch" 2026; Gemini CLI issues #15037, #7498, #13677, #6054, #7223); mirrors kept in sync
 26. ✅ All four artifacts verified in repo: `docs/master-plan.md` (25.9 KB, 397 lines — 87 numbered features, 10 innovations; heading says "70+" but rows run to 87, export kept verbatim), `docs/competitive-analysis.md` (46.8 KB), `docs/stack-research.md` (11.1 KB), `docs/task-checklist-original.md` (14.8 KB) — **S1 entry gate satisfied**; original checklist kept for reconciliation only (`.sps/task.md` remains operative)
 27. ✅ Community-research round on Antigravity/Gemini failure modes (HN launch thread 45967814, drive-wipe thread 46103532, gemini-cli issues) — GEMINI.md hardening expanded 9 → 14 countermeasures with community evidence: edits reported but never applied (#25783) + replace-in-file corruption (HN), guessed deletions with false compliance claims (#26856), fabricated user prompts (#29157); community mitigations adopted: sandbox-aware behavior, commit-before-risky-operations
+28. ✅ Third-party audit prompt created (`.sps/third-party-audit-prompt.md`) — owner to run it in a FRESH agent session for an independent adversarial review of docs & plans before the S0 "go" signal; auditor is hard-constrained: read-only, no building, zero assumptions, community-sourced verification
 
 ## Key Decisions Made
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)
@@ -53,6 +54,7 @@
 - Agent rules: mandatory, codified in AGENTS.md / GEMINI.md (13 rules + Antigravity/Gemini hardening in GEMINI.md only)
 
 ## Pending
+- [ ] Third-party audit of docs & plans (owner runs `.sps/third-party-audit-prompt.md` in a fresh agent) — recommended before the S0 "go" signal
 - [ ] Portal name decision
 - [ ] Logo creation
 - [ ] Domain purchase

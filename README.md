@@ -11,8 +11,10 @@ Production-grade, Bengali-first news portal. **Status: planning approved — PRE
 | `.sps/handoff.md` | Session memory: what's done, key decisions, what's next |
 | `.sps/task.md` | S0→S12 task checklist with blocking gates |
 | `.sps/agent.md` | SPS agent identity |
+| `.sps/antigravity-export-prompt.md` | Prompt to recover planning artifacts from the prior Antigravity session |
+| `.sps/third-party-audit-prompt.md` | Prompt for an independent adversarial audit of docs & plans (read-only, no building) |
 | `AGENTS.md` / `GEMINI.md` | **Mandatory agent rules** (synced mirrors — read before any task) |
-| `docs/` | (pending) master plan & competitive analysis — see below |
+| `docs/` | Exported planning artifacts: master plan (87 features), competitive analysis, stack research, original checklist |
 
 ## Status notes
 
