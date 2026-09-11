@@ -204,7 +204,7 @@ All findings were remediated on 2026-09-11 at the owner's direction. Commits: `5
 | **H2** TTS with no path | ✅ Fixed | Browser Web Speech API adopted. The twice-daily audio bulletin is **descoped** — it cannot be pre-generated client-side. |
 | **H3** Next.js range wrong | ✅ Fixed | Pinned to `>=16.2.6 <17.0.0`; the full real peer range is now recorded in `.sps/plan.md` and `docs/stack-research.md`. |
 | **H4** "per feature, not per page" | ✅ Fixed | Rewritten as page-level, with the measured page templates enumerated. |
-| **H5** Velocity vs team size | ✅ Fixed | Owner chose to keep 45–70/day **and plan to hire**; team size is now a launch prerequisite. The 42–56 vs 45–70 arithmetic mismatch is recorded. |
+| **H5** Velocity vs team size | ✅ Fixed | The 42–56 vs 45–70 arithmetic mismatch is recorded. ⚠️ **Status changed 2026-09-11:** the owner first elected to keep 45–70/day and hire, then reopened it after the headcount arithmetic was explained (45–70/day ÷ 5 staff = 9–14 articles per person per day, 3–5× a normal reporter). The target is now **OPEN**; recommended model is baseline 15–20/day + burst to 40+ on result/admission days. See `docs/education-feature-inventory.md` §7. |
 | **M1** SQLite gate at S12 | ✅ Fixed | Concurrency gate moved to **S0 exit**. |
 | **M2** Node 24 LTS wrong | ✅ Fixed | Corrected: Active LTS ends 2026-10-20, EOL 2028-04-30, Node 26 LTS 2026-10-28. |
 | **M3** Payload 3.89.0 one day old | ✅ Fixed | Freshness risk recorded; S0 now includes a hold-vs-pin decision. |
