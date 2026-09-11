@@ -1,0 +1,71 @@
+---
+/**
+ * S0 foundation placeholder.
+ *
+ * This is NOT the homepage — S3 owns the homepage and is gated behind S2
+ * (design system). This page exists to prove the S0 toolchain end to end:
+ * Astro 7 builds, Tailwind 4 emits CSS, the self-hosted Bengali fonts resolve,
+ * and the Bengali typography floor (≥17px / line-height ≥1.65) renders.
+ *
+ * It also doubles as the Bengali conjunct rendering smoke test
+ * (`docs/testing-and-qa.md` §5).
+ */
+import '../styles/global.css'
+import { FEATURE_FLAGS } from '../lib/feature-flags'
+
+const title = 'শিক্ষা২৪'
+const tagline = 'দেশ-বিদেশের শিক্ষার সর্বশেষ খবর ও সুযোগ'
+
+/** Strings that exercise র-ফলা, য-ফলা, হ্রস্ব-ই কার and দীর্ঘ-ঊ কার. */
+const conjunctProbe = 'শ্রদ্ধা · বিদ্যা · কৃষ্ণ · দৃষ্টি · প্রযুক্তি · শিক্ষার্থী · উচ্চশিক্ষা'
+
+const flags = Object.entries(FEATURE_FLAGS)
+---
+
+<!doctype html>
+<html lang="bn" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={tagline} />
+    <title>{title} — S0 ফাউন্ডেশন</title>
+  </head>
+  <body class="min-h-screen">
+    <main class="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-8 px-5 py-16">
+      <header class="flex flex-col gap-3">
+        <p class="font-ui text-sm font-semibold tracking-wide text-brand-red">S0 · Foundation</p>
+        <h1 class="text-4xl font-bold text-brand-charcoal dark:text-white">{title}</h1>
+        <p class="text-body text-brand-charcoal/80 dark:text-white/70">{tagline}</p>
+      </header>
+
+      <section class="flex flex-col gap-2 rounded-lg border border-brand-charcoal/10 p-5">
+        <h2 class="text-lg font-bold">বাংলা যুক্তাক্ষর পরীক্ষা</h2>
+        <p class="text-body">{conjunctProbe}</p>
+      </section>
+
+      <section class="flex flex-col gap-2">
+        <h2 class="text-lg font-bold">ফিচার ফ্ল্যাগ</h2>
+        <ul class="font-ui grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+          {
+            flags.map(([name, on]) => (
+              <li class="flex items-center justify-between gap-3">
+                <code>{name}</code>
+                <span class={on ? 'text-green-700' : 'text-brand-charcoal/40'}>{on ? 'on' : 'off'}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <footer class="font-ui border-t border-brand-charcoal/10 pt-4 text-xs text-brand-charcoal/50">
+        <p>
+          Toolchain smoke test only. The homepage is S3; the design system is S2. Nothing here is
+          final content.
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>

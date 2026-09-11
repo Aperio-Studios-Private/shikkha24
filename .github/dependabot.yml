@@ -1,0 +1,91 @@
+# Shikkha24 — dependency update policy
+#
+# Source: docs/security.md §9 (dependency and supply-chain security).
+# Free on GitHub, which matters because the owner has no international card.
+#
+# Why grouped and monthly: the stack carries ~1,000 transitive dependencies plus
+# five native toolchains (Astro's Rust compiler, Tailwind Oxide, Rolldown,
+# TypeScript 7's Go binaries, Pagefind). Un-grouped weekly PRs would drown the
+# review queue, and agent rule 8 requires every bump to be deliberate.
+
+version: 2
+
+updates:
+  # ── Root workspace ─────────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+      day: monday
+      time: '04:00'
+      timezone: Asia/Dhaka
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    labels: [dependencies]
+    commit-message:
+      prefix: 'chore(deps)'
+    groups:
+      # Patch/minor bumps batch into one PR per area.
+      astro-ecosystem:
+        patterns: ['astro', '@astrojs/*', '@tailwindcss/*', 'tailwindcss', 'vite']
+        update-types: [minor, patch]
+      payload-ecosystem:
+        patterns: ['payload', '@payloadcms/*']
+        update-types: [minor, patch]
+      tooling:
+        patterns: ['typescript', '@biomejs/*', '@types/*']
+        update-types: [minor, patch]
+
+  # ── Frontend workspace ─────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: monthly
+      day: monday
+      time: '04:00'
+      timezone: Asia/Dhaka
+    open-pull-requests-limit: 5
+    labels: [dependencies, frontend]
+    commit-message:
+      prefix: 'chore(deps)'
+    ignore:
+      # Astro 7 requires >=22.12.0; TS 7 is pinned deliberately (see handoff —
+      # @astrojs/check and typescript-eslint do not yet support it).
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+
+  # ── CMS workspace ──────────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /cms
+    schedule:
+      interval: monthly
+      day: monday
+      time: '04:00'
+      timezone: Asia/Dhaka
+    open-pull-requests-limit: 5
+    labels: [dependencies, cms]
+    commit-message:
+      prefix: 'chore(deps)'
+    ignore:
+      # Payload's peer range pins Next to >=16.2.6 <17.0.0 and react to ^19.2.x.
+      # A major bump here breaks the CMS build, so it must be a deliberate act.
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+
+  # ── GitHub Actions ─────────────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      day: monday
+      time: '04:00'
+      timezone: Asia/Dhaka
+    labels: [dependencies, ci]
+    commit-message:
+      prefix: 'chore(ci)'

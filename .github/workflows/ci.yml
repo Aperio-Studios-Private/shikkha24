@@ -1,0 +1,144 @@
+# Shikkha24 — continuous integration
+#
+# Why CI exists at all: editors only ever use the Payload admin panel; they never
+# touch GitHub. Publishing fires a webhook and CI turns a publish into static
+# HTML. Full explanation: docs/hosting-and-deployment.md §1.
+#
+# CI-MINUTES BUDGET (agent rule 7 + docs/hosting-and-deployment.md §2):
+# the repository is private, so GitHub Actions is capped at 2,000 minutes/month.
+# Cloudflare Pages is capped at 500 builds/month — the tighter of the two. This
+# workflow therefore runs on pull requests and on `main`, and NEVER per publish.
+# Publish-triggered rebuilds are adaptively batched (see the deploy workflow).
+#
+# Node 24 per .sps/plan.md. Astro 7 / Vite 8 cannot run on DianaHost's Node
+# 20.18.2, so this is the ONLY place the frontend is ever built.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Manual escape hatch — do not schedule this, it would burn the minute budget.
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend — typecheck, lint, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck -w frontend
+
+      - name: Lint
+        run: npm run lint -w frontend
+
+      - name: Build
+        run: npm run build -w frontend
+
+      - name: Byte budget — initial payload
+        # Enforces docs/performance-budget.md §3. The 1.2 MB target is a
+        # page-level measurement, so this is a coarse build-output guard, not a
+        # substitute for the Lighthouse CI gate below.
+        run: |
+          set -euo pipefail
+          total=$(du -sk frontend/dist | cut -f1)
+          echo "frontend/dist = ${total} KB"
+          if [ "$total" -gt 12288 ]; then
+            echo "::error::frontend/dist exceeds the 1.2 MB initial-payload budget"
+            exit 1
+          fi
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7
+
+  cms:
+    name: CMS — typecheck, lint, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck -w cms
+
+      - name: Lint
+        run: npm run lint -w cms
+
+      - name: Build (standalone)
+        run: npm run build -w cms
+        env:
+          PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
+          DATABASE_URI: file:./data/ci.db
+
+      - name: Measure standalone deploy size
+        # S0 gate: must land ≈300–600 MB to fit the 2 GB DianaHost plan.
+        run: |
+          set -euo pipefail
+          if [ ! -d cms/.next/standalone ]; then
+            echo "::error::Next.js standalone output missing — check output:'standalone'"
+            exit 1
+          fi
+          mb=$(du -sm cms/.next/standalone | cut -f1)
+          echo "cms/.next/standalone = ${mb} MB (target 300-600 MB)"
+          if [ "$mb" -gt 700 ]; then
+            echo "::error::standalone bundle exceeds 700 MB and will not fit the 2 GB host"
+            exit 1
+          fi
+
+  # ── Quality gates ──────────────────────────────────────────────────────────
+  # Defined in docs/testing-and-qa.md §1 and docs/performance-budget.md §6.
+  # These run inside the debounced build, never per publish.
+  quality-gates:
+    name: Quality gates
+    runs-on: ubuntu-latest
+    needs: [frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Dependency audit
+        # Policy: docs/security.md §9 — high and critical block the build.
+        run: npm audit --audit-level=high
+
+      - name: Build frontend for audits
+        run: npm run build -w frontend
+
+      # Lighthouse CI, broken-link check and JSON-LD validation are wired at the
+      # point where real page templates exist (S3+). Running them against the S0
+      # placeholder would assert nothing meaningful. See .sps/handoff.md.

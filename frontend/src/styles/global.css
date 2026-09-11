@@ -1,0 +1,102 @@
+@import 'tailwindcss';
+@import './fonts.css';
+
+/*
+ * S0 design-token foundation.
+ *
+ * This is the TOOLCHAIN layer only — brand colours, font stacks and the Bengali
+ * typography floor. The full design system (grid, components, dark-mode audit,
+ * header/footer) is S2 and must not be pre-empted here (agent rule 2: one
+ * section at a time).
+ *
+ * Sources: `.sps/profile.md` (project-only rules) and
+ * `docs/performance-budget.md` §3 (font budget) / `docs/testing-and-qa.md` §3
+ * (Bengali typography floor).
+ */
+
+/* Dark mode follows the OS setting. BBC-style base, per the design reference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* ── Brand ─────────────────────────────────────────────────────────────── */
+  /* Brand red + charcoal + white. Dark-mode base is a SEPARATE token —
+     `--color-dark-base` is #121212, not charcoal (#1F1F1F). Do not conflate. */
+  --color-brand-red: #da1c25;
+  --color-brand-charcoal: #1f1f1f;
+  --color-dark-base: #121212;
+
+  /* ── Typography ────────────────────────────────────────────────────────── */
+  /* Hind Siliguri = headlines. Noto Sans Bengali = body.
+     Latin for the body family falls back to the system UI stack to stay inside
+     the <200 KB font budget — see scripts/fetch-fonts.mjs. */
+  --font-headline:
+    'Hind Siliguri', 'Noto Sans Bengali', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
+  --font-body:
+    'Noto Sans Bengali', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-ui:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+
+  /* ── Bengali typography floor (docs/testing-and-qa.md §3) ──────────────── */
+  /* Body text is never smaller than 17px and never tighter than 1.65 leading —
+     Bengali vowel signs (কার) and conjuncts (যুক্তাক্ষর) collide below that. */
+  --text-body: 1.0625rem; /* 17px */
+  --text-body--line-height: 1.65;
+
+  /* ── Touch targets ─────────────────────────────────────────────────────── */
+  --spacing-touch: 3rem; /* 48px minimum interactive target */
+}
+
+@layer base {
+  html {
+    /* Bengali-first: never apply letter-spacing to Bengali text — spacing
+       hacks break conjunct rendering (docs/testing-and-qa.md §3). */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    color: var(--color-brand-charcoal);
+    background-color: #ffffff;
+    /* Bengali needs room for descenders/ascenders; avoid clipping. */
+    overflow-wrap: break-word;
+  }
+
+  .dark body {
+    color: #e8e8e8;
+    background-color: var(--color-dark-base);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-headline);
+    line-height: 1.35;
+    text-wrap: balance;
+  }
+
+  /* Visible focus states are an accessibility requirement, not a preference. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-red);
+    outline-offset: 2px;
+  }
+
+  /* The site is minimal-motion by policy; richer motion is confined to
+     lazy-loaded S8 islands. Honour the OS preference everywhere. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

@@ -1,0 +1,4 @@
+# Node version target for build environments (CI, developer machines).
+# .sps/plan.md pins Node 24 LTS. DianaHost runs Node 20.18.2 (end-of-life) —
+# Astro 7 and Vite 8 cannot run there, so the frontend builds in CI only.
+24

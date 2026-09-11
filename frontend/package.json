@@ -1,0 +1,32 @@
+{
+  "name": "@shikkha24/frontend",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shikkha24 public site — Astro 7 static output deployed to Cloudflare Pages.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "7.3.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.13",
+    "@tailwindcss/vite": "4.3.3",
+    "tailwindcss": "4.3.3",
+    "typescript": "7.0.2"
+  },
+  "allowScripts": {
+    "esbuild": true
+  }
+}

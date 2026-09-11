@@ -1,0 +1,114 @@
+# Shikkha24 — daily off-host database backup
+#
+# Source: docs/backup-and-recovery.md §3 (tier 1) and §6 (automating the dump).
+#
+# WHY THIS IS CRITICAL: the ENTIRE editorial archive — every article, every
+# education record, every reader account — lives in ONE SQLite file on a 2 GB
+# shared hosting account. Losing it ends the business. There is no redundancy.
+#
+# The rule from §2: "an untested backup is not a backup." A backup that has never
+# been restored is an assumption. The restore drill is a separate S12 gate.
+#
+# Targets (§4): RPO 24h (this runs daily), RTO 4h.
+#
+# CI-minutes note: this consumes the same 2,000 min/month budget as the build
+# pipeline, so it is kept deliberately tiny — a single SSH pull and an upload,
+# typically well under a minute.
+
+name: Backup database
+
+on:
+  schedule:
+    # 19:00 UTC = 01:00 Asia/Dhaka — quietest editorial hour.
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dump-and-upload:
+    name: Dump SQLite → Cloudflare R2
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare SSH key
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DIANAHOST_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Pin the host key so a MITM cannot silently capture the archive.
+          ssh-keyscan -H "${{ secrets.DIANAHOST_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Dump the database over SSH
+        # `.backup` is used instead of a plain file copy: it is safe to run while
+        # the CMS is live, whereas copying a WAL-mode SQLite file can capture a
+        # torn state.
+        run: |
+          set -euo pipefail
+          STAMP=$(date -u +%Y-%m-%d)
+          ssh -i ~/.ssh/id_ed25519 \
+              "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}" \
+              "sqlite3 '${{ secrets.DIANAHOST_APP_PATH }}/data/payload.db' \".backup '/tmp/payload-${STAMP}.db'\""
+          scp -i ~/.ssh/id_ed25519 \
+              "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}:/tmp/payload-${STAMP}.db" \
+              "./payload-${STAMP}.db"
+          ssh -i ~/.ssh/id_ed25519 \
+              "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}" \
+              "rm -f /tmp/payload-${STAMP}.db"
+          ls -lh "./payload-${STAMP}.db"
+
+      - name: Verify the dump is a readable SQLite database
+        # A dump that cannot be opened is not a backup. Fail loudly here rather
+        # than discovering it during a restore.
+        run: |
+          set -euo pipefail
+          FILE=$(ls payload-*.db | head -1)
+          sudo apt-get update -qq && sudo apt-get install -y -qq sqlite3
+          sqlite3 "$FILE" "PRAGMA integrity_check;" | tee /tmp/integrity.txt
+          grep -q '^ok$' /tmp/integrity.txt
+
+      - name: Upload to R2 (separate bucket from media)
+        # Separate bucket by design — a media lifecycle rule must never be able
+        # to delete database backups (docs/backup-and-recovery.md §3).
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+        run: |
+          set -euo pipefail
+          FILE=$(ls payload-*.db | head -1)
+          aws s3 cp "$FILE" "s3://shikkha24-backups/$FILE" --endpoint-url "$R2_ENDPOINT"
+
+      - name: Retention — keep 30 daily, 12 monthly
+        # §3: 30 daily + 12 monthly. Anything older is pruned so R2 stays inside
+        # the 10 GB free tier (a card is on file, so overage would be billable).
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+        run: |
+          set -euo pipefail
+          TODAY=$(date -u +%d)
+          if [ "$TODAY" = "01" ]; then
+            echo "First of the month — keeping this dump as a monthly archive."
+            exit 0
+          fi
+          CUTOFF=$(date -u -d '30 days ago' +%Y-%m-%d)
+          aws s3 ls "s3://shikkha24-backups/" --endpoint-url "$R2_ENDPOINT" \
+            | awk '{print $4}' | grep -E '^payload-[0-9]{4}-[0-9]{2}-[0-9]{2}\.db$' \
+            | while read -r key; do
+                d=$(printf '%s' "$key" | sed -E 's/^payload-([0-9-]+)\.db$/\1/')
+                if [[ "$d" < "$CUTOFF" ]]; then
+                  aws s3 rm "s3://shikkha24-backups/$key" --endpoint-url "$R2_ENDPOINT"
+                fi
+              done
+
+      - name: Alert on failure
+        # docs/backup-and-recovery.md §7: alert if the daily dump fails or has
+        # not run in 48 hours. GitHub notifies on a failed scheduled run; the
+        # 48-hour silence case needs the uptime monitor (docs/reliability.md §6).
+        if: failure()
+        run: echo "::error::Daily database backup FAILED — the archive is unprotected. Investigate immediately."

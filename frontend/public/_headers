@@ -1,0 +1,32 @@
+# Cloudflare Pages headers — Shikkha24
+#
+# Source: docs/security.md §5 (security headers + CSP).
+#
+# TWO CSP PROFILES are planned (docs/security.md §5): a strict one for static /
+# editorial pages, and a relaxed one for ad-bearing pages, because AdSense needs
+# inline scripts and dynamic script injection. This file ships the STRICT profile
+# site-wide. The relaxed profile is applied per-route at S7 (Ad System) — do not
+# loosen this block, add a scoped one below it.
+
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=()
+  X-Frame-Options: DENY
+  # `style-src 'unsafe-inline'` is required by Astro's inline stylesheets
+  # (`build.inlineStylesheets: 'auto'` in astro.config.mjs). It is the only
+  # relaxation in this profile — scripts stay strict.
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com; font-src 'self'; connect-src 'self'; media-src 'self' https://media.shikkha24.com; frame-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+
+# Hashed build assets are content-addressed — cache them forever.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Self-hosted fonts are content-stable; re-fetching them is pure waste.
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML must revalidate so a publish is visible as soon as the batch window closes.
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate

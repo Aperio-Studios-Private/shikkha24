@@ -1,17 +1,48 @@
-# Dependencies
+# ─── Dependencies ────────────────────────────────────────────────────────────
 node_modules/
+.pnp/
+.pnp.js
 
-# Build output
+# ─── Build output ────────────────────────────────────────────────────────────
+# Astro (frontend)
 dist/
 .astro/
+# Next.js / Payload (cms)
+.next/
+out/
+build/
+*.tsbuildinfo
 
-# Environment & secrets — never commit real keys
+# ─── Environment & secrets — never commit real keys (agent rule 11) ──────────
 .env
 .env.*
 !.env.example
 
-# OS files
-.DS_Store
+# ─── Database — the SQLite archive must never be committed ───────────────────
+# (docs/backup-and-recovery.md — the whole editorial archive lives in this file)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+cms/data/
+cms/media/
 
-# Logs
+# ─── Cloudflare / Wrangler ───────────────────────────────────────────────────
+.wrangler/
+
+# ─── Test / coverage ─────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ─── Logs ────────────────────────────────────────────────────────────────────
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ─── OS / editor ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
