@@ -63,40 +63,119 @@ export type SupportedTimezones =
 
 export interface Config {
   auth: {
+    readers: ReaderAuthOperations;
     users: UserAuthOperations;
   };
   blocks: {};
   collections: {
-    users: User;
+    articles: Article;
+    categories: Category;
+    levels: Level;
+    districts: District;
+    tags: Tag;
+    authors: Author;
+    pages: Page;
+    'fact-checks': FactCheck;
+    scholarships: Scholarship;
+    deadlines: Deadline;
+    institutions: Institution;
+    circulars: Circular;
+    'result-links': ResultLink;
+    'study-abroad-guides': StudyAbroadGuide;
+    jobs: Job;
+    'live-blogs': LiveBlog;
+    polls: Poll;
+    quizzes: Quiz;
     media: Media;
+    'photo-galleries': PhotoGallery;
+    'ad-units': AdUnit;
+    comments: Comment;
+    'newsletter-subscribers': NewsletterSubscriber;
+    'saved-deadlines': SavedDeadline;
+    readers: Reader;
+    users: User;
     'payload-kv': PayloadKv;
+    'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
   collectionsJoins: {};
   collectionsSelect: {
-    users: UsersSelect<false> | UsersSelect<true>;
+    articles: ArticlesSelect<false> | ArticlesSelect<true>;
+    categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    levels: LevelsSelect<false> | LevelsSelect<true>;
+    districts: DistrictsSelect<false> | DistrictsSelect<true>;
+    tags: TagsSelect<false> | TagsSelect<true>;
+    authors: AuthorsSelect<false> | AuthorsSelect<true>;
+    pages: PagesSelect<false> | PagesSelect<true>;
+    'fact-checks': FactChecksSelect<false> | FactChecksSelect<true>;
+    scholarships: ScholarshipsSelect<false> | ScholarshipsSelect<true>;
+    deadlines: DeadlinesSelect<false> | DeadlinesSelect<true>;
+    institutions: InstitutionsSelect<false> | InstitutionsSelect<true>;
+    circulars: CircularsSelect<false> | CircularsSelect<true>;
+    'result-links': ResultLinksSelect<false> | ResultLinksSelect<true>;
+    'study-abroad-guides': StudyAbroadGuidesSelect<false> | StudyAbroadGuidesSelect<true>;
+    jobs: JobsSelect<false> | JobsSelect<true>;
+    'live-blogs': LiveBlogsSelect<false> | LiveBlogsSelect<true>;
+    polls: PollsSelect<false> | PollsSelect<true>;
+    quizzes: QuizzesSelect<false> | QuizzesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    'photo-galleries': PhotoGalleriesSelect<false> | PhotoGalleriesSelect<true>;
+    'ad-units': AdUnitsSelect<false> | AdUnitsSelect<true>;
+    comments: CommentsSelect<false> | CommentsSelect<true>;
+    'newsletter-subscribers': NewsletterSubscribersSelect<false> | NewsletterSubscribersSelect<true>;
+    'saved-deadlines': SavedDeadlinesSelect<false> | SavedDeadlinesSelect<true>;
+    readers: ReadersSelect<false> | ReadersSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
+    'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
-    defaultIDType: string;
+    defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'site-settings': SiteSetting;
+  };
+  globalsSelect: {
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
   };
-  user: User;
+  user: Reader | User;
   jobs: {
-    tasks: unknown;
+    tasks: {
+      schedulePublish: TaskSchedulePublish;
+      inline: {
+        input: unknown;
+        output: unknown;
+      };
+    };
     workflows: unknown;
+  };
+}
+export interface ReaderAuthOperations {
+  forgotPassword: {
+    email: string;
+    password: string;
+  };
+  login: {
+    email: string;
+    password: string;
+  };
+  registerFirstUser: {
+    email: string;
+    password: string;
+  };
+  unlock: {
+    email: string;
+    password: string;
   };
 }
 export interface UserAuthOperations {
@@ -118,11 +197,923 @@ export interface UserAuthOperations {
   };
 }
 /**
+ * সংবাদের মূল কনটেন্ট। খসড়া → পর্যালোচনা → প্রকাশ।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "articles".
+ */
+export interface Article {
+  id: number;
+  title: string;
+  /**
+   * ঐচ্ছিক। থাকলে এটি থেকেই URL-এর slug তৈরি হবে, নাহলে একটি স্বয়ংক্রিয় slug বসবে।
+   */
+  titleEn?: string | null;
+  /**
+   * ASCII, lowercase। খালি রাখলে স্বয়ংক্রিয়ভাবে তৈরি হবে।
+   */
+  slug?: string | null;
+  /**
+   * তালিকা পাতায় ও সার্চ ফলাফলে দেখানো হবে। সর্বোচ্চ ৩০০ অক্ষর।
+   */
+  excerpt: string;
+  featuredImage?: (number | null) | Media;
+  body?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * সংক্ষেপে মূল পয়েন্ট — শিক্ষার্থীদের জন্য দ্রুত পাঠ।
+   */
+  keyTakeaways?:
+    | {
+        point: string;
+        id?: string | null;
+      }[]
+    | null;
+  category: number | Category;
+  /**
+   * ঐচ্ছিক। নির্বাচিত বিভাগের অধীন একটি উপবিভাগ।
+   */
+  subcategory?: (number | null) | Category;
+  /**
+   * প্রাথমিক · মাধ্যমিক · উচ্চ মাধ্যমিক · স্নাতক · স্নাতকোত্তর
+   */
+  level?: (number | Level)[] | null;
+  /**
+   * ঐচ্ছিক — স্থানীয় সংবাদের জন্য।
+   */
+  district?: (number | District)[] | null;
+  tags?: (number | Tag)[] | null;
+  author: number | Author;
+  /**
+   * প্রতিবেদক "পর্যালোচনার অপেক্ষায়" পাঠান; সম্পাদক অনুমোদন করেন।
+   */
+  reviewStatus: 'draft' | 'pendingReview' | 'changesRequested' | 'approved';
+  /**
+   * সম্পাদকের প্রতিক্রিয়া — প্রতিবেদকের কাছে ফেরত পাঠানোর সময়।
+   */
+  reviewNote?: string | null;
+  /**
+   * ফলাফল প্রকাশ, ভর্তি বিজ্ঞপ্তি বা পরীক্ষা স্থগিতের জরুরি খবর।
+   */
+  isBreaking?: boolean | null;
+  isLead?: boolean | null;
+  publishedAt?: string | null;
+  /**
+   * স্বয়ংক্রিয়ভাবে হিসাব হয়।
+   */
+  readingTimeMinutes?: number | null;
+  correctionNotice?: {
+    hasCorrection?: boolean | null;
+    note?: string | null;
+  };
+  /**
+   * ভর্তি নীতি পরিবর্তন বা পরীক্ষা-কেন্দ্রিক দীর্ঘ ঘটনার সময়রেখা।
+   */
+  timelineMilestones?:
+    | {
+        date: string;
+        title: string;
+        detail?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  /**
+   * বাংলায় ছবির বিবরণ লিখুন। অলংকরণমূলক ছবির ক্ষেত্রে খালি রাখুন (alt="")।
+   */
+  alt: string;
+  /**
+   * ছবির নিচে দেখানো ক্যাপশন (ঐচ্ছিক)।
+   */
+  caption?: string | null;
+  /**
+   * ছবির সূত্র / কৃতজ্ঞতা (ঐচ্ছিক)।
+   */
+  credit?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    hero?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
+ * আটটি মূল বিভাগ। উপবিভাগ যোগ করা যায় — একটি বিভাগকে অন্যটির অধীনে রাখুন।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories".
+ */
+export interface Category {
+  id: number;
+  nameBn: string;
+  /**
+   * URL-এর প্রথম অংশ। ASCII, lowercase। যেমন: scholarship।
+   */
+  slug: string;
+  /**
+   * খালি রাখলে এটি একটি মূল বিভাগ। উপবিভাগ তৈরি করতে একটি মূল বিভাগ নির্বাচন করুন।
+   */
+  parent?: (number | null) | Category;
+  /**
+   * বিভাগ পাতায় ও SEO-তে ব্যবহৃত সংক্ষিপ্ত বিবরণ।
+   */
+  description?: string | null;
+  /**
+   * ঐচ্ছিক আইকন শনাক্তকারী।
+   */
+  icon?: string | null;
+  /**
+   * হেক্স কোড। যেমন: #DA1C25।
+   */
+  colorAccent?: string | null;
+  /**
+   * ছোট সংখ্যা আগে। মেনু ও গ্রিডের ক্রম নির্ধারণ করে।
+   */
+  sortOrder: number;
+  /**
+   * নিষ্ক্রিয় বিভাগ মেনুতে দেখানো হয় না।
+   */
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * প্রাথমিক থেকে স্নাতকোত্তর — সাইটজুড়ে ব্যবহৃত শ্রেণি ফিল্টার।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "levels".
+ */
+export interface Level {
+  id: number;
+  nameBn: string;
+  /**
+   * URL-এ ব্যবহৃত ইংরেজি শনাক্তকারী। যেমন: secondary।
+   */
+  slug: string;
+  /**
+   * ছোট সংখ্যা আগে দেখানো হবে।
+   */
+  sortOrder: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * ৬৪টি জেলা — "আমার জেলা" ফিল্টারে ব্যবহৃত।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "districts".
+ */
+export interface District {
+  id: number;
+  nameBn: string;
+  nameEn: string;
+  /**
+   * URL-এ ব্যবহৃত ASCII শনাক্তকারী। যেমন: dhaka।
+   */
+  slug: string;
+  /**
+   * যেমন: ঢাকা।
+   */
+  divisionBn: string;
+  divisionEn: string;
+  sortOrder?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * বিভাগের বাইরে বিষয়ভিত্তিক লেবেল। লেখার সময়েই তৈরি করা যায়।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags".
+ */
+export interface Tag {
+  id: number;
+  nameBn: string;
+  /**
+   * URL-এ ব্যবহৃত ASCII শনাক্তকারী।
+   */
+  slug: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * লেখক প্রোফাইল — প্রতিবেদকের বাইলাইন ও সম্পাদকীয় দলের পাতা।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "authors".
+ */
+export interface Author {
+  id: number;
+  nameBn: string;
+  nameEn?: string | null;
+  /**
+   * URL-এ ব্যবহৃত ASCII শনাক্তকারী।
+   */
+  slug: string;
+  /**
+   * যেমন: শিক্ষা প্রতিবেদক।
+   */
+  designation?: string | null;
+  bio?: string | null;
+  photo?: (number | null) | Media;
+  email?: string | null;
+  /**
+   * ঐচ্ছিক। E-E-A-T সম্পাদকীয় দলের পাতায় যাচাইযোগ্য পরিচয় হিসেবে দেখানো হয়।
+   */
+  pressCardNo?: string | null;
+  social?: {
+    facebook?: string | null;
+    twitter?: string | null;
+    linkedin?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * স্থায়ী পাতা — পরিচিতি, সম্পাদকীয় নীতি, গোপনীয়তা ও শর্তাবলি।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  title: string;
+  /**
+   * যেমন: about, privacy-policy।
+   */
+  slug: string;
+  body: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  showInFooter?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * ভুয়া খবর, গুজব ও বিভ্রান্তিকর দাবির যাচাই।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "fact-checks".
+ */
+export interface FactCheck {
+  id: number;
+  claim: string;
+  verdict: 'false' | 'misleading' | 'true';
+  evidence?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  sourceUrls?:
+    | {
+        url: string;
+        label?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  comparisonImages?:
+    | {
+        image: number | Media;
+        caption?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  relatedArticle?: (number | null) | Article;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * বৃত্তির তালিকা — সময়সীমা অনুযায়ী সাজানো।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scholarships".
+ */
+export interface Scholarship {
+  id: number;
+  title: string;
+  provider: string;
+  level?: (number | Level)[] | null;
+  country?: string | null;
+  fundingType: 'full' | 'partial' | 'tuition';
+  amount?: string | null;
+  /**
+   * ট্র্যাকার এই তারিখ অনুযায়ী সাজানো হয়।
+   */
+  deadline: string;
+  eligibility?: string | null;
+  applyUrl?: string | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  isInternational?: boolean | null;
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * ভর্তি, ফলাফল, রুটিন ও ছুটির তারিখ — একাডেমিক ক্যালেন্ডার।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "deadlines".
+ */
+export interface Deadline {
+  id: number;
+  title: string;
+  type: 'admission' | 'result' | 'examRoutine' | 'scholarshipDeadline' | 'holiday' | 'circular';
+  dateStart: string;
+  /**
+   * ঐচ্ছিক। একাধিক দিনের ঘটনার জন্য (যেমন ভর্তি সময়কাল)।
+   */
+  dateEnd?: string | null;
+  level?: (number | Level)[] | null;
+  /**
+   * ঐচ্ছিক। পরীক্ষাকেন্দ্র বা স্থানীয় সময়সীমার জন্য।
+   */
+  district?: (number | District)[] | null;
+  description?: string | null;
+  relatedArticle?: (number | null) | Article;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * বিশ্ববিদ্যালয় ও কলেজের তালিকা — প্রাথমিক সেট দিয়ে শুরু, ক্রমে বাড়ছে।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "institutions".
+ */
+export interface Institution {
+  id: number;
+  nameBn: string;
+  nameEn?: string | null;
+  slug: string;
+  type: 'public' | 'private' | 'madrasa' | 'college';
+  levelOffered?: (number | Level)[] | null;
+  district?: (number | null) | District;
+  established?: number | null;
+  website?: string | null;
+  logo?: (number | null) | Media;
+  address?: string | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * তথ্য যাচাই করা হয়েছে কিনা।
+   */
+  isVerified?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * শিক্ষা ও চাকরির বিজ্ঞপ্তি — আবেদনের শেষ তারিখসহ।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "circulars".
+ */
+export interface Circular {
+  id: number;
+  title: string;
+  organisation: string;
+  type: 'education' | 'bcs' | 'governmentJob' | 'privateJob';
+  level?: (number | Level)[] | null;
+  publishedDate?: string | null;
+  deadline?: string | null;
+  vacancyCount?: number | null;
+  circularImage?: (number | null) | Media;
+  applyUrl?: string | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * ফলাফল ও মেধাতালিকার লিংক এবং ব্যবহারের নিয়ম।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "result-links".
+ */
+export interface ResultLink {
+  id: number;
+  title: string;
+  examName: string;
+  boardOrInstitution?: string | null;
+  level?: (number | null) | Level;
+  publicationDate?: string | null;
+  officialUrl: string;
+  /**
+   * সরকারি সাইটে ফলাফল দেখার ধাপে ধাপে নির্দেশনা।
+   */
+  howToSteps?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  meritListUrl?: string | null;
+  /**
+   * ফলাফল প্রকাশিত হয়েছে কিনা।
+   */
+  isPublished?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * প্রতিটি দেশের জন্য ভিসা, খরচ, ইনটেক ও আবেদনের ধাপ।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "study-abroad-guides".
+ */
+export interface StudyAbroadGuide {
+  id: number;
+  country: string;
+  slug: string;
+  visaRequirements?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  tuitionRange?: string | null;
+  livingCostRange?: string | null;
+  intakes?: string | null;
+  applicationSteps?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  scholarshipNotes?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  isFeatured?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * শিক্ষা খাতের চাকরি ও সরকারি নিয়োগ।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "jobs".
+ */
+export interface Job {
+  id: number;
+  title: string;
+  organization: string;
+  deadline?: string | null;
+  category: 'teaching' | 'bcs' | 'government' | 'private' | 'research';
+  circularImage?: (number | null) | Media;
+  applyUrl?: string | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * ফলাফল প্রকাশ বা ভর্তি লটারির দিনের লাইভ কভারেজ।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "live-blogs".
+ */
+export interface LiveBlog {
+  id: number;
+  title: string;
+  slug: string;
+  /**
+   * বন্ধ করলে লাইভ আপডেট বন্ধ হবে।
+   */
+  isActive?: boolean | null;
+  /**
+   * নতুন এন্ট্রি উপরে যোগ করুন।
+   */
+  entries?:
+    | {
+        timestamp: string;
+        content: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        };
+        /**
+         * মূল ঘটনাগুলো বিশেষভাবে হাইলাইট করা হয়।
+         */
+        isKeyEvent?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * পাঠক জরিপ — ভর্তি নীতি বা পরীক্ষা সংক্রান্ত মতামত।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "polls".
+ */
+export interface Poll {
+  id: number;
+  questionBn: string;
+  options?:
+    | {
+        label: string;
+        voteCount?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  isActive?: boolean | null;
+  expiresAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * ভর্তি ও বিসিএস প্রস্তুতির দৈনিক কুইজ।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quizzes".
+ */
+export interface Quiz {
+  id: number;
+  title: string;
+  date: string;
+  questions?:
+    | {
+        question: string;
+        options?:
+          | {
+              label: string;
+              id?: string | null;
+            }[]
+          | null;
+        /**
+         * বিকল্পের হুবহু লেখাটি লিখুন।
+         */
+        correctAnswer: string;
+        explanation?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * ছবির গ্যালারি — প্রতিটি ছবির ক্যাপশনসহ।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "photo-galleries".
+ */
+export interface PhotoGallery {
+  id: number;
+  title: string;
+  slug: string;
+  images?:
+    | {
+        image: number | Media;
+        caption?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  description?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * বিজ্ঞাপনের অবস্থান ও ক্যাম্পেইন — CLS শূন্য রাখতে নির্দিষ্ট অবস্থান ব্যবহার করুন।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ad-units".
+ */
+export interface AdUnit {
+  id: number;
+  name: string;
+  position:
+    | 'headerBanner'
+    | 'inArticleTop'
+    | 'inArticleMiddle'
+    | 'inArticleBottom'
+    | 'sidebarTop'
+    | 'sidebarSticky'
+    | 'footerBanner';
+  adType: 'adsense' | 'sponsorBanner' | 'direct';
+  /**
+   * AdSense বা সরাসরি বিজ্ঞাপনের কোড।
+   */
+  codeSnippet?: string | null;
+  image?: (number | null) | Media;
+  targetUrl?: string | null;
+  campaignStart?: string | null;
+  campaignEnd?: string | null;
+  isActive?: boolean | null;
+  clickCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * পাঠকের মন্তব্য — অনুমোদনের পর প্রকাশিত হয়।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "comments".
+ */
+export interface Comment {
+  id: number;
+  article: number | Article;
+  /**
+   * সোশ্যাল লগইন করা পাঠকের অ্যাকাউন্ট (যদি থাকে)।
+   */
+  reader?: (number | null) | Reader;
+  userName: string;
+  userEmail?: string | null;
+  userAvatar?: string | null;
+  body: string;
+  /**
+   * অনুমোদনের আগে মন্তব্য সাইটে দেখা যায় না।
+   */
+  isApproved?: boolean | null;
+  socialProvider?: ('facebook' | 'google') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * পাঠকের অ্যাকাউন্ট — মন্তব্য, বুকমার্ক ও সময়সীমা সেভের জন্য। সম্পাদকীয় অ্যাকাউন্ট থেকে সম্পূর্ণ আলাদা।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "readers".
+ */
+export interface Reader {
+  id: number;
+  displayName: string;
+  /**
+   * সোশ্যাল প্রোভাইডার থেকে পাওয়া ছবির লিংক।
+   */
+  avatarUrl?: string | null;
+  provider?: ('facebook' | 'google') | null;
+  providerId?: string | null;
+  /**
+   * ডেডলাইন রিমাইন্ডারের জন্য Web Push সাবস্ক্রিপশন (S9)।
+   */
+  pushSubscriptions?:
+    | {
+        endpoint: string;
+        keys?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'readers';
+}
+/**
+ * নিউজলেটার গ্রাহক তালিকা — সম্পূর্ণ নিজস্ব, তৃতীয় পক্ষের নয়।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "newsletter-subscribers".
+ */
+export interface NewsletterSubscriber {
+  id: number;
+  email: string;
+  /**
+   * ডাবল অপ্ট-ইন নিশ্চিত হওয়ার পর সক্রিয় হয়।
+   */
+  isActive?: boolean | null;
+  subscribedAt?: string | null;
+  confirmedAt?: string | null;
+  confirmationToken?: string | null;
+  /**
+   * কোথা থেকে সাবস্ক্রাইব করেছেন — প্রমাণের জন্য সংরক্ষিত।
+   */
+  consentSource?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * পাঠকের সেভ করা সময়সীমা ও রিমাইন্ডার।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "saved-deadlines".
+ */
+export interface SavedDeadline {
+  id: number;
+  reader: number | Reader;
+  deadline: number | Deadline;
+  remindAt?: string | null;
+  notified?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * সম্পাদকীয় দলের অ্যাকাউন্ট। পাঠকের অ্যাকাউন্ট আলাদা।
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
-  id: string;
+  id: number;
+  nameBn: string;
+  /**
+   * একজন ব্যবহারকারী একাধিক ভূমিকা পেতে পারেন। প্রতিবেদক নিজের ভূমিকা পরিবর্তন করতে পারেন না।
+   */
+  roles: ('reporter' | 'sectionEditor' | 'editorInChief' | 'adManager' | 'superAdmin')[];
+  /**
+   * এই অ্যাকাউন্টের সাথে যুক্ত লেখক প্রোফাইল — বাইলাইনের জন্য।
+   */
+  authorProfile?: (number | null) | Author;
+  phone?: string | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -144,29 +1135,10 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: string;
-  alt: string;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
-  id: string;
+  id: number;
   key: string;
   data:
     | {
@@ -180,24 +1152,217 @@ export interface PayloadKv {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs".
+ */
+export interface PayloadJob {
+  id: number;
+  /**
+   * Input data provided to the job
+   */
+  input?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  taskStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  completedAt?: string | null;
+  totalTried?: number | null;
+  /**
+   * If hasError is true this job will not be retried
+   */
+  hasError?: boolean | null;
+  /**
+   * If hasError is true, this is the error that caused it
+   */
+  error?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Task execution log
+   */
+  log?:
+    | {
+        executedAt: string;
+        completedAt: string;
+        taskSlug: 'inline' | 'schedulePublish';
+        taskID: string;
+        input?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        output?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        state: 'failed' | 'succeeded';
+        error?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  taskSlug?: ('inline' | 'schedulePublish') | null;
+  queue?: string | null;
+  waitUntil?: string | null;
+  processing?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
-  id: string;
+  id: number;
   document?:
     | ({
-        relationTo: 'users';
-        value: string | User;
+        relationTo: 'articles';
+        value: number | Article;
+      } | null)
+    | ({
+        relationTo: 'categories';
+        value: number | Category;
+      } | null)
+    | ({
+        relationTo: 'levels';
+        value: number | Level;
+      } | null)
+    | ({
+        relationTo: 'districts';
+        value: number | District;
+      } | null)
+    | ({
+        relationTo: 'tags';
+        value: number | Tag;
+      } | null)
+    | ({
+        relationTo: 'authors';
+        value: number | Author;
+      } | null)
+    | ({
+        relationTo: 'pages';
+        value: number | Page;
+      } | null)
+    | ({
+        relationTo: 'fact-checks';
+        value: number | FactCheck;
+      } | null)
+    | ({
+        relationTo: 'scholarships';
+        value: number | Scholarship;
+      } | null)
+    | ({
+        relationTo: 'deadlines';
+        value: number | Deadline;
+      } | null)
+    | ({
+        relationTo: 'institutions';
+        value: number | Institution;
+      } | null)
+    | ({
+        relationTo: 'circulars';
+        value: number | Circular;
+      } | null)
+    | ({
+        relationTo: 'result-links';
+        value: number | ResultLink;
+      } | null)
+    | ({
+        relationTo: 'study-abroad-guides';
+        value: number | StudyAbroadGuide;
+      } | null)
+    | ({
+        relationTo: 'jobs';
+        value: number | Job;
+      } | null)
+    | ({
+        relationTo: 'live-blogs';
+        value: number | LiveBlog;
+      } | null)
+    | ({
+        relationTo: 'polls';
+        value: number | Poll;
+      } | null)
+    | ({
+        relationTo: 'quizzes';
+        value: number | Quiz;
       } | null)
     | ({
         relationTo: 'media';
-        value: string | Media;
+        value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'photo-galleries';
+        value: number | PhotoGallery;
+      } | null)
+    | ({
+        relationTo: 'ad-units';
+        value: number | AdUnit;
+      } | null)
+    | ({
+        relationTo: 'comments';
+        value: number | Comment;
+      } | null)
+    | ({
+        relationTo: 'newsletter-subscribers';
+        value: number | NewsletterSubscriber;
+      } | null)
+    | ({
+        relationTo: 'saved-deadlines';
+        value: number | SavedDeadline;
+      } | null)
+    | ({
+        relationTo: 'readers';
+        value: number | Reader;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: number | User;
       } | null);
   globalSlug?: string | null;
-  user: {
-    relationTo: 'users';
-    value: string | User;
-  };
+  user:
+    | {
+        relationTo: 'readers';
+        value: number | Reader;
+      }
+    | {
+        relationTo: 'users';
+        value: number | User;
+      };
   updatedAt: string;
   createdAt: string;
 }
@@ -206,11 +1371,16 @@ export interface PayloadLockedDocument {
  * via the `definition` "payload-preferences".
  */
 export interface PayloadPreference {
-  id: string;
-  user: {
-    relationTo: 'users';
-    value: string | User;
-  };
+  id: number;
+  user:
+    | {
+        relationTo: 'readers';
+        value: number | Reader;
+      }
+    | {
+        relationTo: 'users';
+        value: number | User;
+      };
   key?: string | null;
   value?:
     | {
@@ -229,7 +1399,7 @@ export interface PayloadPreference {
  * via the `definition` "payload-migrations".
  */
 export interface PayloadMigration {
-  id: string;
+  id: number;
   name?: string | null;
   batch?: number | null;
   updatedAt: string;
@@ -237,9 +1407,497 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users_select".
+ * via the `definition` "articles_select".
  */
-export interface UsersSelect<T extends boolean = true> {
+export interface ArticlesSelect<T extends boolean = true> {
+  title?: T;
+  titleEn?: T;
+  slug?: T;
+  excerpt?: T;
+  featuredImage?: T;
+  body?: T;
+  keyTakeaways?:
+    | T
+    | {
+        point?: T;
+        id?: T;
+      };
+  category?: T;
+  subcategory?: T;
+  level?: T;
+  district?: T;
+  tags?: T;
+  author?: T;
+  reviewStatus?: T;
+  reviewNote?: T;
+  isBreaking?: T;
+  isLead?: T;
+  publishedAt?: T;
+  readingTimeMinutes?: T;
+  correctionNotice?:
+    | T
+    | {
+        hasCorrection?: T;
+        note?: T;
+      };
+  timelineMilestones?:
+    | T
+    | {
+        date?: T;
+        title?: T;
+        detail?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories_select".
+ */
+export interface CategoriesSelect<T extends boolean = true> {
+  nameBn?: T;
+  slug?: T;
+  parent?: T;
+  description?: T;
+  icon?: T;
+  colorAccent?: T;
+  sortOrder?: T;
+  isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "levels_select".
+ */
+export interface LevelsSelect<T extends boolean = true> {
+  nameBn?: T;
+  slug?: T;
+  sortOrder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "districts_select".
+ */
+export interface DistrictsSelect<T extends boolean = true> {
+  nameBn?: T;
+  nameEn?: T;
+  slug?: T;
+  divisionBn?: T;
+  divisionEn?: T;
+  sortOrder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags_select".
+ */
+export interface TagsSelect<T extends boolean = true> {
+  nameBn?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "authors_select".
+ */
+export interface AuthorsSelect<T extends boolean = true> {
+  nameBn?: T;
+  nameEn?: T;
+  slug?: T;
+  designation?: T;
+  bio?: T;
+  photo?: T;
+  email?: T;
+  pressCardNo?: T;
+  social?:
+    | T
+    | {
+        facebook?: T;
+        twitter?: T;
+        linkedin?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages_select".
+ */
+export interface PagesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  body?: T;
+  showInFooter?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "fact-checks_select".
+ */
+export interface FactChecksSelect<T extends boolean = true> {
+  claim?: T;
+  verdict?: T;
+  evidence?: T;
+  sourceUrls?:
+    | T
+    | {
+        url?: T;
+        label?: T;
+        id?: T;
+      };
+  comparisonImages?:
+    | T
+    | {
+        image?: T;
+        caption?: T;
+        id?: T;
+      };
+  relatedArticle?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scholarships_select".
+ */
+export interface ScholarshipsSelect<T extends boolean = true> {
+  title?: T;
+  provider?: T;
+  level?: T;
+  country?: T;
+  fundingType?: T;
+  amount?: T;
+  deadline?: T;
+  eligibility?: T;
+  applyUrl?: T;
+  description?: T;
+  isInternational?: T;
+  isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "deadlines_select".
+ */
+export interface DeadlinesSelect<T extends boolean = true> {
+  title?: T;
+  type?: T;
+  dateStart?: T;
+  dateEnd?: T;
+  level?: T;
+  district?: T;
+  description?: T;
+  relatedArticle?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "institutions_select".
+ */
+export interface InstitutionsSelect<T extends boolean = true> {
+  nameBn?: T;
+  nameEn?: T;
+  slug?: T;
+  type?: T;
+  levelOffered?: T;
+  district?: T;
+  established?: T;
+  website?: T;
+  logo?: T;
+  address?: T;
+  description?: T;
+  isVerified?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "circulars_select".
+ */
+export interface CircularsSelect<T extends boolean = true> {
+  title?: T;
+  organisation?: T;
+  type?: T;
+  level?: T;
+  publishedDate?: T;
+  deadline?: T;
+  vacancyCount?: T;
+  circularImage?: T;
+  applyUrl?: T;
+  description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "result-links_select".
+ */
+export interface ResultLinksSelect<T extends boolean = true> {
+  title?: T;
+  examName?: T;
+  boardOrInstitution?: T;
+  level?: T;
+  publicationDate?: T;
+  officialUrl?: T;
+  howToSteps?: T;
+  meritListUrl?: T;
+  isPublished?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "study-abroad-guides_select".
+ */
+export interface StudyAbroadGuidesSelect<T extends boolean = true> {
+  country?: T;
+  slug?: T;
+  visaRequirements?: T;
+  tuitionRange?: T;
+  livingCostRange?: T;
+  intakes?: T;
+  applicationSteps?: T;
+  scholarshipNotes?: T;
+  isFeatured?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "jobs_select".
+ */
+export interface JobsSelect<T extends boolean = true> {
+  title?: T;
+  organization?: T;
+  deadline?: T;
+  category?: T;
+  circularImage?: T;
+  applyUrl?: T;
+  description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "live-blogs_select".
+ */
+export interface LiveBlogsSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  isActive?: T;
+  entries?:
+    | T
+    | {
+        timestamp?: T;
+        content?: T;
+        isKeyEvent?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "polls_select".
+ */
+export interface PollsSelect<T extends boolean = true> {
+  questionBn?: T;
+  options?:
+    | T
+    | {
+        label?: T;
+        voteCount?: T;
+        id?: T;
+      };
+  isActive?: T;
+  expiresAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quizzes_select".
+ */
+export interface QuizzesSelect<T extends boolean = true> {
+  title?: T;
+  date?: T;
+  questions?:
+    | T
+    | {
+        question?: T;
+        options?:
+          | T
+          | {
+              label?: T;
+              id?: T;
+            };
+        correctAnswer?: T;
+        explanation?: T;
+        id?: T;
+      };
+  isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
+  alt?: T;
+  caption?: T;
+  credit?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        card?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        hero?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "photo-galleries_select".
+ */
+export interface PhotoGalleriesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  images?:
+    | T
+    | {
+        image?: T;
+        caption?: T;
+        id?: T;
+      };
+  description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ad-units_select".
+ */
+export interface AdUnitsSelect<T extends boolean = true> {
+  name?: T;
+  position?: T;
+  adType?: T;
+  codeSnippet?: T;
+  image?: T;
+  targetUrl?: T;
+  campaignStart?: T;
+  campaignEnd?: T;
+  isActive?: T;
+  clickCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "comments_select".
+ */
+export interface CommentsSelect<T extends boolean = true> {
+  article?: T;
+  reader?: T;
+  userName?: T;
+  userEmail?: T;
+  userAvatar?: T;
+  body?: T;
+  isApproved?: T;
+  socialProvider?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "newsletter-subscribers_select".
+ */
+export interface NewsletterSubscribersSelect<T extends boolean = true> {
+  email?: T;
+  isActive?: T;
+  subscribedAt?: T;
+  confirmedAt?: T;
+  confirmationToken?: T;
+  consentSource?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "saved-deadlines_select".
+ */
+export interface SavedDeadlinesSelect<T extends boolean = true> {
+  reader?: T;
+  deadline?: T;
+  remindAt?: T;
+  notified?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "readers_select".
+ */
+export interface ReadersSelect<T extends boolean = true> {
+  displayName?: T;
+  avatarUrl?: T;
+  provider?: T;
+  providerId?: T;
+  pushSubscriptions?:
+    | T
+    | {
+        endpoint?: T;
+        keys?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -259,21 +1917,29 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media_select".
+ * via the `definition` "users_select".
  */
-export interface MediaSelect<T extends boolean = true> {
-  alt?: T;
+export interface UsersSelect<T extends boolean = true> {
+  nameBn?: T;
+  roles?: T;
+  authorProfile?: T;
+  phone?: T;
   updatedAt?: T;
   createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -282,6 +1948,37 @@ export interface MediaSelect<T extends boolean = true> {
 export interface PayloadKvSelect<T extends boolean = true> {
   key?: T;
   data?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs_select".
+ */
+export interface PayloadJobsSelect<T extends boolean = true> {
+  input?: T;
+  taskStatus?: T;
+  completedAt?: T;
+  totalTried?: T;
+  hasError?: T;
+  error?: T;
+  log?:
+    | T
+    | {
+        executedAt?: T;
+        completedAt?: T;
+        taskSlug?: T;
+        taskID?: T;
+        input?: T;
+        output?: T;
+        state?: T;
+        error?: T;
+        id?: T;
+      };
+  taskSlug?: T;
+  queue?: T;
+  waitUntil?: T;
+  processing?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -316,6 +2013,98 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
+ * সাইটের নাম, লোগো, যোগাযোগ ও সোশ্যাল লিংক — একবার বদলালেই সব জায়গায় বদলাবে।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  /**
+   * প্রদর্শিত নাম এখনো চূড়ান্ত হয়নি — "শিক্ষা২৪" অনুমান করা হয়েছে ডোমেইন থেকে। নিশ্চিত হলে এখানে বদলান।
+   */
+  siteName: string;
+  siteNameEn?: string | null;
+  tagline?: string | null;
+  /**
+   * খালি থাকলে প্লেসহোল্ডার SVG ব্যবহৃত হবে।
+   */
+  logo?: (number | null) | Media;
+  favicon?: (number | null) | Media;
+  contact?: {
+    email?: string | null;
+    phone?: string | null;
+    address?: string | null;
+  };
+  social?: {
+    facebook?: string | null;
+    youtube?: string | null;
+    twitter?: string | null;
+    instagram?: string | null;
+  };
+  footerText?: string | null;
+  /**
+   * E-E-A-T পাতার জন্য প্রয়োজন। মালিক চূড়ান্ত ডিপ্লয়ের আগে সরবরাহ করবেন।
+   */
+  legal?: {
+    tradeLicense?: string | null;
+    tin?: string | null;
+    ministryRegistration?: string | null;
+  };
+  /**
+   * ঐচ্ছিক। AdSense ও Cloudflare Web Analytics ব্যবহৃত হবে; GA4 ইচ্ছাকৃতভাবে বাদ (docs/performance-budget.md §4)।
+   */
+  tracking?: {
+    adsenseClientId?: string | null;
+    customHeadCode?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  siteName?: T;
+  siteNameEn?: T;
+  tagline?: T;
+  logo?: T;
+  favicon?: T;
+  contact?:
+    | T
+    | {
+        email?: T;
+        phone?: T;
+        address?: T;
+      };
+  social?:
+    | T
+    | {
+        facebook?: T;
+        youtube?: T;
+        twitter?: T;
+        instagram?: T;
+      };
+  footerText?: T;
+  legal?:
+    | T
+    | {
+        tradeLicense?: T;
+        tin?: T;
+        ministryRegistration?: T;
+      };
+  tracking?:
+    | T
+    | {
+        adsenseClientId?: T;
+        customHeadCode?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "collections_widget".
  */
@@ -324,6 +2113,23 @@ export interface CollectionsWidget {
     [k: string]: unknown;
   };
   width: 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSchedulePublish".
+ */
+export interface TaskSchedulePublish {
+  input: {
+    type?: ('publish' | 'unpublish') | null;
+    locale?: string | null;
+    doc?: {
+      relationTo: 'articles';
+      value: number | Article;
+    } | null;
+    global?: string | null;
+    user?: (number | null) | User;
+  };
+  output?: unknown;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

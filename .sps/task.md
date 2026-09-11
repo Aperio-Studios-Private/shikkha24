@@ -8,34 +8,35 @@
 
 ---
 
-## S0 — Foundation & Toolchain
+## S0 — Foundation & Toolchain ✅ APPROVED 2026-09-12
 - [x] Git repo initialized, baseline committed (2026-09-11)
-- [ ] Monorepo structure created (frontend/ + cms/)
-- [ ] Astro 7.3 init — build passes
-- [ ] Payload CMS 3.89 init with SQLite adapter — admin reachable
-- [ ] **Next.js pinned to `>=16.2.6 <17.0.0`** (corrected by the audit; "15.x or 16.x" was wrong)
-- [ ] Tailwind 4.3 + TypeScript 7 + Node 24 toolchain configured
-- [ ] **GATE: Payload CMS 3 on cPanel Passenger smoke test** — blocking; if it fails: STOP and ask the user
-- [ ] **GATE: TypeScript 7 (Go-based) compatibility with Astro 7 + Payload 3 validated** — blocking. Builds should run in CI (Astro/Tailwind/Vite/Pagefind/TS all ship native Rust/Go binaries)
-- [ ] **GATE: Next.js `output: 'standalone'` deploy size measured** — must land ≈300–600 MB to fit the 2 GB host
-- [ ] **GATE: DianaHost Node.js version resolved** — the host runs **20.18.2, which is end-of-life since 2026-04-30**. Payload/Next accept it (`>=20.9.0`); Astro 7 and Vite 8 do not, so they build in CI only. Select 22/24 from the cPanel **Node.js Selector** drop-down if offered, else record the EOL runtime as an accepted risk
-- [ ] **GATE: Astro incremental build time measured** — decides the whole batching strategy and whether the CI quota is comfortable (~30s) or critical (minutes). See `docs/hosting-and-deployment.md`
-- [ ] **GATE: `wrangler pages deploy` verified not to consume the 500/month Pages build quota** (direct upload vs Git-triggered build)
-- [ ] **GATE: DianaHost limits confirmed via support ticket** — inode/file-count quota, CPU/memory/process limits, hourly email send limits, account-level backup policy. **None are published in their knowledge base**
-- [ ] **GATE: SQLite WAL concurrency proven with 5+ concurrent writers** — blocking. **Moved here from S12**: this is a foundational decision and must not be validated at the finish line
-- [ ] **GATE: Cloudflare R2 enabled and verified** — a payment method is on file, so R2 is enableable. Verify with `wrangler login && wrangler r2 bucket list`, then set an **80% usage alert** (overage is billable once a card is on file)
-- [ ] **GATE: CI rebuild strategy settled** — adaptive batching (15–30 min quiet, 5 min peak, on-demand for `is_breaking`). Two quotas apply: GitHub Actions 2,000 min/month (private repo) and **Cloudflare Pages 500 builds/month**. At the chosen baseline of 15–20 articles/day + bursts, a ~30s incremental build fits comfortably; a multi-minute build does not. See `docs/hosting-and-deployment.md`
-- [ ] **GATE: CI quality gates live** — Lighthouse CI with per-page budgets, broken-link check, JSON-LD validation, `pnpm audit` policy (`docs/performance-budget.md`, `docs/testing-and-qa.md`)
-- [ ] **GATE: backup automated off-host AND a restore performed successfully** — an untested backup is not a backup (`docs/backup-and-recovery.md`)
-- [ ] **GATE: feature-flag mechanism designed** so heavy/fragile features can be disabled without a redeploy (`docs/reliability.md`)
-- [ ] **GATE: monitoring/alerting tool selected** — must be verified card-free, and alert to a channel the owner actually reads
-- [ ] Security baseline applied: `.env` + SQLite outside the web root, security headers, CSP drafted, `pnpm audit` policy, Dependabot enabled (`docs/security.md`)
-- [ ] Cloudflare Pages project wired for the Astro frontend
-- [ ] Env skeleton (`.env.example` only — no secrets committed)
-- [ ] Bengali fonts pipeline (Hind Siliguri + Noto Sans Bengali + Inter, WOFF2)
-- [ ] GitHub Actions CI skeleton (build + typecheck + lint)
-- [ ] Payload version decision: hold 3.89.0 or pin the prior minor and upgrade after the smoke test (3.89.0 was published 2026-09-11, one day before being pinned)
-- [ ] S0 DoD evidence posted → **user approval**
+- [x] Monorepo structure created (frontend/ + cms/) — pnpm workspaces
+- [x] Astro 7.3 init — build passes (exit 0, 216 KB dist)
+- [x] Payload CMS 3.89 init with SQLite adapter — admin reachable (`/admin` → HTTP 200)
+- [x] **Next.js pinned to `>=16.2.6 <17.0.0`** — 16.3.5, peer range confirmed
+- [x] Tailwind 4.3 + TypeScript 7 toolchain configured (Node 24 in CI; local runs Node 22.22.2)
+- [~] **GATE: Payload CMS 3 on cPanel Passenger smoke test** — **OWNER-ONLY**, still open (needs DianaHost access)
+- [x] **GATE: TypeScript 7 compatibility validated** — TS 7 works, but `@astrojs/check` and `typescript-eslint` reject it; Biome adopted, typecheck via `tsc --noEmit`
+- [x] **GATE: Next.js `output: 'standalone'` deploy size measured** — **114 MB** (target 300–600 MB)
+- [~] **GATE: DianaHost Node.js version resolved** — accepted risk (host max is 20.18.2, EOL); **OWNER-ONLY** escalation
+- [x] **GATE: Astro incremental build time measured** — **~1s** ⚠️ measured on a 1-page site; re-measure at content volume
+- [~] **GATE: `wrangler pages deploy` quota verified** — **OWNER-ONLY**, needs Cloudflare auth
+- [~] **GATE: DianaHost limits confirmed via support ticket** — **OWNER-ONLY**
+- [x] **GATE: SQLite WAL concurrency proven with 5+ concurrent writers** — 6/6 writers, 240/240 rows, integrity ok
+- [~] **GATE: Cloudflare R2 enabled and verified** — R2 confirmed enabled; the 80% usage alert is an **OWNER** action
+- [x] **GATE: CI rebuild strategy settled** — adaptive batching; build time ~1s makes the 2,000 min/month quota comfortable
+- [~] **GATE: CI quality gates live** — lint/typecheck/build/audit/standalone-size wired and passing locally; **Lighthouse + link-check + JSON-LD deferred to S3+** (need real page templates)
+- [~] **GATE: backup automated off-host AND a restore performed** — workflow written; **restore drill is an S12 gate**
+- [x] **GATE: feature-flag mechanism designed** — build-time (frontend) + runtime (cms), default-on contract
+- [ ] **GATE: monitoring/alerting tool selected** — **still open**; must be verified card-free
+- [x] Security baseline applied: `.env` + SQLite outside the web root, security headers, strict CSP profile, `pnpm audit` policy, Dependabot enabled
+- [~] Cloudflare Pages project wired for the Astro frontend — `_headers` shipped and verified in `dist/`; project creation is an **OWNER** action
+- [x] Env skeleton (`.env.example` ×2 — no secrets committed)
+- [x] Bengali fonts pipeline — 179.7 KB / 200 KB budget
+- [x] GitHub Actions CI (build + typecheck + lint + gates) — pnpm + Node 24
+- [x] Payload version decision — hold 3.89.0 (verified live; `react` pinned to 19.2.6 by Payload's peer range)
+- [x] S0 DoD evidence posted → **user approval received 2026-09-12**
+
 
 ## S1 — CMS Content Models & RBAC
 - [x] **GATE: education feature inventory approved** — ✅ 2026-09-11 (`docs/education-feature-inventory.md`)

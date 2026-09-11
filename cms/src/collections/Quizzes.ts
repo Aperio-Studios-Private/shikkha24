@@ -1,0 +1,77 @@
+import type { CollectionConfig } from 'payload'
+
+import { anyone, isEditorial, isSuperAdminOrEditorInChief } from '../access/roles'
+
+/**
+ * Quizzes — the **daily admission + BCS current-affairs quiz**.
+ *
+ * `docs/education-feature-inventory.md` §3: the general-news "daily current
+ * affairs quiz" becomes an admission + BCS quiz, which "targets the
+ * exam-candidate habit loop directly" — the retention engine behind the portal's
+ * repeat-visit strategy.
+ */
+export const Quizzes: CollectionConfig = {
+  slug: 'quizzes',
+  labels: {
+    singular: { en: 'Quiz', bn: 'কুইজ' },
+    plural: { en: 'Quizzes', bn: 'কুইজসমূহ' },
+  },
+  admin: {
+    useAsTitle: 'title',
+    group: 'ইন্টারঅ্যাকটিভ',
+    defaultColumns: ['title', 'date', 'isActive'],
+    description: 'ভর্তি ও বিসিএস প্রস্তুতির দৈনিক কুইজ।',
+  },
+  access: {
+    read: anyone,
+    create: isEditorial,
+    update: isEditorial,
+    delete: isSuperAdminOrEditorInChief,
+  },
+  fields: [
+    { name: 'title', type: 'text', required: true, label: { en: 'Title', bn: 'শিরোনাম' } },
+    {
+      name: 'date',
+      type: 'date',
+      required: true,
+      index: true,
+      label: { en: 'Quiz date', bn: 'কুইজের তারিখ' },
+      admin: { date: { pickerAppearance: 'dayOnly' } },
+    },
+    {
+      name: 'questions',
+      type: 'array',
+      minRows: 1,
+      label: { en: 'Questions', bn: 'প্রশ্নসমূহ' },
+      fields: [
+        { name: 'question', type: 'text', required: true, label: { en: 'Question', bn: 'প্রশ্ন' } },
+        {
+          name: 'options',
+          type: 'array',
+          minRows: 2,
+          label: { en: 'Options', bn: 'বিকল্পসমূহ' },
+          fields: [
+            { name: 'label', type: 'text', required: true, label: { en: 'Option', bn: 'বিকল্প' } },
+          ],
+        },
+        {
+          name: 'correctAnswer',
+          type: 'text',
+          required: true,
+          label: { en: 'Correct answer', bn: 'সঠিক উত্তর' },
+          admin: { description: 'বিকল্পের হুবহু লেখাটি লিখুন।' },
+        },
+        { name: 'explanation', type: 'textarea', label: { en: 'Explanation', bn: 'ব্যাখ্যা' } },
+      ],
+    },
+    {
+      name: 'isActive',
+      type: 'checkbox',
+      defaultValue: true,
+      index: true,
+      label: { en: 'Active', bn: 'সক্রিয়' },
+      admin: { position: 'sidebar' },
+    },
+  ],
+  timestamps: true,
+}

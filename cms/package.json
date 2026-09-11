@@ -17,12 +17,14 @@
     "lint:fix": "biome check --write .",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
+    "seed": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/run.ts",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload"
   },
   "dependencies": {
     "@payloadcms/db-sqlite": "3.89.0",
     "@payloadcms/next": "3.89.0",
     "@payloadcms/richtext-lexical": "3.89.0",
+    "@payloadcms/translations": "3.89.0",
     "@payloadcms/ui": "3.89.0",
     "cross-env": "7.0.3",
     "dotenv": "16.4.7",

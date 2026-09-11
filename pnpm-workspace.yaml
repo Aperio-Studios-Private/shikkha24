@@ -35,3 +35,6 @@ minimumReleaseAgeExclude:
   - '@next/swc-linux-x64-musl@16.3.5'
   - '@next/swc-win32-arm64-msvc@16.3.5'
   - '@next/swc-win32-x64-msvc@16.3.5'
+  # Payload's i18n package — pinned to the exact Payload version so the Bengali
+  # admin locale bundle is built against the matching translation schema.
+  - '@payloadcms/translations@3.89.0'

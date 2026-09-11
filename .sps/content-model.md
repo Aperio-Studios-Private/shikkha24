@@ -1,9 +1,43 @@
 # Shikkha24 — CMS Content Model
 
-**Status:** schema drafted from the original plan-approval checklist; **field lists must be re-scoped to education in S1** before implementation.
+**Status:** ✅ **implemented in S1** (2026-09-12). This document is the inventory; the code is in `cms/src/collections/` and `cms/src/globals/`.
 **Populated:** 2026-09-11 (restored from `docs/task-checklist-original.md`, which the operative checklist had reduced to a bare collection list)
 
+## Naming convention (decided 2026-09-12)
+
+Field names below are written in `snake_case`, which is how they appear as **database columns**. In code they are **`camelCase`** — the JavaScript convention, and what Payload expects. Payload's Drizzle layer converts between the two, so `name_bn` in the DB is `nameBn` in `Articles.ts`.
+
+## Implemented — 26 collections + 1 global
+
+| Group (admin sidebar) | Collections |
+|---|---|
+| সম্পাদকীয় (Editorial) | `articles` · `categories` · `levels` · `districts` · `tags` · `authors` · `pages` · `fact-checks` |
+| শিক্ষা (Education) | `scholarships` · `deadlines` · `institutions` · `circulars` · `result-links` · `study-abroad-guides` · `jobs` |
+| ইন্টারঅ্যাকটিভ (Interactive) | `live-blogs` · `polls` · `quizzes` |
+| মিডিয়া (Media) | `media` · `photo-galleries` |
+| বিজ্ঞাপন (Advertising) | `ad-units` |
+| পাঠক (Readers) | `comments` · `newsletter-subscribers` · `saved-deadlines` · `readers` |
+| প্রশাসন (Administration) | `users` · global `site-settings` |
+
+### Two structural decisions taken in S1
+
+1. **`subcategories` is NOT a separate collection.** The approved tree
+   (`docs/education-feature-inventory.md` §1) is flat — 8 top-level categories with
+   no subcategories, because স্কুল-কলেজ was rejected as a category and replaced by
+   the level filter. The **mechanism** exists as an optional self-relation
+   (`categories.parent`), and the seed is the approved flat tree. A parallel
+   collection would duplicate the hierarchy and give two ways to express the same
+   thing. ⚠️ `.sps/task.md` still lists `Subcategories` — it should be amended.
+
+2. **`readers` is an ADDITION to this inventory.** The retained feature set
+   includes comments with Facebook/Google login, bookmarks, saved deadlines and
+   push notifications — all four need a persistent reader identity, and
+   `SavedDeadlines.reader` is modelled as a relation, which requires a collection
+   to relate to. Readers are kept in a **separate auth collection from `users`**
+   so a reader account is never one field-level mistake away from editorial access.
+
 ---
+
 
 ## Collections
 

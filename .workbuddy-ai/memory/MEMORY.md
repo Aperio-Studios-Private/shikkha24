@@ -49,6 +49,14 @@ Curated long-term facts. Only durable, cross-session truths belong here — not 
   - The standalone entry point is **`.next/standalone/cms/server.js`** — the monorepo structure is preserved inside the bundle. `next start` is incompatible with `output: 'standalone'`.
   - Next does **not** copy `.next/static` into the standalone bundle; the deploy must, or every admin asset 404s.
 
+### Payload gotchas (found the hard way, 2026-09-12)
+- **Regenerate types after adding a collection.** `payload generate:types` must run before typecheck/build, or every `relationTo` fails with `Type '"articles"' is not assignable to CollectionSlug[]`. Twenty errors, one stale `payload-types.ts`.
+- **`Access` functions take `AccessArgs`, not a user.** `isEditorial(req.user)` type-errors; `cms/src/access/roles.ts` exposes `isEditorialUser(user)` as the predicate form.
+- **The Bengali locale key must be `bn-BD`, not `bn`** — date-fns has no plain `bn`, and Payload validates the key against its supported-language union.
+- **Payload's per-slug method overloads cannot type a union slug.** A generic helper over several collections needs one confined, documented cast.
+- **Never run `payload run` while a dev server holds the same SQLite file.** Both push the schema; the second fails with `index ... already exists`. Isolated, the seed is fully idempotent.
+- **`payload generate:types` + `next build` both need `PAYLOAD_SECRET` and `DATABASE_URI`** set, even for a type-only run.
+
 ## Working conventions
 - **Three rule mirrors** — `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`. Rules 1–13 must be **byte-identical** across all three; change all three in the same commit. GEMINI.md additionally carries hardening rules `H1`–`H14`.
 - **`.sps/` is project memory.** Update `.sps/handoff.md` after every meaningful task. Never rewrite plan/profile history silently — add visible `CORRECTION` notes.
