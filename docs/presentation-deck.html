@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shikkha24 — Project Presentation</title>
+<style>
+  :root {
+    --brand: #DA1C25;
+    --brand-dark: #b5171f;
+    --charcoal: #1F1F1F;
+    --dark: #121212;
+    --light: #fafafa;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --card: #ffffff;
+    --green: #16a34a;
+    --amber: #d97706;
+    --blue: #2563eb;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-snap-type: y proximity; }
+  body {
+    font-family: "Noto Sans Bengali", "Hind Siliguri", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--light);
+    color: var(--charcoal);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+  .slide {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 2rem 1.25rem;
+    scroll-snap-align: start;
+    position: relative;
+  }
+  .slide-dark { background: var(--dark); color: #fff; }
+  .slide-brand { background: var(--brand); color: #fff; }
+  .slide-charcoal { background: var(--charcoal); color: #fff; }
+  .container { max-width: 1100px; margin: 0 auto; width: 100%; }
+  h1 { font-size: clamp(1.8rem, 5vw, 3rem); font-weight: 700; line-height: 1.2; margin-bottom: 1rem; }
+  h2 { font-size: clamp(1.4rem, 3.5vw, 2rem); font-weight: 700; line-height: 1.3; margin-bottom: 0.75rem; }
+  h3 { font-size: clamp(1.1rem, 2.5vw, 1.35rem); font-weight: 600; margin-bottom: 0.5rem; }
+  p { font-size: clamp(0.95rem, 1.8vw, 1.05rem); margin-bottom: 0.75rem; color: inherit; opacity: 0.92; }
+  .label {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: rgba(255,255,255,0.15);
+    padding: 0.35rem 0.75rem;
+    border-radius: 99px;
+    margin-bottom: 1rem;
+  }
+  .label-dark { background: var(--charcoal); color: #fff; }
+  .label-green { background: #dcfce7; color: var(--green); }
+  .label-amber { background: #fef3c7; color: var(--amber); }
+
+  /* Navigation dots */
+  .nav-dots {
+    position: fixed;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    z-index: 100;
+  }
+  .nav-dots a {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.2);
+    transition: all 0.3s;
+    display: block;
+  }
+  .slide-dark ~ .nav-dots a,
+  .slide-brand ~ .nav-dots a,
+  .slide-charcoal ~ .nav-dots a { background: rgba(255,255,255,0.3); }
+  .nav-dots a.active { background: var(--brand); transform: scale(1.3); }
+
+  /* Cards */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .slide-dark .card,
+  .slide-brand .card,
+  .slide-charcoal .card {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.12);
+    color: #fff;
+  }
+  .card h3 { margin-bottom: 0.5rem; }
+  .card p { font-size: 0.9rem; opacity: 0.85; margin: 0; }
+  .icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: rgba(218,28,37,0.1);
+    color: var(--brand);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+  .slide-dark .icon,
+  .slide-brand .icon,
+  .slide-charcoal .icon {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+  }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; margin-top: 1rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  th, td { padding: 0.65rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+  th { font-weight: 600; background: rgba(0,0,0,0.03); }
+  .slide-dark th,
+  .slide-brand th,
+  .slide-charcoal th { background: rgba(255,255,255,0.08); }
+  .slide-dark td,
+  .slide-brand td,
+  .slide-charcoal td { border-color: rgba(255,255,255,0.12); }
+
+  /* Metrics */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+  .metric { text-align: center; }
+  .metric-num { font-size: clamp(2rem, 5vw, 3rem); font-weight: 800; color: var(--brand); line-height: 1; }
+  .slide-dark .metric-num,
+  .slide-brand .metric-num { color: #fff; }
+  .metric-label { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; }
+  .slide-dark .metric-label,
+  .slide-brand .metric-label { color: rgba(255,255,255,0.7); }
+
+  /* Roadmap */
+  .roadmap { display: grid; gap: 0.6rem; margin-top: 1rem; }
+  .road-item {
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.6rem 0.75rem;
+    background: rgba(0,0,0,0.03);
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+  .slide-dark .road-item,
+  .slide-brand .road-item { background: rgba(255,255,255,0.08); }
+  .road-s { font-weight: 700; color: var(--brand); font-size: 0.85rem; }
+  .slide-dark .road-s,
+  .slide-brand .road-s { color: #fff; }
+
+  /* Lists */
+  .checklist { list-style: none; margin-top: 1rem; }
+  .checklist li {
+    padding: 0.4rem 0 0.4rem 1.5rem;
+    position: relative;
+    font-size: 0.95rem;
+  }
+  .checklist li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--green);
+    font-weight: 700;
+  }
+
+  /* CTA */
+  .cta-btn {
+    display: inline-block;
+    background: #fff;
+    color: var(--brand);
+    font-weight: 700;
+    padding: 0.9rem 2rem;
+    border-radius: 10px;
+    text-decoration: none;
+    margin-top: 1.5rem;
+    font-size: 1rem;
+    transition: transform 0.2s;
+  }
+  .cta-btn:hover { transform: translateY(-2px); }
+  .slide-brand .cta-btn { background: var(--charcoal); color: #fff; }
+
+  /* Progress bar at top */
+  .progress-bar {
+    position: fixed;
+    top: 0; left: 0; height: 3px;
+    background: var(--brand);
+    z-index: 200;
+    transition: width 0.3s;
+  }
+
+  /* Two column */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-top: 1rem;
+  }
+  @media (min-width: 768px) {
+    .two-col { grid-template-columns: 1fr 1fr; }
+    .slide { padding: 2rem 2.5rem; }
+    .nav-dots { right: 1.5rem; }
+  }
+
+  /* Small text */
+  .small { font-size: 0.8rem; opacity: 0.7; }
+
+  /* Approval box */
+  .approval-box {
+    border: 2px dashed var(--brand);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    margin-top: 1.5rem;
+  }
+  .approval-box h3 { color: var(--brand); }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progress"></div>
+
+<div class="nav-dots" id="dots"></div>
+
+<!-- SLIDE 1: Cover -->
+<section class="slide slide-brand" id="s1">
+  <div class="container" style="text-align:center;">
+    <div class="label">শিক্ষা সংবাদ · বৃত্তি · ভর্তি · বিশ্ববিদ্যালয় · উচ্চশিক্ষা</div>
+    <h1 style="font-size:clamp(2.5rem,7vw,4.5rem); margin-bottom:0.5rem;">শিক্ষা২৪</h1>
+    <p style="font-size:1.25rem; opacity:0.9; max-width:600px; margin:0 auto 1.5rem;">
+      দেশ-বিদেশের শিক্ষার সর্বশেষ খবর ও সুযোগ —<br>এক ঠিকানায়
+    </p>
+    <p style="font-size:1rem; opacity:0.75;">
+      Project Presentation &middot; shikkha24.com &middot; September 2026
+    </p>
+  </div>
+</section>
+
+<!-- SLIDE 2: The Opportunity -->
+<section class="slide" id="s2">
+  <div class="container">
+    <div class="label label-dark">Market Gap</div>
+    <h2>Why an Education Portal Now?</h2>
+    <div class="two-col">
+      <div>
+        <h3>The Problem</h3>
+        <ul class="checklist">
+          <li>Education news is scattered across general portals</li>
+          <li>Result days crash government sites</li>
+          <li>Scholarship deadlines are missed</li>
+          <li>Admission info is hard to navigate</li>
+          <li>Existing sites are slow and ad-heavy</li>
+        </ul>
+      </div>
+      <div>
+        <h3>The Opportunity</h3>
+        <ul class="checklist">
+          <li>90%+ Bangladeshi students use mobile</li>
+          <li>Education queries spike predictably</li>
+          <li>No dedicated, fast, mobile-first education hub</li>
+          <li>SEO gap: aggregators rank with thin pages</li>
+          <li>5-person editorial team already in place</li>
+        </ul>
+      </div>
+    </div>
+    <div class="metrics" style="margin-top:2rem;">
+      <div class="metric"><div class="metric-num">16Cr+</div><div class="metric-label">Students in Bangladesh</div></div>
+      <div class="metric"><div class="metric-num">90%</div><div class="metric-label">Mobile Readers</div></div>
+      <div class="metric"><div class="metric-num">40+</div><div class="metric-label">Articles on Burst Days</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 3: Vision -->
+<section class="slide slide-dark" id="s3">
+  <div class="container">
+    <div class="label">Vision</div>
+    <h2>What Shikkha24 Will Be</h2>
+    <p style="font-size:1.1rem; max-width:700px;">
+      Bangladesh's fastest, most trusted education news and opportunity portal —
+      serving students, parents, teachers and institutions with speed, accuracy
+      and a mobile-first experience built for Symphony, Walton and low-bandwidth connections.
+    </p>
+    <div class="card-grid" style="margin-top:2rem;">
+      <div class="card">
+        <div class="icon">১</div>
+        <h3>সর্বশেষ খবর</h3>
+        <p>Real-time education news with breaking coverage on result days, admission circulars and exam schedules.</p>
+      </div>
+      <div class="card">
+        <div class="icon">২</div>
+        <h3>সুযোগের হাব</h3>
+        <p>Scholarships, admissions, jobs and career circulars — filterable by education level and district.</p>
+      </div>
+      <div class="card">
+        <div class="icon">৩</div>
+        <h3>ফলাফল ও মেধাতালিকা</h3>
+        <p>Results hub with direct links to official portals plus "how to check" guides that rank on search.</p>
+      </div>
+      <div class="card">
+        <div class="icon">৪</div>
+        <h3>বিদেশে পড়াশোনা</h3>
+        <p>Country guides for UK, USA, Canada, Australia, Malaysia, Japan, Korea and Germany.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 4: Target Audience -->
+<section class="slide" id="s4">
+  <div class="container">
+    <div class="label label-dark">Audience</div>
+    <h2>Who We Serve</h2>
+    <div class="card-grid">
+      <div class="card">
+        <div class="icon" style="background:rgba(37,99,235,0.1);color:var(--blue);">S</div>
+        <h3>Students</h3>
+        <p>School, college, university and post-graduate students seeking news, results, admissions and scholarships.</p>
+      </div>
+      <div class="card">
+        <div class="icon" style="background:rgba(22,163,74,0.1);color:var(--green);">P</div>
+        <h3>Parents</h3>
+        <p>Looking for admission deadlines, exam routines, school choices and education policy changes.</p>
+      </div>
+      <div class="card">
+        <div class="icon" style="background:rgba(217,119,6,0.1);color:var(--amber);">T</div>
+        <h3>Teachers & Educators</h3>
+        <p>Tracking policy updates, exam changes, training opportunities and institutional news.</p>
+      </div>
+      <div class="card">
+        <div class="icon" style="background:rgba(107,114,128,0.1);color:var(--muted);">I</div>
+        <h3>Institutions</h3>
+        <p>Universities, colleges and coaching centers publishing circulars and announcements.</p>
+      </div>
+      <div class="card">
+        <div class="icon" style="background:rgba(218,28,37,0.1);color:var(--brand);">J</div>
+        <h3>Job Candidates</h3>
+        <p>BCS, government and education-sector job seekers following circulars and exam prep.</p>
+      </div>
+      <div class="card">
+        <div class="icon" style="background:rgba(31,31,31,0.08);color:var(--charcoal);">A</div>
+        <h3>Advertisers</h3>
+        <p>Coaching centers, publishers, EdTech platforms reaching a high-intent education audience.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 5: Category Tree -->
+<section class="slide slide-charcoal" id="s5">
+  <div class="container">
+    <div class="label">Information Architecture</div>
+    <h2>8 Categories + Smart Filters</h2>
+    <p>Content organized by what readers want, not who they are. A school student finds school news through the Level filter, not a separate category.</p>
+    <div class="card-grid" style="margin-top:1.5rem;">
+      <div class="card"><h3>১. শিক্ষা সংবাদ</h3><p class="small">Policy, institutions, general education news</p></div>
+      <div class="card"><h3>২. বৃত্তি ও স্কলারশিপ</h3><p class="small">Domestic and international funding opportunities</p></div>
+      <div class="card"><h3>৩. ভর্তি</h3><p class="small">XI class, honours, masters, madrasa admissions</p></div>
+      <div class="card"><h3>৪. বিশ্ববিদ্যালয়</h3><p class="small">Public and private university affairs</p></div>
+      <div class="card"><h3>৫. উচ্চশিক্ষা</h3><p class="small">Postgraduate, research and academic careers</p></div>
+      <div class="card"><h3>৬. বিদেশে পড়াশোনা</h3><p class="small">Study abroad guides and visa information</p></div>
+      <div class="card"><h3>৭. পরীক্ষা ও ফলাফল</h3><p class="small">Exam routines, results, merit lists</p></div>
+      <div class="card"><h3>৮. চাকরি ও ক্যারিয়ার</h3><p class="small">BCS, job circulars, recruitment updates</p></div>
+    </div>
+    <div style="margin-top:1.5rem; padding:1rem; background:rgba(255,255,255,0.08); border-radius:10px;">
+      <p style="margin:0; font-size:0.9rem;"><strong>Cross-cutting filters:</strong> Level (Primary · Secondary · Higher Secondary · Bachelor · Masters) &middot; District (64 districts — "আমার জেলা")</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 6: Features -->
+<section class="slide" id="s6">
+  <div class="container">
+    <div class="label label-dark">Platform Features</div>
+    <h2>What the Platform Does</h2>
+    <div class="two-col">
+      <div>
+        <h3>Editorial (CMS)</h3>
+        <ul class="checklist">
+          <li>Rich block editor with media embeds</li>
+          <li>Draft → Review → Publish workflow</li>
+          <li>Scheduled publishing & versioning</li>
+          <li>5 RBAC roles (Reporter to Super Admin)</li>
+          <li>Breaking news flag with instant rebuild</li>
+          <li>Article series & multi-part stories</li>
+          <li>Photo galleries & infographics</li>
+          <li>Sponsored content with disclosure label</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Reader Experience</h3>
+        <ul class="checklist">
+          <li>Mobile-first, 375px base</li>
+          <li>Dark mode & text size adjustment</li>
+          <li>Full-text search (Pagefind)</li>
+          <li>Related articles & trending feed</li>
+          <li>Social share & print-friendly view</li>
+          <li>Bengali date (বঙ্গাব্দ + হিজরি)</li>
+          <li>Data-saver ultra-lite mode (&lt;30KB)</li>
+          <li>Push notifications & bookmarks</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 7: New Education Features -->
+<section class="slide" id="s7">
+  <div class="container">
+    <div class="label label-green">10 New Education Features — Day 1</div>
+    <h2>Built for Education, Not General News</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>#</th><th>Feature</th><th>Why It Wins</th><th>Effort</th></tr>
+        <tr><td>N1</td><td>Scholarship tracker</td><td>Highest-intent, evergreen, no competitor does it well</td><td>Medium</td></tr>
+        <tr><td>N2</td><td>Academic calendar & deadlines</td><td>Bookmarked reference; drives return visits</td><td>Medium</td></tr>
+        <tr><td>N3</td><td>Results & merit lists hub</td><td>Captures highest-volume BD education queries</td><td>Low</td></tr>
+        <tr><td>N4</td><td>Institution directory</td><td>Evergreen SEO; underpins all internal linking</td><td>High</td></tr>
+        <tr><td>N5</td><td>Exam routine & syllabus hub</td><td>Recurring, high-intent, low-maintenance</td><td>Low</td></tr>
+        <tr><td>N6</td><td>GPA / grade calculator</td><td>Genuinely useful, attracts links, zero backend</td><td>Low</td></tr>
+        <tr><td>N7</td><td>Deadline reminders (push)</td><td>Converts search traffic into returning audience</td><td>Medium</td></tr>
+        <tr><td>N8</td><td>Circular tracker</td><td>Education + BCS/job circulars, high volume</td><td>Medium</td></tr>
+        <tr><td>N9</td><td>District-first opportunities</td><td>No competitor personalises by district</td><td>Medium</td></tr>
+        <tr><td>N10</td><td>Study-abroad country guides</td><td>Strong long-tail SEO for 8 destinations</td><td>High</td></tr>
+      </table>
+    </div>
+    <p class="small" style="margin-top:0.75rem;">Two features ship with curated starter datasets: Institution directory (public universities + top private) and Study-abroad guides (UK, USA, Canada, Australia, Malaysia, Japan, Korea, Germany).</p>
+  </div>
+</section>
+
+<!-- SLIDE 8: Technology Stack -->
+<section class="slide slide-dark" id="s8">
+  <div class="container">
+    <div class="label">Technology</div>
+    <h2>The Stack — Fast, Free, Future-Proof</h2>
+    <div class="card-grid">
+      <div class="card">
+        <div class="icon">A</div>
+        <h3>Astro 7.3</h3>
+        <p>Static site generator. Zero-JavaScript by default. Pages are pre-built HTML — fastest possible delivery.</p>
+      </div>
+      <div class="card">
+        <div class="icon">P</div>
+        <h3>Payload CMS 3</h3>
+        <p>Headless CMS with built-in versioning, workflows, RBAC and media management. Free, MIT-licensed.</p>
+      </div>
+      <div class="card">
+        <div class="icon">T</div>
+        <h3>Tailwind CSS 4</h3>
+        <p>Utility-first styling. Small CSS bundles. Consistent design system across all components.</p>
+      </div>
+      <div class="card">
+        <div class="icon">S</div>
+        <h3>SQLite → PostgreSQL</h3>
+        <p>SQLite for launch (simple, fast, zero config). PostgreSQL when we scale — same code, swap adapter.</p>
+      </div>
+      <div class="card">
+        <div class="icon">C</div>
+        <h3>Cloudflare Pages + R2</h3>
+        <p>Frontend on Pages (free, unlimited bandwidth). Media on R2 (10 GB free, zero egress fees).</p>
+      </div>
+      <div class="card">
+        <div class="icon">D</div>
+        <h3>DianaHost 2 GB</h3>
+        <p>Payload CMS backend. Built slim in CI with Next.js standalone (~300–600 MB). Fits comfortably.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 9: Architecture -->
+<section class="slide" id="s9">
+  <div class="container">
+    <div class="label label-dark">Architecture</div>
+    <h2>How It All Connects</h2>
+    <div style="background:#fff; border:1px solid var(--border); border-radius:12px; padding:1.5rem; margin-top:1rem;">
+      <div style="display:grid; gap:1rem; font-size:0.9rem;">
+        <div style="padding:1rem; background:#f8fafc; border-radius:8px; border-left:4px solid var(--blue);">
+          <strong>Reader</strong> → Cloudflare Pages (static HTML) → Edge cache → <strong>&lt;200ms TTFB</strong>
+        </div>
+        <div style="padding:1rem; background:#f8fafc; border-radius:8px; border-left:4px solid var(--green);">
+          <strong>Editor</strong> → Payload Admin (DianaHost) → Write & Publish → Webhook → CI rebuild
+        </div>
+        <div style="padding:1rem; background:#f8fafc; border-radius:8px; border-left:4px solid var(--amber);">
+          <strong>Media</strong> → Cloudflare R2 (images, videos, documents) → CDN delivery → <strong>zero egress cost</strong>
+        </div>
+        <div style="padding:1rem; background:#f8fafc; border-radius:8px; border-left:4px solid var(--brand);">
+          <strong>CI/CD</strong> → GitHub Actions (Node 24) → Build + Quality gates → Deploy to Pages + DianaHost
+        </div>
+      </div>
+    </div>
+    <p class="small" style="margin-top:1rem;">
+      <strong>Key insight:</strong> The CMS can go down without the site going down. Readers get static HTML from Cloudflare's edge.
+      Only editors touch the backend. This is why we can run on a 2 GB shared host while serving unlimited traffic.
+    </p>
+  </div>
+</section>
+
+<!-- SLIDE 10: Build Roadmap -->
+<section class="slide slide-dark" id="s10">
+  <div class="container">
+    <div class="label">Roadmap</div>
+    <h2>13 Sections: S0 → S12</h2>
+    <div class="roadmap">
+      <div class="road-item"><div class="road-s">S0</div><div><strong>Foundation</strong> — Toolchain, Payload smoke test, CI, fonts, security baseline</div></div>
+      <div class="road-item"><div class="road-s">S1</div><div><strong>CMS Models</strong> — Collections, RBAC, 8 categories, education data models</div></div>
+      <div class="road-item"><div class="road-s">S2</div><div><strong>Design System</strong> — Typography, colors, grid, header, footer, mobile nav</div></div>
+      <div class="road-item"><div class="road-s">S3</div><div><strong>Homepage</strong> — Lead story, deadline strip, category grids, level filter, district selector</div></div>
+      <div class="road-item"><div class="road-s">S4</div><div><strong>Article Page</strong> — Full article, audio reader, comments, related, print view</div></div>
+      <div class="road-item"><div class="road-s">S5</div><div><strong>Listings</strong> — Category, tag, author, archive pages with pagination</div></div>
+      <div class="road-item"><div class="road-s">S6</div><div><strong>Search</strong> — Pagefind Bengali search with date/section filters</div></div>
+      <div class="road-item"><div class="road-s">S7</div><div><strong>Ad System</strong> — AdSense, sponsor banners, zero-CLS containers, Payload ad management</div></div>
+      <div class="road-item"><div class="road-s">S8</div><div><strong>Live Blog & Interactive</strong> — Result-day live coverage, polls, quizzes, infographics</div></div>
+      <div class="road-item"><div class="road-s">S9</div><div><strong>Media & Engagement</strong> — R2 pipeline, newsletter, push notifications, bookmarks</div></div>
+      <div class="road-item"><div class="road-s">S10</div><div><strong>Education Features</strong> — Scholarship tracker, results hub, GPA calculator, circular tracker</div></div>
+      <div class="road-item"><div class="road-s">S11</div><div><strong>SEO & Feeds</strong> — Sitemaps, RSS, JSON-LD, auto OG images, E-E-A-T pages</div></div>
+      <div class="road-item"><div class="road-s">S12</div><div><strong>QA & Launch</strong> — Lighthouse ≥95, accessibility, load test, backup verified, go live</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 11: Timeline -->
+<section class="slide" id="s11">
+  <div class="container">
+    <div class="label label-dark">Timeline</div>
+    <h2>Estimated Timeline</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Phase</th><th>Sections</th><th>Duration</th><th>Deliverable</th></tr>
+        <tr><td>Foundation</td><td>S0 – S1</td><td>Week 1–2</td><td>CMS live, content models ready</td></tr>
+        <tr><td>Core UI</td><td>S2 – S5</td><td>Week 3–5</td><td>Homepage, article, listings, search</td></tr>
+        <tr><td>Revenue & Engagement</td><td>S6 – S9</td><td>Week 6–8</td><td>Ads, live blog, newsletter, media pipeline</td></tr>
+        <tr><td>Education Special</td><td>S10</td><td>Week 9–10</td><td>All 10 education features live</td></tr>
+        <tr><td>SEO & Polish</td><td>S11</td><td>Week 11</td><td>Sitemaps, schemas, E-E-A-T pages</td></tr>
+        <tr><td>Launch</td><td>S12</td><td>Week 12</td><td>QA passed, Lighthouse ≥95, live</td></tr>
+      </table>
+    </div>
+    <p class="small" style="margin-top:0.75rem;">This is a rough estimate. Each section ends with a user approval gate — no section starts before the previous one is signed off.</p>
+  </div>
+</section>
+
+<!-- SLIDE 12: Performance -->
+<section class="slide slide-brand" id="s12">
+  <div class="container">
+    <div class="label">Performance</div>
+    <h2>Speed Is a Feature</h2>
+    <p>Built for low-end Android on 3G. Every target is measured, not guessed.</p>
+    <div class="metrics" style="margin-top:2rem;">
+      <div class="metric"><div class="metric-num">≥95</div><div class="metric-label">Lighthouse Mobile</div></div>
+      <div class="metric"><div class="metric-num">&lt;1.5s</div><div class="metric-label">Largest Contentful Paint</div></div>
+      <div class="metric"><div class="metric-num">&lt;100ms</div><div class="metric-label">Interaction to Next Paint</div></div>
+      <div class="metric"><div class="metric-num">&lt;0.02</div><div class="metric-label">Cumulative Layout Shift</div></div>
+      <div class="metric"><div class="metric-num">&lt;30KB</div><div class="metric-label">Data-Saver Mode</div></div>
+      <div class="metric"><div class="metric-num">&lt;1.2MB</div><div class="metric-label">Initial Payload</div></div>
+    </div>
+    <p style="margin-top:1.5rem; font-size:0.9rem; opacity:0.85;">
+      <strong>Why this matters:</strong> Our direct competitors (Dainik Shiksha, Shiksha Sangbad) are slow and ad-heavy.
+      A sub-1.5s load time on a Symphony phone is a measurable competitive advantage.
+    </p>
+  </div>
+</section>
+
+<!-- SLIDE 13: Competitive Advantage -->
+<section class="slide" id="s13">
+  <div class="container">
+    <div class="label label-dark">Competition</div>
+    <h2>Why We Win</h2>
+    <div class="two-col">
+      <div>
+        <h3>Direct Competitors</h3>
+        <ul class="checklist">
+          <li><strong>Dainik Shiksha</strong> — slow, ad-heavy, poor mobile experience</li>
+          <li><strong>Shiksha Sangbad</strong> — similar issues, no advanced features</li>
+        </ul>
+        <h3 style="margin-top:1rem;">The Real SEO Competition</h3>
+        <ul class="checklist">
+          <li>Third-party aggregators (xiadmission.bd, sscresult.govt.bd)</li>
+          <li>Thin, ad-heavy pages ranking on high-intent queries</li>
+          <li>No personalization, no engagement features</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Our Advantages</h3>
+        <ul class="checklist">
+          <li><strong>Speed:</strong> Static HTML, edge-cached, sub-1.5s LCP</li>
+          <li><strong>Mobile-first:</strong> Built for 375px, not desktop-down</li>
+          <li><strong>Zero CLS:</strong> No layout shifts from ads or images</li>
+          <li><strong>Education-native:</strong> Scholarship tracker, results hub, GPA calc</li>
+          <li><strong>District filter:</strong> No competitor personalizes by location</li>
+          <li><strong>Deadline reminders:</strong> Push notifications drive retention</li>
+          <li><strong>Trust:</strong> E-E-A-T pages, fact-check radar, source transparency</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 14: Monetization -->
+<section class="slide slide-dark" id="s14">
+  <div class="container">
+    <div class="label">Revenue</div>
+    <h2>How Shikkha24 Makes Money</h2>
+    <div class="card-grid">
+      <div class="card">
+        <div class="icon">A</div>
+        <h3>Google AdSense</h3>
+        <p>Primary revenue. Zero-CLS ad containers prevent layout shifts. Two measurement profiles: ≥95 without ads, ≥85 with ads.</p>
+      </div>
+      <div class="card">
+        <div class="icon">S</div>
+        <h3>Sponsor Banners</h3>
+        <p>Direct ad sales managed in Payload. Coaching centers, publishers, EdTech platforms targeting our high-intent audience.</p>
+      </div>
+      <div class="card">
+        <div class="icon">N</div>
+        <h3>Newsletter Sponsorship</h3>
+        <p>Weekly education digest with sponsored slots. Self-built subscriber list — data stays ours.</p>
+      </div>
+      <div class="card">
+        <div class="icon">P</div>
+        <h3>Sponsored Content</h3>
+        <p>Native education content with clear "বিজ্ঞাপন" disclosure. Template ensures consistent labeling.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 15: Team & Content -->
+<section class="slide" id="s15">
+  <div class="container">
+    <div class="label label-dark">Operations</div>
+    <h2>Team & Content Model</h2>
+    <div class="two-col">
+      <div>
+        <h3>Editorial Team</h3>
+        <p><strong>5 people already in place.</strong> No hiring prerequisite.</p>
+        <ul class="checklist">
+          <li>Reporters: 2–3 articles/day each</li>
+          <li>Section Editors: review & approve</li>
+          <li>Editor-in-Chief: homepage control, breaking news</li>
+          <li>Ad Manager: campaigns & sponsors</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Content Velocity</h3>
+        <div class="metrics" style="margin:0;">
+          <div class="metric"><div class="metric-num">15–20</div><div class="metric-label">Baseline / day</div></div>
+          <div class="metric"><div class="metric-num">40+</div><div class="metric-label">Burst / event day</div></div>
+        </div>
+        <p class="small" style="margin-top:0.5rem;">Education publishing is spiky — result days and admission days are floods. The baseline + burst model matches reality.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 16: Budget -->
+<section class="slide slide-charcoal" id="s16">
+  <div class="container">
+    <div class="label">Budget</div>
+    <h2>Zero Recurring Cost</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Item</th><th>Cost</th><th>Notes</th></tr>
+        <tr><td>DianaHost PNR 2 GB</td><td>~$47/year</td><td>Purchased. 2 GB storage, 200 GB bandwidth, 50 databases</td></tr>
+        <tr><td>Domain (shikkha24.com)</td><td>~$10–15/year</td><td>Registered. DNS to be configured</td></tr>
+        <tr><td>Cloudflare Pages</td><td>Free</td><td>Unlimited bandwidth, 500 builds/month</td></tr>
+        <tr><td>Cloudflare R2</td><td>Free (10 GB)</td><td>Card on file — overage is billable, alert at 80%</td></tr>
+        <tr><td>Payload CMS</td><td>Free</td><td>MIT-licensed, self-hosted</td></tr>
+        <tr><td>GitHub Actions</td><td>Free</td><td>2,000 min/month (private repo)</td></tr>
+        <tr><td>Analytics</td><td>Free</td><td>Cloudflare Web Analytics</td></tr>
+        <tr><td>ESP (Newsletter)</td><td>Free</td><td>Brevo 300/day or similar free tier</td></tr>
+        <tr><td><strong>Total Recurring</strong></td><td><strong>~$57–62/year</strong></td><td>Only hosting + domain are paid</td></tr>
+      </table>
+    </div>
+    <p style="margin-top:1rem; font-size:0.9rem; opacity:0.8;">
+      <strong>Constraint:</strong> No international credit/debit card. Every paid service is unusable.
+      The entire stack is chosen around this constraint.
+    </p>
+  </div>
+</section>
+
+<!-- SLIDE 17: Risks -->
+<section class="slide" id="s17">
+  <div class="container">
+    <div class="label label-amber">Risk Management</div>
+    <h2>Known Risks & Mitigations</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Risk</th><th>Impact</th><th>Mitigation</th></tr>
+        <tr><td>Node 20 EOL on DianaHost</td><td>Security</td><td>Select 22/24 from cPanel if offered; else rate-limit admin, minimize surface</td></tr>
+        <tr><td>CI quota (500 builds/month)</td><td>Publishing</td><td>Adaptive batching; direct upload may bypass quota; public repo fallback</td></tr>
+        <tr><td>20,000 file ceiling (Pages)</td><td>Scale</td><td>Keep images on R2; plan for Workers Static Assets at ~2–3 years</td></tr>
+        <tr><td>SQLite concurrency</td><td>Editor collisions</td><td>WAL mode proven with 5+ writers at S0; PostgreSQL path ready</td></tr>
+        <tr><td>Viral traffic spike</td><td>Availability</td><td>Static frontend on Cloudflare = unlimited edge capacity; CMS only serves editors</td></tr>
+        <tr><td>DianaHost inode limit</td><td>Deploy failure</td><td>Next.js standalone keeps deploy at ~300–600 MB; support ticket for exact quota</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE 18: Call to Action -->
+<section class="slide slide-brand" id="s18">
+  <div class="container" style="text-align:center;">
+    <div class="label">Approval Request</div>
+    <h2 style="margin-bottom:1rem;">Ready to Build Shikkha24</h2>
+    <p style="max-width:600px; margin:0 auto 1.5rem; font-size:1.1rem;">
+      All decisions are made. The stack is verified. The team is in place.
+      The only thing left is to start building — one section at a time.
+    </p>
+    <div class="approval-box" style="max-width:500px; margin:0 auto; background:rgba(255,255,255,0.1); border-color:#fff;">
+      <h3 style="color:#fff;">What We Need From You</h3>
+      <ul style="list-style:none; text-align:left; margin-top:1rem;">
+        <li style="padding:0.3rem 0;">✓ &nbsp; Confirm the display name: <strong>Shikkha24 / শিক্ষা২৪</strong></li>
+        <li style="padding:0.3rem 0;">✓ &nbsp; Provide your logo (or keep the placeholder for now)</li>
+        <li style="padding:0.3rem 0;">✓ &nbsp; Configure DNS for shikkha24.com when ready</li>
+        <li style="padding:0.3rem 0;">✓ &nbsp; Check cPanel Node.js Selector for version 22/24</li>
+        <li style="padding:0.3rem 0;">✓ &nbsp; Say <strong>"go"</strong> and we start with S0</li>
+      </ul>
+    </div>
+    <p style="margin-top:2rem; font-size:0.9rem; opacity:0.8;">
+      Every section ends with evidence and your explicit approval.<br>
+      No surprises. No assumptions. Just build, verify, approve, repeat.
+    </p>
+  </div>
+</section>
+
+<script>
+  // Progress bar
+  const slides = document.querySelectorAll('.slide');
+  const dotsContainer = document.getElementById('dots');
+  const progress = document.getElementById('progress');
+
+  slides.forEach((s, i) => {
+    const a = document.createElement('a');
+    a.href = '#' + s.id;
+    a.dataset.index = i;
+    dotsContainer.appendChild(a);
+  });
+
+  const dots = dotsContainer.querySelectorAll('a');
+
+  function onScroll() {
+    const y = window.scrollY + window.innerHeight / 2;
+    let active = 0;
+    slides.forEach((s, i) => {
+      if (y >= s.offsetTop) active = i;
+    });
+    dots.forEach((d, i) => d.classList.toggle('active', i === active));
+    const pct = ((active + 1) / slides.length) * 100;
+    progress.style.width = pct + '%';
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Keyboard nav
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+      e.preventDefault();
+      const active = document.querySelector('.nav-dots a.active');
+      const idx = active ? parseInt(active.dataset.index) : -1;
+      if (idx < slides.length - 1) slides[idx + 1].scrollIntoView({ behavior: 'smooth' });
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      const active = document.querySelector('.nav-dots a.active');
+      const idx = active ? parseInt(active.dataset.index) : 1;
+      if (idx > 0) slides[idx - 1].scrollIntoView({ behavior: 'smooth' });
+    }
+  });
+</script>
+
+</body>
+</html>
