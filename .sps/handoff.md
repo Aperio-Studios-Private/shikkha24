@@ -58,6 +58,18 @@ rediscovered:
 4. **Next does not copy `.next/static` into the standalone bundle.** The deploy
    must do it, or the admin loads with every asset 404ing. CI now assembles and
    asserts this, and the bundle is uploaded as an artifact.
+5. **`PRAGMA journal_mode = WAL` is not concurrency-safe, and fails intermittently.**
+   The first version of the WAL gate re-issued that PRAGMA on every connection and
+   failed ~80% of runs with "database is locked" — *intermittently*, so a single
+   green run looked like a pass. Switching journal mode requires a lock, and that
+   PRAGMA does **not** respect `busy_timeout`; six connections doing it at once
+   collide and fail immediately. Removing it from the per-connection setup (the
+   parent sets WAL once, on the database) took the gate to 6/6 green, repeatedly.
+   ⚠️ **This is a production risk, not just a test artefact:** if Payload's SQLite
+   adapter re-issues that PRAGMA on every connection open, five editors connecting
+   at once could hit exactly this. **Verify against `@payloadcms/db-sqlite`
+   directly at S1**, when the collections exist and the adapter is exercised for
+   real. Recorded here so it is not rediscovered under load.
 
 **Caveats — stated rather than glossed over:**
 - The **build-time gate was measured on a 1-page site.** It proves the toolchain is
@@ -65,7 +77,8 @@ rediscovered:
   content volume exists, before trusting the CI batching strategy.
 - The **WAL test used Node's built-in `node:sqlite`**, not the `@libsql/client`
   driver Payload uses in production. WAL contention is engine-level, so it answers
-  the question — but it is not the identical driver.
+  the question — but it is not the identical driver, and finding 5 above must be
+  re-checked through Payload's own adapter at S1.
 - The **CI workflow has still never run.** It is now pnpm-based against a real
   lockfile, so `--frozen-lockfile` works, but expect iteration on the first push.
 - **Lighthouse CI, the broken-link check and JSON-LD validation are still not

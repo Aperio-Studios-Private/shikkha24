@@ -20,6 +20,22 @@
  * question being asked — but it is not the identical driver. Called out rather
  * than glossed over.
  *
+ * ── Finding (2026-09-12): `PRAGMA journal_mode = WAL` is not concurrency-safe ──
+ *
+ * The first version of this test re-issued `PRAGMA journal_mode = WAL` on every
+ * connection. It failed ~80% of runs with "database is locked" — and it was
+ * intermittent, so a single green run looked like a pass. Removing that PRAGMA
+ * from the per-connection setup took it to 6/6 green.
+ *
+ * The mechanism: switching journal mode requires a lock, and that PRAGMA does
+ * NOT respect `busy_timeout`. Six connections doing it at once collide and fail
+ * immediately. It only needs to be set once, on the database, ever.
+ *
+ * ⚠️ This is a real production risk, not just a test artefact: if Payload's
+ * SQLite adapter re-issues `PRAGMA journal_mode = WAL` on every connection open,
+ * five editors connecting at once could hit exactly this. Verify against
+ * `@payloadcms/db-sqlite` directly at S1, when the collections exist.
+ *
  * Run:  node scripts/verify-sqlite-wal.mjs
  */
 import { spawn } from 'node:child_process'
@@ -43,7 +59,10 @@ if (childFlag !== -1) {
   const writerId = Number(process.argv[process.argv.indexOf('--writer') + 1])
 
   const db = new DatabaseSync(dbPath)
-  db.exec('PRAGMA journal_mode = WAL')
+  // NOTE: `PRAGMA journal_mode = WAL` is deliberately NOT re-issued here. The
+  // parent already set it, and re-issuing it is not free — changing the journal
+  // mode needs a lock, so six processes doing it simultaneously contend for it.
+  // Each connection does still need its own busy_timeout.
   db.exec('PRAGMA busy_timeout = 5000')
   db.exec('PRAGMA synchronous = NORMAL')
 
@@ -52,9 +71,12 @@ if (childFlag !== -1) {
   const failures = []
 
   for (let i = 0; i < ROWS_PER_WRITER; i++) {
+    let step = 'begin'
     try {
       db.exec('BEGIN IMMEDIATE')
+      step = 'insert'
       insert.run(writerId, `লেখা ${writerId}-${i}`, 'দেশ-বিদেশের শিক্ষার খবর। '.repeat(8))
+      step = 'commit'
       db.exec('COMMIT')
       committed++
     } catch (err) {
@@ -63,13 +85,13 @@ if (childFlag !== -1) {
       } catch {
         /* the transaction may already be gone */
       }
-      failures.push(`row ${i}: ${err.message}`)
+      failures.push(`row ${i} at ${step}: ${err.message}`)
     }
   }
 
   db.close()
-  if (failures.length > 0) {
-    console.error(`writer ${writerId} FAILED ${failures.length}/${ROWS_PER_WRITER}`)
+  if (failures.length > 0 || committed !== ROWS_PER_WRITER) {
+    console.error(`writer ${writerId} FAILED: committed ${committed}/${ROWS_PER_WRITER}`)
     for (const f of failures.slice(0, 5)) console.error(`   ${f}`)
     process.exit(1)
   }
@@ -110,15 +132,17 @@ console.log('')
 const started = Date.now()
 
 const results = await Promise.all(
-  Array.from({ length: WRITERS }, (_, i) =>
-    new Promise((resolve) => {
-      const child = spawn(
-        process.execPath,
-        [new URL(import.meta.url).pathname, '--child', dbPath, '--writer', String(i)],
-        { stdio: ['ignore', 'inherit', 'inherit'] },
-      )
-      child.on('close', (code) => resolve({ writer: i, code }))
-    }),
+  Array.from(
+    { length: WRITERS },
+    (_, i) =>
+      new Promise((resolve) => {
+        const child = spawn(
+          process.execPath,
+          [new URL(import.meta.url).pathname, '--child', dbPath, '--writer', String(i)],
+          { stdio: ['ignore', 'inherit', 'inherit'] },
+        )
+        child.on('close', (code) => resolve({ writer: i, code }))
+      }),
   ),
 )
 
