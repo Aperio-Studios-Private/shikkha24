@@ -1,10 +1,10 @@
 # SPS Handoff
 
 ## Current Phase
-- **Status:** PRE-BUILD — audit remediated; education scope approved; **all S1 gates now satisfied**. S0 is clear to start on the owner's "go", subject to the S0 exit gates in `.sps/plan.md`
-- **Last Activity:** 2026-09-12T00:05+06:00
-- **Next Action:** owner actions for S0 — check the cPanel Node.js Selector for Node 22/24, raise one DianaHost support ticket (inode/CPU/email/backup limits), verify R2 with `wrangler r2 bucket list`, and supply DNS. Then start S0.
-- **User instruction (latest):** answered all 12 outstanding questions — velocity = **burst**, DianaHost Node = **20.18.2**, R2 payment method present, repo **private**, logo = placeholder, AdSense active, greenfield, 5 editors in place; plus "fix all" — see item 39
+- **Status:** S0 IN PROGRESS — owner said "go" on 2026-09-12T02:02+06:00
+- **Last Activity:** 2026-09-12T02:02+06:00
+- **Next Action:** S0 tasks — monorepo structure, Astro 7.3 init, Payload CMS 3.89 init, toolchain validation
+- **User instruction (latest):** "can we start building ?" — S0 started
 
 ## Completed
 1. ✅ Discovery round 1 (project identity, language, type, team, features, monetization, design, hosting, timeline)
