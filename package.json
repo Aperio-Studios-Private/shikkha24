@@ -10,6 +10,7 @@
     "pnpm": ">=9"
   },
   "scripts": {
+    "setup": "node scripts/setup-env.mjs",
     "dev": "pnpm --filter @shikkha24/frontend dev",
     "dev:cms": "pnpm --filter @shikkha24/cms dev",
     "build": "pnpm run build:frontend && pnpm run build:cms",
