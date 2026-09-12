@@ -115,9 +115,14 @@
 - [x] **Relaxed CSP profile** for `/`, `/article/*`, `/category/*` — ⚠️ Cloudflare **joins** duplicate headers with a comma rather than overriding, so the more specific rule must `!`-detach the inherited policy first. **S12 check:** confirm production returns exactly one CSP header.
 - [x] S7 DoD evidence → **user approval pending** (`.sps/section-todos/S7.md`)
 
-## S8 — Live Blog & Interactive
-- [ ] Live blog engine (exam results, admission days), polls, quizzes, infographic blocks, scrollytelling (lazy-loaded islands only)
-- [ ] S8 DoD evidence → **user approval**
+## S8 — Live Blog & Interactive ✅ COMPLETE 2026-09-12
+- [x] **Live blog engine** — `/live/:slug`, entries baked into the HTML at build time (the `docs/reliability.md` static fallback), key-event badges, a **no-JavaScript key-events filter** (`:has()`), and `LiveBlogPosting` JSON-LD with a nested `BlogPosting` per update.
+- [x] **Live updates — owner decision: opt-in refresh.** A **নতুন আপডেট দেখুন** button fetches once on tap, clones a `<template>`, and announces into an `aria-live` region. Deliberately **not** an auto-poll — see `.sps/section-todos/S8.md` §1.
+- [x] **Polls — owner decision: persist to the CMS.** `POST /api/polls/:id/vote` with three guards: honeypot (silent success, no write), per-IP rate limit, and a salted `HMAC-SHA256(ip+UA)` duplicate guard unique per poll. Results hidden until the reader votes; the privacy line is on the widget.
+- [x] **Quizzes** — `/quiz` hub + `/quiz/:id`, question-by-question flow, instant feedback with the explanation, score + percentage bar, days-in-a-row streak. **Fully client-side**, flag-gated on `PUBLIC_FLAG_QUIZ`.
+- [x] **Infographic · before/after · scrollytelling blocks** — Payload `BlocksFeature` blocks rendered by `lib/richtext.ts`, styled from a global stylesheet. Each is readable with JavaScript off; the scripts only add a slider and a scroll animation.
+- [x] **⚠️ Fixed a site-wide CSP bug found here:** Astro **inlines small component scripts**, and `script-src 'self'` (no `'unsafe-inline'`) blocks them — the theme toggle, mobile menu, text resizer, demo ads, share button and the `/search` bootstrap had all been silently dead since S2. Fixed with `vite.build.assetsInlineLimit: 0` plus moving two deliberate inline scripts into `public/`. **0 executable inline scripts across all 28 pages.**
+- [x] S8 DoD evidence → **user approval pending** (`.sps/section-todos/S8.md`) — 35/35 harness checks + a flag-off build
 
 ## S9 — Media, Newsletter & Engagement
 - [ ] Gallery, video embeds, push notifications, bookmarks, social login, citizen journalism submission

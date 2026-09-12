@@ -1,19 +1,74 @@
 # SPS Handoff
 
 ## Current Phase
-- **Status:** **S7 COMPLETE — awaiting owner approval.** S0–S4 approved 2026-09-12; S5 and S6 evidence posted, approval implied by "please continue" but not explicitly given.
-- **Last Activity:** 2026-09-12T18:05+06:00
-- **Next Action:** owner reviews S7 (`.sps/section-todos/S7.md`) **and decides the team-leader proposal** (`docs/team-leader-proposal-review.md`) — two of its 17 points conflict with recorded owner decisions, and nothing has been changed on the strength of it.
-- **User instruction (latest):** "Please continue" — taken, per this project's recorded convention, as approval of the previous section plus instruction to build the next one.
+- **Status:** **S8 COMPLETE — awaiting owner approval.** S0–S4 approved 2026-09-12; S5–S7 evidence posted, approval implied by "please continue" but not explicitly given.
+- **Last Activity:** 2026-09-12T18:30+06:00
+- **Next Action:** owner reviews S8 (`.sps/section-todos/S8.md`) **and decides the team-leader proposal** (`docs/team-leader-proposal-review.md`) — two of its 17 points conflict with recorded owner decisions, and nothing has been changed on the strength of it.
+- **User instruction (latest):** "Please continue" — taken, per this project's recorded convention, as approval of the previous section plus instruction to build the next one. Two S8 architecture questions were asked directly and answered: **opt-in refresh** for the live blog, **CMS-persisted votes** for polls.
+- **⚠️ Open owner question (raised 2026-09-12):** the owner plans to **upgrade DianaHost to a 5 GB plan** and asked whether Cloudflare is still needed. Answer given: **yes** — 5 GB eases storage (and maybe bandwidth) but does not address uptime isolation, the performance gates, or deploy mechanics. **Two figures still needed: the 5 GB plan's monthly bandwidth and its price.** No plan change has been made pending that answer.
 - **⚠️ Sequencing note:** S11's **sitemap / news-sitemap / RSS / robots** were built **ahead of the S0→S12 order** on 2026-09-12. They are verified and committed; the remaining S11 work (OG/Twitter, auto OG images, canonical, `llms.txt`, Publisher Center, E-E-A-T pages) is **not** started.
 - **⚠️ Owner action needed:** the E-E-A-T pages (privacy policy, terms of use, contact) must be **created in the CMS**. The `/page/:slug` route is built, but with no Pages in the CMS the footer links still 404.
-- **⚠️ Build environment (three traps, all cost real time):**
+- **⚠️ Owner action needed:** `PUBLIC_CMS_ORIGIN` and the CSP `connect-src` host must be set to the real CMS hostname. Both are currently a placeholder (`https://cms.shikkha24.com`), blocked on DNS. Until then the live-blog refresh and the poll vote control are simply not rendered.
+- **⚠️ Build environment (four traps, all cost real time):**
   1. `HTTP_PROXY` is set here; build-time CMS fetches fail with 502 unless `NO_PROXY=localhost,127.0.0.1,::1` is set. Now baked into `frontend/package.json` `dev`/`build` scripts. `curl` needs `--noproxy '*'`.
   2. **The sandbox safe-delete shim aborts `astro build`.** Astro deletes its own `dist/` and `dist/.prerender/`; the shim's bulk-delete guard (threshold 50 per turn) trips and the build exits 1 **after** the pages are written — so `dist/` looks populated but `pagefind` never runs and `.prerender/` is left behind to be deployed. **Fix: prefix the build with `CODEBUDDY_SAFE_DELETE_ENABLED=0`.**
-  3. **Parallel edits to the SAME file silently lose writes.** Several edits to one file in a single message report success but only some land (typically the first and third survive, the second and fourth are dropped). This cost two debugging rounds in S7 — a fix appeared applied but was absent from the file. **Serialize edits to one file, and always read the value back.** Different files in parallel are fine.
-- **⚠️ Background servers do not survive between tool calls** — confirmed repeatedly in S7. Start the CMS and run the build in the *same* command, or the build silently falls back to no-CMS data.
+  3. **Parallel edits to the SAME file silently lose writes.** Several edits to one file in a single message report success but only some land (typically the first and third survive, the second and fourth are dropped). Cost two debugging rounds in S7 and one in S8. **Serialize edits to one file, and always read the value back.** Different files in parallel are fine.
+  4. **Drizzle's schema push is interactive and will hang the dev server.** Renaming or dropping a column makes Payload ask "is this a rename?" on stdin; the server blocks forever and the build's CMS health check never passes. Also, a manual `DROP TABLE` leaves Drizzle's bookkeeping stale, after which every push fails with `index ... already exists` — fix by dropping the named index and retrying.
+- **⚠️ Background servers do not survive between tool calls** — confirmed repeatedly. Start the CMS and run the build in the *same* command, or the build silently falls back to no-CMS data.
 - **S2 entry gate:** portal display name + logo — ✅ satisfied by owner decision 2026-09-12 (name = শিক্ষা২৪, logo = placeholder, Inter dropped)
 - **Font:** SolaimanLipi only (owner decision) — Hind Siliguri and Noto Sans Bengali both removed. 154.0 KB / 200 KB.
+
+## S8 — Live Blog & Interactive (complete) — 2026-09-12
+
+**⚠️ The most important thing this section produced was not a feature — it was a site-wide bug.**
+`public/_headers` sets `script-src 'self'` with no `'unsafe-inline'`, and **Astro inlines any
+component `<script>` that is "small enough"** into the HTML. Every inlined script was therefore
+blocked by the browser: the theme toggle, mobile menu, text resizer, demo-ad rotation, copy-link
+button and the `/search` Pagefind bootstrap had been **silently dead since S2**. Nothing local
+ever showed it — the CSP is applied by Cloudflare Pages and the site is not deployed yet. It was
+caught by asserting the built HTML, not by looking at a page.
+
+**Three fixes:** `vite.build.assetsInlineLimit: 0` (Vite's default is 4096 bytes) forces every
+component script to be an external file; the anti-FOUC theme script moved to `public/theme-init.js`
+(a same-origin `<script src>` with no `async`/`defer` is still parser-blocking, so it keeps the
+before-paint guarantee); the Pagefind bootstrap moved to `public/search-init.js`. `ArticleAudio`
+used `define:vars`, which **always** emits an inline script, and now takes its text from a
+`type="application/json"` tag. **Result: 0 executable inline scripts across all 28 pages** — the
+strict CSP profile can stay strict.
+
+**Two owner decisions, both made directly this session:**
+- **Live-blog updates: opt-in refresh, not auto-poll.** Entries are baked at build time (the
+  `docs/reliability.md` §4 fallback), and a **নতুন আপডেট দেখুন** button fetches once on tap.
+  Continuous 30s polling would put reader traffic on the 2 GB shared host during exactly the
+  result-day spike the architecture exists to keep off it — and taking the CMS down would also
+  remove the newsroom's ability to publish.
+- **Poll votes: persisted to the CMS, with guards.** Honeypot (silent success, no write), per-IP
+  rate limit (20/min, in-process — Cloudflare's free tier has no rate-limiting rules), and a salted
+  `HMAC-SHA256(ip+UA)` duplicate guard unique per poll. The guard row stores **no raw IP, no user
+  agent, no timestamp, and not which option was chosen** — only a poll reference and a one-way
+  hash. Disclosed on the widget itself.
+
+**Deliberately documented limitations, not hidden ones:** the tally update is a read-modify-write,
+so two simultaneous votes can lose one increment (Payload cannot express an atomic
+`vote_count = vote_count + 1`) — acceptable for a reader poll, not for anything counting money.
+And the quiz is graded in the browser, so **the answers are in the page** — fine because it is
+practice, not assessment, and nothing is stored about the reader.
+
+**Article blocks:** infographic, before/after and scrollytelling, as Payload `BlocksFeature` blocks
+rendered by `lib/richtext.ts`. None depends on JavaScript for its meaning — the before/after renders
+both images stacked and only becomes a slider once the script can drive it; the scrollytelling is an
+ordered list and the scroll animation is behind `@supports (animation-timeline: view())` and
+`prefers-reduced-motion`.
+
+**Verified 35/35** (`scripts/verify-s8.mjs`) plus a flag-off build: with all three flags `false`,
+`/live/*` and `/quiz/*` generate zero routes, `/quiz` becomes a 280-byte `noindex` redirect stub,
+the poll and the interactive strip vanish, and the ad slots are untouched.
+
+**A test-writing lesson worth keeping:** the first two harness runs produced 3 false failures, all
+from asserting against the HTML for things that live elsewhere — a CSS rule in the CSS bundle, and
+`application/ld+json` (not executable, so not subject to `script-src`). Check where the artefact
+actually lands before writing the assertion.
+
 
 ## S7 — Ad System (complete) — 2026-09-12
 

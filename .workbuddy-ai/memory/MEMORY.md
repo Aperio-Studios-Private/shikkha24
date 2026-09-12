@@ -48,6 +48,16 @@ Durable, cross-session truths only — not task logs.
 - **A body's `children.length` is not its paragraph count** — the demo body also holds a heading, a list and a blockquote. Cost one false test failure.
 - **Sponsored content:** `isSponsored` + `sponsorName`; excluded from the masthead and breaking ticker, kept in category sections and the latest feed with a «বিজ্ঞাপন» label. The latest feed excludes whatever the masthead showed, matched by **slug** — slicing by index re-showed the promoted story as the feed's lead.
 
+## Interactive features (S8, built 2026-09-12)
+- **Owner decisions (do not re-litigate):** live-blog updates are an **opt-in refresh button**, not an auto-poll — polling would load the 2 GB shared host during exactly the result-day spike the architecture avoids, and would risk the newsroom's ability to publish. Poll votes **persist to the CMS**.
+- **The islands are opt-in and self-hiding.** `getPublicCmsOrigin()` returns `null` unless `PUBLIC_CMS_ORIGIN` is set; when it is `null` the refresh button and the vote control are **not rendered at all**. A control that cannot work reads to the reader as their own failure. The static content always renders.
+- **Poll abuse guards, in order:** honeypot (silent success, **no write**, so bots get no signal) → per-IP rate limit (20/min, in-process — Cloudflare's free tier has no rate-limiting rules) → salted `HMAC-SHA256(ip+UA)` duplicate guard, unique per poll. **The guard row stores no raw IP, no user agent, no timestamp, and not which option was chosen.** Disclosed on the widget.
+- **Tally updates are read-modify-write** — two simultaneous votes can lose one increment. Payload cannot express an atomic `vote_count = vote_count + 1`. Fine for a reader poll; not for anything counting money.
+- **The quiz is graded in the browser, so the answers are in the page.** Fine — it is practice, not assessment, and nothing is stored about the reader. Data travels in a `type="application/json"` tag.
+- **Article blocks** (infographic, before/after, scrollytelling) are Payload `BlocksFeature` blocks rendered by `lib/richtext.ts`, styled from a **global** stylesheet (`content-blocks.css`) because `set:html` output is not touched by Astro's scoped styles. None needs JS to be readable.
+- **`richText(...)` is required for a richText field inside an array** — a bare paragraph node is rejected. Cost one seed failure.
+- **Flag contract:** `PUBLIC_FLAG_LIVE_BLOG` / `_QUIZ` / `_POLL` all default ON (the approved scope is "ALL features Day 1"); setting one to exactly `"false"` removes it from the next build. With all three off: `/live/*` and `/quiz/*` generate 0 routes, `/quiz` becomes a `noindex` redirect stub.
+
 ## Gotchas (found the hard way)
 **Build environment (this machine)**
 - **`HTTP_PROXY` is set → build-time CMS fetches silently fail.** Astro's build-time `fetch()` routes `localhost:3000` through the proxy → **502**. The CMS layer degrades gracefully, so the build stays **green** while every page falls back to empty data and article routes 404 (`getAllArticleSlugs()` → `[]`). **Tell: a green build with suspiciously thin pages, or 304-byte redirect stubs in `dist/article/*`.** Fixed by `NO_PROXY=localhost,127.0.0.1,::1` in `frontend/package.json` `dev`/`build`. `curl` needs `--noproxy '*'`.
@@ -58,7 +68,8 @@ Durable, cross-session truths only — not task logs.
 - `.astro` templates are **not type-checked** (`@astrojs/check` rejects TS 7) → typecheck = `tsc --noEmit`. ESLint can't run on TS 7 either → **Biome 2.5.13** is the linter.
 
 **Astro/Tailwind**
-- **Astro does NOT inherit page-level CSS imports into components.** Move a stylesheet import into `Layout.astro` and Tailwind emits *nothing* — no `<link rel="stylesheet">`, unstyled page. Every stylesheet must be imported in the rendered tree.
+- **⚠️ Astro inlines "small enough" component scripts into the HTML — which a strict CSP blocks.** `_headers` is `script-src 'self'` (no `'unsafe-inline'`), so every inlined script was silently dead: theme toggle, mobile menu, text resizer, demo ads, share button, `/search` bootstrap. **Nothing local shows it** — the CSP is applied by Cloudflare Pages. **Fixed by `vite.build.assetsInlineLimit: 0`** (Vite's default is 4096 bytes), which forces external files. **`define:vars` ALWAYS emits an inline script** — pass data via a `type="application/json"` tag instead. Deliberate pre-paint scripts belong in `public/` as `<script is:inline src="/x.js">` (no async/defer keeps them parser-blocking). **Assert the built HTML for inline scripts after any new component script.**
+- **Astro does NOT inherit page-level CSS imports into components.** Moving a stylesheet import into `Layout.astro` requires adding it there, or Tailwind emits *nothing* — built HTML has no `<link rel="stylesheet">`, page renders unstyled. Every stylesheet must be imported in the rendered tree. Component `<style>` blocks go to the CSS bundle, so assert CSS rules against `dist/_astro/*.css`, not the HTML.
 - **Local images go in `src/assets`, NEVER `public/`** — `public/` is copied verbatim; `src/assets` goes through the pipeline (AVIF+WebP, srcset, hashed names). The glob must be **eager** or Astro silently loses the optimization.
 - **Payload is finicky under build-time concurrency** → `lib/cms.ts` caches responses *and failures* by path for the whole build.
 
