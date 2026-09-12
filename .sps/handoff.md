@@ -1,11 +1,12 @@
 # SPS Handoff
 
 ## Current Phase
-- **Status:** S2 **COMPLETE — awaiting owner approval.** S0 and S1 approved 2026-09-12.
-- **Last Activity:** 2026-09-12T05:55+06:00
-- **Next Action:** owner reviews the S2 packet, then S3 (homepage + listing pages)
-- **User instruction (latest):** "Please continue" — taken as S1 approval and instruction to build S2.
+- **Status:** S3 **COMPLETE — awaiting owner approval.** S0, S1 and S2 approved 2026-09-12.
+- **Last Activity:** 2026-09-12T10:20+06:00
+- **Next Action:** owner reviews the homepage, then S4 (article page)
+- **User instruction (latest):** "Please continue" — taken as S2 approval and instruction to build S3.
 - **S2 entry gate:** portal display name + logo — ✅ satisfied by owner decision 2026-09-12 (name = শিক্ষা২৪, logo = placeholder, Inter dropped)
+- **Font:** SolaimanLipi only (owner decision) — Hind Siliguri and Noto Sans Bengali both removed. 154.0 KB / 200 KB.
 
 ## S1 — CMS content models & RBAC (complete)
 
@@ -105,6 +106,43 @@ content layer that survives CMS outages.
 **Two deviations recorded:**
 - `subcategories` is a self-relation on Categories, not a separate collection — the approved tree is flat (স্কুল-কলেজ was rejected as a category and replaced by the level filter)
 - `readers` was added to the model — social login, bookmarks, saved deadlines and push all need a reader identity
+
+## S3 — Homepage (complete)
+
+**Built:** breaking ticker, lead story, deadline strip (N1/N2), level + district
+filters, 8 category sections, latest + trending, ad slots, and live weather +
+prayer header utilities.
+
+**Verified 7/7:** lint · astro sync · frontend typecheck + build · CMS typecheck
++ build · WAL gate. Built page: 90.7 KB HTML, 28.6 KB CSS, 157.7 KB fonts.
+42 article links and 10 section headings render.
+
+**Header utilities are live, not placeholders** — verified against the real APIs:
+- Weather → Open-Meteo: **ঢাকা ৩১° মেঘলা**
+- Prayer → Aladhan: **ইফতার/মাগরিব ১৮:০৫**
+- Hijri → Aladhan with Bengali month names: **১ রবিউস সানি ১৪৪৮**
+
+Both are fetch-at-build-time and **memoised**, so a 5,000-page build costs 2 API
+calls rather than 10,000. Both return `null` on failure — a dead provider omits
+the widget and never fails the build.
+
+**Two things the owner must know:**
+1. **Trending is provisional.** A static site cannot accumulate view counts, so
+   the trending list is fed recent articles. Real trending needs Cloudflare Web
+   Analytics feeding a build-time ranking, or an editorial "trending" flag.
+2. **Demo content exists and must be deleted before launch.** `pnpm seed:demo`
+   added 12 articles, 5 deadlines and 1 author so the homepage could be reviewed.
+   The production seed (`pnpm seed`) stays **taxonomies-only** per the S1
+   principle. All demo slugs are prefixed `demo-`.
+
+**Finding worth not rediscovering:** `Deadlines.type` is a `select` — values must
+be one of `admission, result, examRoutine, scholarshipDeadline, holiday,
+circular`. The demo seed initially used `scholarship` / `exam` and was rejected
+at validation. `DeadlineStrip.astro` carries a parallel Bengali label map that
+must stay in step with `DEADLINE_TYPES`.
+
+**Still open (owner-only):** hands-on low-end Android pass (Symphony/Walton
+class, 3G) and visual approval of the homepage.
 
 ## ✅ S0 verification COMPLETE — the npm blocker was resolved with pnpm
 

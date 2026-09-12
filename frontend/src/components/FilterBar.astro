@@ -1,0 +1,187 @@
+---
+/**
+ * Level + district filter bar.
+ *
+ * Per the approved category tree, level and district are **filter axes, not
+ * categories** — স্কুল-কলেজ was rejected as a category precisely because it is an
+ * audience segment that would have overlapped several topics at once. So the
+ * homepage keeps 8 topic sections and filters across all of them.
+ *
+ * ## How filtering works on a static page
+ *
+ * There is no server to query. Every article is already in the HTML carrying
+ * `data-level` / `data-district`; this bar just toggles visibility. The payoff
+ * is that filtering is instant and works offline — important on 3G.
+ *
+ * ## "আমার জেলা" persists
+ *
+ * The reader's district is saved to localStorage. A returning reader from রাজশাহী
+ * sees Rajshahi-relevant items without re-choosing every visit. The value is
+ * *display preference only* — it is never sent anywhere, because there is no
+ * server to send it to.
+ *
+ * ## Accessibility
+ *
+ * Level filters are a radio group (one active at a time) using `aria-pressed`.
+ * The result count is announced via `aria-live` so a screen-reader user knows
+ * filtering did something, since the change is otherwise purely visual.
+ */
+import type { CmsLevel, CmsDistrict } from '../lib/cms'
+
+interface Props {
+  levels: CmsLevel[]
+  districts: CmsDistrict[]
+}
+
+const { levels, districts } = Astro.props
+
+/** Group districts by division so a 64-item list is navigable. */
+const byDivision = new Map<string, CmsDistrict[]>()
+for (const district of districts) {
+  const key = district.divisionBn ?? 'অন্যান্য'
+  const list = byDivision.get(key) ?? []
+  list.push(district)
+  byDivision.set(key, list)
+}
+const divisions = [...byDivision.entries()].sort((a, b) => a[0].localeCompare(b[0], 'bn'))
+---
+
+<section
+  class="border-b border-rule bg-surface dark:border-dark-rule dark:bg-dark-base"
+  aria-label="ফিল্টার"
+>
+  <div class="container-page flex flex-col gap-3 py-3 lg:flex-row lg:items-center lg:justify-between">
+    <!-- Level: one at a time -->
+    <div class="flex items-center gap-2 overflow-x-auto" role="group" aria-label="শিক্ষার স্তর">
+      <button
+        type="button"
+        data-level-filter=""
+        aria-pressed="true"
+        class="level-pill shrink-0 rounded-full border border-brand-red bg-brand-red px-3 py-1.5 text-sm font-medium text-white transition-colors"
+      >
+        সব স্তর
+      </button>
+      {
+        levels.map((level) => (
+          <button
+            type="button"
+            data-level-filter={level.slug}
+            aria-pressed="false"
+            class="level-pill shrink-0 rounded-full border border-rule px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
+          >
+            {level.nameBn}
+          </button>
+        ))
+      }
+    </div>
+
+    <!-- District: remembered per reader -->
+    <div class="flex shrink-0 items-center gap-2">
+      <label for="district-filter" class="whitespace-nowrap text-sm text-ink-muted dark:text-dark-ink-muted">
+        আমার জেলা
+      </label>
+      <select
+        id="district-filter"
+        class="rounded-md border border-rule bg-surface px-2 py-1.5 text-sm text-ink dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink"
+      >
+        <option value="">সব জেলা</option>
+        {
+          divisions.map(([division, list]) => (
+            <optgroup label={division}>
+              {list.map((district) => (
+                <option value={district.slug}>{district.nameBn}</option>
+              ))}
+            </optgroup>
+          ))
+        }
+      </select>
+    </div>
+  </div>
+
+  <!-- Announce the outcome; the change is otherwise invisible to a screen reader. -->
+  <p id="filter-status" class="sr-only" role="status" aria-live="polite"></p>
+</section>
+
+<script>
+  (function () {
+    const STORAGE_KEY = 'shikkha24-district'
+
+    /** Every filterable card carries its taxonomy as data attributes. */
+    const items = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-level], [data-district]'),
+    )
+    const pills = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-level-filter]'))
+    const districtSelect = document.getElementById('district-filter') as HTMLSelectElement | null
+    const status = document.getElementById('filter-status')
+
+    if (items.length === 0) return
+
+    let activeLevel = ''
+    let activeDistrict = ''
+
+    function apply() {
+      let visible = 0
+
+      for (const item of items) {
+        const level = item.dataset.level ?? ''
+        const district = item.dataset.district ?? ''
+
+        // An empty filter value means "no restriction".
+        // A card with NO taxonomy is treated as "no restriction" too, so a
+        // general education story is never hidden from a Rajshahi reader.
+        const levelOk = !activeLevel || !level || level === activeLevel
+        const districtOk = !activeDistrict || !district || district === activeDistrict
+        const show = levelOk && districtOk
+
+        item.hidden = !show
+        if (show) visible += 1
+      }
+
+      if (status) {
+        status.textContent = activeLevel || activeDistrict
+          ? `${visible} টি খবর দেখানো হচ্ছে`
+          : ''
+      }
+    }
+
+    pills.forEach((pill) => {
+      pill.addEventListener('click', () => {
+        const level = pill.dataset.levelFilter ?? ''
+
+        // Clicking the active pill clears it — a toggle, not a trap.
+        activeLevel = activeLevel === level ? '' : level
+
+        pills.forEach((p) => {
+          const on = (p.dataset.levelFilter ?? '') === activeLevel
+          p.setAttribute('aria-pressed', String(on))
+          p.classList.toggle('bg-brand-red', on)
+          p.classList.toggle('text-white', on)
+          p.classList.toggle('border-brand-red', on)
+          p.classList.toggle('text-ink', !on)
+          p.classList.toggle('dark:text-dark-ink', !on)
+        })
+
+        apply()
+      })
+    })
+
+    // Restore the reader's district before the first filter pass.
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved && districtSelect) {
+      const exists = Array.from(districtSelect.options).some((o) => o.value === saved)
+      if (exists) {
+        districtSelect.value = saved
+        activeDistrict = saved
+      }
+    }
+
+    districtSelect?.addEventListener('change', () => {
+      activeDistrict = districtSelect.value
+      if (activeDistrict) localStorage.setItem(STORAGE_KEY, activeDistrict)
+      else localStorage.removeItem(STORAGE_KEY)
+      apply()
+    })
+
+    apply()
+  })()
+</script>

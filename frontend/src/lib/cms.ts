@@ -162,3 +162,177 @@ export async function getFooterPages(): Promise<CmsPage[]> {
   )
   return data?.docs ?? []
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Homepage content (S3)
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Field names mirror `cms/src/collections/*.ts`. They are declared here rather
+ * than imported so a CMS schema change cannot break the frontend build through a
+ * cross-workspace import — the frontend and CMS are separate workspaces.
+ */
+
+export interface CmsArticle {
+  id: number | string
+  title: string
+  slug: string
+  excerpt?: string | null
+  featuredImage?: { url?: string | null; alt?: string | null } | number | null
+  category?: { nameBn?: string; slug?: string } | number | null
+  level?: { nameBn?: string; slug?: string } | number | null
+  district?: { nameBn?: string; slug?: string } | number | null
+  author?: { name?: string } | number | null
+  isBreaking?: boolean | null
+  isLead?: boolean | null
+  publishedAt?: string | null
+  readingTimeMinutes?: number | null
+}
+
+export interface CmsDeadline {
+  id: number | string
+  title: string
+  type?: string | null
+  dateStart?: string | null
+  dateEnd?: string | null
+  level?: { nameBn?: string; slug?: string } | number | null
+  district?: { nameBn?: string; slug?: string } | number | null
+  description?: string | null
+}
+
+export interface CmsLevel {
+  id: number | string
+  nameBn: string
+  slug: string
+  sortOrder: number
+}
+
+export interface CmsDistrict {
+  id: number | string
+  nameBn: string
+  nameEn?: string | null
+  slug: string
+  divisionBn?: string | null
+}
+
+/** The 5 education levels, mirroring `cms/src/seed/taxonomies.ts`. */
+export const FALLBACK_LEVELS: CmsLevel[] = [
+  { id: 'primary', nameBn: 'প্রাথমিক', slug: 'primary', sortOrder: 1 },
+  { id: 'secondary', nameBn: 'মাধ্যমিক', slug: 'secondary', sortOrder: 2 },
+  { id: 'higher-secondary', nameBn: 'উচ্চ মাধ্যমিক', slug: 'higher-secondary', sortOrder: 3 },
+  { id: 'graduate', nameBn: 'স্নাতক', slug: 'graduate', sortOrder: 4 },
+  { id: 'postgraduate', nameBn: 'স্নাতকোত্তর', slug: 'postgraduate', sortOrder: 5 },
+]
+
+/**
+ * Build a Payload REST query string.
+ *
+ * Skips `undefined`/`null` so callers can pass optional filters without
+ * producing `where[x][equals]=undefined`.
+ */
+function qs(params: Record<string, string | number | boolean | undefined | null>): string {
+  const search = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === '') continue
+    search.set(key, String(value))
+  }
+  const out = search.toString()
+  return out ? `?${out}` : ''
+}
+
+/**
+ * Published articles, newest first.
+ *
+ * @param opts.categorySlug Filter to one category.
+ * @param opts.limit        Max results.
+ *
+ * **Falls back to an empty list, never sample articles.** A news site that
+ * fabricates headlines when its CMS is unreachable is worse than one that shows
+ * an empty section — readers would have no way to tell invented content from
+ * real reporting. The empty state is rendered honestly by the components.
+ */
+export async function getArticles(
+  opts: { categorySlug?: string; limit?: number } = {},
+): Promise<CmsArticle[]> {
+  const { categorySlug, limit = 12 } = opts
+
+  const data = await cmsFetch<{ docs?: CmsArticle[] } | null>(
+    `/api/articles${qs({
+      limit,
+      depth: 2,
+      sort: '-publishedAt',
+      'where[_status][equals]': 'published',
+      'where[category.slug][equals]': categorySlug,
+    })}`,
+    null,
+  )
+
+  return data?.docs ?? []
+}
+
+/** The single lead story — `isLead`, else the newest published article. */
+export async function getLeadStory(): Promise<CmsArticle | null> {
+  const [lead] = await getArticles({ limit: 1 })
+  return lead ?? null
+}
+
+/** Breaking news for the ticker. Empty when nothing is flagged. */
+export async function getBreakingNews(): Promise<CmsArticle[]> {
+  const data = await cmsFetch<{ docs?: CmsArticle[] } | null>(
+    `/api/articles${qs({
+      limit: 8,
+      depth: 1,
+      sort: '-publishedAt',
+      'where[_status][equals]': 'published',
+      'where[isBreaking][equals]': true,
+    })}`,
+    null,
+  )
+  return data?.docs ?? []
+}
+
+/**
+ * Upcoming deadlines — N1 (scholarship tracker) + N2 (academic calendar).
+ *
+ * Sorted soonest-first so the most urgent opportunity leads. Past deadlines are
+ * filtered out by the caller's own `dateEnd`, but we over-fetch and filter here
+ * so the strip never shows an expired opportunity.
+ */
+export async function getDeadlines(limit = 8): Promise<CmsDeadline[]> {
+  const data = await cmsFetch<{ docs?: CmsDeadline[] } | null>(
+    `/api/deadlines${qs({
+      limit,
+      depth: 2,
+      sort: 'dateEnd',
+    })}`,
+    null,
+  )
+
+  const docs = data?.docs ?? []
+  const today = new Date().toISOString().slice(0, 10)
+
+  return docs
+    .filter((d) => {
+      // Keep anything that has not finished, or has no end date at all.
+      if (!d.dateEnd) return true
+      return d.dateEnd.slice(0, 10) >= today
+    })
+    .slice(0, limit)
+}
+
+/** The 5 education levels. Falls back to the seeded set. */
+export async function getLevels(): Promise<CmsLevel[]> {
+  const data = await cmsFetch<{ docs?: CmsLevel[] } | null>(
+    `/api/levels${qs({ limit: 20, sort: 'sortOrder' })}`,
+    null,
+  )
+  return data?.docs?.length ? data.docs : FALLBACK_LEVELS
+}
+
+/** Districts for the "আমার জেলা" selector. Falls back to empty — the selector
+ *  simply hides when the taxonomy is unavailable, rather than guessing. */
+export async function getDistricts(): Promise<CmsDistrict[]> {
+  const data = await cmsFetch<{ docs?: CmsDistrict[] } | null>(
+    `/api/districts${qs({ limit: 100, sort: 'sortOrder' })}`,
+    null,
+  )
+  return data?.docs ?? []
+}

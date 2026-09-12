@@ -1,0 +1,52 @@
+---
+/**
+ * Ad slot with strictly reserved space.
+ *
+ * ## Why the space is reserved even when empty
+ *
+ * Layout shift happens when an element grows AFTER the reader has started
+ * reading. An ad that arrives late and pushes the article down is the single
+ * most common CLS source on news sites, and `docs/performance-budget.md` treats
+ * CLS as a hard gate. Reserving the box before the ad loads costs a little empty
+ * space when an ad does not fill; not reserving it costs the reader their place
+ * in the text. The first is a cosmetic trade, the second is a usability failure.
+ *
+ * ## Why it is flag-gated
+ *
+ * `docs/reliability.md` §5: heavy or fragile third-party features must be
+ * switchable off without a redeploy. AdSense is a third-party script on the
+ * critical path — if it degrades, killing the flag removes it from the next
+ * build while the ad markup stays untouched.
+ *
+ * No ad script is wired up yet (S7 owns the ad system). Until then the slot is a
+ * correctly-sized, labelled placeholder — which is also what makes the reserved
+ * space visible rather than mysterious during review.
+ */
+import { isEnabled } from '../lib/feature-flags'
+
+interface Props {
+  /** Identifier for the ad unit, e.g. `homepage-leaderboard`. */
+  slot: string
+  width: number
+  height: number
+  class?: string
+  /** Label shown in the placeholder. Not rendered when real ads are live. */
+  label?: string
+}
+
+const { slot, width, height, class: className = '', label = 'বিজ্ঞাপন' } = Astro.props
+
+if (!isEnabled('ads')) return null
+---
+
+<div
+  data-ad-slot={slot}
+  class:list={[
+    'flex items-center justify-center overflow-hidden rounded border border-dashed border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-surface',
+    className,
+  ]}
+  style={`width:100%;max-width:${width}px;height:${height}px`}
+  aria-hidden="true"
+>
+  <span class="text-xs text-ink-subtle dark:text-dark-ink-muted">{label}</span>
+</div>

@@ -31,6 +31,15 @@ export const FEATURE_FLAGS = {
   quiz: flag(import.meta.env.PUBLIC_FLAG_QUIZ),
   /** Newsletter signup. Default OFF until S9. */
   newsletter: flag(import.meta.env.PUBLIC_FLAG_NEWSLETTER),
+  /**
+   * Ad slots. Default ON — the owner has AdSense activated, so ads ship.
+   *
+   * Gated because `docs/reliability.md` §5 requires third-party features to be
+   * switchable off without a redeploy: if AdSense degrades, setting this to
+   * "false" drops every slot from the next build while the markup stays intact.
+   * Reserving the flag now means S7 will not have to retrofit it.
+   */
+  ads: flag(import.meta.env.PUBLIC_FLAG_ADS),
 } as const
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS

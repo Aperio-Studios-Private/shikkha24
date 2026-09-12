@@ -120,8 +120,8 @@ DianaHost runs **Node.js 20.18.2**. `astro@7.3.2` requires `>=22.12.0` and `vite
 |---|---------|-----------------|
 | S0 | Foundation & Toolchain | Monorepo, Astro 7 init, Payload CMS 3 init, Tailwind 4.3, TS7, Node 24, SQLite, env, GitHub Actions CI, Cloudflare Pages + R2 wiring |
 | S1 | CMS Content Models & RBAC | Education collections, 5 RBAC roles, Bengali admin labels |
-| S2 | Design System & Base Layout | Typography, colors, dark mode, 12-col grid, Header, Mega menu, Footer, sticky mobile share bar, text resizer. **Fonts: Hind Siliguri + Noto Sans Bengali only — Inter dropped, owner-approved 2026-09-12** (see the font budget note below) |
-| S3 | Homepage | Breaking ticker, lead story, category grids, trending/most-read, latest feed, ad slots |
+| S2 | Design System & Base Layout | Typography, colors, dark mode, 12-col grid, Header, Mega menu, Footer, sticky mobile share bar, text resizer. **Font: SolaimanLipi only — one Bengali family for headline and body; Hind Siliguri and Noto Sans Bengali both removed, owner-approved 2026-09-12** (see the font budget note below) |
+| S3 | Homepage | Breaking ticker, lead story, academic deadline strip (N1/N2), level + district filters, category grids, trending, latest feed, ad slots, weather + prayer header utilities |
 | S4 | Article Page | Full article, takeaways box, author card, related articles, share, progress bar, comments, correction notice, print view, JSON-LD |
 | S5 | Category/Tag/Author/Archive | Listings, pagination, breadcrumbs, subcategory filters, author profiles, date archive |
 | S6 | Search | Pagefind 1.5, search UI, Bengali, date/section filters |

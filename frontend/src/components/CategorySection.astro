@@ -1,0 +1,76 @@
+---
+/**
+ * One homepage section per approved education category.
+ *
+ * Cards carry `data-level` / `data-district` so the FilterBar can hide them
+ * without a round trip. A story with no level assigned is treated by the filter
+ * as "no restriction" — a general education piece must never disappear for a
+ * reader who has picked a district.
+ *
+ * A section with no articles is not rendered at all. An empty heading with a
+ * grid of nothing is worse than no section: it promises content that isn't there.
+ */
+import type { CmsArticle, CmsCategory } from '../lib/cms'
+import ArticleCard from './ArticleCard.astro'
+
+interface Props {
+  category: CmsCategory
+  articles: CmsArticle[]
+  /** Show the lead card larger on wide screens. */
+  featured?: boolean
+}
+
+const { category, articles, featured = true } = Astro.props
+
+const [lead, ...rest] = articles
+---
+
+{
+  articles.length > 0 && (
+    <section class="border-b border-rule py-6 last:border-b-0 dark:border-dark-rule">
+      <div class="container-page">
+        <div class="mb-4 flex items-baseline justify-between gap-4 border-b-2 border-brand-red pb-2">
+          <h2 class="font-headline text-xl font-bold text-ink sm:text-2xl dark:text-dark-ink">
+            <a
+              href={`/category/${category.slug}`}
+              class="transition-colors hover:text-brand-red"
+            >
+              {category.nameBn}
+            </a>
+          </h2>
+          <a
+            href={`/category/${category.slug}`}
+            class="shrink-0 text-sm font-medium text-brand-red hover:underline"
+          >
+            আরও →
+          </a>
+        </div>
+
+        <div class="grid-12">
+          {featured && lead && (
+            <div
+              class="col-span-4 sm:col-span-8 lg:col-span-6"
+              data-level={lead.level && typeof lead.level === 'object' ? lead.level.slug : ''}
+              data-district={lead.district && typeof lead.district === 'object' ? lead.district.slug : ''}
+            >
+              <ArticleCard article={lead} variant="default" headingLevel={3} />
+            </div>
+          )}
+
+          <div class="col-span-4 sm:col-span-8 lg:col-span-6">
+            <ul class="flex flex-col gap-4">
+              {rest.slice(0, 4).map((article) => (
+                <li
+                  data-level={article.level && typeof article.level === 'object' ? article.level.slug : ''}
+                  data-district={article.district && typeof article.district === 'object' ? article.district.slug : ''}
+                >
+                  <ArticleCard article={article} variant="compact" showExcerpt={false} headingLevel={3} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}

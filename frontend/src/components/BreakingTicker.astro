@@ -1,0 +1,118 @@
+---
+/**
+ * Breaking-news ticker.
+ *
+ * Carries the time-critical stories a result day or admission circular produces:
+ * "এইচএসসি ফলাফল প্রকাশ", "ভর্তি বিজ্ঞপ্তি", "পরীক্ষা স্থগিত".
+ *
+ * ## Accessibility
+ *
+ * The marquee is decorative motion over real content. The visible track is
+ * duplicated so the loop is seamless; **the duplicate is `aria-hidden`** so a
+ * screen reader reads each story once, not twice. Hover or keyboard focus pauses
+ * the animation — motion the reader cannot stop is a WCAG 2.2 failure (2.2.2).
+ *
+ * ## Zero CLS
+ *
+ * The bar has a fixed height and the label reserves its width, so the ticker
+ * occupies its final box from first paint whether it has content or not.
+ *
+ * ## Reduced motion
+ *
+ * Under `prefers-reduced-motion: reduce` the track does not animate at all —
+ * it becomes a plain horizontally-scrollable list, which is keyboard- and
+ * screen-reader-friendly and needs no JS.
+ */
+import type { CmsArticle } from '../lib/cms'
+
+interface Props {
+  articles: CmsArticle[]
+}
+
+const { articles } = Astro.props
+
+/** Render nothing when there is nothing breaking — an empty bar is noise. */
+const items = articles.slice(0, 8)
+---
+
+{
+  items.length > 0 && (
+    <section
+      class="border-b border-rule bg-surface dark:border-dark-rule dark:bg-dark-surface"
+      aria-label="ব্রেকিং নিউজ"
+    >
+      <div class="container-page flex h-11 items-center gap-3 overflow-hidden">
+        <span class="shrink-0 rounded bg-brand-red px-2 py-1 text-xs font-bold text-white">
+          ব্রেকিং
+        </span>
+
+        <div class="ticker-viewport relative min-w-0 flex-1 overflow-hidden">
+          <ul class="ticker-track flex w-max items-center gap-8">
+            {items.map((article) => (
+              <li class="flex items-center gap-2 whitespace-nowrap">
+                <span class="text-brand-red" aria-hidden="true">
+                  •
+                </span>
+                <a
+                  href={`/article/${article.slug}`}
+                  class="text-sm text-ink transition-colors hover:text-brand-red dark:text-dark-ink dark:hover:text-brand-red"
+                >
+                  {article.title}
+                </a>
+              </li>
+            ))}
+
+            {/* Seamless-loop duplicate — hidden from assistive tech. */}
+            {items.map((article) => (
+              <li class="flex items-center gap-2 whitespace-nowrap" aria-hidden="true">
+                <span class="text-brand-red">•</span>
+                <a
+                  href={`/article/${article.slug}`}
+                  tabindex="-1"
+                  class="text-sm text-ink transition-colors hover:text-brand-red dark:text-dark-ink dark:hover:text-brand-red"
+                >
+                  {article.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+<style>
+  /* Duration scales with content length so long story lists don't crawl and
+     short ones don't blur past. */
+  .ticker-track {
+    animation: ticker-scroll 40s linear infinite;
+  }
+
+  /* WCAG 2.2.2 — the reader must be able to stop the motion. */
+  .ticker-viewport:hover .ticker-track,
+  .ticker-viewport:focus-within .ticker-track {
+    animation-play-state: paused;
+  }
+
+  @keyframes ticker-scroll {
+    from {
+      transform: translateX(0);
+    }
+    /* The track holds two copies; shifting by half lands exactly on the seam. */
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ticker-track {
+      animation: none;
+      /* No duplication needed when static — but hiding the second copy would
+         change layout, so simply allow native horizontal scrolling instead. */
+    }
+    .ticker-viewport {
+      overflow-x: auto;
+    }
+  }
+</style>

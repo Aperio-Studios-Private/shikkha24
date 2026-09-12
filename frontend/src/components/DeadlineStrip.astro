@@ -1,0 +1,166 @@
+---
+/**
+ * Deadline strip — N1 (scholarship tracker) + N2 (academic calendar).
+ *
+ * The homepage surface for the two highest-intent education features: upcoming
+ * scholarship deadlines and dated academic events, soonest first.
+ *
+ * ## Why this is the strip and not a full tracker
+ *
+ * N1's full spec is "deadline-sorted, filterable by level / country / funding
+ * type" — that belongs on its own page (S10). The homepage carries the urgent
+ * head of that list: what is closing soonest. Same data model, different cut.
+ *
+ * ## Staleness — a real, accepted trade
+ *
+ * Days-remaining is computed at BUILD time, because the site is static HTML. A
+ * build that happened at 09:00 shows "আজ" for a deadline that expires at 18:00,
+ * and keeps showing it until the next publish. That is acceptable here only
+ * because publishing happens 15–40 times a day, so the page is rarely more than
+ * an hour old. It would NOT be acceptable for a live countdown — which is why
+ * this is a date strip, not a timer.
+ *
+ * ## Zero CLS
+ *
+ * Cards are fixed-width with a reserved height; the rail scrolls horizontally
+ * rather than wrapping, so content length never changes page height.
+ */
+import type { CmsDeadline } from '../lib/cms'
+import { toBnDigits } from '../lib/widgets'
+
+interface Props {
+  deadlines: CmsDeadline[]
+}
+
+const { deadlines } = Astro.props
+
+/**
+ * Bengali labels for the deadline `type` select.
+ *
+ * These keys MUST track `DEADLINE_TYPES` in `cms/src/collections/Deadlines.ts`.
+ * A missing key is not fatal — the raw value renders as a fallback — but it
+ * would look broken, so keep the two lists in step.
+ */
+const TYPE_LABELS: Record<string, string> = {
+  admission: 'ভর্তি',
+  result: 'ফলাফল',
+  examRoutine: 'পরীক্ষার রুটিন',
+  scholarshipDeadline: 'বৃত্তির সময়সীমা',
+  holiday: 'ছুটি',
+  circular: 'বিজ্ঞপ্তি',
+}
+
+const TODAY = new Date()
+TODAY.setHours(0, 0, 0, 0)
+
+/** Whole days from today until `date`. Negative means already past. */
+function daysUntil(date: string | null | undefined): number | null {
+  if (!date) return null
+  const target = new Date(date)
+  target.setHours(0, 0, 0, 0)
+  return Math.round((target.getTime() - TODAY.getTime()) / 86_400_000)
+}
+
+function urgencyLabel(days: number | null): { text: string; urgent: boolean } | null {
+  if (days === null) return null
+  if (days < 0) return { text: 'শেষ', urgent: false }
+  if (days === 0) return { text: 'আজ', urgent: true }
+  if (days === 1) return { text: 'আগামীকাল', urgent: true }
+  return { text: `${toBnDigits(days)} দিন বাকি`, urgent: days <= 3 }
+}
+
+function formatDate(date: string | null | undefined): string {
+  if (!date) return ''
+  return new Date(date).toLocaleDateString('bn-BD', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+---
+
+{
+  deadlines.length > 0 && (
+    <section class="border-y border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-surface">
+      <div class="container-page py-6">
+        <div class="mb-4 flex items-baseline justify-between gap-4">
+          <h2 class="font-headline text-xl font-bold text-ink dark:text-dark-ink">
+            শিক্ষা ক্যালেন্ডার ও ডেডলাইন
+          </h2>
+          <a
+            href="/deadlines"
+            class="shrink-0 text-sm font-medium text-brand-red hover:underline"
+          >
+            সব দেখুন →
+          </a>
+        </div>
+
+        <ul class="deadline-rail flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2">
+          {deadlines.map((deadline) => {
+            const days = daysUntil(deadline.dateEnd ?? deadline.dateStart)
+            const urgency = urgencyLabel(days)
+            const typeLabel = deadline.type ? (TYPE_LABELS[deadline.type] ?? deadline.type) : null
+
+            return (
+              <li class="w-64 shrink-0 snap-start">
+                <a
+                  href={deadline.relatedArticle ? '#' : '/deadlines'}
+                  class="flex h-full flex-col gap-2 rounded-lg border border-rule bg-surface p-4 no-underline transition-colors hover:border-brand-red dark:border-dark-rule dark:bg-dark-raised dark:hover:border-brand-red"
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    {typeLabel && (
+                      <span class="rounded bg-brand-red/10 px-2 py-0.5 text-xs font-semibold text-brand-red dark:bg-brand-red/20">
+                        {typeLabel}
+                      </span>
+                    )}
+                    {urgency && (
+                      <span
+                        class:list={[
+                          'text-xs font-semibold',
+                          urgency.urgent ? 'text-brand-red' : 'text-ink-subtle dark:text-dark-ink-muted',
+                        ]}
+                      >
+                        {urgency.text}
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 class="font-headline line-clamp-2 text-base font-bold text-ink dark:text-dark-ink">
+                    {deadline.title}
+                  </h3>
+
+                  {deadline.description && (
+                    <p class="line-clamp-2 text-xs text-ink-muted dark:text-dark-ink-muted">
+                      {deadline.description}
+                    </p>
+                  )}
+
+                  <time class="mt-auto text-xs text-ink-subtle dark:text-dark-ink-muted">
+                    {formatDate(deadline.dateEnd ?? deadline.dateStart)}
+                  </time>
+                </a>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+    </section>
+  )
+}
+
+<style>
+  /* Hide the scrollbar chrome but keep the rail scrollable by touch, keyboard
+     and pointer. A visible scrollbar on a 320px screen wastes vertical space. */
+  .deadline-rail {
+    scrollbar-width: thin;
+  }
+
+  .deadline-rail::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .deadline-rail::-webkit-scrollbar-thumb {
+    background: var(--color-rule);
+    border-radius: 999px;
+  }
+</style>

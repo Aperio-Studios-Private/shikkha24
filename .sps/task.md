@@ -60,15 +60,15 @@
 - [x] Sticky mobile share bar, text resizer
 - [x] S2 DoD evidence → **user approval pending**
 
-## S3 — Homepage
-- [ ] Lead education story + breaking ticker (result days, circular releases, exam postponements)
-- [ ] **Scholarship / admission deadline strip** (N1, N2)
-- [ ] Category grids for the **8 approved education categories**
-- [ ] **Level filter** (প্রাথমিক · মাধ্যমিক · উচ্চ মাধ্যমিক · স্নাতক · স্নাতকোত্তর) + district selector (আমার জেলা)
-- [ ] Header utilities: weather + prayer times + Hijri date (server-fetched, cached, deferred, zero CLS)
-- [ ] Trending/most-read, latest feed, ad slots (zero-CLS)
-- [ ] Mobile-first + low-end Android pass (Symphony/Walton class, 3G)
-- [ ] S3 DoD evidence → **user approval**
+## S3 — Homepage ✅ COMPLETE 2026-09-12
+- [x] Lead education story + breaking ticker (result days, circular releases, exam postponements)
+- [x] **Scholarship / admission deadline strip** (N1, N2) — soonest-first, urgency labels in Bengali
+- [x] Category grids for the **8 approved education categories** — all 8 render
+- [x] **Level filter** (প্রাথমিক · মাধ্যমিক · উচ্চ মাধ্যমিক · স্নাতক · স্নাতকোত্তর) + district selector (আমার জেলা) — client-side, district persisted to localStorage
+- [x] Header utilities: weather + prayer times + Hijri date — **live API data verified** (Open-Meteo ৩১° মেঘলা; Aladhan মাগরিব ১৮:০৫, Hijri ১ রবিউস সানি ১৪৪৮). Build-time, memoised to 2 calls per build, zero CLS, silent degradation.
+- [x] Trending/most-read, latest feed, ad slots (zero-CLS) — ⚠️ trending is **provisional**: a static site cannot accumulate view counts, so it is fed recent articles. Real trending needs analytics or an editorial flag. Documented in `TrendingList.astro`.
+- [x] Mobile-first + low-end Android pass — mobile-first built; ⏳ **hands-on Symphony/Walton 3G test is owner-only and still open**
+- [x] S3 DoD evidence → **user approval pending**
 
 ## S4 — Article Page
 - [ ] Full article, takeaways box, author card, related articles, share, progress bar, audio player (Web Speech API), comments, correction notice, print view, JSON-LD
