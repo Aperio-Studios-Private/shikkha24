@@ -23,5 +23,23 @@ export default defineConfig({
   },
   vite: {
     plugins: [tailwindcss()],
+    build: {
+      /**
+       * Force every asset — and crucially every **component script** — to be
+       * emitted as a separate file with a `src` attribute.
+       *
+       * Astro inlines a `<script>` that is "small enough" directly into the HTML.
+       * That silently breaks the site under the strict CSP in
+       * `public/_headers`, which is `script-src 'self'` with no `'unsafe-inline'`:
+       * every inlined script — the theme toggle, the mobile menu, the text
+       * resizer, the share button — is blocked by the browser and the control
+       * simply does nothing.
+       *
+       * Found at S8 by asserting the built HTML, not by looking at it: the CSP is
+       * applied by Cloudflare Pages, so nothing local ever showed the failure.
+       * Vite's default is 4096 bytes; `0` means "never inline".
+       */
+      assetsInlineLimit: 0,
+    },
   },
 })

@@ -66,17 +66,36 @@ if (!isEnabled('audioReader')) return null
   </p>
 </div>
 
-<script define:vars={{ articleText: text }}>
+{/*
+  The article text travels as non-executable JSON, not through `define:vars`.
+  `define:vars` emits an **inline** `<script>`, which the site's CSP
+  (`script-src 'self'`, no `'unsafe-inline'`) blocks — the reader would get a
+  dead button. A `type="application/json"` tag is not a script as far as the CSP
+  is concerned, so the logic can live in a normal external module.
+*/}
+<script type="application/json" data-audio-text set:html={JSON.stringify(text)} />
+
+<script>
   (function () {
     const wrap = document.getElementById('article-audio')
     const playBtn = document.getElementById('audio-play')
     const stopBtn = document.getElementById('audio-stop')
     const label = document.getElementById('audio-play-label')
-    if (!wrap || !playBtn || !stopBtn) return
+    const data = document.querySelector('[data-audio-text]')
+    if (!wrap || !playBtn || !stopBtn || !data) return
 
     // No synthesis support → stay hidden. A visible button that does nothing
     // is worse than no button.
     if (!('speechSynthesis' in window)) return
+
+    let articleText = ''
+    try {
+      articleText = JSON.parse(data.textContent || '""')
+    } catch {
+      return
+    }
+    if (!articleText) return
+
     wrap.classList.remove('hidden')
     wrap.classList.add('flex')
 

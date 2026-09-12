@@ -82,27 +82,13 @@ const [settings, categories, footerPages] = await Promise.all([
     </section>
   </div>
 
+  {/*
+    Both scripts are EXTERNAL and `is:inline` so Astro leaves the URLs alone.
+    They were inline before, which the CSP (`script-src 'self'`, no
+    `'unsafe-inline'`) blocks — leaving a search box that never initialised.
+    Neither has async/defer, so the order is preserved: `PagefindUI` is defined
+    before `search-init.js` runs.
+  */}
   <script is:inline src="/pagefind/pagefind-ui.js"></script>
-  <script is:inline>
-    window.addEventListener('DOMContentLoaded', function () {
-      new PagefindUI({
-        element: '#search',
-        showSubResults: true,
-        showImages: false,
-        // Bengali UI strings — Pagefind ships English defaults only.
-        translations: {
-          placeholder: 'অনুসন্ধান...',
-          clear_search: 'মুছুন',
-          load_more: 'আরও ফলাফল',
-          search_label: 'সাইট অনুসন্ধান',
-          filters_label: 'ফিল্টার',
-          zero_results: '“[SEARCH_TERM]” এর জন্য কোনো ফলাফল পাওয়া যায়নি',
-          many_results: '“[SEARCH_TERM]” এর জন্য [COUNT] টি ফলাফল',
-          one_result: '“[SEARCH_TERM]” এর জন্য ১ টি ফলাফল',
-          alt_search: '“[SEARCH_TERM]” এর জন্য কোনো ফলাফল নেই। “[DIFFERENT_TERM]” দেখানো হচ্ছে।',
-          searching: '“[SEARCH_TERM]” অনুসন্ধান করা হচ্ছে...',
-        },
-      })
-    })
-  </script>
+  <script is:inline src="/search-init.js"></script>
 </Layout>
