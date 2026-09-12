@@ -2,7 +2,10 @@
 /**
  * Dark / light mode toggle.
  *
- * Follows the OS preference by default, then overrides via localStorage.
+ * **Light is the default; dark is strictly opt-in.** We no longer follow
+ * `prefers-color-scheme` — a reader on a dark-mode phone was getting a dark
+ * site they never asked for. Only a past explicit click turns dark on.
+ *
  * Sets `.dark` on `<html>` so the `@custom-variant dark` in global.css picks it up.
  *
  * Why not `class="dark"` on `<body>`? Tailwind 4's `@custom-variant dark` uses
@@ -74,7 +77,8 @@
     function getTheme(): 'dark' | 'light' {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved === 'dark' || saved === 'light') return saved
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      // Default light — deliberately not OS-derived.
+      return 'light'
     }
 
     function applyTheme(theme: 'dark' | 'light') {
@@ -100,13 +104,7 @@
 
     toggle?.addEventListener('click', toggleTheme)
 
-    // Listen for OS changes when no explicit preference is stored.
-    window
-      .matchMedia('(prefers-color-scheme: dark)')
-      .addEventListener('change', (e) => {
-        if (!localStorage.getItem(STORAGE_KEY)) {
-          applyTheme(e.matches ? 'dark' : 'light')
-        }
-      })
+    // No OS listener: the site no longer reacts to prefers-color-scheme.
+    // Dark mode happens only when the reader asks for it.
   })()
 </script>
