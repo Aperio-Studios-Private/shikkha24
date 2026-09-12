@@ -69,6 +69,16 @@ const perCategory = await Promise.all(
 
 const lead = latest[0] ?? null
 const remainingLatest = latest.slice(1)
+
+/*
+ * Newspaper hierarchy — the masthead block reads top-to-bottom in descending
+ * importance, the way a printed front page does:
+ *   lead    one story, largest image and headline
+ *   medium  2-3 stories, medium treatment
+ *   small   the next few, headline only
+ */
+const medium = remainingLatest.slice(0, 3)
+const small = remainingLatest.slice(3, 8)
 ---
 
 <Layout
@@ -85,32 +95,22 @@ const remainingLatest = latest.slice(1)
   <FilterBar levels={levels} districts={districts} />
 
   <div class="container-page py-6">
-    {/* 3 — Lead story */}
+    {/* 3 — LEAD: the biggest story. Image height is capped so the headline
+            and the picture are both visible without scrolling. */}
     {
       lead && (
-        <section class="mb-8 border-b border-rule pb-8 dark:border-dark-rule">
+        <section class="mb-6 border-b border-rule pb-6 dark:border-dark-rule">
           <div class="grid-12">
             <div class="col-span-4 sm:col-span-8 lg:col-span-8">
               <ArticleCard article={lead} variant="lead" />
             </div>
 
-            <div class="col-span-4 sm:col-span-8 lg:col-span-4">
-              <ul class="flex flex-col divide-y divide-rule dark:divide-dark-rule">
-                {remainingLatest.slice(0, 4).map((article) => (
-                  <li class="py-3 first:pt-0">
-                    <a
-                      href={`/article/${article.slug}`}
-                      class="group flex flex-col gap-1 no-underline"
-                    >
-                      <h3 class="font-headline line-clamp-2 text-base font-bold text-ink transition-colors group-hover:text-brand-red dark:text-dark-ink dark:group-hover:text-brand-red">
-                        {article.title}
-                      </h3>
-                      {article.excerpt && (
-                        <p class="line-clamp-2 text-xs text-ink-muted dark:text-dark-ink-muted">
-                          {article.excerpt}
-                        </p>
-                      )}
-                    </a>
+            {/* 4 — MEDIUM: 2-3 supporting stories beside the lead. */}
+            <div class="col-span-4 mt-6 sm:col-span-8 lg:col-span-4 lg:mt-0">
+              <ul class="flex flex-col gap-4">
+                {medium.map((article) => (
+                  <li>
+                    <ArticleCard article={article} variant="compact" headingLevel={3} />
                   </li>
                 ))}
               </ul>
@@ -120,39 +120,115 @@ const remainingLatest = latest.slice(1)
       )
     }
 
-    {/* Leaderboard ad — reserved space, zero CLS */}
-    <div class="mb-8 flex justify-center">
-      <AdSlot slot="homepage-leaderboard" width={728} height={90} />
-    </div>
-
-    {/* 4 — Latest + Trending */}
+    {/* 5 — SMALL: headline-only strip. */}
     {
-      remainingLatest.length > 0 && (
-        <section class="mb-8 border-b border-rule pb-8 dark:border-dark-rule">
-          <div class="grid-12">
-            <div class="col-span-4 sm:col-span-8 lg:col-span-7">
-              <LatestFeed articles={remainingLatest} />
-            </div>
-            <div class="col-span-4 mt-8 sm:col-span-8 lg:col-span-5 lg:mt-0">
-              <TrendingList articles={remainingLatest} />
-            </div>
-          </div>
+      small.length > 0 && (
+        <section class="mb-6 border-b border-rule pb-6 dark:border-dark-rule">
+          <ul class="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 lg:grid-cols-5">
+            {small.map((article) => (
+              <li>
+                <a href={`/article/${article.slug}`} class="group block no-underline">
+                  <h3 class="font-headline line-clamp-3 text-sm font-medium text-ink transition-colors group-hover:text-brand-red dark:text-dark-ink dark:group-hover:text-brand-red">
+                    {article.title}
+                  </h3>
+                </a>
+              </li>
+            ))}
+          </ul>
         </section>
       )
     }
+
+    {/* 6 — Leaderboard ad, reserved space so nothing shifts. */}
+    <div class="mb-8 flex justify-center">
+      <AdSlot slot="homepage-leaderboard" width={728} height={90} />
+    </div>
   </div>
 
-  {/* 5 — Deadline strip (full-bleed, between sections) */}
+  {/* 7 — Deadline strip (full-bleed, between blocks) */}
   <DeadlineStrip deadlines={deadlines} />
 
-  {/* 6 — Category sections */}
   <div class="container-page">
-    {perCategory.map(({ category, articles }) => (
-      <CategorySection category={category} articles={articles} />
-    ))}
+    <div class="grid-12">
+      {/* 8 — Category sections, stacked vertically, each with a few stories. */}
+      <div class="col-span-4 sm:col-span-8 lg:col-span-8">
+        {perCategory.map(({ category, articles }) => (
+          <CategorySection category={category} articles={articles} />
+        ))}
 
-    <div class="flex justify-center py-8">
-      <AdSlot slot="homepage-footer" width={728} height={90} />
+        {/* 10 — Latest: two columns, scrollable, so the feed does not
+                 grow the page without limit. */}
+        {
+          remainingLatest.length > 0 && (
+            <section class="border-t border-rule py-6 dark:border-dark-rule">
+              <div class="mb-3 border-b-2 border-brand-red pb-2">
+                <h2 class="font-headline text-xl font-bold text-ink dark:text-dark-ink">
+                  সর্বশেষ
+                </h2>
+              </div>
+
+              <ul class="latest-scroll grid grid-cols-2 gap-x-4">
+                {remainingLatest.map((article) => (
+                  <li class="border-b border-rule py-2 dark:border-dark-rule">
+                    <a href={`/article/${article.slug}`} class="group block no-underline">
+                      <h3 class="font-headline line-clamp-2 text-sm font-medium text-ink transition-colors group-hover:text-brand-red dark:text-dark-ink dark:group-hover:text-brand-red">
+                        {article.title}
+                      </h3>
+                      {article.publishedAt && (
+                        <time
+                          datetime={article.publishedAt}
+                          class="mt-0.5 block text-xs text-ink-subtle dark:text-dark-ink-muted"
+                        >
+                          {new Date(article.publishedAt).toLocaleTimeString('bn-BD', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false,
+                          })}
+                        </time>
+                      )}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )
+        }
+
+        <div class="flex justify-center py-8">
+          <AdSlot slot="homepage-footer" width={728} height={90} />
+        </div>
+      </div>
+
+      {/* 9 — Right rail: sticky ad cards. */}
+      <aside class="col-span-4 mt-8 sm:col-span-8 lg:col-span-4 lg:mt-0">
+        <div class="lg:sticky lg:top-4 flex flex-col gap-4">
+          <AdSlot slot="sidebar-rectangle-1" width={300} height={250} />
+          <TrendingList articles={remainingLatest} />
+          <AdSlot slot="sidebar-rectangle-2" width={300} height={250} />
+        </div>
+      </aside>
     </div>
   </div>
 </Layout>
+
+<style>
+  /*
+   * The latest feed caps its own height and scrolls internally. Without this a
+   * long feed makes the homepage endlessly long, and the reader can never reach
+   * the footer.
+   */
+  .latest-scroll {
+    max-height: 28rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .latest-scroll::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .latest-scroll::-webkit-scrollbar-thumb {
+    background: var(--color-rule);
+    border-radius: 999px;
+  }
+</style>

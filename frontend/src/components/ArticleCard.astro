@@ -89,7 +89,10 @@ const Heading = headingLevel === 2 ? 'h2' : 'h3'
           <div
             class:list={[
               'relative mb-3 overflow-hidden rounded-md bg-surface-raised dark:bg-dark-raised',
-              variant === 'lead' ? 'aspect-16/10' : 'aspect-3/2',
+              // Lead: 16:9 (matches the source) and height-capped so the
+              // headline and image are both visible without scrolling.
+              // A hero taller than ~420px pushes the masthead off-screen.
+              variant === 'lead' ? 'aspect-16/9 max-h-[26rem]' : 'aspect-3/2',
             ]}
           >
             {imageUrl ? (
