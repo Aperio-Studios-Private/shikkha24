@@ -100,12 +100,29 @@ function warnOnce(reason: string): void {
 }
 
 /**
- * Fetch a Payload REST collection or global.
+ * Build-wide response cache, keyed by request path.
  *
- * @param path   Path relative to the CMS origin, e.g. `/api/categories`.
- * @param fallback Returned on any failure — network, timeout, non-2xx, bad JSON.
+ * **Why this is required, not an optimisation.** Astro renders pages in
+ * parallel. Without a cache, rebuilding 12 articles fires ~72 requests at the
+ * CMS at once — settings, categories, footerPages, levels and districts are
+ * re-fetched identically for every single page. Against Payload on SQLite that
+ * burst produces transient failures, which silently degraded whole pages to
+ * their fallbacks (see the S4 build: every article 404'd while curl against the
+ * same URL returned 200).
+ *
+ * Caching the *promise* rather than the result means concurrent pages share one
+ * in-flight request instead of each opening their own.
+ *
+ * Failures are cached too, so a dead CMS is hit once per path rather than once
+ * per page — the build gets *faster* the more broken the CMS is, instead of
+ * slower.
  */
-async function cmsFetch<T>(path: string, fallback: T): Promise<T> {
+const responseCache = new Map<string, Promise<unknown>>()
+
+/** Retry once after a short pause — most of these failures are transient. */
+const RETRY_DELAY_MS = 150
+
+async function fetchOnce<T>(path: string, fallback: T): Promise<T> {
   try {
     const response = await fetch(`${CMS_URL}${path}`, {
       headers: { Accept: 'application/json' },
@@ -122,6 +139,41 @@ async function cmsFetch<T>(path: string, fallback: T): Promise<T> {
     warnOnce(error instanceof Error ? error.message : String(error))
     return fallback
   }
+}
+
+/**
+ * Fetch a Payload REST collection or global, cached for the whole build.
+ *
+ * @param path   Path relative to the CMS origin, e.g. `/api/categories`.
+ * @param fallback Returned on any failure — network, timeout, non-2xx, bad JSON.
+ */
+async function cmsFetch<T>(path: string, fallback: T): Promise<T> {
+  const cached = responseCache.get(path)
+  if (cached) return cached as Promise<T>
+
+  const request = (async (): Promise<T> => {
+    let result = await fetchOnce<T>(path, fallback)
+
+    // One retry on a failed result. Distinguishing "failed" from a legitimately
+    // empty response is impossible in general, so retry only when the fallback
+    // is itself empty-ish and the result equals it. That covers offline/500
+    // without re-requesting genuinely empty collections.
+    const looksEmpty =
+      result === null || result === undefined || (Array.isArray(result) && result.length === 0)
+
+    if (looksEmpty) {
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+      const retry = await fetchOnce<T>(path, fallback)
+      const retryBetter =
+        retry !== null && retry !== undefined && !(Array.isArray(retry) && retry.length === 0)
+      if (retryBetter) result = retry
+    }
+
+    return result
+  })()
+
+  responseCache.set(path, request)
+  return request
 }
 
 /** Site settings global. Falls back to the owner-confirmed defaults. */

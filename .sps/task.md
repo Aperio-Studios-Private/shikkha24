@@ -70,9 +70,19 @@
 - [x] Mobile-first + low-end Android pass — mobile-first built; ⏳ **hands-on Symphony/Walton 3G test is owner-only and still open**
 - [x] S3 DoD evidence → **user approval pending**
 
-## S4 — Article Page
-- [ ] Full article, takeaways box, author card, related articles, share, progress bar, audio player (Web Speech API), comments, correction notice, print view, JSON-LD
-- [ ] S4 DoD evidence → **user approval**
+## S4 — Article Page ✅ COMPLETE 2026-09-12
+- [x] Full article — `/article/[slug].astro`, body rendered from Payload Lexical via `lib/richtext.ts` (escaped, never raw HTML)
+- [x] Key takeaways box — `KeyTakeaways.astro`
+- [x] Author card — `AuthorCard.astro`
+- [x] Related articles — `RelatedArticles.astro` (same category, falls back to newest)
+- [x] Share row — `ShareRow.astro` (WhatsApp/Facebook/X/copy/print; no third-party SDK)
+- [x] Reading progress bar — `ReadingProgress.astro` (fixed position, zero CLS, passive listener)
+- [x] Audio player (Web Speech API) — `ArticleAudio.astro`, `bn-BD` locale, hides when unsupported, flag-gated
+- [x] Correction notice — `CorrectionNotice.astro` (above the body, permanent)
+- [x] Print view — `PrintStyles.astro`
+- [x] JSON-LD — Article schema with headline/datePublished/author/publisher/inLanguage
+- [ ] Comments — ⏳ **deferred to S9** (needs social login + the comments collection UI; not part of S4's page shell)
+- [x] S4 DoD evidence → **user approval pending**
 
 ## S5 — Category/Tag/Author/Archive
 - [ ] Listings, pagination, breadcrumbs, subcategory filters, author profiles, date archive

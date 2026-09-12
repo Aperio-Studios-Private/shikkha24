@@ -1,10 +1,11 @@
 # SPS Handoff
 
 ## Current Phase
-- **Status:** S3 **COMPLETE — awaiting owner approval.** S0, S1 and S2 approved 2026-09-12.
-- **Last Activity:** 2026-09-12T10:20+06:00
-- **Next Action:** owner reviews the homepage, then S4 (article page)
-- **User instruction (latest):** "Please continue" — taken as S2 approval and instruction to build S3.
+- **Status:** S4 **COMPLETE — awaiting owner approval.** S0–S3 approved 2026-09-12.
+- **Last Activity:** 2026-09-12T10:45+06:00
+- **Next Action:** owner reviews the article page, then S5 (category/tag/author/archive listings)
+- **User instruction (latest):** "okay now assets are generating now continue to you tasks" — taken as S3 approval and instruction to build S4.
+- **⚠️ Build environment:** `HTTP_PROXY` is set here; build-time CMS fetches fail with 502 unless `NO_PROXY=localhost,127.0.0.1,::1` is set. Now baked into `frontend/package.json` `dev`/`build` scripts. `curl` needs `--noproxy '*'`.
 - **S2 entry gate:** portal display name + logo — ✅ satisfied by owner decision 2026-09-12 (name = শিক্ষা২৪, logo = placeholder, Inter dropped)
 - **Font:** SolaimanLipi only (owner decision) — Hind Siliguri and Noto Sans Bengali both removed. 154.0 KB / 200 KB.
 
@@ -143,6 +144,37 @@ must stay in step with `DEADLINE_TYPES`.
 
 **Still open (owner-only):** hands-on low-end Android pass (Symphony/Walton
 class, 3G) and visual approval of the homepage.
+
+## S4 — Article Page (complete)
+
+**Built:** `/article/[slug].astro` with takeaways box, author card, related
+articles, share row, reading-progress bar, Web Speech audio reader, correction
+notice, print view and Article JSON-LD. New `lib/richtext.ts` converts Payload's
+Lexical JSON to HTML.
+
+**Verified 7/7.** 13 pages built — homepage + 12 articles at ~52 KB each.
+
+**The body renderer.** Payload serves `richText` as Lexical JSON, not HTML.
+Rather than importing `@payloadcms/richtext-lexical` across workspaces (which
+would drag React and the Payload server runtime into a static build), wrote a
+~150-line dependency-free converter. It escapes everything — reporter-entered
+text is still user input — and never drops an unrecognised node, so a reporter
+who pastes something unexpected sees their words rather than a missing paragraph.
+
+**Two bugs worth remembering:**
+1. **Every article 404'd while curl returned 200 for the same URL.** `HTTP_PROXY`
+   is set in this environment; Astro's build-time fetch routed `localhost:3000`
+   through it → 502. Because the content layer degrades gracefully, the build
+   stayed *green* while every page silently fell back to empty data, and
+   `getAllArticleSlugs()` returning `[]` meant no article routes at all. Symptom:
+   304-byte redirect stubs in `dist/article/*`. Fixed with `NO_PROXY` in the
+   dev/build scripts.
+2. **Payload faltered under build-time concurrency** (12 pages × ~6 fetches).
+   `lib/cms.ts` now caches each response — and each failure — by path for the
+   whole build, so a 5,000-article build costs one request per unique path.
+
+**Deferred:** comments → S9 (they need social login and the comments UI; S4
+delivers the page shell).
 
 ## ✅ S0 verification COMPLETE — the npm blocker was resolved with pnpm
 
