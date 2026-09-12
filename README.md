@@ -32,6 +32,7 @@ Production-grade, Bengali-first **education** news portal. Domain: **shikkha24.c
 | **`docs/reliability.md`** | Failure modes, error pages, graceful degradation, capacity/overload, monitoring, incident playbook |
 | **`docs/backup-and-recovery.md`** | What is protected, backup tiers, RPO/RTO, restore runbook, DR scenarios |
 | **`docs/testing-and-qa.md`** | Quality gates, test strategy, WCAG AA accessibility, browser/device matrix, Bengali render audit |
+| **`docs/assets-prompt.md`** | **AI visual assets** — Google Flow prompt library for every news type. Includes the hard rule that generated images must never contain text (Bengali conjuncts garble) and the ethics red lines on real events/people |
 | `docs/presentation-deck.html` | **Project presentation deck** for team/board approval — 18 slides, mobile-first, covers all aspects |
 | `docs/audit-third-party.md` | Independent adversarial audit of the docs and plans (2026-09-11) + remediation status |
 | `docs/data-sources.md` | Every live-data widget: provider, free-tier terms, rate limit, fallback |
