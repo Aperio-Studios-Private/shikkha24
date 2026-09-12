@@ -270,6 +270,14 @@ export interface Article {
    */
   isBreaking?: boolean | null;
   isLead?: boolean | null;
+  /**
+   * স্পনসর করা লেখা। চালু করলে পাতায় ও কার্ডে "বিজ্ঞাপন" লেবেল বসবে এবং লেখাটি প্রধান সংবাদ বা ব্রেকিং তালিকায় যাবে না — পাঠকের কাছে বিজ্ঞাপনকে সংবাদ হিসেবে দেখানো যাবে না।
+   */
+  isSponsored?: boolean | null;
+  /**
+   * লেবেলে দেখানো হবে — যেমন "বিজ্ঞাপন — পাঠক প্রকাশনী"।
+   */
+  sponsorName?: string | null;
   publishedAt?: string | null;
   /**
    * স্বয়ংক্রিয়ভাবে হিসাব হয়।
@@ -951,33 +959,52 @@ export interface PhotoGallery {
   createdAt: string;
 }
 /**
- * বিজ্ঞাপনের অবস্থান ও ক্যাম্পেইন — CLS শূন্য রাখতে নির্দিষ্ট অবস্থান ব্যবহার করুন।
+ * বিজ্ঞাপনের অবস্থান ও ক্যাম্পেইন। CLS শূন্য রাখতে নির্দিষ্ট অবস্থান ব্যবহার করুন — নতুন অবস্থান যোগ করার আগে ফ্রন্টএন্ডে সেই স্লট থাকতে হবে।
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "ad-units".
  */
 export interface AdUnit {
   id: number;
+  /**
+   * শুধু অভ্যন্তরীণ — পাঠক এটি দেখবেন না।
+   */
   name: string;
+  /**
+   * সাইটে যে স্লটটি আছে, শুধু সেটিই বেছে নিন।
+   */
   position:
-    | 'headerBanner'
-    | 'inArticleTop'
-    | 'inArticleMiddle'
-    | 'inArticleBottom'
+    | 'homepageLeaderboard'
+    | 'homepageFooter'
     | 'sidebarTop'
     | 'sidebarSticky'
-    | 'footerBanner';
+    | 'categoryLeaderboard'
+    | 'articleTop'
+    | 'articleMiddle'
+    | 'articleBottom';
   adType: 'adsense' | 'sponsorBanner' | 'direct';
   /**
-   * AdSense বা সরাসরি বিজ্ঞাপনের কোড।
+   * AdSense ইউনিটের আইডি (ক্লায়েন্ট আইডি নয় — সেটি সাইট সেটিংসে একবার সেট করা)। খালি থাকলে স্লটটি প্লেসহোল্ডার দেখাবে।
    */
-  codeSnippet?: string | null;
+  adsenseSlotId?: string | null;
+  /**
+   * প্রস্তাবিত মাপ ৭২৮×৯০ বা ৩০০×২৫০ — স্লটের মাপের সঙ্গে মিলতে হবে।
+   */
   image?: (number | null) | Media;
+  /**
+   * বিজ্ঞাপনদাতার ঠিকানা। লিংকটি স্বয়ংক্রিয়ভাবে rel="sponsored nofollow" পাবে।
+   */
   targetUrl?: string | null;
+  /**
+   * লেবেলে দেখানো হবে — যেমন "বিজ্ঞাপন — পাঠক প্রকাশনী"।
+   */
+  sponsorName?: string | null;
   campaignStart?: string | null;
+  /**
+   * এই তারিখের পর ইউনিটটি স্বয়ংক্রিয়ভাবে বন্ধ হয়ে যাবে — ম্যানুয়াল কিছু করতে হবে না।
+   */
   campaignEnd?: string | null;
   isActive?: boolean | null;
-  clickCount?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1432,6 +1459,8 @@ export interface ArticlesSelect<T extends boolean = true> {
   reviewNote?: T;
   isBreaking?: T;
   isLead?: T;
+  isSponsored?: T;
+  sponsorName?: T;
   publishedAt?: T;
   readingTimeMinutes?: T;
   correctionNotice?:
@@ -1830,13 +1859,13 @@ export interface AdUnitsSelect<T extends boolean = true> {
   name?: T;
   position?: T;
   adType?: T;
-  codeSnippet?: T;
+  adsenseSlotId?: T;
   image?: T;
   targetUrl?: T;
+  sponsorName?: T;
   campaignStart?: T;
   campaignEnd?: T;
   isActive?: T;
-  clickCount?: T;
   updatedAt?: T;
   createdAt?: T;
 }

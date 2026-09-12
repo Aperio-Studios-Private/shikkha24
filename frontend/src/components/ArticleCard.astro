@@ -23,6 +23,7 @@
 import type { CmsArticle } from '../lib/cms'
 import { getCategoryImage } from '../lib/images'
 import CategoryImage from './CategoryImage.astro'
+import SponsoredLabel from './SponsoredLabel.astro'
 
 interface Props {
   article: CmsArticle
@@ -155,11 +156,17 @@ const Heading = headingLevel === 2 ? 'h2' : 'h3'
     }
 
     <div class="flex min-w-0 flex-col gap-1.5">
-      {
-        showCategory && category?.nameBn && (
-          <span class="text-xs font-semibold text-brand-red">{category.nameBn}</span>
-        )
-      }
+      {/* The sponsored chip sits beside the category rather than in the meta row:
+          a reader scanning headlines must see that a story is paid for before
+          they read it, not after. */}
+      <div class="flex flex-wrap items-center gap-1.5">
+        {
+          showCategory && category?.nameBn && (
+            <span class="text-xs font-semibold text-brand-red">{category.nameBn}</span>
+          )
+        }
+        {article.isSponsored && <SponsoredLabel sponsorName={article.sponsorName} />}
+      </div>
 
       <Heading
         class:list={[

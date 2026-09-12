@@ -54,6 +54,17 @@ export interface CmsSiteSettings {
     tin?: string | null
     ministryRegistration?: string | null
   } | null
+  /**
+   * Third-party ids managed in Site Settings.
+   *
+   * Only the AdSense publisher id is read by the build; GA4 is deliberately not
+   * used (`docs/performance-budget.md` §4). Kept CMS-managed so the owner can
+   * activate ads without a code change — the same pattern as the logo.
+   */
+  tracking?: {
+    adsenseClientId?: string | null
+    customHeadCode?: string | null
+  } | null
 }
 
 export interface CmsPage {
@@ -154,10 +165,14 @@ async function fetchOnce<T>(path: string, fallback: T): Promise<T> {
 /**
  * Fetch a Payload REST collection or global, cached for the whole build.
  *
+ * Exported so `lib/ads.ts` shares this cache instead of opening a second CMS
+ * access path — one cache means the concurrency protection documented above
+ * covers ad units too.
+ *
  * @param path   Path relative to the CMS origin, e.g. `/api/categories`.
  * @param fallback Returned on any failure — network, timeout, non-2xx, bad JSON.
  */
-async function cmsFetch<T>(path: string, fallback: T): Promise<T> {
+export async function cmsFetch<T>(path: string, fallback: T): Promise<T> {
   const cached = responseCache.get(path)
   if (cached) return cached as Promise<T>
 
@@ -245,6 +260,12 @@ export interface CmsArticle {
   author?: { name?: string } | number | null
   isBreaking?: boolean | null
   isLead?: boolean | null
+  /**
+   * Paid content. Must be labelled wherever it appears and must never be
+   * presented as reporting — see `ArticleCard` and the article page.
+   */
+  isSponsored?: boolean | null
+  sponsorName?: string | null
   publishedAt?: string | null
   readingTimeMinutes?: number | null
 }

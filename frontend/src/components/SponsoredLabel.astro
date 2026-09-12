@@ -1,0 +1,45 @@
+---
+/**
+ * Sponsored content label.
+ *
+ * ## Why one component
+ *
+ * Paid content must be identifiable as paid **wherever it appears** — on the
+ * article page, in a listing card, in search results. Two copies of the wording
+ * would eventually disagree, and the version that gets out of date is the one
+ * readers rely on. Both callers render this.
+ *
+ * ## Why it is not optional
+ *
+ * Presenting paid content as reporting is a trust failure, and Google's policy
+ * requires paid content to be disclosed. The label is rendered unconditionally
+ * whenever `isSponsored` is set — there is no prop to switch it off.
+ *
+ * Two shapes:
+ *   `badge`  — a compact chip for card meta rows and bylines.
+ *   `banner` — a full-width notice above the headline, so a reader cannot start
+ *              the piece without knowing it is paid for.
+ */
+interface Props {
+  sponsorName?: string | null
+  variant?: 'badge' | 'banner'
+}
+
+const { sponsorName, variant = 'badge' } = Astro.props
+
+const sponsor = sponsorName?.trim()
+const short = sponsor ? `বিজ্ঞাপন — ${sponsor}` : 'বিজ্ঞাপন'
+---
+
+{
+  variant === 'banner' ? (
+    <p class="mb-3 rounded-md border border-rule bg-surface-raised px-3 py-2 text-sm text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
+      <span class="font-semibold text-ink dark:text-dark-ink">বিজ্ঞাপন</span>
+      {sponsor ? ` — এই লেখাটি ${sponsor}-এর পক্ষ থেকে প্রকাশিত` : ' — এই লেখাটি স্পনসর করা'}
+    </p>
+  ) : (
+    <span class="rounded border border-rule bg-surface-raised px-1.5 py-0.5 font-medium text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
+      {short}
+    </span>
+  )
+}

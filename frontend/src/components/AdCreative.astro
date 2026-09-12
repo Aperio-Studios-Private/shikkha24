@@ -1,0 +1,149 @@
+---
+/**
+ * Ad creative — renders a resolved ad unit.
+ *
+ * ## Three types, one rule
+ *
+ * `docs/performance-budget.md` §1: ads load **after LCP**, never above the fold in
+ * the initial payload, and never block render. Nothing here is synchronous, and
+ * the AdSense library is not fetched until the page has finished loading.
+ *
+ * ## No raw CMS HTML
+ *
+ * The markup is generated from structured fields, never rendered from a CMS
+ * textarea. A stored-HTML field would turn a compromised Ad Manager account into
+ * stored XSS on every page carrying the unit (`docs/security.md` §4).
+ *
+ * ## Labelling
+ *
+ * Paid placements are labelled «বিজ্ঞাপন» and their links carry
+ * `rel="sponsored nofollow"`. That is both an honesty requirement and Google's
+ * own policy for paid links — an unlabelled paid link is a link-scheme violation.
+ * AdSense supplies its own attribution, so it is not double-labelled.
+ */
+import type { CmsAdUnit } from '../lib/ads'
+
+interface Props {
+  unit: CmsAdUnit
+  /** Reserved box dimensions — the img must not be able to shift the layout. */
+  width: number
+  height: number
+  clientId: string | null
+}
+
+const { unit, width, height, clientId } = Astro.props
+
+const image = unit.image && typeof unit.image === 'object' ? unit.image : null
+const isAdsense = unit.adType === 'adsense'
+const label = unit.sponsorName?.trim() ? `বিজ্ঞাপন — ${unit.sponsorName.trim()}` : 'বিজ্ঞাপন'
+---
+
+{
+  isAdsense ? (
+    <ins
+      class="adsbygoogle block h-full w-full"
+      style="display:block"
+      data-ad-client={clientId}
+      data-ad-slot={unit.adsenseSlotId}
+      data-ad-format={width >= 700 ? 'horizontal' : 'auto'}
+      data-full-width-responsive="true"
+    />
+  ) : (
+    <a
+      href={unit.targetUrl || undefined}
+      rel="sponsored nofollow noopener"
+      target="_blank"
+      class="relative block h-full w-full"
+      aria-label={label}
+    >
+      {image?.url && (
+        <img
+          src={image.url}
+          alt={image.alt || ''}
+          width={width}
+          height={height}
+          loading="lazy"
+          decoding="async"
+          class="h-full w-full object-cover"
+        />
+      )}
+      {/*
+        The label sits on a solid strip rather than over the creative, so it stays
+        legible whatever the advertiser's artwork looks like. An unreadable
+        disclosure is not a disclosure.
+      */}
+      <span class="absolute bottom-0 right-0 rounded-tl bg-surface px-1.5 py-px text-[10px] leading-normal tracking-wide text-ink-subtle dark:bg-dark-surface dark:text-dark-ink-muted">
+        {label}
+      </span>
+    </a>
+  )
+}
+
+<script>
+  /*
+   * AdSense loader — deferred until after LCP.
+   *
+   * ## Why it is hand-rolled
+   *
+   * Google's copy-paste snippet is a synchronous <script> in <head>, which is
+   * render-blocking and would fail the Lighthouse ≥95 no-ads profile and the LCP
+   * < 1.5s gate outright. Here the library is fetched only once the page has
+   * loaded, and only if a real AdSense unit is actually on the page.
+   *
+   * ## Why nothing loads today
+   *
+   * With no AdSense unit configured, `ins.adsbygoogle[data-ad-client]` does not
+   * exist and this returns immediately — so a build with no ads makes **zero**
+   * third-party requests. That is what keeps the no-ads Lighthouse profile at ≥95.
+   */
+  function loadAdsense(): void {
+    const slots = Array.from(document.querySelectorAll<HTMLElement>('ins.adsbygoogle[data-ad-client]'))
+    if (slots.length === 0) return
+
+    const client = slots[0]?.dataset.adClient
+    if (!client) return
+
+    const push = (): void => {
+      for (const slot of slots) {
+        // AdSense throws if the same unit is pushed twice; the guard keeps a
+        // client-side navigation (or a duplicate script tag) from breaking it.
+        if (slot.dataset.adsbygoogleStatus) continue
+        ;(window as unknown as { adsbygoogle: unknown[] }).adsbygoogle =
+          (window as unknown as { adsbygoogle: unknown[] }).adsbygoogle || []
+        ;(window as unknown as { adsbygoogle: unknown[] }).adsbygoogle.push({})
+      }
+    }
+
+    const existing = document.querySelector<HTMLScriptElement>('script[data-adsense-loader]')
+    if (existing) {
+      push()
+      return
+    }
+
+    const script = document.createElement('script')
+    script.async = true
+    script.crossOrigin = 'anonymous'
+    script.dataset.adsenseLoader = 'true'
+    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(client)}`
+    script.addEventListener('load', push)
+    document.head.appendChild(script)
+  }
+
+  /** Wait for load, then idle — never compete with the LCP image. */
+  function schedule(): void {
+    const run = (): void => {
+      if ('requestIdleCallback' in window) {
+        ;(window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(
+          loadAdsense,
+        )
+      } else {
+        window.setTimeout(loadAdsense, 1)
+      }
+    }
+
+    if (document.readyState === 'complete') run()
+    else window.addEventListener('load', run, { once: true })
+  }
+
+  schedule()
+</script>

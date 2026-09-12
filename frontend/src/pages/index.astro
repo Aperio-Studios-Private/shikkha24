@@ -47,7 +47,7 @@ import {
   FALLBACK_LEVELS,
 } from '../lib/cms'
 
-const [settings, categories, footerPages, breaking, deadlines, levels, districts, latest] =
+const [settings, categories, footerPages, breakingRaw, deadlines, levels, districts, latest] =
   await Promise.all([
     getSiteSettings().catch(() => FALLBACK_SETTINGS),
     getCategories().catch(() => FALLBACK_CATEGORIES),
@@ -67,8 +67,17 @@ const perCategory = await Promise.all(
   })),
 )
 
-const lead = latest[0] ?? null
-const remainingLatest = latest.slice(1)
+/*
+ * Sponsored stories are kept out of the masthead and the breaking ticker.
+ *
+ * The label makes a paid placement honest, but it does not make it the day's most
+ * important story — and the lead slot says exactly that. A paid piece in the
+ * masthead would borrow the authority of the front page. Sponsored content still
+ * appears in the category sections and in the latest feed, where it carries the
+ * label and sits alongside editorial on equal terms.
+ */
+const breaking = breakingRaw.filter((article) => !article.isSponsored)
+const editorial = latest.filter((article) => !article.isSponsored)
 
 /*
  * Newspaper hierarchy — the masthead block reads top-to-bottom in descending
@@ -77,8 +86,21 @@ const remainingLatest = latest.slice(1)
  *   medium  2-3 stories, medium treatment
  *   small   the next few, headline only
  */
-const medium = remainingLatest.slice(0, 3)
-const small = remainingLatest.slice(3, 8)
+const masthead = editorial.slice(0, 9)
+const lead = masthead[0] ?? null
+const medium = masthead.slice(1, 4)
+const small = masthead.slice(4, 9)
+
+/**
+ * The latest feed is the full list minus whatever the masthead already showed.
+ *
+ * Filtering by slug rather than slicing by index matters once a sponsored story
+ * is dropped from the masthead: `latest.slice(1)` would then re-show the
+ * promoted story as the first item of the latest feed, so the same headline
+ * would appear twice on one page.
+ */
+const mastheadSlugs = new Set(masthead.map((article) => article.slug))
+const remainingLatest = latest.filter((article) => !mastheadSlugs.has(article.slug))
 ---
 
 <Layout
@@ -141,7 +163,7 @@ const small = remainingLatest.slice(3, 8)
 
     {/* 6 — Leaderboard ad, reserved space so nothing shifts. */}
     <div class="mb-8 flex justify-center">
-      <AdSlot slot="homepage-leaderboard" width={728} height={90} />
+      <AdSlot position="homepageLeaderboard" width={728} height={90} />
     </div>
   </div>
 
@@ -195,16 +217,16 @@ const small = remainingLatest.slice(3, 8)
         }
 
         <div class="flex justify-center py-8">
-          <AdSlot slot="homepage-footer" width={728} height={90} />
+          <AdSlot position="homepageFooter" width={728} height={90} />
         </div>
       </div>
 
       {/* 9 — Right rail: sticky ad cards. */}
       <aside class="col-span-4 mt-8 sm:col-span-8 lg:col-span-4 lg:mt-0">
         <div class="lg:sticky lg:top-4 flex flex-col gap-4">
-          <AdSlot slot="sidebar-rectangle-1" width={300} height={250} />
+          <AdSlot position="sidebarTop" width={300} height={250} />
           <TrendingList articles={remainingLatest} />
-          <AdSlot slot="sidebar-rectangle-2" width={300} height={250} />
+          <AdSlot position="sidebarSticky" width={300} height={250} />
         </div>
       </aside>
     </div>

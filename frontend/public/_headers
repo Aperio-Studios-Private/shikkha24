@@ -2,11 +2,21 @@
 #
 # Source: docs/security.md §5 (security headers + CSP).
 #
-# TWO CSP PROFILES are planned (docs/security.md §5): a strict one for static /
-# editorial pages, and a relaxed one for ad-bearing pages, because AdSense needs
-# inline scripts and dynamic script injection. This file ships the STRICT profile
-# site-wide. The relaxed profile is applied per-route at S7 (Ad System) — do not
-# loosen this block, add a scoped one below it.
+# TWO CSP PROFILES (docs/security.md §5): a strict one for static / editorial
+# pages, and a relaxed one for ad-bearing pages, because AdSense needs inline
+# scripts and dynamic script injection.
+#
+# ⚠️ Cloudflare Pages does NOT override a duplicated header — **it joins the
+# values with a comma**, and a comma-joined CSP is enforced as two policies, so
+# the strict `script-src 'self'` would still block AdSense. A more specific rule
+# therefore has to DETACH the inherited value first (`! Content-Security-Policy`)
+# and then set its own. Verified against the Pages headers documentation
+# 2026-09-12.
+#
+# ⚠️ **S12 check:** confirm in production that an ad-bearing page returns exactly
+# ONE Content-Security-Policy header. If the detach does not take effect the
+# header will contain a comma, AdSense will be blocked, and this must be resolved
+# by moving the CSP into a Pages Function instead.
 
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
@@ -18,6 +28,30 @@
   # (`build.inlineStylesheets: 'auto'` in astro.config.mjs). It is the only
   # relaxation in this profile — scripts stay strict.
   Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com; font-src 'self'; connect-src 'self'; media-src 'self' https://media.shikkha24.com; frame-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Relaxed profile — the three routes that carry ad slots (S7).
+#
+# Exactly the pages where `AdSlot` renders: the homepage, article pages and
+# category listings. Every other route keeps the strict policy, which is the
+# point of having two profiles at all.
+#
+# The AdSense loader in `AdCreative.astro` only injects the library when a real
+# AdSense unit exists, so today — with no unit configured — these routes still
+# make zero third-party requests. The relaxation costs nothing until ads ship.
+# ─────────────────────────────────────────────────────────────────────────────
+
+/
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+
+/article/*
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+
+/category/*
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
 
 # Hashed build assets are content-addressed — cache them forever.
 /_astro/*

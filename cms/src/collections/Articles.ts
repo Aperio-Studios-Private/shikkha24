@@ -243,6 +243,28 @@ export const Articles: CollectionConfig = {
       access: { create: editorInChiefField, update: editorInChiefField },
     },
     {
+      name: 'isSponsored',
+      type: 'checkbox',
+      defaultValue: false,
+      index: true,
+      label: { en: 'Sponsored content', bn: 'স্পনসর করা কনটেন্ট' },
+      admin: {
+        position: 'sidebar',
+        description:
+          'স্পনসর করা লেখা। চালু করলে পাতায় ও কার্ডে "বিজ্ঞাপন" লেবেল বসবে এবং লেখাটি প্রধান সংবাদ বা ব্রেকিং তালিকায় যাবে না — পাঠকের কাছে বিজ্ঞাপনকে সংবাদ হিসেবে দেখানো যাবে না।',
+      },
+    },
+    {
+      name: 'sponsorName',
+      type: 'text',
+      label: { en: 'Sponsor name', bn: 'স্পনসরের নাম' },
+      admin: {
+        position: 'sidebar',
+        description: 'লেবেলে দেখানো হবে — যেমন "বিজ্ঞাপন — পাঠক প্রকাশনী"।',
+        condition: (data) => Boolean(data?.isSponsored),
+      },
+    },
+    {
       name: 'publishedAt',
       type: 'date',
       index: true,

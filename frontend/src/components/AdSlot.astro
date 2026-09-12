@@ -11,37 +11,48 @@
  * space when an ad does not fill; not reserving it costs the reader their place
  * in the text. The first is a cosmetic trade, the second is a usability failure.
  *
+ * ## Why it takes a position, not a free-form label
+ *
+ * `position` is a value from `AD_POSITIONS`, mirrored in the CMS
+ * (`cms/src/collections/AdUnits.ts`). An Ad Manager picks a position in the admin
+ * and this slot picks it up — so the two can never drift into the state where an
+ * editor configures a placement that the layout does not reserve.
+ *
  * ## Why it is flag-gated
  *
  * `docs/reliability.md` §5: heavy or fragile third-party features must be
- * switchable off without a redeploy. AdSense is a third-party script on the
- * critical path — if it degrades, killing the flag removes it from the next
- * build while the ad markup stays untouched.
+ * switchable off without a redeploy. AdSense is a third-party script — if it
+ * degrades, setting `PUBLIC_FLAG_ADS=false` drops every slot from the next build
+ * while the markup stays untouched.
  *
- * No ad script is wired up yet (S7 owns the ad system). Until then the slot is a
- * correctly-sized, labelled placeholder — which is also what makes the reserved
- * space visible rather than mysterious during review.
+ * ## What renders
+ *
+ * A resolved unit renders through `AdCreative`. With no unit configured — or a
+ * unit whose creative is incomplete — the slot falls back to the labelled
+ * placeholder, which is what makes the reserved space visible rather than
+ * mysterious during review.
  */
+import { type AdPosition, getAdForPosition, getAdsenseClientId } from '../lib/ads'
 import { isEnabled } from '../lib/feature-flags'
+import AdCreative from './AdCreative.astro'
 import DemoAd from './DemoAd.astro'
 
 interface Props {
-  /** Identifier for the ad unit, e.g. `homepage-leaderboard`. */
-  slot: string
+  /** A value from `AD_POSITIONS` — must have a matching slot in the CMS. */
+  position: AdPosition
   width: number
   height: number
   class?: string
 }
 
-const { slot, width, height, class: className = '' } = Astro.props
+const { position, width, height, class: className = '' } = Astro.props
 
 if (!isEnabled('ads')) return null
 
 /**
- * Map the reserved box to a named inventory format, so the placeholder says
- * which unit this slot will become. Real inventory is defined by size — 300x250
- * IS a medium rectangle — so deriving the label from the dimensions keeps the
- * two from disagreeing.
+ * Map the reserved box to a named inventory format. Real inventory is defined by
+ * size — 300x250 IS a medium rectangle — so deriving the label from the
+ * dimensions keeps the two from disagreeing.
  */
 type Format = 'leaderboard' | 'rectangle' | 'skyscraper' | 'mobile' | 'infeed'
 const format: Format =
@@ -55,12 +66,33 @@ const format: Format =
         height <= 120
         ? 'mobile'
         : 'rectangle'
+
+const [unit, clientId] = await Promise.all([getAdForPosition(position), getAdsenseClientId()])
+
+const image = unit?.image && typeof unit.image === 'object' ? unit.image : null
+
+/**
+ * An AdSense unit with no publisher id or slot id renders as a blank box, which
+ * reads as a bug. An image unit with no image does the same. Both fall back to
+ * the placeholder instead.
+ */
+const canRender = unit
+  ? unit.adType === 'adsense'
+    ? Boolean(clientId && unit.adsenseSlotId)
+    : Boolean(image?.url)
+  : false
 ---
 
 <div
-  data-ad-slot={slot}
+  data-ad-slot={position}
   class:list={['overflow-hidden rounded', className]}
   style={`width:100%;max-width:${width}px;height:${height}px`}
 >
-  <DemoAd format={format} slot={slot} />
+  {
+    canRender && unit ? (
+      <AdCreative unit={unit} width={width} height={height} clientId={clientId} />
+    ) : (
+      <DemoAd format={format} slot={position} />
+    )
+  }
 </div>
