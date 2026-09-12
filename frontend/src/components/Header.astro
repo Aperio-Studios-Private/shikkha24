@@ -15,7 +15,9 @@ import ThemeToggle from './ThemeToggle.astro'
 import TextResizer from './TextResizer.astro'
 import type { CmsSiteSettings, CmsCategory } from '../lib/cms'
 import { isEnabled } from '../lib/feature-flags'
-import { getWeather, getPrayerTimes, toBnDigits } from '../lib/widgets'
+import { getWeather, getPrayerTimes } from '../lib/widgets'
+import { formatBanglaDate } from '../lib/bangla-date'
+import HeaderWidgets from './HeaderWidgets.astro'
 
 interface Props {
   settings: CmsSiteSettings
@@ -38,10 +40,17 @@ const [weather, prayer] = await Promise.all([
   showPrayer ? getPrayerTimes() : Promise.resolve(null),
 ])
 
-// Bengali date formatting.
+/*
+ * Bengali date — the masthead shows BOTH calendars, as a Bengali newspaper does:
+ *   বঙ্গাব্দ      ২৮ ভাদ্র, ১৪৩৩      (what readers mean by "the Bengali date")
+ *   খ্রিস্টাব্দ   ১২ সেপ্টেম্বর, ২০২৬  (familiar for deadlines and official dates)
+ *
+ * `toLocaleDateString('bn-BD')` alone is NOT enough — that is the Gregorian
+ * date in Bengali digits, which is not what a masthead is expected to show.
+ */
 const now = new Date()
-const bnDate = now.toLocaleDateString('bn-BD', {
-  weekday: 'long',
+const banglaDate = formatBanglaDate(now)
+const gregorianDate = now.toLocaleDateString('bn-BD', {
   year: 'numeric',
   month: 'long',
   day: 'numeric',
@@ -56,30 +65,15 @@ const socialLinks = Object.entries(settings.social ?? {}).filter(([, url]) => !!
     <div class="container-page flex items-center justify-between py-1.5">
       {/* Date + optional widgets */}
       <div class="flex items-center gap-3 text-xs text-ink-muted dark:text-dark-ink-muted">
-        <time datetime={now.toISOString()} class="font-ui whitespace-nowrap">{bnDate}</time>
+        <time datetime={now.toISOString()} class="font-ui whitespace-nowrap">
+          {banglaDate}
+          <span class="text-ink-subtle dark:text-dark-ink-muted"> · {gregorianDate}</span>
+        </time>
 
-        {weather && (
-          <span class="hidden items-center gap-1 sm:inline-flex">
-            <span class="text-ink-subtle dark:text-dark-ink-muted" aria-hidden="true">·</span>
-            <span>
-              ঢাকা <span class="font-medium text-ink dark:text-dark-ink">{toBnDigits(weather.tempC)}°</span>
-              <span class="text-ink-subtle dark:text-dark-ink-muted"> {weather.label}</span>
-            </span>
-          </span>
-        )}
-
-        {prayer && (
-          <span class="hidden items-center gap-1 lg:inline-flex">
-            <span class="text-ink-subtle dark:text-dark-ink-muted" aria-hidden="true">·</span>
-            <span title={`ফজর ${prayer.fajr} · যোহর ${prayer.dhuhr} · আসর ${prayer.asr} · মাগরিব ${prayer.maghrib} · এশা ${prayer.isha}`}>
-              <span class="text-ink-subtle dark:text-dark-ink-muted">ইফতার/মাগরিব </span>
-              <span class="font-medium text-ink dark:text-dark-ink">{toBnDigits(prayer.maghrib)}</span>
-            </span>
-            {prayer.hijri && (
-              <span class="text-ink-subtle dark:text-dark-ink-muted">({prayer.hijri})</span>
-            )}
-          </span>
-        )}
+        {/* Weather, prayer and location.
+            Renders the build-time value, then refines it for the reader's
+            own location in the browser. */}
+        <HeaderWidgets weather={weather} prayer={prayer} />
       </div>
 
       {/* Social links */}

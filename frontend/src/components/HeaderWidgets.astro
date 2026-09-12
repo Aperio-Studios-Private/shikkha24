@@ -1,0 +1,303 @@
+---
+/**
+ * Header utilities — weather, prayer times, location.
+ *
+ * Renders the build-time value first (correct for Dhaka, never blank), then
+ * refines it in the browser for the reader's actual location.
+ *
+ * ## The ordering is deliberate
+ *
+ * Server value → instant paint, no empty widget, no layout shift.
+ * Client value → replaces it once known.
+ *
+ * A widget that waits on the network is a widget that flashes empty, and this
+ * one sits in the masthead where a flicker is most visible.
+ *
+ * ## What the reader gets
+ *
+ * - The **next** prayer with a live countdown, not a fixed one — after ইশা it
+ *   rolls over to tomorrow's ফজর rather than going blank.
+ * - A **dropdown** with all five times and the Hijri date.
+ * - A **location selector**, because a Chattogram reader should see Chattogram.
+ */
+import type { Weather, PrayerTimes as PrayerApiTimes } from '../lib/widgets'
+import { toBnDigits } from '../lib/widgets'
+import { CITIES } from '../lib/geo'
+import { PRAYER_NAMES, PRAYER_LABELS_BN } from '../lib/prayer'
+
+interface Props {
+  weather: Weather | null
+  prayer: PrayerApiTimes | null
+}
+
+const { weather, prayer } = Astro.props
+
+/** Build-time values, used for the first paint. */
+const initialCity = 'ঢাকা'
+const initialTemp = weather ? `${toBnDigits(weather.tempC)}°` : null
+---
+
+<div class="flex items-center gap-3" id="header-widgets">
+  {
+    initialTemp && (
+      <span class="hidden items-center gap-1 sm:inline-flex">
+        <span class="text-ink-subtle dark:text-dark-ink-muted" aria-hidden="true">
+          ·
+        </span>
+        <button
+          type="button"
+          id="hw-weather"
+          class="hover:text-brand-red"
+          aria-label="আবহাওয়া"
+        >
+          <span id="hw-city">{initialCity}</span>{' '}
+          <span class="font-medium text-ink dark:text-dark-ink" id="hw-temp">
+            {initialTemp}
+          </span>{' '}
+          <span class="text-ink-subtle dark:text-dark-ink-muted" id="hw-cond">
+            {weather?.label}
+          </span>
+        </button>
+      </span>
+    )
+  }
+
+  {
+    prayer && (
+      <span class="relative hidden items-center gap-1 lg:inline-flex">
+        <span class="text-ink-subtle dark:text-dark-ink-muted" aria-hidden="true">
+          ·
+        </span>
+        <button
+          type="button"
+          id="hw-prayer-btn"
+          aria-expanded="false"
+          aria-controls="hw-prayer-panel"
+          class="hover:text-brand-red"
+        >
+          <span id="hw-next-label">নামাজ</span>{' '}
+          <span class="font-medium text-ink dark:text-dark-ink" id="hw-next-time">
+            {prayer.maghrib}
+          </span>
+        </button>
+
+        <div
+          id="hw-prayer-panel"
+          hidden
+          class="absolute right-0 top-full z-50 mt-1 w-56 rounded-md border border-rule bg-surface p-3 text-sm shadow-lg dark:border-dark-rule dark:bg-dark-surface"
+        >
+          <p class="mb-2 text-xs font-semibold text-ink-subtle dark:text-dark-ink-muted">
+            আজকের নামাজের সময়সূচি
+          </p>
+          <ul class="flex flex-col gap-1">
+            {PRAYER_NAMES.map((name) => (
+              <li class="flex items-center justify-between">
+                <span>{PRAYER_LABELS_BN[name]}</span>
+                <span class="font-medium text-ink dark:text-dark-ink" data-prayer={name}>
+                  {prayer[name]}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {prayer.hijri && (
+            <p class="mt-2 border-t border-rule pt-2 text-xs text-ink-subtle dark:border-dark-rule dark:text-dark-ink-muted">
+              {prayer.hijri}
+            </p>
+          )}
+        </div>
+      </span>
+    )
+  }
+
+  <span class="hidden items-center gap-1 md:inline-flex">
+    <span class="text-ink-subtle dark:text-dark-ink-muted" aria-hidden="true">·</span>
+    <label for="hw-location" class="sr-only">এলাকা নির্বাচন করুন</label>
+    <select
+      id="hw-location"
+      class="rounded border border-rule bg-surface px-1.5 py-0.5 text-xs text-ink dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink"
+    >
+      {CITIES.map((city) => (
+        <option value={`${city.lat},${city.lon}`}>{city.labelBn}</option>
+      ))}
+      <option value="">সনাক্ত করুন</option>
+    </select>
+  </span>
+</div>
+
+<script>
+  import { getNextPrayer, formatCountdown, PRAYER_NAMES } from '../lib/prayer'
+  import {
+    CITIES,
+    readStoredLocation,
+    storeLocation,
+    detectLocationByIp,
+    getDefaultLocation,
+    nearestCity,
+  } from '../lib/geo'
+
+  const toBn = (v: string | number) =>
+    String(v).replace(/\d/g, (d) => '০১২৩৪৫৬৭৮৯'[Number(d)]!)
+
+  const el = (id: string) => document.getElementById(id)
+  const cityEl = el('hw-city')
+  const tempEl = el('hw-temp')
+  const condEl = el('hw-cond')
+  const nextLabelEl = el('hw-next-label')
+  const nextTimeEl = el('hw-next-time')
+  const prayerBtn = el('hw-prayer-btn')
+  const prayerPanel = el('hw-prayer-panel')
+  const locationSelect = el('hw-location') as HTMLSelectElement | null
+
+  /** Prayer dropdown. */
+  prayerBtn?.addEventListener('click', () => {
+    if (!prayerPanel) return
+    const open = prayerPanel.hasAttribute('hidden')
+    if (open) prayerPanel.removeAttribute('hidden')
+    else prayerPanel.setAttribute('hidden', '')
+    prayerBtn.setAttribute('aria-expanded', String(open))
+  })
+
+  document.addEventListener('click', (event) => {
+    if (!prayerPanel || !prayerBtn) return
+    const target = event.target as Node
+    if (!prayerBtn.contains(target) && !prayerPanel.contains(target)) {
+      prayerPanel.setAttribute('hidden', '')
+      prayerBtn.setAttribute('aria-expanded', 'false')
+    }
+  })
+
+  /** Render the next prayer and keep it current. */
+  let countdownTimer: number | undefined
+
+  function renderNextPrayer(times: Record<string, string>) {
+    const next = getNextPrayer(times as never)
+    if (!next || !nextTimeEl || !nextLabelEl) return
+
+    nextTimeEl.textContent = toBn(next.time)
+    nextLabelEl.textContent = next.isTomorrow
+      ? `${next.label} (আগামীকাল)`
+      : `${next.label} ${formatCountdown(next.minutesUntil, toBn)}`
+
+    window.clearInterval(countdownTimer)
+    countdownTimer = window.setInterval(() => {
+      const refreshed = getNextPrayer(times as never)
+      if (refreshed && nextTimeEl && nextLabelEl) {
+        nextTimeEl.textContent = toBn(refreshed.time)
+        nextLabelEl.textContent = refreshed.isTomorrow
+          ? `${refreshed.label} (আগামীকাল)`
+          : `${refreshed.label} ${formatCountdown(refreshed.minutesUntil, toBn)}`
+      }
+    }, 30_000)
+  }
+
+  /** Fetch prayer times for a point and update both the pill and the panel. */
+  async function loadPrayer(lat: number, lon: number) {
+    const now = new Date()
+    const dd = String(now.getDate()).padStart(2, '0')
+    const mm = String(now.getMonth() + 1).padStart(2, '0')
+    const url =
+      `https://api.aladhan.com/v1/timings/${dd}-${mm}-${now.getFullYear()}` +
+      `?latitude=${lat}&longitude=${lon}&method=1`
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(5000) })
+      if (!response.ok) return
+      const data = (await response.json()) as {
+        data?: { timings?: Record<string, string> }
+      }
+      const timings = data.data?.timings
+      if (!timings?.Fajr) return
+
+      const clean = (v: string) => v.split(' ')[0]
+      const times = {
+        fajr: clean(timings.Fajr ?? ''),
+        dhuhr: clean(timings.Dhuhr ?? ''),
+        asr: clean(timings.Asr ?? ''),
+        maghrib: clean(timings.Maghrib ?? ''),
+        isha: clean(timings.Isha ?? ''),
+      }
+      for (const name of PRAYER_NAMES) {
+        const node = document.querySelector(`[data-prayer="${name}"]`)
+        if (node) node.textContent = toBn(times[name])
+      }
+      renderNextPrayer(times)
+    } catch {
+      // Keep the build-time value — a failed lookup must not blank the widget.
+    }
+  }
+
+  /** Fetch weather for a point. */
+  async function loadWeather(lat: number, lon: number) {
+    try {
+      const url =
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+        `&current=temperature_2m,weather_code`
+      const response = await fetch(url, { signal: AbortSignal.timeout(5000) })
+      if (!response.ok) return
+      const data = (await response.json()) as {
+        current?: { temperature_2m?: number }
+      }
+      const temp = data.current?.temperature_2m
+      if (typeof temp !== 'number') return
+      if (tempEl) tempEl.textContent = `${toBn(Math.round(temp))}°`
+    } catch {
+      // Same: keep what we have.
+    }
+  }
+
+  function applyLocation(lat: number, lon: number, label: string, remember: boolean) {
+    if (cityEl) cityEl.textContent = label
+    if (locationSelect) {
+      const value = `${lat},${lon}`
+      const known = CITIES.some((c) => `${c.lat},${c.lon}` === value)
+      locationSelect.value = known ? value : ''
+    }
+    if (remember) {
+      storeLocation({ labelBn: label, lat, lon, source: 'user' })
+    }
+    void loadPrayer(lat, lon)
+    void loadWeather(lat, lon)
+  }
+
+  /** Resolve the reader's location, then refresh both widgets. */
+  async function init() {
+    const stored = readStoredLocation()
+
+    if (stored) {
+      applyLocation(stored.lat, stored.lon, stored.labelBn, false)
+      return
+    }
+
+    const detected = await detectLocationByIp()
+    if (detected) {
+      applyLocation(detected.lat, detected.lon, detected.labelBn, false)
+      storeLocation(detected)
+      return
+    }
+
+    const fallback = getDefaultLocation()
+    applyLocation(fallback.lat, fallback.lon, fallback.labelBn, false)
+  }
+
+  locationSelect?.addEventListener('change', () => {
+    const value = locationSelect.value
+    if (!value) {
+      // "সনাক্ত করুন" — try a fresh IP lookup.
+      void detectLocationByIp().then((detected) => {
+        const loc = detected ?? getDefaultLocation()
+        applyLocation(loc.lat, loc.lon, loc.labelBn, true)
+      })
+      return
+    }
+    const [lat, lon] = value.split(',').map(Number)
+    const city = nearestCity(lat, lon)
+    applyLocation(lat, lon, city?.labelBn ?? 'আপনার এলাকা', true)
+  })
+
+  // Deferred: never compete with first paint.
+  if ('requestIdleCallback' in window) {
+    ;(window as unknown as { requestIdleCallback: (cb: () => void) => void })
+      .requestIdleCallback(() => void init())
+  } else {
+    window.addEventListener('load', () => void init())
+  }
+</script>
