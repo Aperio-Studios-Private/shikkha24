@@ -1,71 +1,106 @@
 ---
 /**
- * S0 foundation placeholder.
+ * Homepage (S2 design-system preview).
  *
- * This is NOT the homepage — S3 owns the homepage and is gated behind S2
- * (design system). This page exists to prove the S0 toolchain end to end:
- * Astro 7 builds, Tailwind 4 emits CSS, the self-hosted Bengali fonts resolve,
- * and the Bengali typography floor (≥17px / line-height ≥1.65) renders.
+ * This is NOT the final homepage — S3 owns that. This page exists to prove the
+ * S2 design system end-to-end: Header, Footer, Layout, dark mode, text resizer,
+ * the 12-col grid, and Bengali typography at the approved floor (≥17px).
  *
  * It also doubles as the Bengali conjunct rendering smoke test
  * (`docs/testing-and-qa.md` §5).
  */
-import '../styles/global.css'
+import Layout from '../layouts/Layout.astro'
+import { getSiteSettings, getCategories, getFooterPages, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../lib/cms'
 import { FEATURE_FLAGS } from '../lib/feature-flags'
 
-const title = 'শিক্ষা২৪'
-const tagline = 'দেশ-বিদেশের শিক্ষার সর্বশেষ খবর ও সুযোগ'
+const [settings, categories, footerPages] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+])
+
+const flags = Object.entries(FEATURE_FLAGS)
 
 /** Strings that exercise র-ফলা, য-ফলা, হ্রস্ব-ই কার and দীর্ঘ-ঊ কার. */
 const conjunctProbe = 'শ্রদ্ধা · বিদ্যা · কৃষ্ণ · দৃষ্টি · প্রযুক্তি · শিক্ষার্থী · উচ্চশিক্ষা'
-
-const flags = Object.entries(FEATURE_FLAGS)
 ---
 
-<!doctype html>
-<html lang="bn" dir="ltr">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="generator" content={Astro.generator} />
-    <meta name="description" content={tagline} />
-    <title>{title} — S0 ফাউন্ডেশন</title>
-  </head>
-  <body class="min-h-screen">
-    <main class="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-8 px-5 py-16">
-      <header class="flex flex-col gap-3">
-        <p class="font-ui text-sm font-semibold tracking-wide text-brand-red">S0 · Foundation</p>
-        <h1 class="text-4xl font-bold text-brand-charcoal dark:text-white">{title}</h1>
-        <p class="text-body text-brand-charcoal/80 dark:text-white/70">{tagline}</p>
-      </header>
+<Layout
+  title="হোম"
+  description={settings.tagline || undefined}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  {/* Hero / intro section */}
+  <section class="border-b border-rule bg-surface dark:border-dark-rule dark:bg-dark-base">
+    <div class="container-page py-12 sm:py-16">
+      <div class="grid-12 items-center">
+        <div class="col-span-4 sm:col-span-8 lg:col-span-6 lg:col-start-4 text-center">
+          <p class="font-ui text-sm font-semibold tracking-wide text-brand-red">S2 · Design System</p>
+          <h1 class="mt-3 text-3xl font-bold text-brand-charcoal dark:text-white sm:text-4xl">
+            {settings.siteName}
+          </h1>
+          <p class="mt-3 text-lg text-ink-muted dark:text-dark-ink-muted">
+            {settings.tagline}
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-      <section class="flex flex-col gap-2 rounded-lg border border-brand-charcoal/10 p-5">
-        <h2 class="text-lg font-bold">বাংলা যুক্তাক্ষর পরীক্ষা</h2>
-        <p class="text-body">{conjunctProbe}</p>
-      </section>
+  {/* Typography smoke test */}
+  <section class="container-page py-10">
+    <div class="grid-12">
+      <div class="col-span-4 sm:col-span-8 lg:col-span-6 lg:col-start-4">
+        <div class="rounded-lg border border-rule bg-surface-raised p-6 dark:border-dark-rule dark:bg-dark-raised">
+          <h2 class="mb-3 text-xl font-bold">বাংলা যুক্তাক্ষর পরীক্ষা</h2>
+          <p class="text-ink-muted dark:text-dark-ink-muted">{conjunctProbe}</p>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <span class="inline-block rounded bg-brand-red/10 px-2 py-1 text-xs font-medium text-brand-red dark:bg-brand-red/20">র-ফলা</span>
+            <span class="inline-block rounded bg-brand-red/10 px-2 py-1 text-xs font-medium text-brand-red dark:bg-brand-red/20">য-ফলা</span>
+            <span class="inline-block rounded bg-brand-red/10 px-2 py-1 text-xs font-medium text-brand-red dark:bg-brand-red/20">হ্রস্ব-ই কার</span>
+            <span class="inline-block rounded bg-brand-red/10 px-2 py-1 text-xs font-medium text-brand-red dark:bg-brand-red/20">দীর্ঘ-ঊ কার</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-      <section class="flex flex-col gap-2">
-        <h2 class="text-lg font-bold">ফিচার ফ্ল্যাগ</h2>
-        <ul class="font-ui grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-          {
-            flags.map(([name, on]) => (
-              <li class="flex items-center justify-between gap-3">
-                <code>{name}</code>
-                <span class={on ? 'text-green-700' : 'text-brand-charcoal/40'}>{on ? 'on' : 'off'}</span>
-              </li>
-            ))
-          }
-        </ul>
-      </section>
+  {/* Feature flags */}
+  <section class="container-page pb-10">
+    <div class="grid-12">
+      <div class="col-span-4 sm:col-span-8 lg:col-span-6 lg:col-start-4">
+        <div class="rounded-lg border border-rule bg-surface-raised p-6 dark:border-dark-rule dark:bg-dark-raised">
+          <h2 class="mb-3 text-xl font-bold">ফিচার ফ্ল্যাগ</h2>
+          <ul class="grid grid-cols-2 gap-x-6 gap-y-2 font-ui text-sm">
+            {
+              flags.map(([name, on]) => (
+                <li class="flex items-center justify-between gap-3">
+                  <code class="text-xs text-ink-subtle dark:text-dark-ink-muted">{name}</code>
+                  <span class={on ? 'text-green-600 dark:text-green-400' : 'text-ink-subtle dark:text-dark-ink-muted'}>
+                    {on ? 'চালু' : 'বন্ধ'}
+                  </span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
 
-      <footer class="font-ui border-t border-brand-charcoal/10 pt-4 text-xs text-brand-charcoal/50">
-        <p>
-          Toolchain smoke test only. The homepage is S3; the design system is S2. Nothing here is
-          final content.
-        </p>
-      </footer>
-    </main>
-  </body>
-</html>
+  {/* Grid demo */}
+  <section class="container-page pb-12">
+    <div class="grid-12 gap-3">
+      {Array.from({ length: 12 }).map((_, i) => (
+        <div class="col-span-1 flex h-12 items-center justify-center rounded bg-brand-red/10 text-xs font-medium text-brand-red dark:bg-brand-red/20">
+          {i + 1}
+        </div>
+      ))}
+    </div>
+    <p class="mt-2 text-center text-xs text-ink-subtle dark:text-dark-ink-muted">
+      12-কলাম গ্রিড ডেমো (ডেস্কটপে 12, ট্যাবলেটে 8, মোবাইলে 4)
+    </p>
+  </section>
+</Layout>

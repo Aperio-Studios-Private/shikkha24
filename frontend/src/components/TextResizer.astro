@@ -1,0 +1,81 @@
+---
+/**
+ * Text-size resizer for accessibility.
+ *
+ * Sets a `data-text-scale` attribute on `<html>` (1 | 1.1 | 1.2).
+ * CSS uses `rem` everywhere, so scaling the root font-size resizes the whole
+ * page proportionally. The attribute is read by a rule in global.css.
+ *
+ * Persisted to localStorage. The initial scale is restored by an inline script
+ * in Layout.astro before first paint, preventing a flash-of-wrong-size.
+ */
+---
+
+<div class="inline-flex items-center gap-1" role="group" aria-label="ফন্ট সাইজ">
+  <button
+    type="button"
+    data-scale="1"
+    class="text-resizer-btn inline-flex h-8 w-8 items-center justify-center rounded text-sm font-medium transition-colors hover:bg-surface-raised dark:hover:bg-dark-raised"
+    aria-label="স্বাভাবিক সাইজ"
+    title="স্বাভাবিক সাইজ"
+  >
+    আ
+  </button>
+  <button
+    type="button"
+    data-scale="1.1"
+    class="text-resizer-btn inline-flex h-8 w-8 items-center justify-center rounded text-base font-medium transition-colors hover:bg-surface-raised dark:hover:bg-dark-raised"
+    aria-label="মাঝারি সাইজ"
+    title="মাঝারি সাইজ"
+  >
+    আ
+  </button>
+  <button
+    type="button"
+    data-scale="1.2"
+    class="text-resizer-btn inline-flex h-8 w-8 items-center justify-center rounded text-lg font-medium transition-colors hover:bg-surface-raised dark:hover:bg-dark-raised"
+    aria-label="বড় সাইজ"
+    title="বড় সাইজ"
+  >
+    আ
+  </button>
+</div>
+
+<script>
+  (function () {
+    const STORAGE_KEY = 'shikkha24-text-scale'
+    const buttons = document.querySelectorAll<HTMLButtonElement>('.text-resizer-btn')
+
+    function getScale(): number {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      const n = raw ? parseFloat(raw) : 1
+      return [1, 1.1, 1.2].includes(n) ? n : 1
+    }
+
+    function applyScale(scale: number) {
+      document.documentElement.style.fontSize = scale === 1 ? '' : `${scale * 100}%`
+      buttons.forEach((btn) => {
+        const active = parseFloat(btn.dataset.scale || '1') === scale
+        btn.classList.toggle('bg-brand-red', active)
+        btn.classList.toggle('text-white', active)
+        btn.classList.toggle('dark:text-white', active)
+        btn.setAttribute('aria-pressed', String(active))
+      })
+    }
+
+    function setScale(scale: number) {
+      localStorage.setItem(STORAGE_KEY, String(scale))
+      applyScale(scale)
+    }
+
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const scale = parseFloat(btn.dataset.scale || '1')
+        setScale(scale)
+      })
+    })
+
+    // Sync on load.
+    applyScale(getScale())
+  })()
+</script>

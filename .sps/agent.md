@@ -4,8 +4,8 @@
 - **Prior host:** Antigravity (original discovery and planning session, 2026-09-11)
 - **SPS Version:** 4.0.0 (skill version stamp; `sps-cms` 2.3.0)
 - **Session Started:** 2026-09-11T19:58+06:00
-- **Last refreshed:** 2026-09-12T04:20+06:00
-- **Phase:** S1 **COMPLETE — awaiting owner approval.** 26 collections + 1 global, 5-role RBAC with field-level guards, Bengali admin locale, 77-row idempotent taxonomy seed, round-trip proven. S0 approved 2026-09-12. Next: S2 (design system + base layout), still blocked on the portal display name + logo.
+- **Last refreshed:** 2026-09-12T05:55+06:00
+- **Phase:** S2 **COMPLETE — awaiting owner approval.** Design tokens, 12-col grid, 6 components, base layout, build-time content layer. S0 and S1 approved 2026-09-12. Next: S3 (homepage + listing pages).
 - **Package manager:** **pnpm 11.22.0** (`pnpm-workspace.yaml`). npm is unusable in the build environment — a filesystem broker refuses its `mkdir` calls. See `.sps/handoff.md`.
 - **`/sps` required for this project:** YES
 - **Plan approved:** 2026-09-11T20:41+06:00 — **scope amended 2026-09-11 (education portal)**

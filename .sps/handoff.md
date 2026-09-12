@@ -1,10 +1,11 @@
 # SPS Handoff
 
 ## Current Phase
-- **Status:** S1 **COMPLETE — awaiting owner approval.** S0 approved 2026-09-12.
-- **Last Activity:** 2026-09-12T04:15+06:00
-- **Next Action:** owner reviews the S1 packet, then S2 (design system + base layout). S2 is still blocked on the portal display name + logo.
-- **User instruction (latest):** "Please continue" ×2 — taken as S0 approval and instruction to build S1.
+- **Status:** S2 **COMPLETE — awaiting owner approval.** S0 and S1 approved 2026-09-12.
+- **Last Activity:** 2026-09-12T05:55+06:00
+- **Next Action:** owner reviews the S2 packet, then S3 (homepage + listing pages)
+- **User instruction (latest):** "Please continue" — taken as S1 approval and instruction to build S2.
+- **S2 entry gate:** portal display name + logo — ✅ satisfied by owner decision 2026-09-12 (name = শিক্ষা২৪, logo = placeholder, Inter dropped)
 
 ## S1 — CMS content models & RBAC (complete)
 
@@ -47,6 +48,60 @@ guards, a Bengali admin locale, and an idempotent taxonomy seed.
 **Still open:** RBAC needs a manual pass with real accounts for all 5 roles; the
 Bengali locale is a ~60-string working draft needing a native-speaker review; the
 review workflow needs two accounts to exercise end-to-end.
+
+## S2 — Design System & Base Layout (complete)
+
+**Built:** design tokens, 12-col grid, 6 components, base layout, and a build-time
+content layer that survives CMS outages.
+
+**Evidence — 7/7 on the CI-equivalent sequence:**
+
+| Check | Result |
+|---|---|
+| lint (biome, 50 files) | ✅ exit 0 |
+| astro sync | ✅ exit 0 |
+| typecheck:frontend | ✅ exit 0 |
+| build:frontend | ✅ exit 0 |
+| CMS build (26 collections) | ✅ exit 0 |
+| CMS typecheck | ✅ exit 0 |
+| WAL concurrency gate | ✅ still green |
+
+**Design system (`frontend/src/styles/global.css`):**
+- Brand colours: brand-red `#DA1C25`, brand-charcoal `#1F1F1F`, dark-base `#121212`
+- Semantic tokens: ink / ink-muted / ink-subtle / rule / surface / surface-raised + dark counterparts
+- Typography: Hind Siliguri (headlines), Noto Sans Bengali (body), system UI (Latin/UI). Inter **deliberately absent** — owner-approved; variable file is 83 KB/weight and would break the 200 KB font budget
+- Type scale: base = 17px (Bengali floor), line-height ≥1.65
+- 12-col responsive grid: 4 → 8 → 12 columns
+- Accessibility: visible focus rings, `prefers-reduced-motion` honoured, skip link, text-wrap: balance
+
+**Components:**
+- `Logo.astro` — CMS-first; renders uploaded asset or brand wordmark in brand red
+- `ThemeToggle.astro` — dark/light; persists to localStorage; follows OS by default; anti-FOUC inline script
+- `TextResizer.astro` — 3-step scale (1→1.1→1.2); persists to localStorage; anti-FOUC inline script
+- `Header.astro` — utility ribbon (date, optional weather/prayer widgets, social) + main header (logo, search, theme, resizer) + nav bar with mega menu dropdowns + mobile hamburger drawer
+- `Footer.astro` — brand zone + category links + footer pages + social links + copyright + legal links + CMS-managed footer text
+- `MobileShareBar.astro` — sticky bottom bar on mobile (WhatsApp, Facebook, copy link)
+
+**Layout (`layouts/Layout.astro`):**
+- HTML5 boilerplate with `lang="bn"`
+- SEO meta tags, OG, Twitter, article dates, canonical, JSON-LD hook
+- Font preloading for Hind Siliguri + Noto Sans Bengali Bengali subsets
+- Skip link → `#main-content`
+- Header → `<main>` → Footer → MobileShareBar
+
+**Content layer (`lib/cms.ts`):**
+- Build-time fetch: Payload REST → static HTML at build time
+- Hard requirement: never fail the build — every helper degrades to documented fallback
+- Fallbacks mirror the approved 8-category tree and owner-confirmed site settings
+
+**Owner decisions applied (2026-09-12):**
+- Display name = শিক্ষা২৤ / Shikkha24 — confirmed
+- Logo = placeholder SVG — CMS-managed; real asset drops in via admin with no code change
+- Inter is DROPPED from the typography stack — variable file 83 KB/weight blows the 200 KB budget
+
+**Two deviations recorded:**
+- `subcategories` is a self-relation on Categories, not a separate collection — the approved tree is flat (স্কুল-কলেজ was rejected as a category and replaced by the level filter)
+- `readers` was added to the model — social login, bookmarks, saved deadlines and push all need a reader identity
 
 ## ✅ S0 verification COMPLETE — the npm blocker was resolved with pnpm
 

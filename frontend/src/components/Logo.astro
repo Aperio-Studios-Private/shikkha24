@@ -1,0 +1,54 @@
+---
+/**
+ * Site logo.
+ *
+ * CMS-first: if `SiteSettings.logo` has an uploaded asset it is rendered,
+ * otherwise the built-in wordmark is used. This is what lets the owner drop the
+ * real logo into the admin with **no code change** (`.sps/profile.md` — the logo
+ * is a CMS-managed field; owner decision 2026-09-12).
+ *
+ * The fallback is a real wordmark in brand red rather than a grey box, so the
+ * header looks intentional before the asset arrives.
+ */
+interface Props {
+  logo?: { url?: string | null; alt?: string | null } | null
+  siteName: string
+  siteNameEn?: string | null
+  class?: string
+}
+
+const { logo, siteName, siteNameEn, class: className = '' } = Astro.props
+const mediaBase = import.meta.env.PUBLIC_MEDIA_BASE_URL || ''
+const logoSrc = logo?.url ? (logo.url.startsWith('http') ? logo.url : `${mediaBase}${logo.url}`) : null
+---
+
+<a href="/" class={`inline-flex items-center gap-2 no-underline ${className}`} aria-label={siteName}>
+  {
+    logoSrc ? (
+      <img
+        src={logoSrc}
+        alt={logo?.alt || siteName}
+        width="160"
+        height="40"
+        class="h-9 w-auto sm:h-10"
+        decoding="async"
+      />
+    ) : (
+      <span class="inline-flex items-baseline gap-1.5">
+        <span
+          class="font-headline text-2xl leading-none font-bold text-brand-red sm:text-3xl"
+          aria-hidden="true"
+        >
+          শিক্ষা
+        </span>
+        <span
+          class="font-headline text-2xl leading-none font-bold text-brand-charcoal sm:text-3xl dark:text-white"
+          aria-hidden="true"
+        >
+          ২৪
+        </span>
+        {siteNameEn && <span class="sr-only">{siteNameEn}</span>}
+      </span>
+    )
+  }
+</a>

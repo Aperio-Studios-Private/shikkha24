@@ -1,0 +1,346 @@
+---
+/**
+ * Site header.
+ *
+ * Three horizontal bands:
+ *   1. Utility ribbon — date, optional widgets (weather, prayer), social links
+ *   2. Main header — logo, search, theme toggle, text resizer
+ *   3. Navigation bar — category links with mega menu dropdown
+ *
+ * Responsive: on mobile the nav collapses to a hamburger menu and the utility
+ * ribbon hides non-essential items.
+ */
+import Logo from './Logo.astro'
+import ThemeToggle from './ThemeToggle.astro'
+import TextResizer from './TextResizer.astro'
+import type { CmsSiteSettings, CmsCategory } from '../lib/cms'
+import { isEnabled } from '../lib/feature-flags'
+
+interface Props {
+  settings: CmsSiteSettings
+  categories: CmsCategory[]
+}
+
+const { settings, categories } = Astro.props
+
+// Bengali date formatting.
+const now = new Date()
+const bnDate = now.toLocaleDateString('bn-BD', {
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+})
+
+const socialLinks = Object.entries(settings.social ?? {}).filter(([, url]) => !!url)
+const showWeather = isEnabled('weatherWidget')
+const showPrayer = isEnabled('prayerWidget')
+---
+
+<header class="border-b border-rule bg-surface dark:border-dark-rule dark:bg-dark-base">
+  {/* ── 1. Utility ribbon ───────────────────────────────────────────── */}
+  <div class="border-b border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-surface">
+    <div class="container-page flex items-center justify-between py-1.5">
+      {/* Date + optional widgets */}
+      <div class="flex items-center gap-3 text-xs text-ink-muted dark:text-dark-ink-muted">
+        <time datetime={now.toISOString()} class="font-ui whitespace-nowrap">{bnDate}</time>
+
+        {showWeather && (
+          <span class="hidden items-center gap-1 sm:inline-flex" id="weather-ribbon" aria-live="polite">
+            <span class="text-ink-subtle dark:text-dark-ink-muted">·</span>
+            <span>আবহাওয়া লোড হচ্ছে...</span>
+          </span>
+        )}
+
+        {showPrayer && (
+          <span class="hidden items-center gap-1 md:inline-flex" id="prayer-ribbon" aria-live="polite">
+            <span class="text-ink-subtle dark:text-dark-ink-muted">·</span>
+            <span>নামাজের সময় লোড হচ্ছে...</span>
+          </span>
+        )}
+      </div>
+
+      {/* Social links */}
+      {
+        socialLinks.length > 0 && (
+          <div class="hidden items-center gap-2 sm:flex">
+            {socialLinks.map(([platform, url]) => (
+              <a
+                href={url!}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-xs text-ink-subtle transition-colors hover:text-brand-red dark:text-dark-ink-muted dark:hover:text-brand-red"
+                aria-label={platform}
+              >
+                {platform}
+              </a>
+            ))}
+          </div>
+        )
+      }
+    </div>
+  </div>
+
+  {/* ── 2. Main header row ──────────────────────────────────────────── */}
+  <div class="container-page flex items-center justify-between gap-4 py-3 sm:py-4">
+    {/* Logo */}
+    <Logo siteName={settings.siteName} siteNameEn={settings.siteNameEn} logo={settings.logo} />
+
+    {/* Right-hand controls */}
+    <div class="flex items-center gap-1 sm:gap-2">
+      {/* Search (icon-only on mobile, expands on focus) */}
+      <form
+        action="/search"
+        method="get"
+        class="relative flex items-center"
+        role="search"
+        aria-label="সাইট অনুসন্ধান"
+      >
+        <input
+          type="search"
+          name="q"
+          placeholder="অনুসন্ধান..."
+          class="h-10 w-10 rounded-md border border-transparent bg-transparent pl-10 text-sm text-ink placeholder:text-ink-subtle transition-all focus:w-48 focus:border-rule focus:bg-surface-raised focus:outline-none sm:w-56 sm:pl-10 dark:text-dark-ink dark:focus:border-dark-rule dark:focus:bg-dark-raised"
+          aria-label="অনুসন্ধান"
+        />
+        <svg
+          class="pointer-events-none absolute left-2.5 text-ink-subtle dark:text-dark-ink-muted"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.3-4.3"></path>
+        </svg>
+      </form>
+
+      {/* Text resizer — hidden on very small screens */}
+      <div class="hidden sm:block">
+        <TextResizer />
+      </div>
+
+      {/* Theme toggle */}
+      <ThemeToggle />
+
+      {/* Mobile hamburger */}
+      <button
+        type="button"
+        id="mobile-menu-toggle"
+        class="inline-flex h-10 w-10 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-raised hover:text-ink sm:hidden dark:text-dark-ink-muted dark:hover:bg-dark-raised dark:hover:text-dark-ink"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+        aria-label="মেনু খুলুন"
+      >
+        <svg
+          id="hamburger-icon"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          <line x1="4" y1="6" x2="20" y2="6"></line>
+          <line x1="4" y1="12" x2="20" y2="12"></line>
+          <line x1="4" y1="18" x2="20" y2="18"></line>
+        </svg>
+        <svg
+          id="close-menu-icon"
+          class="hidden"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          aria-hidden="true"
+        >
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  {/* ── 3. Navigation bar ───────────────────────────────────────────── */}
+  <nav
+    class="hidden border-t border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-surface sm:block"
+    aria-label="প্রধান নেভিগেশন"
+  >
+    <div class="container-page">
+      <ul class="flex items-center gap-1">
+        <li>
+          <a
+            href="/"
+            class="inline-block px-3 py-2.5 text-sm font-medium text-ink transition-colors hover:text-brand-red dark:text-dark-ink dark:hover:text-brand-red"
+          >
+            হোম
+          </a>
+        </li>
+        {
+          categories.map((cat) => (
+            <li class="group relative">
+              <a
+                href={`/category/${cat.slug}`}
+                class="inline-block px-3 py-2.5 text-sm font-medium text-ink transition-colors hover:text-brand-red dark:text-dark-ink dark:hover:text-brand-red"
+              >
+                {cat.nameBn}
+              </a>
+
+              {/* Mega menu dropdown */}
+              <div class="invisible absolute left-0 top-full z-40 w-64 rounded-b-lg border border-rule bg-surface p-4 opacity-0 shadow-lg transition-all duration-150 group-hover:visible group-hover:opacity-100 dark:border-dark-rule dark:bg-dark-surface">
+                <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
+                  {cat.nameBn}
+                </p>
+                {cat.description && (
+                  <p class="mb-3 text-xs text-ink-muted dark:text-dark-ink-muted">{cat.description}</p>
+                )}
+                <a
+                  href={`/category/${cat.slug}`}
+                  class="inline-flex items-center gap-1 text-xs font-medium text-brand-red"
+                >
+                  সব খবর দেখুন
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14" />
+                    <path d="m12 5 7 7-7 7" />
+                  </svg>
+                </a>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </nav>
+
+  {/* ── Mobile menu (drawer) ────────────────────────────────────────── */}
+  <div
+    id="mobile-menu"
+    class="fixed inset-0 z-40 hidden bg-black/50 sm:hidden"
+    aria-hidden="true"
+  >
+    <div
+      class="absolute right-0 top-0 h-full w-72 overflow-y-auto border-l border-rule bg-surface shadow-xl dark:border-dark-rule dark:bg-dark-surface"
+      role="dialog"
+      aria-modal="true"
+      aria-label="মোবাইল মেনু"
+    >
+      <div class="flex items-center justify-between border-b border-rule px-4 py-3 dark:border-dark-rule">
+        <span class="font-headline text-lg font-bold">{settings.siteName}</span>
+        <button
+          type="button"
+          id="mobile-menu-close"
+          class="inline-flex h-10 w-10 items-center justify-center rounded-md text-ink-muted dark:text-dark-ink-muted"
+          aria-label="মেনু বন্ধ করুন"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="px-4 py-3">
+        <TextResizer />
+      </div>
+
+      <ul class="border-t border-rule px-4 py-2 dark:border-dark-rule">
+        <li>
+          <a
+            href="/"
+            class="block py-2.5 text-base font-medium text-ink dark:text-dark-ink"
+          >
+            হোম
+          </a>
+        </li>
+        {
+          categories.map((cat) => (
+            <li>
+              <a
+                href={`/category/${cat.slug}`}
+                class="block py-2.5 text-base font-medium text-ink dark:text-dark-ink"
+              >
+                {cat.nameBn}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+
+      {
+        socialLinks.length > 0 && (
+          <div class="border-t border-rule px-4 py-4 dark:border-dark-rule">
+            <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
+              সোশ্যাল মিডিয়া
+            </h3>
+            <div class="flex flex-wrap gap-2">
+              {socialLinks.map(([platform, url]) => (
+                <a
+                  href={url!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-1.5 rounded-md bg-surface-raised px-3 py-1.5 text-sm text-ink-muted dark:bg-dark-raised dark:text-dark-ink-muted"
+                >
+                  {platform}
+                </a>
+              ))}
+            </div>
+          </div>
+        )
+      }
+    </div>
+  </div>
+</header>
+
+<script>
+  (function () {
+    const toggle = document.getElementById('mobile-menu-toggle')
+    const close = document.getElementById('mobile-menu-close')
+    const drawer = document.getElementById('mobile-menu')
+    const hamburger = document.getElementById('hamburger-icon')
+    const closeIcon = document.getElementById('close-menu-icon')
+
+    function open() {
+      if (!drawer) return
+      drawer.classList.remove('hidden')
+      drawer.setAttribute('aria-hidden', 'false')
+      toggle?.setAttribute('aria-expanded', 'true')
+      hamburger?.classList.add('hidden')
+      closeIcon?.classList.remove('hidden')
+      document.body.style.overflow = 'hidden'
+    }
+
+    function closeMenu() {
+      if (!drawer) return
+      drawer.classList.add('hidden')
+      drawer.setAttribute('aria-hidden', 'true')
+      toggle?.setAttribute('aria-expanded', 'false')
+      hamburger?.classList.remove('hidden')
+      closeIcon?.classList.add('hidden')
+      document.body.style.overflow = ''
+    }
+
+    toggle?.addEventListener('click', () => {
+      const expanded = toggle.getAttribute('aria-expanded') === 'true'
+      if (expanded) closeMenu()
+      else open()
+    })
+
+    close?.addEventListener('click', closeMenu)
+
+    // Close on backdrop click.
+    drawer?.addEventListener('click', (e) => {
+      if (e.target === drawer) closeMenu()
+    })
+
+    // Close on Escape.
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeMenu()
+    })
+  })()
+</script>

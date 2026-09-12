@@ -1,0 +1,150 @@
+---
+/**
+ * Base layout for every page.
+ *
+ * Responsibilities:
+ *   - HTML5 boilerplate, charset, viewport, language
+ *   - SEO meta tags (title, description, OG, Twitter)
+ *   - Theme + text-scale restoration inline script (before paint, no FOUC)
+ *   - Font preloading for the two Bengali font families
+ *   - Skip link, Header, main content slot, Footer, MobileShareBar
+ *   - Structured data (JSON-LD) hook
+ *
+ * Why the inline script is FIRST in <head>:
+ *   If `.dark` or `font-size` is applied after paint, the reader sees a flash
+ *   of the wrong theme or size. Running before any CSS blocks paint prevents it.
+ */
+import Header from '../components/Header.astro'
+import Footer from '../components/Footer.astro'
+import MobileShareBar from '../components/MobileShareBar.astro'
+import type { CmsSiteSettings, CmsCategory, CmsPage } from '../lib/cms'
+
+interface Props {
+  /** Page title — appended after the site name. */
+  title?: string
+  /** Meta description. Falls back to the site tagline. */
+  description?: string
+  /** Canonical URL. */
+  canonical?: string
+  /** Open Graph image URL. */
+  ogImage?: string
+  /** Article publish date (ISO 8601). */
+  publishDate?: string
+  /** Article modified date (ISO 8601). */
+  modifiedDate?: string
+  /** JSON-LD structured data object. */
+  jsonLd?: Record<string, unknown>
+  /** Disable the mobile share bar on this page. */
+  hideShareBar?: boolean
+  /** Site settings (fetched at build time). */
+  settings: CmsSiteSettings
+  /** Navigation categories (fetched at build time). */
+  categories: CmsCategory[]
+  /** Footer pages (fetched at build time). */
+  footerPages?: CmsPage[]
+}
+
+const {
+  title,
+  description,
+  canonical = Astro.url.href,
+  ogImage,
+  publishDate,
+  modifiedDate,
+  jsonLd,
+  hideShareBar = false,
+  settings,
+  categories,
+  footerPages = [],
+} = Astro.props
+
+const siteName = settings.siteName
+const pageTitle = title ? `${title} — ${siteName}` : siteName
+const metaDescription = description || settings.tagline || ''
+const ogImageUrl = ogImage || '/og-default.png'
+---
+
+<!doctype html>
+<html lang="bn" dir="ltr">
+  <head>
+    {/* ── Anti-FOUC: restore reader preferences before paint ─────── */}
+    <script is:inline>
+      (function () {
+        // Theme
+        var theme = localStorage.getItem('shikkha24-theme')
+        if (theme === 'dark' || theme === 'light') {
+          if (theme === 'dark') document.documentElement.classList.add('dark')
+          else document.documentElement.classList.remove('dark')
+        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          document.documentElement.classList.add('dark')
+        }
+        // Text scale
+        var scale = localStorage.getItem('shikkha24-text-scale')
+        if (scale === '1.1' || scale === '1.2') {
+          document.documentElement.style.fontSize = parseFloat(scale) * 100 + '%'
+        }
+      })()
+    </script>
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={metaDescription} />
+
+    {/* ── Fonts — preload the Bengali subsets to avoid FOIT ───────── */}
+    <link rel="preload" href="/fonts/hind-siliguri-400-bengali-ijwTs5juQt.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/noto-sans-bengali-400-bengali-Cn-SJsCGWQ.woff2" as="font" type="font/woff2" crossorigin />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="canonical" href={canonical} />
+
+    {/* ── Open Graph ──────────────────────────────────────────────── */}
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={metaDescription} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:type" content={publishDate ? 'article' : 'website'} />
+    <meta property="og:locale" content="bn_BD" />
+    <meta property="og:image" content={ogImageUrl} />
+
+    {/* ── Twitter ─────────────────────────────────────────────────── */}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={metaDescription} />
+    <meta name="twitter:image" content={ogImageUrl} />
+
+    {/* ── Article meta ────────────────────────────────────────────── */}
+    {publishDate && <meta property="article:published_time" content={publishDate} />}
+    {modifiedDate && <meta property="article:modified_time" content={modifiedDate} />}
+
+    {/* ── JSON-LD ─────────────────────────────────────────────────── */}
+    {
+      jsonLd && (
+        <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+      )
+    }
+
+    <title>{pageTitle}</title>
+  </head>
+
+  <body class="min-h-screen">
+    {/* Skip link — first focusable element, jumps to main content */}
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-brand-red focus:px-4 focus:py-2 focus:text-white focus:shadow-lg"
+    >
+      মূল বিষয়বস্তুতে যান
+    </a>
+
+    <Header settings={settings} categories={categories} />
+
+    <main id="main-content" class="min-h-[50vh]">
+      <slot />
+    </main>
+
+    <Footer settings={settings} categories={categories} footerPages={footerPages} />
+
+    {!hideShareBar && <MobileShareBar />}
+  </body>
+</html>

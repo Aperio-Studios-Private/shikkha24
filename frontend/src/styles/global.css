@@ -2,33 +2,49 @@
 @import './fonts.css';
 
 /*
- * S0 design-token foundation.
+ * Shikkha24 design system — S2.
  *
- * This is the TOOLCHAIN layer only — brand colours, font stacks and the Bengali
- * typography floor. The full design system (grid, components, dark-mode audit,
- * header/footer) is S2 and must not be pre-empted here (agent rule 2: one
- * section at a time).
+ * Sources: `.sps/profile.md` (brand + typography), `docs/performance-budget.md`
+ * §3 (font budget), `docs/testing-and-qa.md` §3 (Bengali typography floor),
+ * `docs/seo-plan.md` (semantic structure).
  *
- * Sources: `.sps/profile.md` (project-only rules) and
- * `docs/performance-budget.md` §3 (font budget) / `docs/testing-and-qa.md` §3
- * (Bengali typography floor).
+ * Built at S0 as a token skeleton; this is the full system — type scale, the
+ * 12-column grid, colour roles and dark mode.
  */
 
-/* Dark mode follows the OS setting. BBC-style base, per the design reference. */
+/* Dark mode follows the OS by default and can be overridden by the reader's
+   toggle, which sets `.dark` on <html> and persists to localStorage. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   /* ── Brand ─────────────────────────────────────────────────────────────── */
-  /* Brand red + charcoal + white. Dark-mode base is a SEPARATE token —
-     `--color-dark-base` is #121212, not charcoal (#1F1F1F). Do not conflate. */
+  /* Two DISTINCT dark tokens — do not conflate them (`.sps/task.md` S2):
+     charcoal is the light-mode text colour, #121212 is the dark-mode canvas. */
   --color-brand-red: #da1c25;
   --color-brand-charcoal: #1f1f1f;
   --color-dark-base: #121212;
 
+  /* Tints used for borders, dividers and muted text in light mode. */
+  --color-ink: #1f1f1f;
+  --color-ink-muted: #5a5a5a;
+  --color-ink-subtle: #8a8a8a;
+  --color-rule: #e4e4e4;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f7f7f7;
+
+  /* Dark-mode counterparts, so components can read semantic names instead of
+     branching on `.dark` everywhere. */
+  --color-dark-surface: #1a1a1a;
+  --color-dark-raised: #242424;
+  --color-dark-rule: #333333;
+  --color-dark-ink: #ededed;
+  --color-dark-ink-muted: #a8a8a8;
+
   /* ── Typography ────────────────────────────────────────────────────────── */
   /* Hind Siliguri = headlines. Noto Sans Bengali = body.
-     Latin for the body family falls back to the system UI stack to stay inside
-     the <200 KB font budget — see scripts/fetch-fonts.mjs. */
+     Inter is deliberately absent (owner-approved 2026-09-12): its variable file
+     is 83 KB/weight and would break the 200 KB font budget. Latin/UI text uses
+     the system stack — see scripts/fetch-fonts.mjs. */
   --font-headline:
     'Hind Siliguri', 'Noto Sans Bengali', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
     sans-serif;
@@ -38,35 +54,53 @@
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     sans-serif;
 
-  /* ── Bengali typography floor (docs/testing-and-qa.md §3) ──────────────── */
-  /* Body text is never smaller than 17px and never tighter than 1.65 leading —
-     Bengali vowel signs (কার) and conjuncts (যুক্তাক্ষর) collide below that. */
-  --text-body: 1.0625rem; /* 17px */
-  --text-body--line-height: 1.65;
+  /* ── Type scale ────────────────────────────────────────────────────────── */
+  /* Bengali conjuncts (যুক্তাক্ষর) and vowel signs (কার) collide below 17px, so
+     `--text-base` IS the floor, not a suggestion (`docs/testing-and-qa.md` §3).
+     Line heights are generous for the same reason: Bengali stacks marks above
+     and below the baseline. */
+  --text-xs: 0.8125rem; /* 13px — labels only, never body copy */
+  --text-xs--line-height: 1.6;
+  --text-sm: 0.9375rem; /* 15px — metadata */
+  --text-sm--line-height: 1.6;
+  --text-base: 1.0625rem; /* 17px — BODY FLOOR */
+  --text-base--line-height: 1.65;
+  --text-lg: 1.1875rem; /* 19px */
+  --text-lg--line-height: 1.6;
+  --text-xl: 1.375rem; /* 22px */
+  --text-xl--line-height: 1.5;
+  --text-2xl: 1.625rem; /* 26px */
+  --text-2xl--line-height: 1.45;
+  --text-3xl: 2rem; /* 32px */
+  --text-3xl--line-height: 1.4;
+  --text-4xl: 2.5rem; /* 40px */
+  --text-4xl--line-height: 1.3;
 
-  /* ── Touch targets ─────────────────────────────────────────────────────── */
+  /* ── Layout ────────────────────────────────────────────────────────────── */
   --spacing-touch: 3rem; /* 48px minimum interactive target */
+  --container-content: 78rem; /* 1248px — the 12-col grid max width */
+  --container-prose: 42rem; /* readable measure for article body */
 }
 
 @layer base {
   html {
-    /* Bengali-first: never apply letter-spacing to Bengali text — spacing
-       hacks break conjunct rendering (docs/testing-and-qa.md §3). */
+    /* Bengali-first: never apply letter-spacing to Bengali text — spacing hacks
+       break conjunct rendering (`docs/testing-and-qa.md` §3). */
     -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
   }
 
   body {
     font-family: var(--font-body);
-    font-size: var(--text-body);
-    line-height: var(--text-body--line-height);
-    color: var(--color-brand-charcoal);
-    background-color: #ffffff;
-    /* Bengali needs room for descenders/ascenders; avoid clipping. */
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    color: var(--color-ink);
+    background-color: var(--color-surface);
     overflow-wrap: break-word;
   }
 
   .dark body {
-    color: #e8e8e8;
+    color: var(--color-dark-ink);
     background-color: var(--color-dark-base);
   }
 
@@ -77,26 +111,126 @@
   h5,
   h6 {
     font-family: var(--font-headline);
+    font-weight: 700;
     line-height: 1.35;
+    /* Prevents a single orphaned Bengali word on the last line. */
     text-wrap: balance;
   }
 
-  /* Visible focus states are an accessibility requirement, not a preference. */
+  /* Visible focus is an accessibility requirement, not a preference
+     (`docs/testing-and-qa.md` §3 — WCAG 2.2 AA). */
   :focus-visible {
     outline: 2px solid var(--color-brand-red);
     outline-offset: 2px;
+    border-radius: 2px;
   }
 
   /* The site is minimal-motion by policy; richer motion is confined to
      lazy-loaded S8 islands. Honour the OS preference everywhere. */
   @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
     *,
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
     }
+  }
+}
+
+@layer components {
+  /* ── The 12-column grid ────────────────────────────────────────────────────
+     One container, one grid. Every section composes from these two classes so
+     the page rhythm stays consistent and no section invents its own widths. */
+  .container-page {
+    width: 100%;
+    max-width: var(--container-content);
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .container-page {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  .grid-12 {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .grid-12 {
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 1.25rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .grid-12 {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 1.5rem;
+    }
+  }
+
+  /* ── Article body ────────────────────────────────────────────────────────── */
+  .prose-bn {
+    max-width: var(--container-prose);
+  }
+
+  .prose-bn p {
+    margin-block: 1.1em;
+  }
+
+  .prose-bn h2 {
+    font-size: var(--text-2xl);
+    margin-block: 1.6em 0.6em;
+  }
+
+  .prose-bn h3 {
+    font-size: var(--text-xl);
+    margin-block: 1.4em 0.5em;
+  }
+
+  .prose-bn a {
+    color: var(--color-brand-red);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .prose-bn ul,
+  .prose-bn ol {
+    margin-block: 1.1em;
+    padding-inline-start: 1.5em;
+  }
+
+  .prose-bn li {
+    margin-block: 0.4em;
+  }
+
+  .prose-bn blockquote {
+    border-inline-start: 3px solid var(--color-brand-red);
+    padding-inline-start: 1rem;
+    margin-block: 1.4em;
+    color: var(--color-ink-muted);
+  }
+
+  /* Visually hidden but available to screen readers. Used by the skip link and
+     icon-only controls, which must still have an accessible name. */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border-width: 0;
   }
 }
