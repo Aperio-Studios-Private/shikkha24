@@ -130,6 +130,11 @@ const ogImageUrl = ogImage || '/og-default.png'
       )
     }
 
+    {/* ── Page-specific head content ──────────────────────────────────
+        Lets a page add its own stylesheet or preload (e.g. the search page
+        loading the Pagefind UI CSS) without the Layout knowing about it. */}
+    <slot name="head" />
+
     <title>{pageTitle}</title>
   </head>
 

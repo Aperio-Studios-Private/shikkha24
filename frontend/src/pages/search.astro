@@ -1,0 +1,108 @@
+---
+/**
+ * Search — `/search?q=…`
+ *
+ * ## Why Pagefind
+ *
+ * The site is static HTML on Cloudflare Pages with no server in the request
+ * path, which rules out any search that needs a backend. Pagefind builds the
+ * index at build time from the generated HTML and queries it in the browser
+ * from small per-page fragments — so search costs nothing to run and works
+ * offline once loaded.
+ *
+ * It is also the right cost answer: no Algolia, no Elasticsearch, no monthly
+ * bill. `docs/performance-budget.md` and the no-card constraint make a hosted
+ * search service a non-starter.
+ *
+ * ## Bengali caveat, stated plainly
+ *
+ * Pagefind does **not** support stemming for Bengali — the build prints this
+ * warning. Search matches exact word forms only: a query for "শিক্ষা" will not
+ * match "শিক্ষার্থী". This is a real limitation, not a configuration mistake.
+ * Mitigations available later: add a synonym list, or (better) keep the
+ * 8-category taxonomy tight so browse-and-filter carries most discovery.
+ *
+ * ## Weight
+ *
+ * The UI script and chunk are loaded only on this page, not site-wide.
+ */
+import Layout from '../layouts/Layout.astro'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../lib/cms'
+
+const [settings, categories, footerPages] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+])
+---
+
+<Layout
+  title="অনুসন্ধান"
+  description="শিক্ষা২৪-এ অনুসন্ধান করুন।"
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+  hideShareBar={true}
+>
+  <link rel="stylesheet" href="/pagefind/pagefind-ui.css" slot="head" />
+
+  <div class="container-page py-6">
+    <h1 class="font-headline mb-4 text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+      অনুসন্ধান
+    </h1>
+
+    <div id="search" class="mb-8"></div>
+
+    {/* Browse fallback — matters more than usual given Bengali stemming is
+        unavailable, so filtering is often a better route than searching. */}
+    <section class="mt-10 border-t border-rule pt-6 dark:border-dark-rule">
+      <h2 class="font-headline mb-3 text-lg font-bold text-ink dark:text-dark-ink">
+        বিষয় অনুযায়ী দেখুন
+      </h2>
+      <ul class="flex flex-wrap gap-2">
+        {
+          categories.map((category) => (
+            <li>
+              <a
+                href={`/category/${category.slug}`}
+                class="inline-flex rounded-full border border-rule px-3 py-1.5 text-sm text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
+              >
+                {category.nameBn}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+  </div>
+
+  <script is:inline src="/pagefind/pagefind-ui.js"></script>
+  <script is:inline>
+    window.addEventListener('DOMContentLoaded', function () {
+      new PagefindUI({
+        element: '#search',
+        showSubResults: true,
+        showImages: false,
+        // Bengali UI strings — Pagefind ships English defaults only.
+        translations: {
+          placeholder: 'অনুসন্ধান...',
+          clear_search: 'মুছুন',
+          load_more: 'আরও ফলাফল',
+          search_label: 'সাইট অনুসন্ধান',
+          filters_label: 'ফিল্টার',
+          zero_results: '“[SEARCH_TERM]” এর জন্য কোনো ফলাফল পাওয়া যায়নি',
+          many_results: '“[SEARCH_TERM]” এর জন্য [COUNT] টি ফলাফল',
+          one_result: '“[SEARCH_TERM]” এর জন্য ১ টি ফলাফল',
+          alt_search: '“[SEARCH_TERM]” এর জন্য কোনো ফলাফল নেই। “[DIFFERENT_TERM]” দেখানো হচ্ছে।',
+          searching: '“[SEARCH_TERM]” অনুসন্ধান করা হচ্ছে...',
+        },
+      })
+    })
+  </script>
+</Layout>

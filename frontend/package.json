@@ -10,7 +10,7 @@
   },
   "scripts": {
     "dev": "NO_PROXY=localhost,127.0.0.1,::1 astro dev",
-    "build": "NO_PROXY=localhost,127.0.0.1,::1 astro build",
+    "build": "NO_PROXY=localhost,127.0.0.1,::1 astro build && pagefind --site dist",
     "preview": "astro preview",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
@@ -23,6 +23,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.13",
     "@tailwindcss/vite": "4.3.3",
+    "pagefind": "1.5.2",
     "tailwindcss": "4.3.3",
     "typescript": "7.0.2"
   },

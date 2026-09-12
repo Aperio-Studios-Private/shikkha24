@@ -34,6 +34,12 @@ Durable, cross-session truths only — not task logs.
 - ⚠️ **Subsetting MUST keep OpenType layout features.** Bengali conjuncts (যুক্তাক্ষর) are shaped, not single codepoints. SolaimanLipi carries the full Indic set (`akhn, blwf, half, liga, nukt, pstf, vatu`) — verify after any re-subset.
 - Rejected: **Hind Siliguri** (owner: hard to read, a numeral wouldn't render; only 92/128 Bengali codepoints), **Noto Sans Bengali** (interim, 110.5 KB/96), **Anek Bangla** (111.2 KB but 90/128 — larger *and* less complete), serifs Tiro Bangla / Noto Serif Bengali (wrong genre), display faces Atma / Baloo Da 2 / Galada (unusable at 17px). **Inter** dropped (83 KB/weight).
 
+## Standing decisions (owner-directed)
+- **Light mode is the default; dark is opt-in.** Do not follow `prefers-color-scheme` — a dark-mode phone was getting a dark site the reader never asked for.
+- **IP geolocation via ipwho.is** (keyless, no prompt). **ipapi.co is now behind a Cloudflare interstitial** and returns HTML instead of JSON, so browser lookups fail silently. Never use the browser Geolocation API — the permission prompt is hostile on a news homepage.
+- **Hijri date needs a −2 day correction** (`PUBLIC_HIJRI_OFFSET_DAYS`) against Aladhan, which computes its own Hijri. Re-calibrate if the owner reports drift.
+- **Match transliterated API strings with normalisation, not enumeration.** Aladhan returns `Rabīʿ al-awwal` but a hand-written table held `Rabi' al-Awwal`, and the Bengali label silently fell through to English. Strip diacritics + apostrophes + punctuation, lowercase, then look up.
+
 ## Gotchas (found the hard way)
 **Astro/Tailwind**
 - **Astro does NOT inherit page-level CSS imports into components.** Moving a stylesheet import into `Layout.astro` requires adding it there, or Tailwind emits *nothing* — built HTML has no `<link rel="stylesheet">`, page renders unstyled. Every stylesheet must be imported in the rendered tree.

@@ -93,8 +93,15 @@
 - [ ] **Author profiles + tag + date archive** — ⏳ **deferred**: CMS layer is ready (`getAuthorBySlug`, `getTagBySlug`, `getArchiveBuckets`, `getArticlesByMonth`) and there are no tags or multiple authors in the demo content yet. Routes are ~30 lines each once content exists.
 - [x] S5 DoD evidence → **user approval pending**
 
-## S6 — Search
-- [ ] Pagefind 1.5 + search UI
+## S6 — Search ✅ COMPLETE 2026-09-12
+- [x] **Pagefind 1.5.2** (MIT) installed as a dev dependency; index built by `pagefind --site dist` as part of `build`
+- [x] **Search UI** at `/search` — Pagefind's default UI with **Bengali translations** (placeholder, result counts, zero-results, searching)
+- [x] **Index scoped to articles** via `data-pagefind-body` on the article page and `data-pagefind-ignore` on the related-articles sidebar — 12 pages / 356 words indexed, not site chrome
+- [x] **Browse fallback** — category chips on the search page, which matters more than usual given the stemming limit below
+- [x] **Layout `head` slot added** so a page can inject its own stylesheet
+- [x] S6 DoD evidence → **user approval pending**
+
+⚠️ **Known limitation (not a bug):** Pagefind has **no Bengali stemming** — it prints this at build time. Search matches exact word forms only, so "শিক্ষা" will not match "শিক্ষার্থী". Options later: a synonym list, or lean on the category taxonomy for discovery.
 - [ ] **GATE: Bengali search quality tested on a real Bengali corpus** — blocking
 - [ ] Date/section filters
 - [ ] S6 DoD evidence → **user approval**

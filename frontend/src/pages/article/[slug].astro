@@ -133,7 +133,9 @@ const jsonLd = {
   <ReadingProgress />
   <PrintStyles />
 
-  <article class="container-page py-6">
+  {/* data-pagefind-body scopes the search index to the story itself, so
+      results are not polluted by the nav, sidebar or footer. */}
+  <article class="container-page py-6" data-pagefind-body>
     <div class="grid-12">
       <div class="col-span-4 sm:col-span-8 lg:col-span-8">
         {/* Breadcrumb */}
@@ -217,8 +219,13 @@ const jsonLd = {
         </div>
       </div>
 
-      {/* Sidebar — related articles on desktop */}
-      <aside class="col-span-4 mt-8 sm:col-span-8 lg:col-span-4 lg:mt-0">
+      {/* Sidebar — related articles on desktop.
+          Excluded from the index: these headlines belong to other stories and
+          would make this article match queries it is not about. */}
+      <aside
+        class="col-span-4 mt-8 sm:col-span-8 lg:col-span-4 lg:mt-0"
+        data-pagefind-ignore
+      >
         <div class="lg:sticky lg:top-4">
           <RelatedArticles articles={related} />
         </div>
