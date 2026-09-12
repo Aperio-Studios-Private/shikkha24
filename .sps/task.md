@@ -102,9 +102,9 @@
 - [x] S6 DoD evidence → **user approval pending**
 
 ⚠️ **Known limitation (not a bug):** Pagefind has **no Bengali stemming** — it prints this at build time. Search matches exact word forms only, so "শিক্ষা" will not match "শিক্ষার্থী". Options later: a synonym list, or lean on the category taxonomy for discovery.
-- [ ] **GATE: Bengali search quality tested on a real Bengali corpus** — blocking
+- [ ] **GATE: Bengali search quality tested on a real Bengali corpus** — blocking; there is no real corpus yet
 - [ ] Date/section filters
-- [ ] S6 DoD evidence → **user approval**
+- [ ] S6 DoD evidence → **user approval** *(committed as `01f84e1`; lint/typecheck/build all green)*
 
 ## S7 — Ad System
 - [ ] AdSlot (zero-CLS), AdSense, sponsor banners, Payload ad management, sponsored content template
@@ -136,7 +136,11 @@
 - [ ] S10 DoD evidence → **user approval**
 
 ## S11 — SEO, Feeds & AI Optimization
-- [ ] News sitemap (<48h), sitemap, RSS, OG/Twitter, auto OG images, canonical, `llms.txt`, robots.txt, Publisher Center, E-E-A-T pages
+> ⚠️ **Sequencing deviation:** the four feed routes below were built **ahead of the S0→S12 order** on 2026-09-12. They are verified and committed. **Nothing else in S11 is started.**
+- [x] **Feeds subset (built ahead of sequence):** `robots.txt`, `sitemap.xml`, `news-sitemap.xml`, `rss.xml` — all build-time from the CMS. Verified: sitemap 23 URLs (3 static + 8 categories + 12 articles, real `publishedAt` as `lastmod`), news-sitemap 12 URLs inside 48h, RSS 12 items with Bengali `<category>`. `@astrojs/sitemap` / `@astrojs/rss` deliberately **not** used.
+- [ ] OG/Twitter cards, auto OG images, canonical + parameter stripping
+- [ ] `llms.txt`, Google Publisher Center registration
+- [ ] E-E-A-T pages — **blocked on the owner** supplying Trade Licence, TIN, Ministry of Information registration
 - [ ] URL architecture implemented: `/:category/:subcategory/:id/:slug` + shortlink for social sharing
 - [ ] S11 DoD evidence → **user approval**
 
