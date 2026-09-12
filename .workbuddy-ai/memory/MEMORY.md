@@ -38,11 +38,23 @@ Durable, cross-session truths only — not task logs.
 - **Match transliterated API strings by normalisation, not enumeration** — strip diacritics/apostrophes/punctuation, lowercase, then look up. Aladhan returns `Rabīʿ al-awwal`; a hand-written table held `Rabi' al-Awwal` and the Bengali label silently fell through to English.
 - **Bangla calendar = the Bangladesh variant** (year starts 14 April; months 1–5 = 31 days, 6–12 = 30; ফাল্গুন +1 in leap year). Not the Indian variant.
 
+## Ad system (S7, built 2026-09-12)
+- **`AD_POSITIONS` is a contract, not a taxonomy.** Each value has exactly one `AdSlot` in the frontend, and each slot reserves its box before any ad loads. A position with no slot renders nothing; a slot with no position renders the labelled placeholder. S1's original vocabulary matched **no** real slot, which made the whole collection inert — don't reintroduce free-form slot labels.
+- **No raw-HTML ad field, ever.** `codeSnippet` was removed: rendering CMS-authored HTML is stored XSS, and a compromised Ad Manager account would poison every page. Markup is generated from structured fields (`adsenseSlotId`, `image`, `targetUrl`).
+- **`clickCount` was removed** — a static site cannot count clicks, and beaconing to the CMS from the browser would break "a CMS outage cannot take the site down". Deferred to Cloudflare Web Analytics.
+- **⚠️ Cloudflare Pages JOINS duplicate headers with a comma — it does NOT override.** A comma-joined CSP is enforced as *two* policies, so a strict site-wide `script-src 'self'` still blocks AdSense regardless of a more specific rule. A more specific rule must **`!`-detach** the inherited policy first. Applied to `/`, `/article/*`, `/category/*`. **S12 must verify production returns exactly ONE CSP header.**
+- **AdSense loads only on `window.load` → `requestIdleCallback`,** never the copy-paste `<head>` script. With no unit configured the loader makes **zero** third-party requests — that is what holds the no-ads Lighthouse ≥95 profile.
+- **Mid-article ads need ≥6 paragraphs** (`countParagraphs`/`splitHtmlAtParagraph` in `lib/richtext.ts`, cutting only after a `</p>`). Demo articles are 4 paragraphs, so that path needs `scripts/verify-ads-s7.mjs` to exercise it.
+- **A body's `children.length` is not its paragraph count** — the demo body also holds a heading, a list and a blockquote. Cost one false test failure.
+- **Sponsored content:** `isSponsored` + `sponsorName`; excluded from the masthead and breaking ticker, kept in category sections and the latest feed with a «বিজ্ঞাপন» label. The latest feed excludes whatever the masthead showed, matched by **slug** — slicing by index re-showed the promoted story as the feed's lead.
+
 ## Gotchas (found the hard way)
 **Build environment (this machine)**
 - **`HTTP_PROXY` is set → build-time CMS fetches silently fail.** Astro's build-time `fetch()` routes `localhost:3000` through the proxy → **502**. The CMS layer degrades gracefully, so the build stays **green** while every page falls back to empty data and article routes 404 (`getAllArticleSlugs()` → `[]`). **Tell: a green build with suspiciously thin pages, or 304-byte redirect stubs in `dist/article/*`.** Fixed by `NO_PROXY=localhost,127.0.0.1,::1` in `frontend/package.json` `dev`/`build`. `curl` needs `--noproxy '*'`.
 - **The sandbox safe-delete shim aborts `astro build`.** Astro deletes its own `dist/` + `dist/.prerender/`; the bulk-delete guard (threshold 50/turn) trips and the build exits 1 **after** writing the pages — so `dist/` looks populated but `pagefind` never runs and `.prerender/` is left to be deployed. **Fix: prefix with `CODEBUDDY_SAFE_DELETE_ENABLED=0`** (deletes are confined to git-ignored `dist/`).
 - **Background servers do not survive between tool calls.** Start the CMS **and** run the build in the *same* command.
+- **Parallel edits to the SAME file silently lose writes.** Several edits to one file in one message report success but only some land (typically the first and third survive, the second and fourth are dropped) — no error, no warning. Cost two debugging rounds. **Serialize edits to one file and read the value back; different files in parallel are fine.**
+- **Drizzle's schema push is interactive and will hang the build.** Dropping/renaming a column makes Payload ask "is this a rename?" on stdin; the dev server blocks forever and the build's CMS health check never passes. With no data in the table, back up the DB and `DROP TABLE` it so Payload recreates it cleanly.
 - `.astro` templates are **not type-checked** (`@astrojs/check` rejects TS 7) → typecheck = `tsc --noEmit`. ESLint can't run on TS 7 either → **Biome 2.5.13** is the linter.
 
 **Astro/Tailwind**

@@ -106,9 +106,14 @@
 - [ ] Date/section filters
 - [ ] S6 DoD evidence → **user approval** *(committed as `01f84e1`; lint/typecheck/build all green)*
 
-## S7 — Ad System
-- [ ] AdSlot (zero-CLS), AdSense, sponsor banners, Payload ad management, sponsored content template
-- [ ] S7 DoD evidence → **user approval**
+## S7 — Ad System ✅ COMPLETE 2026-09-12
+- [x] **AdSlot (zero-CLS)** — takes a `position`, reserves its box before any ad loads, falls back to a labelled placeholder. Ads load after LCP, never above the fold.
+- [x] **AdSense** — `AdCreative.astro` injects the library on `window.load` → `requestIdleCallback`, never the copy-paste `<head>` script. Client id is CMS-managed (`SiteSettings → Tracking`). Zero third-party requests while no unit is configured.
+- [x] **Sponsor banners** — `adType: sponsorBanner | direct` renders image + targetUrl with `rel="sponsored nofollow"` and a mandatory «বিজ্ঞাপন» label.
+- [x] **Payload ad management** — ⚠️ **the S1 position vocabulary did not match a single real slot**, so no ad unit could ever render. Reconciled to the 8 slots that exist; the collection held no data. Also removed the `codeSnippet` raw-HTML field (script-injection vector) and `clickCount` (a static site cannot increment it).
+- [x] **Sponsored content template** — `isSponsored` + `sponsorName` on Articles; banner above the headline, badge in byline and on cards; excluded from the masthead and breaking ticker, kept in category sections and the latest feed.
+- [x] **Relaxed CSP profile** for `/`, `/article/*`, `/category/*` — ⚠️ Cloudflare **joins** duplicate headers with a comma rather than overriding, so the more specific rule must `!`-detach the inherited policy first. **S12 check:** confirm production returns exactly one CSP header.
+- [x] S7 DoD evidence → **user approval pending** (`.sps/section-todos/S7.md`)
 
 ## S8 — Live Blog & Interactive
 - [ ] Live blog engine (exam results, admission days), polls, quizzes, infographic blocks, scrollytelling (lazy-loaded islands only)

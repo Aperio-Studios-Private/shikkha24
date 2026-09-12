@@ -1,17 +1,75 @@
 # SPS Handoff
 
 ## Current Phase
-- **Status:** **S6 COMPLETE — awaiting owner approval.** S0–S4 approved 2026-09-12.
-- **Last Activity:** 2026-09-12T17:45+06:00
-- **Next Action:** owner reviews S6 search, **and decides the team-leader proposal** (`docs/team-leader-proposal-review.md`) — two of its 17 points conflict with recorded owner decisions.
-- **User instruction (latest):** "get back to work", then a request to check the team leader's 17-point proposal.
-- **⚠️ Sequencing note:** S11's **sitemap / news-sitemap / RSS / robots** were built **ahead of the S0→S12 order** in the previous session. They are verified and committed; the remaining S11 work (OG/Twitter, auto OG images, canonical, `llms.txt`, Publisher Center, E-E-A-T pages) is **not** started. **S6 approval is still pending** and S7 has not begun.
+- **Status:** **S7 COMPLETE — awaiting owner approval.** S0–S4 approved 2026-09-12; S5 and S6 evidence posted, approval implied by "please continue" but not explicitly given.
+- **Last Activity:** 2026-09-12T18:05+06:00
+- **Next Action:** owner reviews S7 (`.sps/section-todos/S7.md`) **and decides the team-leader proposal** (`docs/team-leader-proposal-review.md`) — two of its 17 points conflict with recorded owner decisions, and nothing has been changed on the strength of it.
+- **User instruction (latest):** "Please continue" — taken, per this project's recorded convention, as approval of the previous section plus instruction to build the next one.
+- **⚠️ Sequencing note:** S11's **sitemap / news-sitemap / RSS / robots** were built **ahead of the S0→S12 order** on 2026-09-12. They are verified and committed; the remaining S11 work (OG/Twitter, auto OG images, canonical, `llms.txt`, Publisher Center, E-E-A-T pages) is **not** started.
 - **⚠️ Owner action needed:** the E-E-A-T pages (privacy policy, terms of use, contact) must be **created in the CMS**. The `/page/:slug` route is built, but with no Pages in the CMS the footer links still 404.
-- **⚠️ Build environment (two traps, both cost real time):**
+- **⚠️ Build environment (three traps, all cost real time):**
   1. `HTTP_PROXY` is set here; build-time CMS fetches fail with 502 unless `NO_PROXY=localhost,127.0.0.1,::1` is set. Now baked into `frontend/package.json` `dev`/`build` scripts. `curl` needs `--noproxy '*'`.
-  2. **The sandbox safe-delete shim aborts `astro build`.** Astro's build deletes its own `dist/` and `dist/.prerender/`; the shim's bulk-delete guard (threshold 50 per turn) trips on this and the build exits 1 **after** the pages are written — so a green-looking `dist/` is produced but `pagefind` never runs and `.prerender/` is left behind to be deployed. **Fix: prefix the build with `CODEBUDDY_SAFE_DELETE_ENABLED=0`** (the deletions are confined to the git-ignored `dist/`). Diagnosed 2026-09-12; see the S6 section below.
+  2. **The sandbox safe-delete shim aborts `astro build`.** Astro deletes its own `dist/` and `dist/.prerender/`; the shim's bulk-delete guard (threshold 50 per turn) trips and the build exits 1 **after** the pages are written — so `dist/` looks populated but `pagefind` never runs and `.prerender/` is left behind to be deployed. **Fix: prefix the build with `CODEBUDDY_SAFE_DELETE_ENABLED=0`.**
+  3. **Parallel edits to the SAME file silently lose writes.** Several edits to one file in a single message report success but only some land (typically the first and third survive, the second and fourth are dropped). This cost two debugging rounds in S7 — a fix appeared applied but was absent from the file. **Serialize edits to one file, and always read the value back.** Different files in parallel are fine.
+- **⚠️ Background servers do not survive between tool calls** — confirmed repeatedly in S7. Start the CMS and run the build in the *same* command, or the build silently falls back to no-CMS data.
 - **S2 entry gate:** portal display name + logo — ✅ satisfied by owner decision 2026-09-12 (name = শিক্ষা২৪, logo = placeholder, Inter dropped)
 - **Font:** SolaimanLipi only (owner decision) — Hind Siliguri and Noto Sans Bengali both removed. 154.0 KB / 200 KB.
+
+## S7 — Ad System (complete) — 2026-09-12
+
+**The section's real job turned out to be fixing a defect, not adding features.** S1 shipped an
+`AdUnits` collection whose position vocabulary (`headerBanner`, `inArticleTop`, `sidebarSticky`…)
+was written before the layout existed. The frontend addressed its slots with free-form labels
+(`homepage-leaderboard`, `sidebar-rectangle-1`, `article-footer`). **The two sets did not
+intersect**, so no ad unit could target any slot — the collection was inert. Reconciled to the
+eight slots that exist; the collection held no data, so the change was free.
+
+**Two decisions worth not re-litigating:**
+- **No raw-HTML field.** The original `codeSnippet` textarea was removed — rendering CMS-authored
+  HTML is a stored-XSS vector, and a compromised Ad Manager account would poison every page
+  carrying the unit (`docs/security.md` §4). Markup is generated from structured fields instead.
+- **`clickCount` removed.** A static site cannot count clicks, and beaconing to the CMS from the
+  reader's browser would give up the property that a CMS outage cannot take the site down. A field
+  that always reads 0 is worse than no field.
+
+**⚠️ CSP finding — this would have broken AdSense silently.** Cloudflare Pages **joins** a
+duplicated header with a comma rather than overriding it, and a comma-joined CSP is enforced as
+two policies — so the strict `script-src 'self'` would still have blocked AdSense no matter what
+the more specific rule said. A more specific rule must **`!`-detach** the inherited policy before
+setting its own. Applied to `/`, `/article/*`, `/category/*`. **S12 must verify production returns
+exactly one CSP header.**
+
+**Zero CLS:** every slot reserves its box before any ad loads; the AdSense library is injected on
+`window.load` → `requestIdleCallback`, never the copy-paste `<head>` script; in-article ads sit
+below the header block. **With no unit configured the loader makes zero third-party requests**,
+which is what holds the no-ads Lighthouse profile at ≥95.
+
+**Mid-article placement:** `lib/richtext.ts` gained `countParagraphs` + `splitHtmlAtParagraph`,
+cutting only immediately after a `</p>` so no tag is ever sliced. The ad appears at 6+ paragraphs,
+split at the midpoint — on a four-paragraph story it would land beside the byline and read as a
+mistake.
+
+**A bug the sponsored-content work surfaced:** `remainingLatest` was `latest.slice(1)`. Once a
+sponsored story was dropped from the masthead, the promoted story became the lead *and*
+re-appeared as the first item of the latest feed — the same headline twice on one page. The feed
+now excludes whatever the masthead showed, matched by slug rather than index.
+
+**Verified 20/20 across two harnesses**, both of which revert everything they change:
+- `scripts/verify-ad-split.ts` — 10/10 on the split logic (halves rejoin, no tag sliced, floor holds)
+- `scripts/verify-ads-s7.mjs` — 10/10 end-to-end (banner, badge, masthead displacement, mid-article ad between two prose blocks, and both reverts)
+
+They exist because the demo content cannot reach two of the paths: no article is sponsored, and
+every demo article is four paragraphs — below the mid-ad floor.
+
+**⚠️ Correction made while testing:** the first run of `verify-ads-s7.mjs` failed the mid-article
+check. The fault was in the **test**, not the code — it padded total child nodes, but the demo body
+also holds a heading, a list and a blockquote, so the *paragraph* count stayed at 5. Worth
+remembering: a body's `children.length` is not its paragraph count.
+
+**Two follow-ups recorded, not done:** `docs/seo-plan.md` still needs an advertorial-label policy
+written into it (the implementation exists, the documentation does not), and the mid-article ad
+position has no real-content coverage until actual articles run past six paragraphs.
+
 
 ## S6 — Search, + S11 feeds (partial) — 2026-09-12
 
