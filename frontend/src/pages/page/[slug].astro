@@ -1,0 +1,77 @@
+---
+/**
+ * Static CMS page — `/page/:slug`.
+ *
+ * Serves the E-E-A-T pages (privacy policy, terms of use, contact) that the
+ * footer links to. Those links have pointed at nothing since S2; this is the
+ * route that makes them real.
+ *
+ * Body is Lexical richText, rendered through the same escaping converter as
+ * articles — a CMS-authored page is still user input.
+ */
+import Layout from '../../layouts/Layout.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import { lexicalToHtml } from '../../lib/richtext'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  getPageBySlug,
+  getAllPageSlugs,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../../lib/cms'
+
+export async function getStaticPaths() {
+  const slugs = await getAllPageSlugs().catch(() => [])
+  return slugs.map((slug) => ({ params: { slug } }))
+}
+
+const { slug } = Astro.params
+
+const [settings, categories, footerPages, page] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getPageBySlug(slug!).catch(() => null),
+])
+
+if (!page) return Astro.redirect('/404')
+
+const bodyHtml = lexicalToHtml(page.body)
+---
+
+<Layout
+  title={page.title}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+  hideShareBar={true}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: page.title, href: `/page/${page.slug}` }]} />
+
+    <article class="max-w-3xl">
+      <h1 class="font-headline mb-4 text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+        {page.title}
+      </h1>
+
+      <div class="prose-bn text-ink dark:text-dark-ink" set:html={bodyHtml} />
+
+      {
+        page.updatedAt && (
+          <p class="mt-8 text-xs text-ink-subtle dark:text-dark-ink-muted">
+            সর্বশেষ হালনাগাদ:{' '}
+            <time datetime={page.updatedAt}>
+              {new Date(page.updatedAt).toLocaleDateString('bn-BD', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
+            </time>
+          </p>
+        )
+      }
+    </article>
+  </div>
+</Layout>

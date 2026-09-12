@@ -1,0 +1,86 @@
+---
+/**
+ * 404 — page not found.
+ *
+ * The article route redirects here when a slug has no published article, so
+ * this page is reachable in normal operation, not just on a typo.
+ *
+ * Keeps the full header and footer — a reader who lands here should be able to
+ * navigate away, not hit a dead end.
+ */
+import Layout from '../layouts/Layout.astro'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  getArticlesPage,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../lib/cms'
+
+const [settings, categories, footerPages, latest] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getArticlesPage({ limit: 6 }).catch(() => ({ docs: [] })),
+])
+---
+
+<Layout
+  title="পাওয়া যায়নি"
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+  hideShareBar={true}
+>
+  <div class="container-page py-12">
+    <div class="mx-auto max-w-2xl text-center">
+      <p class="font-headline text-6xl font-bold text-brand-red">৪০৪</p>
+      <h1 class="font-headline mt-4 text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+        এই পাতাটি পাওয়া যায়নি
+      </h1>
+      <p class="mt-3 text-base text-ink-muted dark:text-dark-ink-muted">
+        লিংকটি ভুল হতে পারে, অথবা পাতাটি সরিয়ে ফেলা হয়েছে।
+      </p>
+
+      <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <a
+          href="/"
+          class="inline-flex h-10 items-center rounded-md bg-brand-red px-5 text-sm font-medium text-white"
+        >
+          হোমে ফিরে যান
+        </a>
+        <a
+          href="/latest"
+          class="inline-flex h-10 items-center rounded-md border border-rule px-5 text-sm font-medium text-ink hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
+        >
+          সর্বশেষ খবর
+        </a>
+      </div>
+    </div>
+
+    {
+      latest.docs.length > 0 && (
+        <section class="mt-12">
+          <h2 class="font-headline mb-4 border-b-2 border-brand-red pb-2 text-xl font-bold text-ink dark:text-dark-ink">
+            সাম্প্রতিক খবর
+          </h2>
+          <ul class="grid-12">
+            {latest.docs.map((article) => (
+              <li class="col-span-4 sm:col-span-4 lg:col-span-4">
+                <a
+                  href={`/article/${article.slug}`}
+                  class="group block no-underline"
+                >
+                  <h3 class="font-headline line-clamp-2 text-base font-bold text-ink transition-colors group-hover:text-brand-red dark:text-dark-ink">
+                    {article.title}
+                  </h3>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+  </div>
+</Layout>

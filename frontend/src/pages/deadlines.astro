@@ -1,0 +1,138 @@
+---
+/**
+ * Deadlines — `/deadlines`.
+ *
+ * The full N1 (scholarship) + N2 (academic calendar) list. The homepage strip
+ * shows the urgent head; this is the complete, filterable-by-scroll surface and
+ * the target of the strip's "সব দেখুন".
+ */
+import Layout from '../layouts/Layout.astro'
+import Breadcrumbs from '../components/Breadcrumbs.astro'
+import { toBnDigits } from '../lib/widgets'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  getAllDeadlines,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../lib/cms'
+
+const [settings, categories, footerPages, deadlines] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getAllDeadlines().catch(() => []),
+])
+
+const TYPE_LABELS: Record<string, string> = {
+  admission: 'ভর্তি',
+  result: 'ফলাফল',
+  examRoutine: 'পরীক্ষার রুটিন',
+  scholarshipDeadline: 'বৃত্তির সময়সীমা',
+  holiday: 'ছুটি',
+  circular: 'বিজ্ঞপ্তি',
+}
+
+const TODAY = new Date()
+TODAY.setHours(0, 0, 0, 0)
+
+function daysUntil(date: string | null | undefined): number | null {
+  if (!date) return null
+  const target = new Date(date)
+  target.setHours(0, 0, 0, 0)
+  return Math.round((target.getTime() - TODAY.getTime()) / 86_400_000)
+}
+
+function urgencyLabel(days: number | null): { text: string; urgent: boolean } | null {
+  if (days === null) return null
+  if (days < 0) return { text: 'শেষ', urgent: false }
+  if (days === 0) return { text: 'আজ', urgent: true }
+  if (days === 1) return { text: 'আগামীকাল', urgent: true }
+  return { text: `${toBnDigits(days)} দিন বাকি`, urgent: days <= 3 }
+}
+
+function formatDate(date: string | null | undefined): string {
+  if (!date) return ''
+  return new Date(date).toLocaleDateString('bn-BD', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+---
+
+<Layout
+  title="শিক্ষা ক্যালেন্ডার ও ডেডলাইন"
+  description="বৃত্তি, ভর্তি, পরীক্ষা ও ফলাফলের সব গুরুত্বপূর্ণ তারিখ এক জায়গায়।"
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'ডেডলাইন', href: '/deadlines' }]} />
+
+    <header class="mb-6 border-b-2 border-brand-red pb-3">
+      <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+        শিক্ষা ক্যালেন্ডার ও ডেডলাইন
+      </h1>
+      <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">
+        বৃত্তির আবেদন, ভর্তির সময়সীমা, পরীক্ষার রুটিন ও ফলাফলের তারিখ — সব এক জায়গায়।
+      </p>
+    </header>
+
+    {
+      deadlines.length === 0 ? (
+        <p class="rounded-md border border-rule bg-surface-raised p-6 text-center text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
+          এখনো কোনো ডেডলাইন যোগ করা হয়নি।
+        </p>
+      ) : (
+        <ul class="flex flex-col gap-3">
+          {deadlines.map((deadline) => {
+            const days = daysUntil(deadline.dateEnd ?? deadline.dateStart)
+            const urgency = urgencyLabel(days)
+            const typeLabel = deadline.type ? TYPE_LABELS[deadline.type] ?? deadline.type : null
+
+            return (
+              <li class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
+                <div class="flex flex-wrap items-center gap-2">
+                  {typeLabel && (
+                    <span class="rounded bg-brand-red/10 px-2 py-0.5 text-xs font-semibold text-brand-red dark:bg-brand-red/20">
+                      {typeLabel}
+                    </span>
+                  )}
+                  {urgency && (
+                    <span
+                      class:list={[
+                        'text-xs font-semibold',
+                        urgency.urgent
+                          ? 'text-brand-red'
+                          : 'text-ink-subtle dark:text-dark-ink-muted',
+                      ]}
+                    >
+                      {urgency.text}
+                    </span>
+                  )}
+                </div>
+
+                <h2 class="font-headline mt-2 text-lg font-bold text-ink dark:text-dark-ink">
+                  {deadline.title}
+                </h2>
+
+                {deadline.description && (
+                  <p class="mt-1 text-sm text-ink-muted dark:text-dark-ink-muted">
+                    {deadline.description}
+                  </p>
+                )}
+
+                <time class="mt-2 block text-xs text-ink-subtle dark:text-dark-ink-muted">
+                  {formatDate(deadline.dateEnd ?? deadline.dateStart)}
+                </time>
+              </li>
+            )
+          })}
+        </ul>
+      )
+    }
+  </div>
+</Layout>

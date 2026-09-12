@@ -1,0 +1,141 @@
+---
+/**
+ * Category listing — `/category/:slug` and `/category/:slug/page/:n`.
+ *
+ * One catch-all route handles both the first page and subsequent pages, so
+ * there is a single place where category listing behaviour lives.
+ *
+ * Path shapes:
+ *   `admission`          → category "admission", page 1
+ *   `admission/page/2`   → category "admission", page 2
+ */
+import Layout from '../../layouts/Layout.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import ArticleGrid from '../../components/ArticleGrid.astro'
+import Pagination from '../../components/Pagination.astro'
+import AdSlot from '../../components/AdSlot.astro'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  getArticlesPage,
+  getSubcategories,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+  PAGE_SIZE,
+} from '../../lib/cms'
+
+/** Parse a catch-all path into a category slug and a page number. */
+function parsePath(path: string): { slug: string; page: number } {
+  const parts = path.split('/').filter(Boolean)
+  // [slug] or [slug, 'page', n]
+  if (parts.length >= 3 && parts[1] === 'page') {
+    const page = Number.parseInt(parts[2] ?? '1', 10)
+    return { slug: parts[0] ?? '', page: Number.isFinite(page) && page > 0 ? page : 1 }
+  }
+  return { slug: parts[0] ?? '', page: 1 }
+}
+
+export async function getStaticPaths() {
+  const categories = await getCategories().catch(() => FALLBACK_CATEGORIES)
+  const paths: Array<{ params: { path: string }; props: Record<string, unknown> }> = []
+
+  for (const category of categories) {
+    // Fetch page 1 to learn how many pages exist, then emit one path per page.
+    const first = await getArticlesPage({
+      categorySlug: category.slug,
+      page: 1,
+      limit: PAGE_SIZE,
+    }).catch(() => ({ totalPages: 1 }))
+
+    const totalPages = 'totalPages' in first ? (first.totalPages ?? 1) : 1
+
+    for (let page = 1; page <= totalPages; page++) {
+      paths.push({
+        params: { path: page === 1 ? category.slug : `${category.slug}/page/${page}` },
+        props: { slug: category.slug, page },
+      })
+    }
+  }
+
+  return paths
+}
+
+const { slug, page } = Astro.props as { slug: string; page: number }
+
+const [settings, categories, footerPages, result, subcategories] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getArticlesPage({ categorySlug: slug, page, limit: PAGE_SIZE }).catch(() => ({
+    docs: [],
+    page,
+    totalPages: 1,
+    totalDocs: 0,
+    hasPrev: false,
+    hasNext: false,
+  })),
+  getSubcategories(slug).catch(() => []),
+])
+
+const category = categories.find((c) => c.slug === slug)
+const basePath = `/category/${slug}`
+---
+
+<Layout
+  title={category ? `${category.nameBn}${page > 1 ? ` — পেজ ${page}` : ''}` : slug}
+  description={category?.description ?? undefined}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs
+      items={[
+        { label: 'হোম', href: '/' },
+        { label: category?.nameBn ?? slug, href: basePath },
+      ]}
+    />
+
+    <header class="mb-6 border-b-2 border-brand-red pb-3">
+      <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+        {category?.nameBn ?? slug}
+      </h1>
+      {category?.description && (
+        <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">{category.description}</p>
+      )}
+      <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
+        {result.totalDocs} টি খবর
+      </p>
+    </header>
+
+    {
+      subcategories.length > 0 && (
+        <nav class="mb-6 flex flex-wrap gap-2" aria-label="উপবিভাগ">
+          <a
+            href={basePath}
+            class="rounded-full border border-rule px-3 py-1.5 text-sm text-ink hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
+          >
+            সব
+          </a>
+          {subcategories.map((sub) => (
+            <a
+              href={`/category/${sub.slug}`}
+              class="rounded-full border border-rule px-3 py-1.5 text-sm text-ink hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
+            >
+              {sub.nameBn}
+            </a>
+          ))}
+        </nav>
+      )
+    }
+
+    <div class="mb-8 flex justify-center">
+      <AdSlot slot="category-leaderboard" width={728} height={90} />
+    </div>
+
+    <ArticleGrid articles={result.docs} />
+
+    <Pagination page={result.page} totalPages={result.totalPages} basePath={basePath} />
+  </div>
+</Layout>

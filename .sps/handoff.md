@@ -1,10 +1,11 @@
 # SPS Handoff
 
 ## Current Phase
-- **Status:** S4 **COMPLETE — awaiting owner approval.** S0–S3 approved 2026-09-12.
-- **Last Activity:** 2026-09-12T10:45+06:00
-- **Next Action:** owner reviews the article page, then S5 (category/tag/author/archive listings)
-- **User instruction (latest):** "okay now assets are generating now continue to you tasks" — taken as S3 approval and instruction to build S4.
+- **Status:** S5 **COMPLETE — awaiting owner approval.** S0–S4 approved 2026-09-12.
+- **Last Activity:** 2026-09-12T11:00+06:00
+- **Next Action:** owner reviews the listings, then S6 (search)
+- **User instruction (latest):** "Please continue" — taken as S4 approval and instruction to build S5.
+- **⚠️ Owner action needed:** the E-E-A-T pages (privacy policy, terms of use, contact) must be **created in the CMS**. The `/page/:slug` route is built, but with no Pages in the CMS the footer links still 404.
 - **⚠️ Build environment:** `HTTP_PROXY` is set here; build-time CMS fetches fail with 502 unless `NO_PROXY=localhost,127.0.0.1,::1` is set. Now baked into `frontend/package.json` `dev`/`build` scripts. `curl` needs `--noproxy '*'`.
 - **S2 entry gate:** portal display name + logo — ✅ satisfied by owner decision 2026-09-12 (name = শিক্ষা২৪, logo = placeholder, Inter dropped)
 - **Font:** SolaimanLipi only (owner decision) — Hind Siliguri and Noto Sans Bengali both removed. 154.0 KB / 200 KB.
@@ -175,6 +176,30 @@ who pastes something unexpected sees their words rather than a missing paragraph
 
 **Deferred:** comments → S9 (they need social login and the comments UI; S4
 delivers the page shell).
+
+## S5 — Category / Tag / Author / Archive (complete)
+
+**Built:** category listings with pagination, breadcrumbs (with BreadcrumbList
+JSON-LD), subcategory filters, `/latest`, `/deadlines`, `/page/:slug` and a real
+Bengali 404. New shared components `ArticleGrid`, `Pagination`, `Breadcrumbs`.
+
+**Verified 7/7.** 25 pages built: 12 articles, 8 categories, latest, deadlines,
+home, 404.
+
+**Fixed the broken links left over from S3.** The homepage and footer linked to
+`/latest`, `/deadlines`, `/category/:slug` and `/404` — none existed. All now
+built. `/page/privacy-policy`, `/terms-of-use` and `/contact` have a route but
+**no CMS content yet**, so they still 404 — the owner needs to create those Pages.
+
+**Two design notes:** breadcrumbs generate the visible trail and the JSON-LD from
+one array so they cannot drift; `getStaticPaths` fetches page 1 to learn the page
+count then emits one path per page, so a 300-article category produces 25 pages
+automatically.
+
+**Deferred, groundwork done:** author profiles, tag pages and date archive are not
+built as *routes* because the demo content has no tags and one author — nothing to
+look at. The CMS layer is written and verified (`getTagBySlug`, `getAuthorBySlug`,
+`getArchiveBuckets`, `getArticlesByMonth`); each route is ~30 lines.
 
 ## ✅ S0 verification COMPLETE — the npm blocker was resolved with pnpm
 

@@ -84,9 +84,14 @@
 - [ ] Comments — ⏳ **deferred to S9** (needs social login + the comments collection UI; not part of S4's page shell)
 - [x] S4 DoD evidence → **user approval pending**
 
-## S5 — Category/Tag/Author/Archive
-- [ ] Listings, pagination, breadcrumbs, subcategory filters, author profiles, date archive
-- [ ] S5 DoD evidence → **user approval**
+## S5 — Category/Tag/Author/Archive ✅ COMPLETE 2026-09-12
+- [x] **Listings** — `/category/:slug` (8 built), `/latest`, `/deadlines`. Shared `ArticleGrid` so card layout lives in one place.
+- [x] **Pagination** — `Pagination.astro`; accessible nav, `aria-current`, `rel` prev/next, 7-link window, page 1 is the bare path.
+- [x] **Breadcrumbs** — `Breadcrumbs.astro` with **BreadcrumbList JSON-LD** generated from the same array as the visible trail, so they cannot drift.
+- [x] **Subcategory filters** — rendered when a category has children (`categories.parent` self-relation). Empty under the approved flat tree, which is correct.
+- [x] **Static pages + 404** — `/page/:slug` (E-E-A-T pages) and a real Bengali 404. ⚠️ **`/page/*` routes are empty until Pages exist in the CMS** — the footer links (privacy/terms/contact) need those created.
+- [ ] **Author profiles + tag + date archive** — ⏳ **deferred**: CMS layer is ready (`getAuthorBySlug`, `getTagBySlug`, `getArchiveBuckets`, `getArticlesByMonth`) and there are no tags or multiple authors in the demo content yet. Routes are ~30 lines each once content exists.
+- [x] S5 DoD evidence → **user approval pending**
 
 ## S6 — Search
 - [ ] Pagefind 1.5 + search UI

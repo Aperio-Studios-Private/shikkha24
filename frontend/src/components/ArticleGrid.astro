@@ -1,0 +1,35 @@
+---
+/**
+ * A grid of article cards — the shared body of every listing page.
+ *
+ * Category, tag, author, archive and latest all render the same thing; only the
+ * heading and the data source change. Sharing one component means a fix to card
+ * layout lands everywhere at once instead of in five places.
+ */
+import type { CmsArticle } from '../lib/cms'
+import ArticleCard from './ArticleCard.astro'
+
+interface Props {
+  articles: CmsArticle[]
+  /** Shown when there is nothing to list. */
+  emptyMessage?: string
+}
+
+const { articles, emptyMessage = 'এই বিভাগে এখনো কোনো খবর নেই।' } = Astro.props
+---
+
+{
+  articles.length === 0 ? (
+    <p class="rounded-md border border-rule bg-surface-raised p-6 text-center text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
+      {emptyMessage}
+    </p>
+  ) : (
+    <ul class="grid-12">
+      {articles.map((article) => (
+        <li class="col-span-4 sm:col-span-4 lg:col-span-4">
+          <ArticleCard article={article} variant="default" headingLevel={3} />
+        </li>
+      ))}
+    </ul>
+  )
+}

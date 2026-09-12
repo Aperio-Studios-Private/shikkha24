@@ -1,0 +1,74 @@
+---
+/**
+ * Breadcrumbs with BreadcrumbList structured data.
+ *
+ * Google renders the breadcrumb trail in search results in place of the raw URL,
+ * which measurably improves click-through on deep pages. `docs/seo-plan.md`
+ * requires BreadcrumbList on every listing template.
+ *
+ * The visible trail and the JSON-LD are generated from the same array, so they
+ * can never drift apart — a breadcrumb that says one thing and tells Google
+ * another is worse than no breadcrumb.
+ */
+interface Crumb {
+  label: string
+  href?: string
+}
+
+interface Props {
+  items: Crumb[]
+}
+
+const { items } = Astro.props
+
+const siteUrl = Astro.site ?? Astro.url.origin
+
+/**
+ * BreadcrumbList JSON-LD.
+ *
+ * Positions are 1-based and Google requires a full chain, so the home crumb is
+ * always included even when the caller omitted it.
+ */
+const chain: Crumb[] = [
+  { label: 'হোম', href: '/' },
+  ...items.filter((item) => item.href !== '/'),
+]
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: chain.map((item, index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    name: item.label,
+    ...(item.href ? { item: new URL(item.href, siteUrl).href } : {}),
+  })),
+}
+---
+
+<nav aria-label="breadcrumb" class="mb-4">
+  <ol class="flex flex-wrap items-center gap-1.5 text-xs text-ink-subtle dark:text-dark-ink-muted">
+    {
+      chain.map((item, index) => (
+        <li class="flex items-center gap-1.5">
+          {index > 0 && (
+            <span aria-hidden="true" class="text-ink-subtle/60">
+              /
+            </span>
+          )}
+          {item.href && index < chain.length - 1 ? (
+            <a href={item.href} class="hover:text-brand-red">
+              {item.label}
+            </a>
+          ) : (
+            <span aria-current="page" class="font-medium text-ink dark:text-dark-ink">
+              {item.label}
+            </span>
+          )}
+        </li>
+      ))
+    }
+  </ol>
+</nav>
+
+<script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
