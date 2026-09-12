@@ -44,6 +44,16 @@ export interface CmsSiteSettings {
   contact?: { email?: string | null; phone?: string | null; address?: string | null } | null
   social?: Record<string, string | null> | null
   footerText?: string | null
+  /**
+   * The E-E-A-T legal block. Bangladesh press portals are expected to publish
+   * trade licence, TIN and ministry registration — these belong in the footer,
+   * not hidden on a page nobody finds.
+   */
+  legal?: {
+    tradeLicense?: string | null
+    tin?: string | null
+    ministryRegistration?: string | null
+  } | null
 }
 
 export interface CmsPage {
