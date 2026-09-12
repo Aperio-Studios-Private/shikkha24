@@ -69,7 +69,7 @@ content layer that survives CMS outages.
 **Design system (`frontend/src/styles/global.css`):**
 - Brand colours: brand-red `#DA1C25`, brand-charcoal `#1F1F1F`, dark-base `#121212`
 - Semantic tokens: ink / ink-muted / ink-subtle / rule / surface / surface-raised + dark counterparts
-- Typography: Hind Siliguri (headlines), Noto Sans Bengali (body), system UI (Latin/UI). Inter **deliberately absent** — owner-approved; variable file is 83 KB/weight and would break the 200 KB font budget
+- Typography: **SolaimanLipi** — one Bengali family for BOTH headline and body (owner decision, later the same day). System UI for Latin/interfaces. Inter **deliberately absent** — owner-approved; variable file is 83 KB/weight and would break the 200 KB font budget
 - Type scale: base = 17px (Bengali floor), line-height ≥1.65
 - 12-col responsive grid: 4 → 8 → 12 columns
 - Accessibility: visible focus rings, `prefers-reduced-motion` honoured, skip link, text-wrap: balance
@@ -85,7 +85,7 @@ content layer that survives CMS outages.
 **Layout (`layouts/Layout.astro`):**
 - HTML5 boilerplate with `lang="bn"`
 - SEO meta tags, OG, Twitter, article dates, canonical, JSON-LD hook
-- Font preloading for Hind Siliguri + Noto Sans Bengali Bengali subsets
+- Font preloading: SolaimanLipi 400 on the critical path (bold loads normally)
 - Skip link → `#main-content`
 - Header → `<main>` → Footer → MobileShareBar
 
@@ -95,9 +95,12 @@ content layer that survives CMS outages.
 - Fallbacks mirror the approved 8-category tree and owner-confirmed site settings
 
 **Owner decisions applied (2026-09-12):**
-- Display name = শিক্ষা২৤ / Shikkha24 — confirmed
+- Display name = শিক্ষা২৪ / Shikkha24 — confirmed
 - Logo = placeholder SVG — CMS-managed; real asset drops in via admin with no code change
 - Inter is DROPPED from the typography stack — variable file 83 KB/weight blows the 200 KB budget
+- **Font settled on SolaimanLipi.** Owner first rejected Hind Siliguri (hard to read; a numeral would not render), then named SolaimanLipi. One Bengali family for both headline and body. **SIL Open Font License, not on Google Fonts** — vendored at `assets/fonts/vendor/` with `OFL.txt`. **154.0 KB** for two weights, subset Bengali + Latin. Subsetting keeps the Indic shaping features (`akhn, blwf, half, liga, nukt, pstf, vatu`) because Bengali conjuncts are shaped, not single codepoints. Rejected on measurement: Anek Bangla (111.2 KB, only 90/128 codepoints — larger *and* less complete), serifs Tiro Bangla / Noto Serif Bengali (wrong genre for news), display faces Atma / Baloo Da 2 / Galada (unusable at 17px). Noto Sans Bengali (110.5 KB, 96/128) was the interim choice before the owner named SolaimanLipi.
+
+**Bug found and fixed after S2 shipped:** the index page rendered completely unstyled. `Layout.astro` never imported `global.css` — the import had lived in the page and was not carried into the layout, so Tailwind emitted no CSS at all (`dist/` contained zero `.css` files). One-line fix, commit `073d20a`. Recorded in MEMORY.md: Astro does not inherit page-level CSS imports into components.
 
 **Two deviations recorded:**
 - `subcategories` is a self-relation on Categories, not a separate collection — the approved tree is flat (স্কুল-কলেজ was rejected as a category and replaced by the level filter)

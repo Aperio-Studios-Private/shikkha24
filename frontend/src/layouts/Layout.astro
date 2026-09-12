@@ -92,9 +92,12 @@ const ogImageUrl = ogImage || '/og-default.png'
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={metaDescription} />
 
-    {/* ── Fonts — preload the Bengali subsets to avoid FOIT ───────── */}
-    <link rel="preload" href="/fonts/hind-siliguri-400-bengali-ijwTs5juQt.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/noto-sans-bengali-400-bengali-Cn-SJsCGWQ.woff2" as="font" type="font/woff2" crossorigin />
+    {/* ── Fonts — preload the regular weight only ─────────────────────────
+        SolaimanLipi 400 is the file every headline and paragraph needs, so it
+        goes on the critical path to avoid a flash of invisible text. The bold
+        weight loads normally — far less text uses it. Each file already covers
+        Bengali AND Latin, so one preload serves mixed headlines like "HSC ২০২৬". */}
+    <link rel="preload" href="/fonts/solaimanlipi-400.woff2" as="font" type="font/woff2" crossorigin />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />

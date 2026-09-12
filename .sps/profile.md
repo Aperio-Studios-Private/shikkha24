@@ -45,7 +45,10 @@
 - Target devices: Symphony, Walton, Xiaomi, Realme, Samsung A-series on 3G/4G
 
 ## Project-only rules
-- Typography: Hind Siliguri (headlines) + Noto Sans Bengali (body). **Inter DROPPED — owner-approved 2026-09-12**; Latin/UI text uses a system UI stack. Reason: Inter's variable file is 83 KB/weight and would have pushed fonts to 234 KB against a 200 KB ceiling. Measured total: 179.7 KB.
+- Typography: **SolaimanLipi only** — one Bengali family for BOTH headline and body (owner decision 2026-09-12). **Inter DROPPED** (83 KB/weight would have pushed fonts to 234 KB against a 200 KB ceiling); Latin/UI text uses a system UI stack.
+  - **Why SolaimanLipi:** reader familiarity — it is what the major Bangladeshi newspapers are set in. Verified technically: **SIL Open Font License** (vendored at `assets/fonts/vendor/` with `OFL.txt`), **154.0 KB** for two weights subset to Bengali + Latin, full Indic shaping (`akhn, blwf, half, liga, nukt, pstf, vatu`) so যুক্তাক্ষর conjuncts form correctly, all 10 Bengali numerals and all vowel signs present.
+  - **History:** Hind Siliguri was removed first (owner: text hard to read, a numeral would not render; only 92/128 Bengali codepoints, missing ৲ ৼ ৽ ৾). Noto Sans Bengali (110.5 KB, 96/128) was the interim single-family choice, then replaced when the owner named SolaimanLipi.
+  - Not on Google Fonts — sourced from an OFL redistribution, which the licence permits.
 - Colors: brand red #DA1C25 + brand charcoal #1F1F1F + white — Prothom Alo inspired. Dark-mode base is #121212 (a separate token, not "charcoal").
 - Motion: minimal — breaking ticker, subtle hover, reading progress bar; richer motion only inside lazy-loaded S8 islands
 - Stack: Astro 7.3 (frontend) + Payload CMS 3 (backend) + SQLite → PostgreSQL

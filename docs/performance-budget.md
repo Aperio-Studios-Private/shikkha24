@@ -66,9 +66,17 @@ The stack-research estimates are: Hind Siliguri 25–40 KB/weight, Noto Sans Ben
 
 **DECIDED 2026-09-12 — Inter is DROPPED.** Owner-approved. Measured at S0: Inter's variable file is **83 KB per weight** (166 KB for two), which alone would have pushed the total to 234 KB — over the 200 KB ceiling with nothing left for the Bengali faces. Latin UI text renders in the system stack instead.
 
-**Measured result: 179.7 KB / 200 KB**, from six files — Hind Siliguri 400 + 700 (bengali + latin) and Noto Sans Bengali 400 + 700 (bengali only; body Latin falls back to the system stack). Regenerate with `node scripts/fetch-fonts.mjs`, which fails the build if the total exceeds the budget.
+**DECIDED 2026-09-12 — ONE Bengali family: SolaimanLipi.** Owner chose it by name for reader familiarity (it is what the major Bangladeshi newspapers are set in). It is **not on Google Fonts** — it is an SIL Open Font License face by Solaiman Karim / Ekushey / OmicronLAB, so it is vendored at `assets/fonts/vendor/` with the `OFL.txt` the licence requires, and the build needs no network access.
 
-⚠️ Two non-obvious details that cost real time to find, both now encoded in that script: requesting `wght@400;700` in a single css2 call returns one **variable** file (105 KB for Noto Sans Bengali's bengali subset alone), whereas requesting each weight separately returns **static** instances (43 KB) — same glyphs, less than half the bytes. And Google emits the `/* subset */` comment *before* each `@font-face` block, so parsing the two separately shifts every label by one and silently drops the bold Bengali files.
+**Measured result: 154.0 KB / 200 KB** (46 KB headroom), from two files — SolaimanLipi 400 (68.3 KB) + 700 (85.8 KB), each subset to Bengali + Latin and converted to WOFF2. Regenerate with `node scripts/fetch-fonts.mjs`, which fails the build if the total exceeds the budget.
+
+**History — two earlier decisions this replaces:**
+- *Hind Siliguri removed.* Owner found text hard to read and a numeral would not render. Measurement confirmed the weakness: **92 of 128** Bengali codepoints, missing ৲ ৼ ৽ ৾ outright.
+- *Noto Sans Bengali was the interim single-family choice* (110.5 KB, 96/128 — the most complete candidate measured), replaced when the owner named SolaimanLipi. Anek Bangla was rejected: 111.2 KB and only 90/128 — larger *and* less complete. Tiro Bangla / Noto Serif Bengali are serifs (wrong genre for a news portal); Atma / Baloo Da 2 / Galada are display faces, unusable at 17px body size.
+
+⚠️ **Subsetting must keep the OpenType layout features.** Bengali conjuncts (যুক্তাক্ষর) are not single codepoints — they are formed by shaping. SolaimanLipi carries the full Indic set (`akhn, blwf, half, liga, nukt, pstf, vatu`), verified present *after* subsetting. Subsetting with `--layout-features=""` would produce a font that looks fine in a codepoint count and renders every conjunct broken. The regeneration command is in the script's failure output.
+
+⚠️ Two non-obvious details that cost real time to find during the earlier Google-fetched era: requesting `wght@400;700` in a single css2 call returns one **variable** file (105 KB for Noto Sans Bengali's bengali subset alone), whereas requesting each weight separately returns **static** instances (43 KB) — same glyphs, less than half the bytes. And Google emits the `/* subset */` comment *before* each `@font-face` block, so parsing the two separately shifts every label by one and silently drops the bold Bengali files. These no longer apply now that the font is vendored, but they are why the size numbers moved as they did.
 
 ---
 

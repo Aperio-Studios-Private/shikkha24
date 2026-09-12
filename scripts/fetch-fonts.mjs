@@ -1,130 +1,118 @@
 #!/usr/bin/env node
 /**
- * Fetch, subset-filter and self-host the Shikkha24 web fonts.
+ * Prepare the Shikkha24 web fonts: copy the vendored set and emit `fonts.css`.
  *
- * Why this exists (`docs/performance-budget.md` §3): the font budget is <200 KB
- * for ALL families, but a naive Google Fonts load is 240 KB+ before a single
- * image. So we self-host, keep two weights per Bengali family, and keep only the
- * `bengali` + `latin` subsets. Google's CDN is deliberately NOT used at runtime —
- * it would add a third-party connection to the critical path.
+ * ## Why the fonts are vendored, not fetched
  *
- * Inter is intentionally NOT downloaded: as a variable font it costs 83 KB per
- * file and would blow the budget on its own. The plan's recommendation is a
- * system UI stack for the small amount of English/UI text
- * (`docs/performance-budget.md` §3, §7).
+ * The site uses **SolaimanLipi**, which is not on Google Fonts. It is an
+ * SIL Open Font License typeface by Solaiman Karim / Ekushey / OmicronLAB, and
+ * it is the Bengali face Bangladeshi readers know best — it is what the major
+ * Bangladeshi newspapers set their pages in. OFL permits redistribution, so the
+ * subset files are committed to this repository under `assets/fonts/vendor/`
+ * alongside `OFL.txt`, which the licence requires to travel with the font.
+ *
+ * Because the files are committed, the build is reproducible and needs no
+ * network access and no third-party CDN at runtime.
+ *
+ * ## Why these two files are the size they are
+ *
+ * The upstream TTFs are 280 KB (regular) and 309 KB (bold). They are subset to
+ * Bengali + Latin and converted to WOFF2, which brings them to **154.0 KB for
+ * both weights** — inside the 200 KB budget with 46 KB of headroom.
+ *
+ * Subsetting keeps `--layout-features=*`, which is not optional: Bengali
+ * conjuncts (যুক্তাক্ষর) are formed by OpenType shaping, not by single
+ * codepoints. SolaimanLipi carries the full Indic set —
+ * `akhn, blwf, half, liga, nukt, pstf, vatu` — verified after subsetting.
+ * Dropping those features would silently produce broken conjuncts.
+ *
+ * ## History (owner decisions, 2026-09-12)
+ *
+ * - **Hind Siliguri removed.** The owner found text hard to read and a numeral
+ *   would not render. It also covers only 92 of 128 Bengali codepoints.
+ * - **Noto Sans Bengali was the interim choice** (110.5 KB, 96/128) but was
+ *   replaced when the owner asked for SolaimanLipi by name.
  *
  * Re-run with:  node scripts/fetch-fonts.mjs
  *
  * Output: `frontend/public/fonts/*.woff2` + `frontend/src/styles/fonts.css`
  */
-import { mkdir, readdir, rm, writeFile } from 'node:fs/promises'
-import { basename, dirname, join } from 'node:path'
+import { copyFile, mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+const VENDOR_DIR = join(ROOT, 'assets/fonts/vendor')
 const FONT_DIR = join(ROOT, 'frontend/public/fonts')
 const CSS_OUT = join(ROOT, 'frontend/src/styles/fonts.css')
 
-/** A modern UA is required, otherwise Google serves legacy TTF instead of WOFF2. */
-const UA =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
+const BUDGET_BYTES = 200 * 1024
 
 /**
- * Two weights per Bengali family maximum (400 body + 700 bold) — dropping
- * 300/500/600 is the single biggest font-budget win.
+ * The shipped set. `file` is the committed source; `weight` drives the CSS.
  *
- * Each weight is requested in its OWN css2 call on purpose. Requesting
- * `wght@400;700` together makes Google serve one *variable* font file — measured
- * at 105.4 KB for Noto Sans Bengali's bengali subset alone. Requesting a single
- * weight returns a *static* instance (43.4 KB for the same subset). Same glyphs,
- * less than half the bytes.
- *
- * Subsets are selected per family to fit the <200 KB budget. Shipping `latin`
- * for all four files measured 200.1 KB — 0.1 KB over. Headlines keep `latin`
- * because Bengali headlines routinely embed Latin (brand names, "HSC 2026");
- * body Latin falls back to the system UI stack, which `docs/performance-budget.md`
- * §3 already endorses for English/UI text. Measured result: 179.7 KB.
+ * Subsetting already restricted each file to Bengali + Latin, so one
+ * `unicode-range` covering both is emitted. Splitting Bengali and Latin into
+ * separate files (as the old Google-fetched set did) would let the browser skip
+ * one of them, but Latin here costs only a few KB and headlines routinely mix
+ * scripts — "HSC ২০২৬" — so the simpler single-file pairing is preferred.
  */
-const FAMILIES = [
-  { query: 'Hind+Siliguri:wght@400', label: 'hind-siliguri-400', subsets: ['bengali', 'latin'] },
-  { query: 'Hind+Siliguri:wght@700', label: 'hind-siliguri-700', subsets: ['bengali', 'latin'] },
-  { query: 'Noto+Sans+Bengali:wght@400', label: 'noto-sans-bengali-400', subsets: ['bengali'] },
-  { query: 'Noto+Sans+Bengali:wght@700', label: 'noto-sans-bengali-700', subsets: ['bengali'] },
+const FONTS = [
+  { file: 'solaimanlipi-400.woff2', weight: 400 },
+  { file: 'solaimanlipi-700.woff2', weight: 700 },
 ]
 
-/**
- * Parse a Google Fonts CSS2 stylesheet into `@font-face` records.
- *
- * The subset label is emitted as a `/* subset *\/` comment *before* each
- * `@font-face` block, so the comment and the block must be captured together —
- * matching them separately shifts every label by one.
- */
-function parseFaces(css) {
-  const re = /\/\*\s*([a-z0-9-]+)\s*\*\/\s*@font-face\s*\{([^}]*)\}/g
-  const faces = []
-  for (const [, subset, body] of css.matchAll(re)) {
-    const family = (body.match(/font-family:\s*'([^']+)'/) || [])[1]
-    const weight = (body.match(/font-weight:\s*(\d+)/) || [])[1]
-    const src = (body.match(/url\((https:[^)]+\.woff2)\)/) || [])[1]
-    const range = (body.match(/unicode-range:\s*([^;]+);/) || [])[1]
-    if (family && weight && src) {
-      faces.push({ family, weight, src, subset, range: range ? range.trim() : null })
-    }
-  }
-  return faces
-}
-
-/** Fetch a Google Fonts CSS2 stylesheet. */
-async function fetchCss(query) {
-  const url = `https://fonts.googleapis.com/css2?family=${query}&display=swap`
-  const res = await fetch(url, { headers: { 'User-Agent': UA } })
-  if (!res.ok) throw new Error(`CSS fetch failed for ${query}: HTTP ${res.status}`)
-  return res.text()
-}
+/** Bengali + Latin + the marks Bengali shaping needs (ZWJ/ZWNJ, rupee, danda). */
+const UNICODE_RANGE = [
+  'U+0000-00FF', // Basic Latin
+  'U+0131',
+  'U+0152-0153',
+  'U+02BB-02BC',
+  'U+02C6',
+  'U+02DA',
+  'U+02DC',
+  'U+0304',
+  'U+0308',
+  'U+0329',
+  'U+0964-0965', // । ॥
+  'U+0980-09FF', // Bengali block
+  'U+2000-206F', // general punctuation
+  'U+200C-200D', // ZWNJ / ZWJ — required for correct conjunct shaping
+  'U+20AC',
+  'U+20B9', // ₹
+  'U+2122',
+  'U+2191',
+  'U+2193',
+  'U+2212',
+  'U+2215',
+  'U+FEFF',
+  'U+FFFD',
+].join(', ')
 
 async function main() {
-  // Start clean so a renamed/superseded file can never linger (workspace hygiene).
+  // Start clean so a superseded file can never linger.
   await rm(FONT_DIR, { recursive: true, force: true })
   await mkdir(FONT_DIR, { recursive: true })
   await mkdir(dirname(CSS_OUT), { recursive: true })
 
-  const header = [
-    '/* AUTO-GENERATED by scripts/fetch-fonts.mjs — do not edit by hand. */',
-    '/* Self-hosted, subset-filtered (bengali + latin), two weights per family. */',
-    '/* Inter is replaced by a system UI stack — see docs/performance-budget.md §3. */',
-    '',
-  ]
-
-  /** url → local filename, so a shared file is downloaded exactly once. */
-  const byUrl = new Map()
-  /** One entry per @font-face rule we will emit. */
   const rules = []
+  let total = 0
 
-  for (const fam of FAMILIES) {
-    const faces = parseFaces(await fetchCss(fam.query)).filter((f) =>
-      fam.subsets.includes(f.subset),
-    )
-    if (faces.length === 0) throw new Error(`No kept subsets found for ${fam.label}`)
-
-    for (const face of faces) {
-      let file = byUrl.get(face.src)
-      if (!file) {
-        const short = basename(new URL(face.src).pathname)
-          .replace(/\.woff2$/, '')
-          .slice(0, 10)
-        file = `${fam.label}-${face.subset}-${short}.woff2`
-        const res = await fetch(face.src, { headers: { 'User-Agent': UA } })
-        if (!res.ok) throw new Error(`Font download failed: ${face.src}`)
-        const buf = Buffer.from(await res.arrayBuffer())
-        await writeFile(join(FONT_DIR, file), buf)
-        byUrl.set(face.src, file)
-        console.log(`  ${file.padEnd(52)} ${(buf.length / 1024).toFixed(1)} KB`)
-      }
-      rules.push({ ...face, file })
-    }
+  for (const font of FONTS) {
+    const src = join(VENDOR_DIR, font.file)
+    await copyFile(src, join(FONT_DIR, font.file))
+    const { size } = await stat(join(FONT_DIR, font.file))
+    total += size
+    console.log(`  ${font.file.padEnd(28)} ${(size / 1024).toFixed(1)} KB`)
+    rules.push({ family: 'SolaimanLipi', weight: font.weight, file: font.file })
   }
 
-  const css = [...header]
+  const css = [
+    '/* AUTO-GENERATED by scripts/fetch-fonts.mjs — do not edit by hand. */',
+    '/* SolaimanLipi — SIL Open Font License. Vendored at assets/fonts/vendor/. */',
+    '/* Subset to Bengali + Latin, WOFF2, shaping features preserved. */',
+    '',
+  ]
   for (const r of rules) {
     css.push('@font-face {')
     css.push(`  font-family: '${r.family}';`)
@@ -132,25 +120,27 @@ async function main() {
     css.push(`  font-weight: ${r.weight};`)
     css.push('  font-display: swap;')
     css.push(`  src: url('/fonts/${r.file}') format('woff2');`)
-    if (r.range) css.push(`  unicode-range: ${r.range};`)
+    css.push(`  unicode-range: ${UNICODE_RANGE};`)
     css.push('}')
     css.push('')
   }
   await writeFile(CSS_OUT, css.join('\n'))
 
   const files = await readdir(FONT_DIR)
-  let bytes = 0
-  for (const f of files) {
-    const { size } = await import('node:fs/promises').then((m) => m.stat(join(FONT_DIR, f)))
-    bytes += size
-  }
-
   console.log('')
-  console.log(`files:   ${files.length} (unique downloads: ${byUrl.size})`)
+  console.log(`files:   ${files.length}`)
   console.log(`rules:   ${rules.length} @font-face declarations`)
-  console.log(`total:   ${(bytes / 1024).toFixed(1)} KB  (budget: 200 KB)`)
-  console.log(`verdict: ${bytes <= 200 * 1024 ? 'PASS' : 'FAIL — over budget'}`)
+  console.log(`total:   ${(total / 1024).toFixed(1)} KB  (budget: ${BUDGET_BYTES / 1024} KB)`)
+  console.log(`verdict: ${total <= BUDGET_BYTES ? 'PASS' : 'FAIL — over budget'}`)
   console.log(`css:     ${CSS_OUT}`)
+
+  if (total > BUDGET_BYTES) {
+    console.error('')
+    console.error('Font budget exceeded. Do not raise the budget — subset harder:')
+    console.error('  pyftsubset <src.ttf> --flavor=woff2 --unicodes=U+0980-09FF,U+0000-00FF \\')
+    console.error('    --layout-features="*" --no-hinting --desubroutinize')
+    process.exit(1)
+  }
 }
 
 main().catch((err) => {

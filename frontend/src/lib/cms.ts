@@ -130,7 +130,7 @@ export async function getSiteSettings(): Promise<CmsSiteSettings> {
     '/api/globals/site-settings?depth=1',
     null,
   )
-  if (!data || !data.siteName) return FALLBACK_SETTINGS
+  if (!data?.siteName) return FALLBACK_SETTINGS
   return { ...FALLBACK_SETTINGS, ...(data as CmsSiteSettings) }
 }
 

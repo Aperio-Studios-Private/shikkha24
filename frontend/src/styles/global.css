@@ -41,15 +41,24 @@
   --color-dark-ink-muted: #a8a8a8;
 
   /* ── Typography ────────────────────────────────────────────────────────── */
-  /* Hind Siliguri = headlines. Noto Sans Bengali = body.
-     Inter is deliberately absent (owner-approved 2026-09-12): its variable file
-     is 83 KB/weight and would break the 200 KB font budget. Latin/UI text uses
-     the system stack — see scripts/fetch-fonts.mjs. */
+  /* ONE Bengali family for both headline and body: SolaimanLipi.
+     Owner decision 2026-09-12. Chosen for reader familiarity — it is the face
+     the major Bangladeshi newspapers are set in — and verified technically:
+       · SIL Open Font License, vendored at assets/fonts/vendor/ with OFL.txt
+       · 154.0 KB for two weights, subset to Bengali + Latin (budget 200 KB)
+       · full Indic shaping: akhn, blwf, half, liga, nukt, pstf, vatu — the
+         features that actually form যুক্তাক্ষর conjuncts. Verified after
+         subsetting; dropping them would silently break conjuncts.
+       · all 10 Bengali numerals and all vowel signs present
+     Superseded: Hind Siliguri (owner rejected — hard to read, a numeral would
+     not render, only 92/128 codepoints) and Noto Sans Bengali (interim).
+     Inter is deliberately absent: 83 KB/weight would break the budget.
+     The two tokens are intentionally identical — kept separate so a future
+     headline/body divergence is a one-line change, not a refactor. */
   --font-headline:
-    'Hind Siliguri', 'Noto Sans Bengali', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
-    sans-serif;
+    'SolaimanLipi', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-body:
-    'Noto Sans Bengali', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    'SolaimanLipi', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-ui:
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     sans-serif;
