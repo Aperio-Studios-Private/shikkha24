@@ -488,3 +488,223 @@ export async function getAuthor(author: CmsFullArticle['author']): Promise<CmsAu
   const data = await cmsFetch<CmsAuthor | null>(`/api/authors/${String(author)}`, null)
   return data ?? null
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Listings (S5)
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+export interface CmsTag {
+  id: number | string
+  nameBn: string
+  slug: string
+}
+
+/** A page of articles plus the totals needed to render pagination. */
+export interface ArticlePage {
+  docs: CmsArticle[]
+  page: number
+  totalPages: number
+  totalDocs: number
+  hasPrev: boolean
+  hasNext: boolean
+}
+
+/** Articles per listing page. */
+export const PAGE_SIZE = 12
+
+/**
+ * A paginated page of published articles.
+ *
+ * `totalPages` comes from Payload's `totalDocs`, so this is one request rather
+ * than a fetch plus a separate count.
+ */
+export async function getArticlesPage(
+  opts: {
+    page?: number
+    categorySlug?: string
+    tagSlug?: string
+    authorSlug?: string
+    limit?: number
+  } = {},
+): Promise<ArticlePage> {
+  const { page = 1, categorySlug, tagSlug, authorSlug, limit = PAGE_SIZE } = opts
+
+  const data = await cmsFetch<{ docs?: CmsArticle[]; totalDocs?: number } | null>(
+    `/api/articles${qs({
+      limit,
+      page,
+      depth: 2,
+      sort: '-publishedAt',
+      'where[_status][equals]': 'published',
+      'where[category.slug][equals]': categorySlug,
+      'where[tags.slug][equals]': tagSlug,
+      'where[author.slug][equals]': authorSlug,
+    })}`,
+    null,
+  )
+
+  const docs = data?.docs ?? []
+  const totalDocs = data?.totalDocs ?? docs.length
+  const totalPages = Math.max(1, Math.ceil(totalDocs / limit))
+
+  return {
+    docs,
+    page,
+    totalPages,
+    totalDocs,
+    hasPrev: page > 1,
+    hasNext: page < totalPages,
+  }
+}
+
+/**
+ * Subcategories of a parent — the subcategory filter on a category page.
+ *
+ * Returns empty under the approved flat tree, which is the normal case today.
+ * The mechanism exists because `categories.parent` is a self-relation: editors
+ * may add children later and the listing must not break when they do.
+ */
+export async function getSubcategories(parentSlug: string): Promise<CmsCategory[]> {
+  const data = await cmsFetch<{ docs?: CmsCategory[] } | null>(
+    `/api/categories${qs({
+      limit: 50,
+      sort: 'sortOrder',
+      'where[parent.slug][equals]': parentSlug,
+    })}`,
+    null,
+  )
+  return data?.docs ?? []
+}
+
+/** A tag by slug. */
+export async function getTagBySlug(slug: string): Promise<CmsTag | null> {
+  const data = await cmsFetch<{ docs?: CmsTag[] } | null>(
+    `/api/tags${qs({ limit: 1, 'where[slug][equals]': slug })}`,
+    null,
+  )
+  return data?.docs?.[0] ?? null
+}
+
+/** An author by slug, for the author profile page. */
+export async function getAuthorBySlug(slug: string): Promise<CmsAuthor | null> {
+  const data = await cmsFetch<{ docs?: CmsAuthor[] } | null>(
+    `/api/authors${qs({ limit: 1, 'where[slug][equals]': slug })}`,
+    null,
+  )
+  return data?.docs?.[0] ?? null
+}
+
+/** One entry per year/month that actually has articles. */
+export interface ArchiveBucket {
+  year: number
+  month: number
+  count: number
+  /** Bengali label, e.g. "সেপ্টেম্বর ২০২৬". */
+  label: string
+}
+
+/**
+ * Archive buckets derived from the articles themselves.
+ *
+ * Not a separate collection — deriving means the archive can never disagree
+ * with what is actually published.
+ */
+export async function getArchiveBuckets(): Promise<ArchiveBucket[]> {
+  const data = await cmsFetch<{ docs?: Array<{ publishedAt?: string | null }> } | null>(
+    `/api/articles${qs({
+      limit: 1000,
+      depth: 0,
+      sort: '-publishedAt',
+      'where[_status][equals]': 'published',
+    })}`,
+    null,
+  )
+
+  const counts = new Map<string, number>()
+  for (const doc of data?.docs ?? []) {
+    if (!doc.publishedAt) continue
+    const date = new Date(doc.publishedAt)
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+
+  return [...counts.entries()]
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([key, count]) => {
+      const [year, month] = key.split('-').map(Number)
+      const label = new Date(year, month - 1, 1).toLocaleDateString('bn-BD', {
+        month: 'long',
+        year: 'numeric',
+      })
+      return { year, month, count, label }
+    })
+}
+
+/** Articles published in one calendar month. */
+export async function getArticlesByMonth(
+  year: number,
+  month: number,
+  page = 1,
+  limit = PAGE_SIZE,
+): Promise<ArticlePage> {
+  const start = new Date(Date.UTC(year, month - 1, 1))
+  const end = new Date(Date.UTC(year, month, 1))
+
+  const data = await cmsFetch<{ docs?: CmsArticle[]; totalDocs?: number } | null>(
+    `/api/articles${qs({
+      limit,
+      page,
+      depth: 2,
+      sort: '-publishedAt',
+      'where[_status][equals]': 'published',
+      'where[publishedAt][greater_than_equal]': start.toISOString(),
+      'where[publishedAt][less_than]': end.toISOString(),
+    })}`,
+    null,
+  )
+
+  const docs = data?.docs ?? []
+  const totalDocs = data?.totalDocs ?? docs.length
+  const totalPages = Math.max(1, Math.ceil(totalDocs / limit))
+
+  return {
+    docs,
+    page,
+    totalPages,
+    totalDocs,
+    hasPrev: page > 1,
+    hasNext: page < totalPages,
+  }
+}
+
+/** All deadlines, for the /deadlines page. */
+export async function getAllDeadlines(limit = 50): Promise<CmsDeadline[]> {
+  const data = await cmsFetch<{ docs?: CmsDeadline[] } | null>(
+    `/api/deadlines${qs({ limit, depth: 2, sort: 'dateEnd' })}`,
+    null,
+  )
+  return data?.docs ?? []
+}
+
+/** A CMS Page with its body — the E-E-A-T pages (privacy, terms, contact). */
+export interface CmsPageFull extends CmsPage {
+  body?: unknown
+  updatedAt?: string | null
+}
+
+export async function getPageBySlug(slug: string): Promise<CmsPageFull | null> {
+  const data = await cmsFetch<{ docs?: CmsPageFull[] } | null>(
+    `/api/pages${qs({ limit: 1, depth: 1, 'where[slug][equals]': slug })}`,
+    null,
+  )
+  return data?.docs?.[0] ?? null
+}
+
+/** Every page slug — for the /page/[slug] routes. */
+export async function getAllPageSlugs(): Promise<string[]> {
+  const data = await cmsFetch<{ docs?: Array<{ slug: string }> } | null>(
+    `/api/pages${qs({ limit: 100 })}`,
+    null,
+  )
+  return (data?.docs ?? []).map((doc) => doc.slug).filter(Boolean)
+}

@@ -21,6 +21,8 @@
  * with an ellipsis rather than slicing mid-glyph, which would break conjuncts.
  */
 import type { CmsArticle } from '../lib/cms'
+import { getCategoryImage } from '../lib/images'
+import CategoryImage from './CategoryImage.astro'
 
 interface Props {
   article: CmsArticle
@@ -55,6 +57,15 @@ const imageUrl = image?.url
 const category =
   article.category && typeof article.category === 'object' ? article.category : null
 
+/**
+ * Fallback to the category archetype when this article has no photo.
+ *
+ * An article with no image should not render an empty grey box — it should show
+ * the image that represents its category. That is the whole point of the
+ * archetype model in `docs/assets-prompt.md`.
+ */
+const categoryImage = getCategoryImage(category?.slug)
+
 const href = `/article/${article.slug}`
 
 /** Bengali date. Resolved at build time, so no client-side locale work. */
@@ -72,36 +83,72 @@ const Heading = headingLevel === 2 ? 'h2' : 'h3'
 <article class:list={['group', variant === 'compact' ? 'flex gap-3' : 'flex flex-col']}>
   <a href={href} class="no-underline">
     {
-      imageUrl && variant !== 'compact' && (
-        <div
-          class:list={[
-            'relative mb-3 overflow-hidden rounded-md bg-surface-raised dark:bg-dark-raised',
-            variant === 'lead' ? 'aspect-16/10' : 'aspect-3/2',
-          ]}
-        >
-          <img
-            src={imageUrl}
-            alt={image?.alt || article.title}
-            loading={variant === 'lead' ? 'eager' : 'lazy'}
-            decoding="async"
-            class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-          />
-        </div>
-      )
+      /* Prefer the article's own photo; fall back to the category archetype. */
+      (imageUrl || categoryImage) &&
+        variant !== 'compact' && (
+          <div
+            class:list={[
+              'relative mb-3 overflow-hidden rounded-md bg-surface-raised dark:bg-dark-raised',
+              variant === 'lead' ? 'aspect-16/10' : 'aspect-3/2',
+            ]}
+          >
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={image?.alt || article.title}
+                width="1376"
+                height="768"
+                loading={variant === 'lead' ? 'eager' : 'lazy'}
+                decoding="async"
+                class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              />
+            ) : (
+              categoryImage && (
+                <CategoryImage
+                  image={categoryImage}
+                  alt={article.title}
+                  sizes={
+                    variant === 'lead'
+                      ? '(min-width: 1024px) 800px, 100vw'
+                      : '(min-width: 1024px) 600px, 100vw'
+                  }
+                  widths={[400, 800, 1200]}
+                  priority={variant === 'lead'}
+                  class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                />
+              )
+            )}
+          </div>
+        )
     }
 
     {
-      imageUrl && variant === 'compact' && (
-        <div class="aspect-1 h-20 w-20 shrink-0 overflow-hidden rounded bg-surface-raised dark:bg-dark-raised">
-          <img
-            src={imageUrl}
-            alt={image?.alt || article.title}
-            loading="lazy"
-            decoding="async"
-            class="h-full w-full object-cover"
-          />
-        </div>
-      )
+      (imageUrl || categoryImage) &&
+        variant === 'compact' && (
+          <div class="aspect-1 h-20 w-20 shrink-0 overflow-hidden rounded bg-surface-raised dark:bg-dark-raised">
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={image?.alt || article.title}
+                width="80"
+                height="80"
+                loading="lazy"
+                decoding="async"
+                class="h-full w-full object-cover"
+              />
+            ) : (
+              categoryImage && (
+                <CategoryImage
+                  image={categoryImage}
+                  alt={article.title}
+                  sizes="80px"
+                  widths={[80, 160]}
+                  class="h-full w-full object-cover"
+                />
+              )
+            )}
+          </div>
+        )
     }
 
     <div class="flex min-w-0 flex-col gap-1.5">

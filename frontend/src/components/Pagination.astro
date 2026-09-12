@@ -1,0 +1,106 @@
+---
+/**
+ * Pagination.
+ *
+ * Renders nothing when there is only one page — a lone "1" box at the foot of a
+ * listing is noise.
+ *
+ * ## Accessibility
+ *
+ * Uses `<nav>` with an accessible label, marks the current page with
+ * `aria-current="page"`, and exposes prev/next as real links (not buttons) so
+ * they are crawlable and keyboard-navigable. Disabled states are
+ * `aria-disabled` spans, not absent controls, so the layout does not jump
+ * between pages.
+ *
+ * ## Page window
+ *
+ * Shows at most 7 page links,窗口ed around the current page, so a 200-page
+ * archive does not render 200 anchors.
+ */
+interface Props {
+  page: number
+  totalPages: number
+  /** Base path, e.g. `/category/admission`. Page 1 = base, page N = base + `/page/N`. */
+  basePath: string
+}
+
+const { page, totalPages, basePath } = Astro.props
+
+/** Build the URL for a page number. Page 1 is the bare path — no /page/1. */
+function hrefFor(n: number): string {
+  return n <= 1 ? basePath : `${basePath}/page/${n}`
+}
+
+/** Window of page numbers to show, capped at 7. */
+function pageWindow(): number[] {
+  const max = 7
+  if (totalPages <= max) return Array.from({ length: totalPages }, (_, i) => i + 1)
+
+  let start = Math.max(1, page - Math.floor(max / 2))
+  const end = Math.min(totalPages, start + max - 1)
+  // Slide the window back when it would run past the end.
+  start = Math.max(1, end - max + 1)
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+}
+---
+
+{
+  totalPages > 1 && (
+    <nav class="mt-10 flex items-center justify-center gap-1" aria-label="পেজ নেভিগেশন">
+      {/* Previous */}
+      {page > 1 ? (
+        <a
+          href={hrefFor(page - 1)}
+          rel="prev"
+          class="inline-flex h-10 items-center rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
+        >
+          ← আগের
+        </a>
+      ) : (
+        <span
+          aria-disabled="true"
+          class="inline-flex h-10 items-center rounded-md border border-rule px-3 text-sm font-medium text-ink-subtle opacity-50 dark:border-dark-rule dark:text-dark-ink-muted"
+        >
+          ← আগের
+        </span>
+      )}
+
+      {pageWindow().map((n) =>
+        n === page ? (
+          <span
+            aria-current="page"
+            class="inline-flex h-10 w-10 items-center justify-center rounded-md bg-brand-red text-sm font-bold text-white"
+          >
+            {n}
+          </span>
+        ) : (
+          <a
+            href={hrefFor(n)}
+            class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-rule text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
+          >
+            {n}
+          </a>
+        ),
+      )}
+
+      {/* Next */}
+      {page < totalPages ? (
+        <a
+          href={hrefFor(page + 1)}
+          rel="next"
+          class="inline-flex h-10 items-center rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
+        >
+          পরের →
+        </a>
+      ) : (
+        <span
+          aria-disabled="true"
+          class="inline-flex h-10 items-center rounded-md border border-rule px-3 text-sm font-medium text-ink-subtle opacity-50 dark:border-dark-rule dark:text-dark-ink-muted"
+        >
+          পরের →
+        </span>
+      )}
+    </nav>
+  )
+}
