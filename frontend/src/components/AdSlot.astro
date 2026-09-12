@@ -23,6 +23,7 @@
  * space visible rather than mysterious during review.
  */
 import { isEnabled } from '../lib/feature-flags'
+import DemoAd from './DemoAd.astro'
 
 interface Props {
   /** Identifier for the ad unit, e.g. `homepage-leaderboard`. */
@@ -30,23 +31,36 @@ interface Props {
   width: number
   height: number
   class?: string
-  /** Label shown in the placeholder. Not rendered when real ads are live. */
-  label?: string
 }
 
-const { slot, width, height, class: className = '', label = 'বিজ্ঞাপন' } = Astro.props
+const { slot, width, height, class: className = '' } = Astro.props
 
 if (!isEnabled('ads')) return null
+
+/**
+ * Map the reserved box to a named inventory format, so the placeholder says
+ * which unit this slot will become. Real inventory is defined by size — 300x250
+ * IS a medium rectangle — so deriving the label from the dimensions keeps the
+ * two from disagreeing.
+ */
+type Format = 'leaderboard' | 'rectangle' | 'skyscraper' | 'mobile' | 'infeed'
+const format: Format =
+  width >= 700
+    ? 'leaderboard'
+    : height >= 500
+      ? 'skyscraper'
+      : // Short and wide is a mobile banner. Note this must test HEIGHT, not
+        // width: a 300x250 medium rectangle is narrower than 320 but is
+        // emphatically not a mobile banner.
+        height <= 120
+        ? 'mobile'
+        : 'rectangle'
 ---
 
 <div
   data-ad-slot={slot}
-  class:list={[
-    'flex items-center justify-center overflow-hidden rounded border border-dashed border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-surface',
-    className,
-  ]}
+  class:list={['overflow-hidden rounded', className]}
   style={`width:100%;max-width:${width}px;height:${height}px`}
-  aria-hidden="true"
 >
-  <span class="text-xs text-ink-subtle dark:text-dark-ink-muted">{label}</span>
+  <DemoAd format={format} slot={slot} />
 </div>

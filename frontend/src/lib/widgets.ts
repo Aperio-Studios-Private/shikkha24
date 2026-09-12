@@ -39,6 +39,22 @@ const DEFAULT_LON = 90.4125
  *  commonly used in Bangladesh. */
 const ALADHAN_METHOD = 1
 
+/**
+ * Hijri date correction, in days.
+ *
+ * **This is a real calendar disagreement, not a bug.** Aladhan's Hijri is
+ * computed; Bangladesh follows the published calendar, and the two differ.
+ * Verified 2026-09-12: Aladhan reports 1 Rabi' al-Thani 1448, whereas the date
+ * in use is 28 Rabi' al-Awwal 1448 — two days earlier.
+ *
+ * Rather than guess an offset permanently, it is exposed as an env var so the
+ * owner can re-calibrate if the calendars drift again:
+ *   PUBLIC_HIJRI_OFFSET_DAYS=-2
+ *
+ * Only the Hijri date is shifted. Prayer times are always today's.
+ */
+const HIJRI_OFFSET_DAYS = Number(import.meta.env.PUBLIC_HIJRI_OFFSET_DAYS ?? -2) || 0
+
 export interface Weather {
   /** Celsius, rounded. */
   tempC: number
@@ -77,24 +93,37 @@ export function toBnDigits(value: string | number): string {
  * change. Unmapped values fall through unchanged rather than disappearing.
  */
 const HIJRI_MONTHS_BN: Record<string, string> = {
-  Muharram: 'মুহররম',
-  Safar: 'সফর',
-  "Rabi' al-Awwal": 'রবিউল আউয়াল',
-  "Rabi'al-Awwal": 'রবিউল আউয়াল',
-  "Rabi' al-Thani": 'রবিউস সানি',
-  'Rabīʿ al-thānī': 'রবিউস সানি',
-  'Jumada al-Awwal': 'জুমাদাল উলা',
-  'Jumada al-Thani': 'জুমাদাস সানি',
-  'Jumādā al-ʾAwwal': 'জুমাদাল উলা',
-  'Jumādā al-ʾĀkhirah': 'জুমাদাস সানি',
-  Rajab: 'রজব',
-  "Sha'ban": 'শাবান',
-  Shaʿbān: 'শাবান',
-  Ramadan: 'রমজান',
-  Ramaḍān: 'রমজান',
-  Shawwal: 'শাওয়াল',
-  "Dhu al-Qi'dah": 'জিলকদ',
-  'Dhu al-Hijjah': 'জিলহজ',
+  muharram: 'মুহররম',
+  safar: 'সফর',
+  rabialawwal: 'রবিউল আউয়াল',
+  rabialthani: 'রবিউস সানি',
+  jumadaalawwal: 'জুমাদাল উলা',
+  jumadaalakhirah: 'জুমাদাস সানি',
+  jumadaalthani: 'জুমাদাস সানি',
+  rajab: 'রজব',
+  shaban: 'শাবান',
+  ramadan: 'রমজান',
+  shawwal: 'শাওয়াল',
+  dhualqidah: 'জিলকদ',
+  dhualhijjah: 'জিলহজ',
+}
+
+/**
+ * Reduce a transliterated month name to a comparable key.
+ *
+ * `"Rabīʿ al-awwal"` → `"rabialawwal"`
+ *
+ * Without this the Bengali label silently disappears: Aladhan returned
+ * `Rabīʿ al-awwal` while the map only held `Rabi' al-Awwal`, so the month fell
+ * through to the English fallback and the header read half-Bengali.
+ */
+function normaliseMonth(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // strip combining diacritics
+    .replace(/[ʿʾ'’`]/g, '') // strip ayn / hamza / apostrophes
+    .replace(/[^a-z]/gi, '') // drop punctuation and spaces
+    .toLowerCase()
 }
 
 /** WMO weather codes Open-Meteo returns, mapped to short Bengali labels. */
@@ -190,6 +219,46 @@ async function fetchWeather(lat: number, lon: number): Promise<Weather | null> {
 }
 
 /**
+ * The Hijri date label, corrected by `HIJRI_OFFSET_DAYS`.
+ *
+ * A separate request from the prayer times, because the correction shifts the
+ * Gregorian date we ask about. It is cheap, and both are memoised.
+ *
+ * @returns `''` when unavailable — the header omits the date rather than
+ *          printing something wrong.
+ */
+async function fetchHijriLabel(lat: number, lon: number): Promise<string> {
+  try {
+    const date = new Date()
+    date.setDate(date.getDate() + HIJRI_OFFSET_DAYS)
+
+    const dd = String(date.getDate()).padStart(2, '0')
+    const mm = String(date.getMonth() + 1).padStart(2, '0')
+    const yyyy = date.getFullYear()
+
+    const data = await safeFetch<{
+      data?: {
+        date?: {
+          hijri?: { day?: string; month?: { en?: string }; year?: string }
+        }
+      }
+    }>(
+      `https://api.aladhan.com/v1/timings/${dd}-${mm}-${yyyy}` +
+        `?latitude=${lat}&longitude=${lon}&method=${ALADHAN_METHOD}`,
+    )
+
+    const hijri = data?.data?.date?.hijri
+    if (!hijri?.day) return ''
+
+    const monthEn = hijri.month?.en ?? ''
+    const monthBn = HIJRI_MONTHS_BN[normaliseMonth(monthEn)] ?? monthEn
+    return `${toBnDigits(hijri.day)} ${monthBn} ${toBnDigits(hijri.year ?? '')}`.trim()
+  } catch {
+    return ''
+  }
+}
+
+/**
  * Today's prayer times and the Hijri date.
  *
  * Aladhan returns `HH:MM` in 24h; we keep it as-is because the header shows it
@@ -230,12 +299,18 @@ async function fetchPrayerTimes(lat: number, lon: number): Promise<PrayerTimes |
   // Aladhan appends a timezone suffix ("05:12 (+06)") — strip it.
   const clean = (value: string | undefined) => (value ?? '').split(' ')[0]
 
-  const hijri = data?.data?.date?.hijri
-  const monthEn = hijri?.month?.en ?? ''
-  const monthBn = HIJRI_MONTHS_BN[monthEn] ?? monthEn
-  const hijriLabel = hijri?.day
-    ? `${toBnDigits(hijri.day)} ${monthBn} ${toBnDigits(hijri.year ?? '')}`.trim()
-    : ''
+  /*
+   * Hijri date, corrected.
+   *
+   * Aladhan returns the Hijri for the requested Gregorian date. To apply the
+   * correction we ask for the date `HIJRI_OFFSET_DAYS` away and take the Hijri
+   * from that response — which handles month lengths correctly, since Aladhan
+   * does the arithmetic. Shifting the day number ourselves would break at every
+   * month boundary (a 29- vs 30-day month).
+   *
+   * Prayer times above are unaffected: they come from today's request.
+   */
+  const hijriLabel = await fetchHijriLabel(lat, lon)
 
   return {
     fajr: clean(timings.Fajr),

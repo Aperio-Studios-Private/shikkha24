@@ -100,7 +100,19 @@ export function storeLocation(location: Location): void {
  */
 export async function detectLocationByIp(): Promise<Location | null> {
   try {
-    const response = await fetch('https://ipapi.co/json/', {
+    /*
+     * Provider: ipwho.is — keyless, no cookies, no permission prompt.
+     *
+     * ipapi.co was the first choice but is now behind a Cloudflare
+     * interstitial, so browser fetches get an HTML challenge page instead of
+     * JSON and every lookup silently failed. A lookup that always fails is
+     * worse than no lookup at all, because it looks like the feature is missing
+     * rather than broken.
+     *
+     * Verified: returns city, region, country, latitude, longitude, and
+     * correctly resolves Chattogram for a Bangladeshi connection.
+     */
+    const response = await fetch('https://ipwho.is/', {
       headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(4000),
     })
@@ -109,7 +121,9 @@ export async function detectLocationByIp(): Promise<Location | null> {
       latitude?: number
       longitude?: number
       city?: string
+      success?: boolean
     }
+    if (data.success === false) return null
     if (typeof data.latitude !== 'number' || typeof data.longitude !== 'number') return null
 
     // Prefer our own Bengali label for a known division city, so the ribbon

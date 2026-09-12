@@ -1,0 +1,131 @@
+---
+/**
+ * Demo ad creative — rotates through every ad format the site will sell.
+ *
+ * ## Why this exists
+ *
+ * The ad system (S7) is not built, but the slots are already in the layout. An
+ * empty dashed box tells the owner nothing about what those slots become; a
+ * rotating demo shows every format in place, at real size, so the inventory can
+ * be approved before any AdSense code is written.
+ *
+ * ## Not a real ad
+ *
+ * These are placeholder creatives rendered with CSS — no image files, no
+ * network, no third party. That keeps them weightless and makes it obvious they
+ * are placeholders. Real AdSense units replace them at S7 without touching the
+ * layout, because the slot already reserves the exact dimensions.
+ *
+ * ## Motion
+ *
+ * Rotation pauses on hover and stops entirely under `prefers-reduced-motion` —
+ * an animated ad the reader cannot stop is both hostile and a WCAG 2.2.2
+ * failure.
+ */
+interface Props {
+  /** Which inventory format this slot represents. */
+  format: 'leaderboard' | 'rectangle' | 'skyscraper' | 'mobile' | 'infeed'
+  slot: string
+}
+
+const { format, slot } = Astro.props
+
+/** Format dimensions, matching the reserved box in AdSlot. */
+const FORMAT_LABELS: Record<Props['format'], string> = {
+  leaderboard: '৭২৮×৯০ লিডারবোর্ড',
+  rectangle: '৩০০×২৫০ মিডিয়াম রেকট্যাঙ্গেল',
+  skyscraper: '১৬০×৬০০ স্কাইস্ক্র্যাপার',
+  mobile: '৩২০×১০০ মোবাইল ব্যানার',
+  infeed: 'ইন-ফিড নেটিভ',
+}
+
+/** Sample creatives. Plain CSS, so they cost nothing to render. */
+const CREATIVES = [
+  { title: 'বিদেশে উচ্চশিক্ষা', body: 'স্কলারশিপ গাইড ২০২৭', tone: 'red' },
+  { title: 'এইচএসসি ভর্তি প্রস্তুতি', body: 'অনলাইন ব্যাচ — ফ্রি ক্লাস', tone: 'teal' },
+  { title: 'আইইএলটিএস কোর্স', body: 'ব্যান্ড ৭+ গ্যারান্টি', tone: 'indigo' },
+  { title: 'বৃত্তির খোঁজ', body: '৫০০+ বৃত্তি এক জায়গায়', tone: 'amber' },
+]
+---
+
+<div
+  class:list={[
+    'demo-ad relative flex h-full w-full items-center justify-center overflow-hidden rounded',
+    'border border-dashed border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-raised',
+  ]}
+  data-demo-ad={slot}
+  data-format={format}
+  aria-label={`বিজ্ঞাপন স্লট — ${FORMAT_LABELS[format]}`}
+>
+  {CREATIVES.map((creative, index) => (
+    <div
+      class:list={[
+        'demo-creative absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-3 text-center',
+        index === 0 ? 'opacity-100' : 'opacity-0',
+      ]}
+      data-index={index}
+      aria-hidden={index === 0 ? 'false' : 'true'}
+    >
+      <span
+        class:list={[
+          'font-headline font-bold',
+          format === 'skyscraper' ? 'text-sm' : 'text-base',
+          creative.tone === 'red' && 'text-brand-red',
+          creative.tone === 'teal' && 'text-teal-600 dark:text-teal-400',
+          creative.tone === 'indigo' && 'text-indigo-600 dark:text-indigo-400',
+          creative.tone === 'amber' && 'text-amber-600 dark:text-amber-400',
+        ]}
+      >
+        {creative.title}
+      </span>
+      <span class="text-xs text-ink-muted dark:text-dark-ink-muted">{creative.body}</span>
+    </div>
+  ))}
+
+  <span
+    class="absolute bottom-1 right-1.5 text-[10px] uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted"
+  >
+    {FORMAT_LABELS[format]}
+  </span>
+</div>
+
+<script>
+  (function () {
+    const ads = Array.from(document.querySelectorAll<HTMLElement>('[data-demo-ad]'))
+    if (ads.length === 0) return
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    for (const ad of ads) {
+      const creatives = Array.from(ad.querySelectorAll<HTMLElement>('.demo-creative'))
+      if (creatives.length < 2) continue
+
+      // Static first frame under reduced motion — no rotation at all.
+      if (reduceMotion) continue
+
+      let index = 0
+      let paused = false
+
+      ad.addEventListener('mouseenter', () => (paused = true))
+      ad.addEventListener('mouseleave', () => (paused = false))
+
+      setInterval(() => {
+        if (paused || document.hidden) return
+
+        creatives[index]?.classList.replace('opacity-100', 'opacity-0')
+        creatives[index]?.setAttribute('aria-hidden', 'true')
+
+        index = (index + 1) % creatives.length
+
+        creatives[index]?.classList.replace('opacity-0', 'opacity-100')
+        creatives[index]?.setAttribute('aria-hidden', 'false')
+      }, 4000)
+    }
+  })()
+</script>
+
+<style>
+  .demo-creative {
+    transition: opacity 600ms ease-in-out;
+  }
+</style>
