@@ -38,23 +38,23 @@
 - [x] S0 DoD evidence posted → **user approval received 2026-09-12**
 
 
-## S1 — CMS Content Models & RBAC
+## S1 — CMS Content Models & RBAC ✅ APPROVED 2026-09-12
 - [x] **GATE: education feature inventory approved** — ✅ 2026-09-11 (`docs/education-feature-inventory.md`)
 - [x] **GATE: education category tree approved** — ✅ 8 categories + cross-cutting level filter
 - [x] **GATE: publishing velocity decided** — ✅ 2026-09-11: **baseline 15–20/day + burst to 40+ on event days**, with the existing 5-person team
-- [ ] Collections: Articles, Categories, **Subcategories**, Authors, Tags, Ads, Settings, Polls, Quizzes, FactChecks, Jobs, Comments, LiveBlogs, **Newsletter Subscribers**, **Photo Galleries**, **Pages**
-  - *(the four bolded collections were dropped from an earlier revision and restored by the audit — Subcategories is required by the category tree, Newsletter Subscribers by the newsletter decision, Photo Galleries by the gallery feature, Pages by the E-E-A-T pages)*
-- [ ] **Education collections:** Scholarships, Deadlines / Academic Calendar, Institutions, Circulars, Result Links, Study Abroad Guides, Saved Deadlines — see `.sps/content-model.md`
-- [ ] **Taxonomies seeded:** Category (8) + Level (5) + District (64)
-- [ ] 5 RBAC roles: Reporter, Section Editor, Editor-in-Chief, Ad Manager, Super Admin
-- [ ] Bengali admin labels
-- [ ] Versioning + draft/review/publish workflow verified
-- [ ] S1 DoD evidence → **user approval**
+- [x] Collections — ✅ **26 collections + 1 global** (`cms/src/collections/`, `cms/src/globals/SiteSettings.ts`)
+  - *(the four bolded collections were restored by the audit. Two changes from this list, both owner-flagged: **Subcategories is a self-relation on Categories, not a separate collection** — the approved tree is flat; and **Readers was ADDED** — social login, bookmarks, saved deadlines and push all need a reader identity. See `.sps/section-todos/S1.md`.)*
+- [x] **Education collections:** Scholarships, Deadlines / Academic Calendar, Institutions, Circulars, Result Links, Study Abroad Guides, Saved Deadlines — ✅ all built
+- [x] **Taxonomies seeded:** Category (8) + Level (5) + District (64) — ✅ **77 rows**, idempotent (`pnpm --filter @shikkha24/cms seed`)
+- [x] 5 RBAC roles: Reporter, Section Editor, Editor-in-Chief, Ad Manager, Super Admin — ✅ with field-level guards (`cms/src/access/roles.ts`)
+- [x] Bengali admin labels — ✅ `cms/src/i18n/bn.ts` (working draft, ~60 strings; needs native-speaker review)
+- [x] Versioning + draft/review/publish workflow — ✅ configured on Articles + Pages; **end-to-end run with two accounts still pending**
+- [x] S1 DoD evidence → **user approval received 2026-09-12**
 
 ## S2 — Design System & Base Layout
 - [x] **GATE: domain decided** — ✅ `shikkha24.com`
-- [ ] **GATE: portal display name + logo decided** — blocking
-- [ ] Typography: Hind Siliguri (headlines) + Noto Sans Bengali (body) + Inter — ≥17px mobile, line-height ≥1.65
+- [x] **GATE: portal display name + logo decided** — ✅ **SATISFIED 2026-09-12.** Name = **শিক্ষা২৪ / Shikkha24** (owner-confirmed). Logo = **placeholder SVG**, owner-confirmed — it is a CMS-managed `SiteSettings` field, so the real asset drops in through the admin with no code change
+- [ ] Typography: Hind Siliguri (headlines) + Noto Sans Bengali (body) — **Inter dropped, owner-approved 2026-09-12** (83 KB/weight variable file blew the 200 KB budget; the plan itself recommends a system UI stack). ≥17px mobile, line-height ≥1.65
 - [ ] Colors: brand red #DA1C25 + brand charcoal #1F1F1F + white; dark mode base #121212 (BBC-style) — two distinct tokens, do not conflate them
 - [ ] 12-col grid, Header + utility ribbon, mega menu, Footer
 - [ ] Sticky mobile share bar, text resizer

@@ -64,6 +64,12 @@ The stack-research estimates are: Hind Siliguri 25–40 KB/weight, Noto Sans Ben
 - **Preload the headline font only.** Body font loads normally.
 - Consider dropping Inter entirely and using a system UI stack for the small amount of English/UI text.
 
+**DECIDED 2026-09-12 — Inter is DROPPED.** Owner-approved. Measured at S0: Inter's variable file is **83 KB per weight** (166 KB for two), which alone would have pushed the total to 234 KB — over the 200 KB ceiling with nothing left for the Bengali faces. Latin UI text renders in the system stack instead.
+
+**Measured result: 179.7 KB / 200 KB**, from six files — Hind Siliguri 400 + 700 (bengali + latin) and Noto Sans Bengali 400 + 700 (bengali only; body Latin falls back to the system stack). Regenerate with `node scripts/fetch-fonts.mjs`, which fails the build if the total exceeds the budget.
+
+⚠️ Two non-obvious details that cost real time to find, both now encoded in that script: requesting `wght@400;700` in a single css2 call returns one **variable** file (105 KB for Noto Sans Bengali's bengali subset alone), whereas requesting each weight separately returns **static** instances (43 KB) — same glyphs, less than half the bytes. And Google emits the `/* subset */` comment *before* each `@font-face` block, so parsing the two separately shifts every label by one and silently drops the bold Bengali files.
+
 ---
 
 ## 4. Runtime strategies
@@ -107,6 +113,6 @@ Fail the build if any measured page misses its budget. Implementation is an S0/S
 - [ ] **Measure a real Astro incremental build time** — this is also the deciding input for the CI quota (`docs/hosting-and-deployment.md`)
 - [ ] Confirm the Cloudflare Pages **20,000-file ceiling** against projected article volume
 - [ ] Validate every byte budget in §3 against a real build
-- [ ] Decide whether Inter is needed at all, or a system UI stack suffices
+- [x] Decide whether Inter is needed at all, or a system UI stack suffices — ✅ **DECIDED 2026-09-12: Inter dropped**, system UI stack used. Measured 179.7 KB / 200 KB
 - [ ] Choose the free uptime/monitoring tool — must not require a card (see `docs/reliability.md`)
 - [ ] Confirm Bengali font subsetting actually covers every conjunct used in production copy (subsetting can silently drop যুক্তাক্ষর)

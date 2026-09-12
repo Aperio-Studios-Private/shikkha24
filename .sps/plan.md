@@ -120,7 +120,7 @@ DianaHost runs **Node.js 20.18.2**. `astro@7.3.2` requires `>=22.12.0` and `vite
 |---|---------|-----------------|
 | S0 | Foundation & Toolchain | Monorepo, Astro 7 init, Payload CMS 3 init, Tailwind 4.3, TS7, Node 24, SQLite, env, GitHub Actions CI, Cloudflare Pages + R2 wiring |
 | S1 | CMS Content Models & RBAC | Education collections, 5 RBAC roles, Bengali admin labels |
-| S2 | Design System & Base Layout | Typography, colors, dark mode, 12-col grid, Header, Mega menu, Footer, sticky mobile share bar, text resizer |
+| S2 | Design System & Base Layout | Typography, colors, dark mode, 12-col grid, Header, Mega menu, Footer, sticky mobile share bar, text resizer. **Fonts: Hind Siliguri + Noto Sans Bengali only — Inter dropped, owner-approved 2026-09-12** (see the font budget note below) |
 | S3 | Homepage | Breaking ticker, lead story, category grids, trending/most-read, latest feed, ad slots |
 | S4 | Article Page | Full article, takeaways box, author card, related articles, share, progress bar, comments, correction notice, print view, JSON-LD |
 | S5 | Category/Tag/Author/Archive | Listings, pagination, breadcrumbs, subcategory filters, author profiles, date archive |
@@ -156,7 +156,7 @@ DianaHost runs **Node.js 20.18.2**. `astro@7.3.2` requires `>=22.12.0` and `vite
 | S1 entry | Education category tree — ✅ **SATISFIED 2026-09-11** (8 categories + level filter) |
 | S1 entry | Publishing velocity decided — ✅ **SATISFIED 2026-09-11**: baseline 15–20/day + burst to 40+ on event days |
 | S2 entry | Domain decided — ✅ **SATISFIED 2026-09-11** (`shikkha24.com`) |
-| **S2 entry** | **Portal display name + logo decided** — ⏳ **NOT SATISFIED** |
+| **S2 entry** | Portal display name + logo — ✅ **SATISFIED 2026-09-12.** Display name = **শিক্ষা২৪ / Shikkha24** (owner-confirmed; domain-derived). Logo = **placeholder SVG** for now, owner-confirmed: the logo is a CMS-managed `SiteSettings` field, so the real asset drops in through the admin with **no code change**. S2 is therefore unblocked — neither decision can force a rebuild of the design system. |
 | S6 entry | Bengali search quality tested on a real Bengali corpus |
 | S9 entry | Newsletter sending path confirmed (free-tier ESP reachable, or cPanel SMTP fallback accepted) |
 | **S10 entry** | Every remaining data-backed element has a confirmed free provider, or is descoped |
