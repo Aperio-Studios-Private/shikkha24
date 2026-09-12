@@ -1,0 +1,59 @@
+---
+/**
+ * Reading progress bar.
+ *
+ * A thin brand-red bar pinned to the top that fills as the reader scrolls the
+ * article. It answers "how much is left" — genuinely useful on the long
+ * admission guides and result explainers this portal publishes.
+ *
+ * ## Zero CLS
+ *
+ * `position: fixed` with a fixed height, so it is outside normal flow entirely:
+ * it cannot displace content at any point, including before its script runs.
+ *
+ * ## Cost
+ *
+ * A scroll listener firing on every frame would be wasteful on a low-end
+ * Android. Two guards keep it cheap: the listener is `passive`, and the write
+ * only happens when the percentage actually changes by a whole point.
+ */
+---
+
+<div
+  id="reading-progress"
+  class="fixed left-0 top-0 z-50 h-1 w-0 bg-brand-red transition-[width] duration-75 ease-out"
+  role="progressbar"
+  aria-label="পড়ার অগ্রগতি"
+  aria-valuemin="0"
+  aria-valuemax="100"
+  aria-valuenow="0"
+>
+</div>
+
+<script>
+  (function () {
+    const bar = document.getElementById('reading-progress')
+    if (!bar) return
+
+    let last = -1
+
+    function update() {
+      // Total scrollable distance. Guarded against zero on very short pages.
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight
+      const ratio = scrollable > 0 ? window.scrollY / scrollable : 0
+      const percent = Math.min(100, Math.max(0, Math.round(ratio * 100)))
+
+      if (percent === last) return
+      last = percent
+
+      bar.style.width = percent + '%'
+      bar.setAttribute('aria-valuenow', String(percent))
+    }
+
+    // `passive` tells the browser we will not preventDefault, so it can keep
+    // scrolling smooth without waiting on this handler.
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update, { passive: true })
+    update()
+  })()
+</script>

@@ -1,0 +1,43 @@
+---
+/**
+ * Key takeaways box — "মূল বিষয়সমূহ".
+ *
+ * A scannable summary at the top of the article. On education stories this
+ * carries real weight: a reader checking an admission deadline often wants the
+ * four facts, not the eight paragraphs.
+ *
+ * Rendered from structured `keyTakeaways` data, never by scraping the body —
+ * so it stays accurate when the body is edited and the summary is not.
+ */
+interface Props {
+  points: string[]
+  title?: string
+}
+
+const { points, title = 'মূল বিষয়সমূহ' } = Astro.props
+---
+
+{
+  points.length > 0 && (
+    <aside
+      class="mb-8 rounded-lg border border-rule bg-surface-raised p-5 dark:border-dark-rule dark:bg-dark-raised"
+      aria-label={title}
+    >
+      <h2 class="font-headline mb-3 flex items-center gap-2 text-lg font-bold text-ink dark:text-dark-ink">
+        <span class="inline-block h-5 w-1 rounded-full bg-brand-red" aria-hidden="true" />
+        {title}
+      </h2>
+      <ul class="flex flex-col gap-2.5">
+        {points.map((point) => (
+          <li class="flex gap-2.5">
+            <span
+              class="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-brand-red"
+              aria-hidden="true"
+            />
+            <span class="text-base text-ink-muted dark:text-dark-ink-muted">{point}</span>
+          </li>
+        ))}
+      </ul>
+    </aside>
+  )
+}

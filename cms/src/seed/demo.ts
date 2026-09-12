@@ -37,6 +37,70 @@ export interface DemoReport {
   skipped: number
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Lexical richText helpers
+ *
+ * The `body` field is a Payload richText (Lexical) field, which stores JSON —
+ * not HTML. These helpers build the node shapes Payload expects. They are
+ * intentionally minimal: paragraph, heading, bullet list, quote — the blocks our
+ * editors actually use, and the ones `frontend/src/lib/richtext.ts` renders.
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+type LexNode = Record<string, unknown>
+
+const text = (value: string): LexNode => ({ type: 'text', version: 1, text: value })
+
+const para = (value: string): LexNode => ({
+  type: 'paragraph',
+  version: 1,
+  format: '',
+  indent: 0,
+  direction: 'ltr',
+  children: [text(value)],
+})
+
+const heading = (value: string, tag = 'h2'): LexNode => ({
+  type: 'heading',
+  version: 1,
+  tag,
+  format: '',
+  indent: 0,
+  direction: 'ltr',
+  children: [text(value)],
+})
+
+const bullets = (items: string[]): LexNode => ({
+  type: 'list',
+  version: 1,
+  listType: 'bullet',
+  format: '',
+  indent: 0,
+  direction: 'ltr',
+  children: items.map((item) => ({
+    type: 'listitem',
+    version: 1,
+    value: 1,
+    format: '',
+    indent: 0,
+    direction: 'ltr',
+    children: [text(item)],
+  })),
+})
+
+const quote = (value: string): LexNode => ({
+  type: 'quote',
+  version: 1,
+  format: '',
+  indent: 0,
+  direction: 'ltr',
+  children: [text(value)],
+})
+
+/** Wrap block nodes into the `{ root: ... }` shape Payload stores. */
+const richText = (...blocks: LexNode[]): LexNode => ({
+  root: { type: 'root', version: 1, format: '', indent: 0, direction: 'ltr', children: blocks },
+})
+
 /** Demo articles — realistic Bengali education news across all 8 categories. */
 const ARTICLES: Array<{
   slug: string
@@ -163,6 +227,46 @@ const ARTICLES: Array<{
 ]
 
 /**
+ * Build a plausible Bengali article body for a demo story.
+ *
+ * This is scaffolding to make the article page reviewable. Its job is to
+ * exercise every block type `frontend/src/lib/richtext.ts` renders — paragraph,
+ * heading, bullet list, quote — not to read like real reporting.
+ */
+function buildBody(article: { title: string; excerpt: string }): LexNode {
+  return richText(
+    para(article.excerpt),
+    para(
+      'বিষয়টি নিয়ে শিক্ষা মন্ত্রণালয়ের সংশ্লিষ্ট কর্মকর্তারা জানিয়েছেন, সংশ্লিষ্ট সকল পক্ষের মতামত বিবেচনায় নিয়ে চূড়ান্ত সিদ্ধান্ত গ্রহণ করা হবে। ইতিমধ্যে প্রাথমিক প্রস্তুতি শুরু হয়েছে বলে তারা নিশ্চিত করেছেন।',
+    ),
+    heading('কী জানতে চান শিক্ষার্থীরা'),
+    para(
+      'এ বিষয়ে শিক্ষার্থী ও অভিভাবকদের মধ্যে ব্যাপক আগ্রহ দেখা দিয়েছে। বিশেষজ্ঞদের মতে, সময়মতো তথ্য পাওয়া গেলে প্রস্তুতি নিতে সুবিধা হবে।',
+    ),
+    bullets([
+      'আবেদন বা আবেদনের সময়সীমা সংক্রান্ত নির্দিষ্ট তারিখ',
+      'প্রয়োজনীয় কাগজপত্র ও যোগ্যতার শর্তাবলি',
+      'যোগাযোগের ঠিকানা ও হেল্পলাইন নম্বর',
+      'সর্বশেষ হালনাগাদ পাওয়ার নির্ভরযোগ্য উৎস',
+    ]),
+    quote(
+      'সঠিক তথ্য সময়মতো পেলে শিক্ষার্থীরা সঠিক সিদ্ধান্ত নিতে পারে। তাই নির্ভরযোগ্য সূত্র থেকে খবর নেওয়া জরুরি।',
+    ),
+    para(
+      'নিয়মিত আপডেটের জন্য শিক্ষা২৪-এর সাথেই থাকুন। বিষয়টিতে নতুন কোনো তথ্য পাওয়া গেলে আমরা দ্রুত হালনাগাদ করব।',
+    ),
+  )
+}
+
+/** Short takeaway bullets shown in the "মূল বিষয়সমূহ" box. */
+const TAKEAWAYS: string[] = [
+  'বিষয়টির সর্বশেষ হালনাগাদ নিয়মিত যাচাই করুন',
+  'প্রয়োজনীয় কাগজপত্র আগেভাগেই প্রস্তুত রাখুন',
+  'নির্ভরযোগ্য সূত্র ছাড়া তথ্য গ্রহণ করবেন না',
+  'সময়সীমার আগেই আবেদন সম্পন্ন করার চেষ্টা করুন',
+]
+
+/**
  * Demo deadlines for the N1/N2 strip.
  *
  * `type` values must match `DEADLINE_TYPES` in `collections/Deadlines.ts` —
@@ -286,7 +390,22 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
       overrideAccess: true,
     })
     if (existing.docs.length > 0) {
-      report.skipped++
+      // Backfill: an article created before body content existed should pick it
+      // up on a re-run rather than staying permanently empty.
+      if (!existing.docs[0].body) {
+        await db.update({
+          collection: 'articles',
+          id: existing.docs[0].id,
+          data: {
+            body: buildBody(article),
+            keyTakeaways: TAKEAWAYS.map((point) => ({ point })),
+          },
+          overrideAccess: true,
+        })
+        report.articles++
+      } else {
+        report.skipped++
+      }
       continue
     }
 
@@ -299,6 +418,8 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
         title: article.title,
         slug: article.slug,
         excerpt: article.excerpt,
+        body: buildBody(article),
+        keyTakeaways: TAKEAWAYS.map((point) => ({ point })),
         category: categoryId,
         author: authorId,
         level: article.level ? levelIds.get(article.level) : undefined,

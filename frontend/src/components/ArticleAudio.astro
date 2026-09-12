@@ -1,0 +1,120 @@
+---
+/**
+ * Article audio reader — browser Web Speech API.
+ *
+ * Lets a reader listen to the article. This matters more here than on a general
+ * news site: a student commuting, or a reader with low literacy or a visual
+ * impairment, gets the content in another channel.
+ *
+ * ## Why the Web Speech API and not a TTS service
+ *
+ * `docs/performance-budget.md` and the no-card constraint rule out a paid TTS
+ * API, and a Bengali TTS model is exactly the kind of heavy dependency the
+ * static architecture exists to avoid. The Web Speech API is built into the
+ * browser, costs nothing, and ships no bytes.
+ *
+ * The trade-off is real and worth stating: **voice quality depends entirely on
+ * the reader's device and OS.** Some Android builds have no Bengali voice at
+ * all. So the control hides itself when the API is missing rather than showing a
+ * button that does nothing.
+ *
+ * ## Bengali locale
+ *
+ * The utterance is tagged `bn-BD`. Without it a device may read Bengali with an
+ * English voice, which produces gibberish — the tag is not cosmetic.
+ */
+import { isEnabled } from '../lib/feature-flags'
+
+interface Props {
+  /** Plain text to read. Extracted from the article, not the HTML. */
+  text: string
+}
+
+const { text } = Astro.props
+
+if (!isEnabled('audioReader')) return null
+---
+
+<div
+  id="article-audio"
+  class="mt-4 hidden items-center gap-3 rounded-md border border-rule bg-surface-raised px-4 py-3 dark:border-dark-rule dark:bg-dark-raised"
+  aria-label="লেখা শুনুন"
+>
+  <button
+    type="button"
+    id="audio-play"
+    class="inline-flex h-9 shrink-0 items-center gap-2 rounded-md bg-brand-red px-4 text-sm font-medium text-white"
+    aria-label="শুনুন"
+  >
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <polygon points="6 4 20 12 6 20 6 4" />
+    </svg>
+    <span id="audio-play-label">শুনুন</span>
+  </button>
+
+  <button
+    type="button"
+    id="audio-stop"
+    class="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border border-rule px-3 text-sm font-medium text-ink dark:border-dark-rule dark:text-dark-ink"
+    aria-label="থামান"
+  >
+    থামান
+  </button>
+
+  <p class="text-xs text-ink-subtle dark:text-dark-ink-muted">
+    ডিভাইসের ভয়েস ব্যবহার করে পড়া হবে
+  </p>
+</div>
+
+<script define:vars={{ articleText: text }}>
+  (function () {
+    const wrap = document.getElementById('article-audio')
+    const playBtn = document.getElementById('audio-play')
+    const stopBtn = document.getElementById('audio-stop')
+    const label = document.getElementById('audio-play-label')
+    if (!wrap || !playBtn || !stopBtn) return
+
+    // No synthesis support → stay hidden. A visible button that does nothing
+    // is worse than no button.
+    if (!('speechSynthesis' in window)) return
+    wrap.classList.remove('hidden')
+    wrap.classList.add('flex')
+
+    let speaking = false
+
+    function refresh() {
+      speaking = window.speechSynthesis.speaking
+      if (label) label.textContent = speaking ? 'বিরতি' : 'শুনুন'
+    }
+
+    playBtn.addEventListener('click', () => {
+      if (window.speechSynthesis.speaking) {
+        // speaking but paused → resume; speaking → pause.
+        if (window.speechSynthesis.paused) window.speechSynthesis.resume()
+        else window.speechSynthesis.pause()
+        refresh()
+        return
+      }
+
+      const utterance = new SpeechSynthesisUtterance(articleText)
+      // bn-BD is essential: without it a device may use an English voice and
+      // read Bengali as gibberish.
+      utterance.lang = 'bn-BD'
+      utterance.rate = 0.95
+      utterance.onend = refresh
+      utterance.onstart = refresh
+
+      window.speechSynthesis.speak(utterance)
+      refresh()
+    })
+
+    stopBtn.addEventListener('click', () => {
+      window.speechSynthesis.cancel()
+      refresh()
+    })
+
+    // Leaving the page must stop audio — a voice continuing after navigation
+    // is genuinely alarming.
+    window.addEventListener('beforeunload', () => window.speechSynthesis.cancel())
+  })()
+</script>

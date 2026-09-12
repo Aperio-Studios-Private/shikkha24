@@ -1,0 +1,98 @@
+---
+/**
+ * Print stylesheet.
+ *
+ * Students print admission notices, result sheets and deadline lists — often on
+ * a shared printer, often in black and white. So the print view is a real
+ * deliverable, not an afterthought.
+ *
+ * What print removes: navigation, share bars, ads, related links, the audio
+ * control and the progress bar. What it keeps: the headline, byline, date,
+ * body, takeaways and the correction notice — because a correction must survive
+ * printing, not just the screen.
+ *
+ * Links are expanded with their URL after the text, since a reader holding paper
+ * cannot hover.
+ */
+---
+
+<style is:global>
+  @media print {
+    /* Chrome/Safari expand link URLs via this property in some engines;
+       the ::after rule below covers the rest. */
+    @page {
+      margin: 1.5cm;
+    }
+
+    /* Hide everything interactive or navigational. */
+    header,
+    footer,
+    nav,
+    #mobile-share-bar,
+    #reading-progress,
+    #article-audio,
+    [aria-label='শেয়ার করুন'],
+    [aria-label='সম্পর্কিত খবর'],
+    [data-ad-slot],
+    .no-print {
+      display: none !important;
+    }
+
+    body {
+      /* Print is on white paper, regardless of the reader's dark mode. */
+      background: #fff !important;
+      color: #000 !important;
+      font-size: 12pt;
+      line-height: 1.5;
+    }
+
+    .dark body,
+    .dark {
+      background: #fff !important;
+      color: #000 !important;
+    }
+
+    /* Undo the dark-mode surface tokens for anything that inherited them. */
+    .dark [class*='dark:bg-'] {
+      background: #fff !important;
+    }
+
+    main {
+      max-width: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1,
+    h2,
+    h3 {
+      /* Avoid a heading stranded at the bottom of a page. */
+      break-after: avoid;
+      color: #000 !important;
+    }
+
+    p,
+    li,
+    blockquote {
+      orphans: 3;
+      widows: 3;
+    }
+
+    img {
+      max-width: 100% !important;
+    }
+
+    /* Show link destinations on paper. */
+    main a[href^='http']::after {
+      content: ' (' attr(href) ')';
+      font-size: 9pt;
+      color: #555;
+      word-break: break-all;
+    }
+
+    a {
+      color: #000 !important;
+      text-decoration: underline;
+    }
+  }
+</style>

@@ -1,0 +1,49 @@
+---
+/**
+ * Correction notice — "সংশোধনী".
+ *
+ * Publishing a correction prominently, and permanently, is what separates a
+ * newsroom that is trustworthy from one that merely claims to be. It is
+ * credibility infrastructure, not an admission of failure.
+ *
+ * Two rules govern it:
+ *  1. It appears **above** the body, not buried at the foot — a reader who
+ *     already read the wrong version must see it.
+ *  2. It is **never removed**, only superseded. The article keeps the notice for
+ *     as long as the article lives.
+ *
+ * Rendered only when `hasCorrection` is set, so an uncorrected article shows
+ * nothing at all — no empty box implying something is wrong.
+ */
+interface Props {
+  notice?: string | null
+  updatedAt?: string | null
+}
+
+const { notice, updatedAt } = Astro.props
+
+const updated = updatedAt
+  ? new Date(updatedAt).toLocaleDateString('bn-BD', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+  : null
+---
+
+{
+  notice && (
+    <aside
+      class="mb-6 rounded-md border-l-4 border-brand-red bg-brand-red/5 p-4 dark:bg-brand-red/10"
+      aria-label="সংশোধনী"
+    >
+      <h2 class="font-headline mb-1 text-base font-bold text-brand-red">সংশোধনী</h2>
+      <p class="text-base text-ink dark:text-dark-ink">{notice}</p>
+      {updated && (
+        <p class="mt-2 text-xs text-ink-subtle dark:text-dark-ink-muted">
+          সর্বশেষ হালনাগাদ: <time datetime={updatedAt ?? undefined}>{updated}</time>
+        </p>
+      )}
+    </aside>
+  )
+}

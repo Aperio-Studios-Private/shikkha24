@@ -1,0 +1,39 @@
+---
+/**
+ * Related articles.
+ *
+ * Keeps a reader inside the portal and, more usefully, gives them the next
+ * thing they actually need — after an HSC result story, the admission guide is
+ * genuinely the right follow-up, not filler.
+ *
+ * Uses the compact card variant so four items stay scannable in a sidebar-width
+ * column. Renders nothing when there is nothing to show.
+ */
+import type { CmsArticle } from '../lib/cms'
+import ArticleCard from './ArticleCard.astro'
+
+interface Props {
+  articles: CmsArticle[]
+  title?: string
+}
+
+const { articles, title = 'সম্পর্কিত খবর' } = Astro.props
+---
+
+{
+  articles.length > 0 && (
+    <section class="mt-10" aria-label={title}>
+      <div class="mb-4 flex items-baseline justify-between gap-4 border-b-2 border-brand-red pb-2">
+        <h2 class="font-headline text-xl font-bold text-ink dark:text-dark-ink">{title}</h2>
+      </div>
+
+      <ul class="grid-12">
+        {articles.map((article) => (
+          <li class="col-span-4 sm:col-span-4 lg:col-span-3">
+            <ArticleCard article={article} variant="compact" showExcerpt={false} headingLevel={3} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}

@@ -1,0 +1,95 @@
+---
+/**
+ * Share row — social share, copy link, and print.
+ *
+ * Share links are plain `<a href>` to each network's share endpoint. No SDK, no
+ * third-party script: a Facebook SDK would cost ~100 KB and put a third party on
+ * the critical path for a button most readers never press.
+ *
+ * The print button is a real `window.print()` — a print stylesheet (see
+ * `PrintStyles.astro`) makes the output readable, and journalists and students
+ * genuinely print admission notices and result sheets.
+ */
+interface Props {
+  url: string
+  title: string
+}
+
+const { url, title } = Astro.props
+const encodedUrl = encodeURIComponent(url)
+const encodedTitle = encodeURIComponent(title)
+---
+
+<div
+  class="mt-8 flex flex-wrap items-center gap-2 border-y border-rule py-4 dark:border-dark-rule"
+  aria-label="শেয়ার করুন"
+>
+  <span class="mr-1 text-sm font-semibold text-ink-muted dark:text-dark-ink-muted">শেয়ার:</span>
+
+  <a
+    href={`https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#25d366] px-3 text-sm font-medium text-white"
+    aria-label="হোয়াটসঅ্যাপে শেয়ার করুন"
+  >
+    হোয়াটসঅ্যাপ
+  </a>
+
+  <a
+    href={`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#1877f2] px-3 text-sm font-medium text-white"
+    aria-label="ফেসবুকে শেয়ার করুন"
+  >
+    ফেসবুক
+  </a>
+
+  <a
+    href={`https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="inline-flex h-9 items-center gap-1.5 rounded-md bg-ink px-3 text-sm font-medium text-white"
+    aria-label="এক্স-এ শেয়ার করুন"
+  >
+    এক্স
+  </a>
+
+  <button
+    type="button"
+    id="copy-article-link"
+    class="inline-flex h-9 items-center gap-1.5 rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
+    aria-label="লিংক কপি করুন"
+  >
+    <span id="copy-article-label">লিংক কপি</span>
+  </button>
+
+  <button
+    type="button"
+    onclick="window.print()"
+    class="inline-flex h-9 items-center gap-1.5 rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
+    aria-label="প্রিন্ট করুন"
+  >
+    প্রিন্ট
+  </button>
+</div>
+
+<script>
+  (function () {
+    const btn = document.getElementById('copy-article-link')
+    const label = document.getElementById('copy-article-label')
+    if (!btn || !label) return
+
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(window.location.href)
+        label.textContent = 'কপি হয়েছে'
+        setTimeout(() => (label.textContent = 'লিংক কপি'), 2000)
+      } catch {
+        label.textContent = 'ব্যর্থ'
+        setTimeout(() => (label.textContent = 'লিংক কপি'), 2000)
+      }
+    })
+  })()
+</script>

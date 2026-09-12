@@ -40,6 +40,9 @@ export const FEATURE_FLAGS = {
    * Reserving the flag now means S7 will not have to retrofit it.
    */
   ads: flag(import.meta.env.PUBLIC_FLAG_ADS),
+  /** Article audio reader (Web Speech API). Native, zero bytes — flagged so it
+   *  can be switched off if a device class misbehaves. */
+  audioReader: flag(import.meta.env.PUBLIC_FLAG_AUDIO_READER),
 } as const
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS

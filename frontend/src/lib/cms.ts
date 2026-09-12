@@ -336,3 +336,103 @@ export async function getDistricts(): Promise<CmsDistrict[]> {
   )
   return data?.docs ?? []
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Article page (S4)
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/** The article shape the page needs — a superset of the card's `CmsArticle`. */
+export interface CmsFullArticle extends CmsArticle {
+  /** Lexical richText JSON. Rendered by `lib/richtext.ts`, never raw HTML. */
+  body?: unknown
+  keyTakeaways?: Array<{ point: string }> | null
+  correctionNotice?: { hasCorrection?: boolean | null; note?: string | null } | null
+  timelineMilestones?: Array<{
+    date?: string | null
+    title?: string
+    detail?: string | null
+  }> | null
+  updatedAt?: string | null
+  tags?: Array<{ nameBn?: string; slug?: string }> | number[] | null
+}
+
+export interface CmsAuthor {
+  id: number | string
+  nameBn: string
+  nameEn?: string | null
+  slug?: string | null
+  designation?: string | null
+  bio?: string | null
+  photo?: { url?: string | null; alt?: string | null } | number | null
+}
+
+/**
+ * A single published article by slug.
+ *
+ * Body is Lexical JSON, not HTML — converting it is the caller's job
+ * (`lib/richtext.ts`), so the CMS is never trusted to emit markup.
+ */
+export async function getArticleBySlug(slug: string): Promise<CmsFullArticle | null> {
+  const data = await cmsFetch<{ docs?: CmsFullArticle[] } | null>(
+    `/api/articles${qs({
+      limit: 1,
+      depth: 2,
+      'where[slug][equals]': slug,
+      'where[_status][equals]': 'published',
+    })}`,
+    null,
+  )
+  return data?.docs?.[0] ?? null
+}
+
+/** Every published slug — used to generate the static article routes. */
+export async function getAllArticleSlugs(): Promise<string[]> {
+  const data = await cmsFetch<{ docs?: Array<{ slug: string }> } | null>(
+    `/api/articles${qs({
+      limit: 500,
+      depth: 0,
+      'where[_status][equals]': 'published',
+    })}`,
+    null,
+  )
+  return (data?.docs ?? []).map((doc) => doc.slug).filter(Boolean)
+}
+
+/**
+ * Related articles — same category, excluding the current one.
+ *
+ * Falls back to the newest articles when the category yields nothing, so the
+ * "related" slot is never empty on a thin category. That is a deliberate
+ * trade: slightly-less-relevant links beat a dead end at the foot of the page.
+ */
+export async function getRelatedArticles(
+  article: Pick<CmsFullArticle, 'slug' | 'category'>,
+  limit = 4,
+): Promise<CmsArticle[]> {
+  const categorySlug =
+    article.category && typeof article.category === 'object' ? article.category.slug : undefined
+
+  const fetcher = (params: Record<string, string | number | boolean | undefined | null>) =>
+    cmsFetch<{ docs?: CmsArticle[] } | null>(
+      `/api/articles${qs({ limit, depth: 1, sort: '-publishedAt', 'where[_status][equals]': 'published', ...params })}`,
+      null,
+    )
+
+  let docs: CmsArticle[] = []
+  if (categorySlug) {
+    docs = (await fetcher({ 'where[category.slug][equals]': categorySlug }))?.docs ?? []
+  }
+  if (docs.length === 0) docs = (await fetcher({}))?.docs ?? []
+
+  return docs.filter((item) => item.slug !== article.slug).slice(0, limit)
+}
+
+/** An author by id, for the author card. */
+export async function getAuthor(author: CmsFullArticle['author']): Promise<CmsAuthor | null> {
+  if (!author) return null
+  if (typeof author === 'object' && 'nameBn' in author) {
+    return author as unknown as CmsAuthor
+  }
+  const data = await cmsFetch<CmsAuthor | null>(`/api/authors/${String(author)}`, null)
+  return data ?? null
+}

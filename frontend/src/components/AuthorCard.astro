@@ -1,0 +1,79 @@
+---
+/**
+ * Author card.
+ *
+ * E-E-A-T is a ranking factor and, more importantly, a trust signal: a reader
+ * deciding whether to believe an admission guide deserves to know who wrote it
+ * and what qualifies them. `docs/seo-plan.md` calls for an author byline with
+ * credentials on every article.
+ *
+ * The card renders only when we actually have an author — an unbylined article
+ * shows nothing rather than an empty frame.
+ */
+import type { CmsAuthor } from '../lib/cms'
+
+interface Props {
+  author: CmsAuthor | null
+  publishedAt?: string | null
+}
+
+const { author, publishedAt } = Astro.props
+
+const mediaBase = import.meta.env.PUBLIC_MEDIA_BASE_URL || ''
+const photo =
+  author?.photo && typeof author.photo === 'object' ? author.photo : null
+const photoUrl = photo?.url
+  ? photo.url.startsWith('http')
+    ? photo.url
+    : `${mediaBase}${photo.url}`
+  : null
+
+const published = publishedAt
+  ? new Date(publishedAt).toLocaleDateString('bn-BD', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+  : null
+---
+
+{
+  author && (
+    <section
+      class="mt-10 flex gap-4 rounded-lg border border-rule bg-surface-raised p-5 dark:border-dark-rule dark:bg-dark-raised"
+      aria-label="লেখক পরিচিতি"
+    >
+      {photoUrl && (
+        <img
+          src={photoUrl}
+          alt={photo?.alt || author.nameBn}
+          width="72"
+          height="72"
+          loading="lazy"
+          decoding="async"
+          class="h-18 w-18 shrink-0 rounded-full object-cover"
+        />
+      )}
+
+      <div class="min-w-0">
+        <p class="text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
+          লেখক
+        </p>
+        <h2 class="font-headline mt-0.5 text-lg font-bold text-ink dark:text-dark-ink">
+          {author.nameBn}
+        </h2>
+        {author.designation && (
+          <p class="text-sm text-brand-red">{author.designation}</p>
+        )}
+        {author.bio && (
+          <p class="mt-2 text-sm text-ink-muted dark:text-dark-ink-muted">{author.bio}</p>
+        )}
+        {published && (
+          <p class="mt-2 text-xs text-ink-subtle dark:text-dark-ink-muted">
+            প্রকাশ: <time datetime={publishedAt ?? undefined}>{published}</time>
+          </p>
+        )}
+      </div>
+    </section>
+  )
+}
