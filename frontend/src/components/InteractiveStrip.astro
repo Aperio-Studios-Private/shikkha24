@@ -1,0 +1,59 @@
+---
+/**
+ * Discovery strip for the S8 interactive features.
+ *
+ * ## Why this exists
+ *
+ * A live blog and a daily quiz that nobody can find are features that do not
+ * exist. Neither has a natural home in the 8-category navigation — they are not
+ * *topics* — so they need one explicit entry point on the homepage, or the only
+ * route to them is typing the URL.
+ *
+ * ## It renders nothing when there is nothing to link to
+ *
+ * Both halves are conditional. A strip advertising a quiz that has not been
+ * published yet is worse than no strip: it teaches the reader that the link is
+ * not worth tapping.
+ */
+import type { CmsLiveBlog, CmsQuiz } from '../lib/interactive'
+
+interface Props {
+  liveBlog: CmsLiveBlog | null
+  latestQuiz: CmsQuiz | null
+}
+
+const { liveBlog, latestQuiz } = Astro.props
+
+const show = Boolean(liveBlog || latestQuiz)
+---
+
+{
+  show && (
+    <section
+      class="border-y border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-raised"
+      aria-label="ইন্টারঅ্যাকটিভ"
+    >
+      <div class="container-page flex flex-wrap items-center gap-x-6 gap-y-3 py-3">
+        {liveBlog && (
+          <a
+            href={`/live/${liveBlog.slug}`}
+            class="inline-flex min-h-12 items-center gap-2 no-underline"
+          >
+            <span class="h-2 w-2 shrink-0 rounded-full bg-brand-red" aria-hidden="true" />
+            <span class="font-headline text-sm font-bold text-ink dark:text-dark-ink">
+              লাইভ আপডেট
+            </span>
+            <span class="text-sm text-ink-muted dark:text-dark-ink-muted">{liveBlog.title}</span>
+          </a>
+        )}
+
+        {latestQuiz && (
+          <a href="/quiz" class="inline-flex min-h-12 items-center gap-2 no-underline">
+            <span class="font-headline text-sm font-bold text-brand-red">দৈনিক কুইজ</span>
+            <span class="text-sm text-ink-muted dark:text-dark-ink-muted">{latestQuiz.title}</span>
+          </a>
+        )}
+      </div>
+    </section>
+  )
+}

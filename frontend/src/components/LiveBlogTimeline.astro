@@ -1,0 +1,280 @@
+---
+/**
+ * Live blog timeline — entries, a key-events filter, and the opt-in refresh.
+ *
+ * ## "Live" on a static site, stated plainly
+ *
+ * The page is pre-built HTML. The entries below are baked in at build time and
+ * are what a reader sees with no JavaScript, on a slow connection, or while the
+ * CMS is down — which is the fallback `docs/reliability.md` §4 requires.
+ *
+ * New updates arrive by one of two routes:
+ *   1. the CI rebuild that publishes any other change (batched, ~5 min at peak)
+ *   2. the "নতুন আপডেট দেখুন" button, which fetches **once**, on tap
+ *
+ * The button is deliberately not an auto-poll. Polling every 30 seconds would put
+ * continuous reader traffic on the 2 GB shared host during exactly the result-day
+ * spike the architecture exists to keep off it — and taking the CMS down would
+ * also take away the newsroom's ability to publish.
+ *
+ * ## The filter needs no JavaScript
+ *
+ * The "শুধু মূল ঘটনাগুলো" filter is a checkbox driving a `:has()` rule, so it
+ * works before any script runs and cannot shift the layout when one does. On a
+ * browser without `:has()` the checkbox is inert and every entry shows, which is
+ * a complete, correct view — never a broken one.
+ *
+ * ## When the island is absent
+ *
+ * `cmsOrigin` is `null` unless `PUBLIC_CMS_ORIGIN` is configured. The button is
+ * then **not rendered at all**: a control that cannot work reads to the reader as
+ * their own failure, and they will blame their phone.
+ */
+import type { CmsLiveBlogEntry } from '../lib/interactive'
+import { toBnDigits } from '../lib/bangla-date'
+import LiveBlogEntry from './LiveBlogEntry.astro'
+
+interface Props {
+  entries: CmsLiveBlogEntry[]
+  slug: string
+  cmsOrigin: string | null
+}
+
+const { entries, slug, cmsOrigin } = Astro.props
+
+const keyCount = entries.filter((entry) => entry.isKeyEvent).length
+
+/**
+ * The row the refresh island clones. Rendered empty on purpose — the island
+ * fills in the time and body, so there is no placeholder text to leak into the
+ * page if a script never runs.
+ */
+const TEMPLATE_ENTRY: CmsLiveBlogEntry = { timestamp: '', content: null, isKeyEvent: false }
+---
+
+<section class="live-timeline" aria-labelledby="live-timeline-heading">
+  <div
+    class="mb-4 flex flex-wrap items-baseline justify-between gap-2 border-b border-rule pb-3 dark:border-dark-rule"
+  >
+    <h2
+      id="live-timeline-heading"
+      class="font-headline text-xl font-bold text-ink dark:text-dark-ink"
+    >
+      লাইভ আপডেট
+    </h2>
+    <p class="text-xs text-ink-subtle dark:text-dark-ink-muted">
+      মোট {toBnDigits(entries.length)}টি আপডেট · {toBnDigits(keyCount)}টি মূল ঘটনা
+    </p>
+  </div>
+
+  {
+    entries.length > 0 && (
+      <div class="mb-4">
+        <label class="inline-flex min-h-12 cursor-pointer items-center gap-2 text-sm text-ink dark:text-dark-ink">
+          <input type="checkbox" id="key-only" class="h-5 w-5 accent-[var(--color-brand-red)]" />
+          শুধু মূল ঘটনাগুলো দেখুন
+        </label>
+      </div>
+    )
+  }
+
+  {
+    cmsOrigin && (
+      <div class="mb-5 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          data-live-refresh
+          data-slug={slug}
+          data-origin={cmsOrigin}
+          class="min-h-12 rounded-md bg-brand-red px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+        >
+          নতুন আপডেট দেখুন
+        </button>
+        <p
+          data-live-status
+          role="status"
+          aria-live="polite"
+          class="text-sm text-ink-muted dark:text-dark-ink-muted"
+        />
+      </div>
+    )
+  }
+
+  <ol data-live-list class="mt-1">
+    {entries.map((entry) => <LiveBlogEntry entry={entry} />)}
+  </ol>
+
+  {
+    entries.length === 0 && (
+      <p data-live-empty class="text-ink-muted dark:text-dark-ink-muted">
+        এখনো কোনো আপডেট প্রকাশিত হয়নি।
+      </p>
+    )
+  }
+
+  <template data-entry-template>
+    <LiveBlogEntry entry={TEMPLATE_ENTRY} />
+  </template>
+</section>
+
+<style>
+  /*
+   * Key-events filter, no JavaScript required.
+   *
+   * `:has()` is supported by every current browser on the target device list
+   * (Chrome/Android, Safari, Firefox). Where it is missing the rule simply does
+   * not apply and all entries remain visible.
+   */
+  .live-timeline:has(#key-only:checked) [data-entry]:not([data-key-event='true']) {
+    display: none;
+  }
+
+  /* A newly fetched entry flashes once so the reader can see what changed. */
+  [data-entry].is-new {
+    animation: live-entry-in 1200ms ease-out 1;
+  }
+
+  @keyframes live-entry-in {
+    from {
+      background-color: var(--color-rule);
+    }
+    to {
+      background-color: transparent;
+    }
+  }
+
+  /* Motion is decoration here, never information — so it is simply removed. */
+  @media (prefers-reduced-motion: reduce) {
+    [data-entry].is-new {
+      animation: none;
+    }
+  }
+</style>
+
+<script>
+  /**
+   * Opt-in refresh island.
+   *
+   * Runs nothing on load — no fetch, no timer, no listener beyond one click. A
+   * reader who never taps the button costs the CMS nothing.
+   */
+  import { lexicalToHtml } from '../lib/richtext'
+
+  const BN_DIGITS = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯']
+  const toBn = (value: number | string): string =>
+    String(value).replace(/\d/g, (digit) => BN_DIGITS[Number(digit)])
+
+  function formatStamp(iso: string): string {
+    const when = new Date(iso)
+    if (Number.isNaN(when.getTime())) return ''
+    return when.toLocaleString('bn-BD', {
+      day: 'numeric',
+      month: 'long',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+  }
+
+  interface IncomingEntry {
+    timestamp: string
+    content: unknown
+    isKeyEvent?: boolean | null
+  }
+
+  function buildEntry(entry: IncomingEntry, template: HTMLTemplateElement): HTMLLIElement | null {
+    const fragment = template.content.cloneNode(true)
+    const row = fragment.querySelector('li')
+    if (!row) return null
+
+    row.setAttribute('data-key-event', String(Boolean(entry.isKeyEvent)))
+
+    const time = row.querySelector('[data-entry-time]')
+    if (time) {
+      time.setAttribute('datetime', entry.timestamp)
+      time.textContent = formatStamp(entry.timestamp)
+    }
+
+    const content = row.querySelector('[data-entry-content]')
+    // lexicalToHtml escapes every text node, so this is the same conversion the
+    // server used — never raw CMS markup.
+    if (content) content.innerHTML = lexicalToHtml(entry.content)
+
+    const badge = row.querySelector('[data-entry-key]')
+    if (badge) {
+      if (entry.isKeyEvent) badge.removeAttribute('hidden')
+      else badge.setAttribute('hidden', '')
+    }
+
+    if (entry.isKeyEvent) row.classList.add('is-key', 'border-brand-red')
+
+    return row
+  }
+
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-live-refresh]')) {
+    const list = document.querySelector<HTMLOListElement>('[data-live-list]')
+    const status = document.querySelector<HTMLElement>('[data-live-status]')
+    const empty = document.querySelector<HTMLElement>('[data-live-empty]')
+    const template = document.querySelector<HTMLTemplateElement>('[data-entry-template]')
+
+    const origin = button.dataset.origin
+    const slug = button.dataset.slug
+    if (!list || !status || !origin || !slug) continue
+
+    const label = button.textContent ?? ''
+    const setStatus = (message: string): void => {
+      status.textContent = message
+    }
+
+    button.addEventListener('click', async () => {
+      button.disabled = true
+      setStatus('খোঁজা হচ্ছে…')
+      list.setAttribute('aria-busy', 'true')
+
+      try {
+        const response = await fetch(
+          `${origin}/api/live-blogs?limit=1&depth=0&where[slug][equals]=${encodeURIComponent(slug)}`,
+          { headers: { Accept: 'application/json' } },
+        )
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+        const payload = (await response.json()) as {
+          docs?: Array<{ entries?: IncomingEntry[] | null }>
+        }
+        const incoming = payload.docs?.[0]?.entries ?? []
+
+        const seen = new Set(
+          Array.from(list.querySelectorAll('[data-entry-time]')).map((node) =>
+            node.getAttribute('datetime'),
+          ),
+        )
+
+        const fresh = incoming
+          .filter((entry) => entry.timestamp && !seen.has(entry.timestamp))
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+
+        if (fresh.length === 0) {
+          setStatus('নতুন কোনো আপডেট নেই।')
+        } else {
+          // Prepend oldest-first so the newest update finishes on top.
+          for (const entry of [...fresh].reverse()) {
+            if (!template) break
+            const row = buildEntry(entry, template)
+            if (!row) continue
+            row.classList.add('is-new')
+            list.prepend(row)
+          }
+          empty?.setAttribute('hidden', '')
+          setStatus(`${toBn(fresh.length)}টি নতুন আপডেট যুক্ত হয়েছে।`)
+        }
+      } catch {
+        // The static list is untouched — the reader keeps everything they had.
+        setStatus('আপডেট আনা যায়নি। একটু পরে আবার চেষ্টা করুন।')
+      } finally {
+        list.removeAttribute('aria-busy')
+        button.disabled = false
+        button.textContent = label
+      }
+    })
+  }
+</script>

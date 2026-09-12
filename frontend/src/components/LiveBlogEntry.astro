@@ -1,0 +1,75 @@
+---
+/**
+ * One live-blog update.
+ *
+ * ## One source of markup
+ *
+ * The refresh island needs to build this same row in the browser. Rather than
+ * write the markup twice — once in Astro, once in a JavaScript string — the
+ * timeline renders this component into a `<template>` and the island clones it.
+ * Two copies of a class list is exactly the kind of thing that drifts, and the
+ * copy that drifts is the one readers see.
+ *
+ * ## Key events
+ *
+ * A key event is the update an editor considers the important one — the result
+ * being published, the lottery list going up. It carries a badge, a red rail and
+ * a `data-key-event` flag, which is what the "শুধু মূল ঘটনাগুলো" filter matches on.
+ */
+import type { CmsLiveBlogEntry } from '../lib/interactive'
+import { lexicalToHtml } from '../lib/richtext'
+
+interface Props {
+  entry: CmsLiveBlogEntry
+}
+
+const { entry } = Astro.props
+
+const when = new Date(entry.timestamp)
+const stamp = Number.isNaN(when.getTime())
+  ? ''
+  : when.toLocaleString('bn-BD', {
+      day: 'numeric',
+      month: 'long',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+
+/** Lexical → escaped HTML. The CMS is never trusted to emit markup. */
+const body = lexicalToHtml(entry.content)
+
+const isKeyEvent = Boolean(entry.isKeyEvent)
+---
+
+<li
+  class:list={[
+    'relative border-l-2 pb-6 pl-4',
+    isKeyEvent ? 'is-key border-brand-red' : 'border-rule dark:border-dark-rule',
+  ]}
+  data-entry
+  data-key-event={String(isKeyEvent)}
+>
+  <span
+    class:list={[
+      'absolute -left-[7px] top-1.5 h-3 w-3 rounded-full ring-2 ring-surface dark:ring-dark-base',
+      isKeyEvent ? 'bg-brand-red' : 'bg-rule dark:bg-dark-rule',
+    ]}
+    aria-hidden="true"
+  ></span>
+
+  <div class="flex flex-wrap items-center gap-2">
+    <time
+      class="text-xs font-medium text-ink-subtle dark:text-dark-ink-muted"
+      datetime={entry.timestamp}
+      data-entry-time>{stamp}</time
+    >
+    <span
+      class="rounded bg-brand-red px-1.5 py-0.5 text-xs font-semibold text-white"
+      data-entry-key
+      hidden={!isKeyEvent}>মূল ঘটনা</span
+    >
+  </div>
+
+  <div class="prose-bn mt-1.5 text-ink dark:text-dark-ink" data-entry-content set:html={body} />
+</li>

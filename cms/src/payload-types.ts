@@ -93,6 +93,7 @@ export interface Config {
     'newsletter-subscribers': NewsletterSubscriber;
     'saved-deadlines': SavedDeadline;
     readers: Reader;
+    'poll-votes': PollVote;
     users: User;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
@@ -127,6 +128,7 @@ export interface Config {
     'newsletter-subscribers': NewsletterSubscribersSelect<false> | NewsletterSubscribersSelect<true>;
     'saved-deadlines': SavedDeadlinesSelect<false> | SavedDeadlinesSelect<true>;
     readers: ReadersSelect<false> | ReadersSelect<true>;
+    'poll-votes': PollVotesSelect<false> | PollVotesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
@@ -901,7 +903,13 @@ export interface Poll {
         id?: string | null;
       }[]
     | null;
+  /**
+   * বন্ধ করলে নতুন ভোট গ্রহণ করা হবে না — ফলাফল দেখানো চলবে।
+   */
   isActive?: boolean | null;
+  /**
+   * এই সময়ের পর স্বয়ংক্রিয়ভাবে ভোট বন্ধ হবে।
+   */
   expiresAt?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -979,6 +987,7 @@ export interface AdUnit {
     | 'sidebarTop'
     | 'sidebarSticky'
     | 'categoryLeaderboard'
+    | 'liveBlogTop'
     | 'articleTop'
     | 'articleMiddle'
     | 'articleBottom';
@@ -1120,6 +1129,22 @@ export interface SavedDeadline {
   deadline: number | Deadline;
   remindAt?: string | null;
   notified?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * ডুপ্লিকেট ভোট ঠেকানোর জন্য সংরক্ষিত ওয়ান-ওয়ে হ্যাশ। কোন বিকল্পে ভোট পড়েছে তা এখানে রাখা হয় না।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "poll-votes".
+ */
+export interface PollVote {
+  id: number;
+  poll: number | Poll;
+  /**
+   * HMAC-SHA256(ip + user agent, server secret) — ফেরানো যায় না।
+   */
+  voterHash: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -1375,6 +1400,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'readers';
         value: number | Reader;
+      } | null)
+    | ({
+        relationTo: 'poll-votes';
+        value: number | PollVote;
       } | null)
     | ({
         relationTo: 'users';
@@ -1943,6 +1972,16 @@ export interface ReadersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "poll-votes_select".
+ */
+export interface PollVotesSelect<T extends boolean = true> {
+  poll?: T;
+  voterHash?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -1,0 +1,66 @@
+---
+/**
+ * Enhancement scripts for the S8 article content blocks.
+ *
+ * ## Why this is a component that renders nothing
+ *
+ * The block markup is injected into the article body with `set:html`, so there is
+ * no Astro component wrapping those elements to host a script. A script-only
+ * component keeps the wiring in one place instead of scattered inline in the
+ * article page, and Astro bundles it once no matter how many articles exist.
+ *
+ * ## What it enhances
+ *
+ *   - **before/after** — switches the stacked pair into an overlay slider and
+ *     drives the clip position from the range input
+ *   - **scrollytelling** — marks the section so the CSS scroll-driven animation
+ *     applies
+ *
+ * Both are additive. Neither block needs this script to be readable, so a
+ * failure here costs polish and nothing else.
+ */
+
+import '../styles/content-blocks.css'
+---
+
+<script>
+  /**
+   * Before/after comparison slider.
+   *
+   * The control is a real `<input type="range">`, so it is keyboard-operable and
+   * announced correctly by a screen reader without any ARIA of our own. The
+   * script only mirrors its value into a CSS custom property — no drag handling,
+   * no pointer events, nothing to break on a touch device.
+   */
+  for (const figure of document.querySelectorAll<HTMLElement>('[data-compare]')) {
+    const range = figure.querySelector<HTMLInputElement>('[data-compare-range]')
+    const overlay = figure.querySelector<HTMLElement>('[data-compare-overlay]')
+
+    // Without both halves there is no comparison to drive — leave the stacked
+    // fallback alone rather than half-enabling it.
+    if (!range || !overlay) continue
+
+    const apply = (): void => {
+      figure.style.setProperty('--compare-position', `${range.value}%`)
+    }
+
+    apply()
+    range.addEventListener('input', apply)
+
+    // Last, so the layout never renders mid-switch.
+    figure.classList.add('is-enhanced')
+  }
+
+  /**
+   * Scrollytelling.
+   *
+   * The class is the signal that JavaScript is present; the animation itself is
+   * declared in CSS behind `@supports (animation-timeline: view())` and
+   * `prefers-reduced-motion`. Gating on both means an unsupported browser or a
+   * reader who asked for less motion gets the plain ordered list, never a
+   * half-faded one.
+   */
+  for (const section of document.querySelectorAll('[data-scrolly]')) {
+    section.classList.add('is-enhanced')
+  }
+</script>

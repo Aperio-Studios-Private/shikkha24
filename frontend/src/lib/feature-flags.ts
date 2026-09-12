@@ -29,6 +29,15 @@ export const FEATURE_FLAGS = {
   liveBlog: flag(import.meta.env.PUBLIC_FLAG_LIVE_BLOG),
   /** Quizzes and polls. Default OFF until S8. */
   quiz: flag(import.meta.env.PUBLIC_FLAG_QUIZ),
+  /**
+   * Reader polls.
+   *
+   * Separate from `quiz` even though both are "interactive": a poll depends on a
+   * **write** path to the CMS, and a quiz does not. If the vote endpoint starts
+   * misbehaving or attracting abuse, the poll can be switched off on its own
+   * without taking the quiz with it (`docs/reliability.md` §5).
+   */
+  poll: flag(import.meta.env.PUBLIC_FLAG_POLL),
   /** Newsletter signup. Default OFF until S9. */
   newsletter: flag(import.meta.env.PUBLIC_FLAG_NEWSLETTER),
   /**

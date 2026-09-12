@@ -1,0 +1,334 @@
+---
+/**
+ * Daily quiz runner — the admission + BCS practice quiz.
+ *
+ * `docs/education-feature-inventory.md` §3 re-scoped the general-news "daily
+ * current affairs quiz" into this, to "target the exam-candidate habit loop
+ * directly". It is the retention feature: a reason to come back tomorrow.
+ *
+ * ## Zero backend, and what that costs
+ *
+ * Grading happens in the browser, so the correct answers are in the page. A
+ * determined reader can find them in the JSON payload below. That is inherent to
+ * a quiz with no server — and it is fine here, because this is **practice, not
+ * assessment**. Nothing is scored for a certificate and nothing is stored about
+ * the reader. A quiz that claimed to be an exam would need a backend; this one
+ * deliberately does not claim that.
+ *
+ * ## No inline scripts
+ *
+ * The CSP is `script-src 'self'` with no `unsafe-inline`, so Astro's
+ * `define:vars` — which emits an inline script — would be blocked. The data
+ * therefore travels in a `type="application/json"` tag, which is not executable
+ * and is not subject to script-src.
+ *
+ * ## Layout
+ *
+ * The feedback and "next" controls are revealed only after a click, which is
+ * inside the browser's "recent input" window and therefore not counted as layout
+ * shift. The streak line is rendered empty with a reserved line box rather than
+ * being inserted, so filling it in moves nothing.
+ */
+import type { CmsQuiz } from '../lib/interactive'
+import { toBnDigits } from '../lib/bangla-date'
+
+interface Props {
+  quiz: CmsQuiz
+}
+
+const { quiz } = Astro.props
+
+const questions = quiz.questions ?? []
+
+/** Only what the browser needs to grade — no ids, no dates, no author. */
+const gradingData = questions.map((question) => ({
+  answer: question.correctAnswer,
+  explanation: question.explanation ?? '',
+}))
+---
+
+<section
+  class="quiz-runner"
+  data-quiz
+  data-quiz-id={String(quiz.id)}
+  data-quiz-total={questions.length}
+>
+  <noscript>
+    <style>
+      {'[data-quiz] [data-quiz-option]{pointer-events:none}[data-quiz] [data-quiz-progress],[data-quiz] [data-quiz-next]{display:none}[data-quiz] [data-quiz-noscript]{display:block}'}
+    </style>
+  </noscript>
+
+  <script type="application/json" data-quiz-data set:html={JSON.stringify(gradingData)} />
+
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-rule pb-3 dark:border-dark-rule">
+    <p class="text-sm font-medium text-ink dark:text-dark-ink" data-quiz-progress>
+      প্রশ্ন {toBnDigits(1)} / {toBnDigits(questions.length)}
+    </p>
+    {/* Rendered empty on purpose: filling text into an existing line box
+        cannot shift anything below it. */}
+    <p class="min-h-5 text-xs text-ink-subtle dark:text-dark-ink-muted" data-quiz-streak></p>
+  </div>
+
+  <p class="text-sm text-ink-muted dark:text-dark-ink-muted" data-quiz-noscript hidden>
+    উত্তর মিলিয়ে স্কোর দেখতে জাভাস্ক্রিপ্ট প্রয়োজন। প্রশ্নগুলো নিচে পড়া যাবে।
+  </p>
+
+  {
+    questions.map((question, questionIndex) => (
+      <fieldset
+        class="quiz-question"
+        data-quiz-question
+        data-index={questionIndex}
+        hidden={questionIndex !== 0}
+      >
+        <legend class="font-headline text-lg font-bold leading-snug text-ink dark:text-dark-ink">
+          {question.question}
+        </legend>
+
+        <div class="mt-3 flex flex-col gap-2">
+          {(question.options ?? []).map((option) => (
+            <button
+              type="button"
+              class="quiz-option min-h-12 rounded-md border border-rule px-3 py-2 text-left text-sm text-ink transition-colors hover:border-brand-red dark:border-dark-rule dark:text-dark-ink"
+              data-quiz-option
+              data-answer={option.label}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        <div
+          class="mt-3 text-sm"
+          data-quiz-feedback
+          role="status"
+          aria-live="polite"
+          hidden
+        />
+
+        <button
+          type="button"
+          class="mt-3 min-h-12 rounded-md bg-brand-red px-4 text-sm font-semibold text-white disabled:opacity-60"
+          data-quiz-next
+          hidden
+        >
+          পরবর্তী প্রশ্ন
+        </button>
+      </fieldset>
+    ))
+  }
+
+  <div class="rounded-lg border border-rule p-4 dark:border-dark-rule" data-quiz-result hidden>
+    <h2 class="font-headline text-lg font-bold text-ink dark:text-dark-ink">আপনার ফলাফল</h2>
+    <p class="mt-2 text-sm text-ink dark:text-dark-ink" data-quiz-score />
+    <div class="mt-3 h-3 w-full overflow-hidden rounded-full bg-rule dark:bg-dark-rule">
+      <div class="h-full rounded-full bg-brand-red" data-quiz-bar style="width:0%" />
+    </div>
+    <button
+      type="button"
+      class="mt-4 min-h-12 rounded-md border border-rule px-4 text-sm font-semibold text-ink dark:border-dark-rule dark:text-dark-ink"
+      data-quiz-restart
+    >
+      আবার শুরু করুন
+    </button>
+  </div>
+</section>
+
+<style>
+  /* Correct / incorrect are conveyed by an icon-free border + colour AND by the
+     feedback text, so the meaning never depends on colour alone (WCAG 1.4.1). */
+  [data-quiz] .quiz-option.is-correct {
+    border-color: #639922;
+    background-color: #eaf3de;
+    color: #173404;
+  }
+
+  [data-quiz] .quiz-option.is-wrong {
+    border-color: #a32d2d;
+    background-color: #fcebeb;
+    color: #501313;
+  }
+
+  [data-quiz] .quiz-option:disabled {
+    cursor: default;
+  }
+</style>
+
+<script>
+  /**
+   * Quiz flow.
+   *
+   * One question at a time, immediate feedback, and a running score. The streak
+   * is days-in-a-row rather than questions-in-a-row: for a daily quiz, coming
+   * back tomorrow is the behaviour worth rewarding.
+   */
+  const BN_DIGITS = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯']
+  const toBn = (value: number | string): string =>
+    String(value).replace(/\d/g, (digit) => BN_DIGITS[Number(digit)])
+
+  const STREAK_KEY = 'shikkha24-quiz-streak'
+
+  /** Today in Asia/Dhaka, as `YYYY-MM-DD` — the streak must roll over at local midnight. */
+  function todayInDhaka(): string {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dhaka' }).format(new Date())
+  }
+
+  function dayBefore(isoDate: string): string {
+    const date = new Date(`${isoDate}T00:00:00Z`)
+    date.setUTCDate(date.getUTCDate() - 1)
+    return date.toISOString().slice(0, 10)
+  }
+
+  /** Read the streak, and advance it the first time the quiz is opened today. */
+  function readStreak(): number {
+    const today = todayInDhaka()
+    let streak = 1
+
+    try {
+      const raw = window.localStorage.getItem(STREAK_KEY)
+      if (raw) {
+        const saved = JSON.parse(raw) as { date?: string; streak?: number }
+        const previous = typeof saved.streak === 'number' ? saved.streak : 0
+
+        if (saved.date === today) streak = Math.max(1, previous)
+        else if (saved.date === dayBefore(today)) streak = previous + 1
+        else streak = 1
+      }
+      window.localStorage.setItem(STREAK_KEY, JSON.stringify({ date: today, streak }))
+    } catch {
+      // Storage unavailable — the quiz still works, it just cannot count days.
+      return 0
+    }
+
+    return streak
+  }
+
+  interface GradingEntry {
+    answer: string
+    explanation: string
+  }
+
+  for (const root of document.querySelectorAll<HTMLElement>('[data-quiz]')) {
+    const dataTag = root.querySelector('[data-quiz-data]')
+    const questions = Array.from(root.querySelectorAll<HTMLFieldSetElement>('[data-quiz-question]'))
+    const progress = root.querySelector<HTMLElement>('[data-quiz-progress]')
+    const streakLabel = root.querySelector<HTMLElement>('[data-quiz-streak]')
+    const result = root.querySelector<HTMLElement>('[data-quiz-result]')
+    const scoreLabel = root.querySelector<HTMLElement>('[data-quiz-score]')
+    const bar = root.querySelector<HTMLElement>('[data-quiz-bar]')
+    const restart = root.querySelector<HTMLButtonElement>('[data-quiz-restart]')
+
+    if (!dataTag || questions.length === 0) continue
+
+    let grading: GradingEntry[] = []
+    try {
+      grading = JSON.parse(dataTag.textContent ?? '[]') as GradingEntry[]
+    } catch {
+      continue
+    }
+
+    let current = 0
+    let score = 0
+
+    const streak = readStreak()
+    if (streakLabel && streak > 0) {
+      streakLabel.textContent = `${toBn(streak)} দিনের ধারা`
+    }
+
+    function setProgress(): void {
+      if (progress) {
+        progress.textContent = `প্রশ্ন ${toBn(current + 1)} / ${toBn(questions.length)}`
+      }
+    }
+
+    function showQuestion(index: number): void {
+      questions.forEach((question, position) => {
+        question.toggleAttribute('hidden', position !== index)
+      })
+      current = index
+      setProgress()
+    }
+
+    function reset(): void {
+      score = 0
+      result?.setAttribute('hidden', '')
+      for (const question of questions) {
+        question.querySelector('[data-quiz-feedback]')?.setAttribute('hidden', '')
+        question.querySelector('[data-quiz-next]')?.setAttribute('hidden', '')
+        for (const option of question.querySelectorAll<HTMLButtonElement>('[data-quiz-option]')) {
+          option.disabled = false
+          option.classList.remove('is-correct', 'is-wrong')
+        }
+      }
+      showQuestion(0)
+    }
+
+    for (const [index, question] of questions.entries()) {
+      const feedback = question.querySelector<HTMLElement>('[data-quiz-feedback]')
+      const next = question.querySelector<HTMLButtonElement>('[data-quiz-next]')
+
+      for (const option of question.querySelectorAll<HTMLButtonElement>('[data-quiz-option]')) {
+        option.addEventListener('click', () => {
+          const expected = grading[index]?.answer ?? ''
+          const chosen = option.dataset.answer ?? ''
+          const correct = chosen.trim() === expected.trim()
+
+          if (correct) score += 1
+
+          // Lock the question so the first answer is the one that counts.
+          for (const sibling of question.querySelectorAll<HTMLButtonElement>('[data-quiz-option]')) {
+            sibling.disabled = true
+            if ((sibling.dataset.answer ?? '').trim() === expected.trim()) {
+              sibling.classList.add('is-correct')
+            }
+          }
+          if (!correct) option.classList.add('is-wrong')
+
+          if (feedback) {
+            const explanation = grading[index]?.explanation ?? ''
+            feedback.innerHTML = ''
+            const verdict = document.createElement('p')
+            verdict.className = correct ? 'font-medium text-[#173404]' : 'font-medium text-[#501313]'
+            verdict.textContent = correct ? 'সঠিক উত্তর।' : `সঠিক উত্তর: ${expected}`
+            feedback.append(verdict)
+            if (explanation) {
+              const note = document.createElement('p')
+              note.className = 'mt-1 text-ink-muted dark:text-dark-ink-muted'
+              note.textContent = explanation
+              feedback.append(note)
+            }
+            feedback.removeAttribute('hidden')
+          }
+
+          if (next) {
+            next.textContent = index === questions.length - 1 ? 'ফলাফল দেখুন' : 'পরবর্তী প্রশ্ন'
+            next.removeAttribute('hidden')
+          }
+        })
+      }
+
+      next?.addEventListener('click', () => {
+        if (index === questions.length - 1) {
+          const percent = Math.round((score / questions.length) * 100)
+          if (scoreLabel) {
+            scoreLabel.textContent = `${toBn(questions.length)}টির মধ্যে ${toBn(score)}টি সঠিক — ${toBn(percent)}%`
+          }
+          if (bar) bar.style.width = `${percent}%`
+          for (const panel of questions) panel.setAttribute('hidden', '')
+          result?.removeAttribute('hidden')
+          progress?.setAttribute('hidden', '')
+        } else {
+          showQuestion(index + 1)
+        }
+      })
+    }
+
+    restart?.addEventListener('click', () => {
+      progress?.removeAttribute('hidden')
+      reset()
+    })
+
+    reset()
+  }
+</script>

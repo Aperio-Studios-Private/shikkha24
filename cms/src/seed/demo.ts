@@ -34,6 +34,9 @@ export interface DemoReport {
   author: number
   articles: number
   deadlines: number
+  liveBlog: number
+  poll: number
+  quiz: number
   skipped: number
 }
 
@@ -322,9 +325,107 @@ const DEADLINES: Array<{
   },
 ]
 
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Interactive demo content (S8)
+ *
+ * Entries are spaced minutes apart and include key events on purpose, so the
+ * demo exercises the timeline ordering, the key-events filter and the
+ * "মূল ঘটনা" badge rather than leaving those paths only reachable in production.
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/** Relative so the demo always looks like it is happening today. */
+const minutesAgo = (minutes: number): string =>
+  new Date(Date.now() - minutes * 60_000).toISOString()
+
+const LIVE_BLOG = {
+  title: 'এইচএসসি ২০২৬ ফলাফল — লাইভ আপডেট',
+  slug: 'demo-hsc-result-live',
+  entries: [
+    {
+      minutesAgo: 3,
+      isKeyEvent: true,
+      text: 'ফলাফল প্রকাশিত হয়েছে। এইচএসসি ২০২৬-এ পাসের হার ৭৮.৪০ শতাংশ, জিপিএ ৫ পেয়েছেন ১,৪২,৩১৭ জন।',
+    },
+    {
+      minutesAgo: 11,
+      isKeyEvent: false,
+      text: 'শিক্ষা বোর্ডের ওয়েবসাইটে চাপ বাড়ছে। বিকল্প হিসেবে এসএমএস ও মোবাইল অ্যাপের মাধ্যমে ফল জানার পরামর্শ দিয়েছে বোর্ড।',
+    },
+    {
+      minutesAgo: 24,
+      isKeyEvent: true,
+      text: 'সকাল ১০টায় ফলাফল প্রকাশের ঘোষণা দিয়েছেন শিক্ষা মন্ত্রণালয়ের কর্মকর্তারা। শিক্ষা বোর্ডের ওয়েবসাইট ও প্রতিষ্ঠান প্রধানদের কাছ থেকে ফল জানা যাবে।',
+    },
+    {
+      minutesAgo: 38,
+      isKeyEvent: false,
+      text: 'ফলাফল প্রকাশের আগেই বোর্ডের সার্ভার প্রস্তুত করা হয়েছে বলে জানিয়েছে সংশ্লিষ্ট দপ্তর।',
+    },
+    {
+      minutesAgo: 52,
+      isKeyEvent: false,
+      text: 'পরীক্ষার্থীদের রেজিস্ট্রেশন কার্ড ও রোল নম্বর হাতে রাখতে বলা হয়েছে — এসএমএসে ফল জানতে দুটিই লাগবে।',
+    },
+    {
+      minutesAgo: 71,
+      isKeyEvent: true,
+      text: 'আজ সকাল থেকেই অভিভাবকদের ভিড় শুরু হয়েছে প্রতিষ্ঠানগুলোতে। ফল প্রকাশের পর দ্রুত ভর্তি প্রক্রিয়া শুরু হবে।',
+    },
+  ],
+}
+
+const POLL = {
+  questionBn: 'নতুন ভর্তি নীতিতে লটারি পদ্ধতি কি ন্যায্য বলে মনে করেন?',
+  options: ['হ্যাঁ, ন্যায্য', 'না, পরিবর্তন দরকার', 'নিশ্চিত নই'],
+}
+
+const QUIZ = {
+  title: 'আজকের কুইজ — ভর্তি ও বিসিএস প্রস্তুতি',
+  questions: [
+    {
+      question: 'জাতিসংঘের শিক্ষা, বিজ্ঞান ও সংস্কৃতি সংস্থার সংক্ষিপ্ত নাম কী?',
+      options: ['ইউনেস্কো', 'ইউনিসেফ', 'ডব্লিউএইচও', 'আইএলও'],
+      correctAnswer: 'ইউনেস্কো',
+      explanation: 'ইউনেস্কো (UNESCO) ১৯৪৫ সালে প্রতিষ্ঠিত হয়; সদর দপ্তর প্যারিসে।',
+    },
+    {
+      question: 'বাংলাদেশের প্রথম বিশ্ববিদ্যালয় কোনটি?',
+      options: ['ঢাকা বিশ্ববিদ্যালয়', 'রাজশাহী বিশ্ববিদ্যালয়', 'চট্টগ্রাম বিশ্ববিদ্যালয়', 'জাহাঙ্গীরনগর বিশ্ববিদ্যালয়'],
+      correctAnswer: 'ঢাকা বিশ্ববিদ্যালয়',
+      explanation: 'ঢাকা বিশ্ববিদ্যালয় ১৯২১ সালে প্রতিষ্ঠিত হয়।',
+    },
+    {
+      question: 'এসএসসি পরীক্ষা কোন শ্রেণি শেষে অনুষ্ঠিত হয়?',
+      options: ['অষ্টম শ্রেণি', 'নবম শ্রেণি', 'দশম শ্রেণি', 'দ্বাদশ শ্রেণি'],
+      correctAnswer: 'দশম শ্রেণি',
+      explanation: 'মাধ্যমিক স্তরের সমাপনী পরীক্ষা দশম শ্রেণি শেষে অনুষ্ঠিত হয়।',
+    },
+    {
+      question: 'বিসিএস পরীক্ষার প্রথম ধাপ কোনটি?',
+      options: ['প্রিলিমিনারি', 'লিখিত', 'মৌখিক', 'ব্যক্তিগত সাক্ষাৎকার'],
+      correctAnswer: 'প্রিলিমিনারি',
+      explanation: 'প্রিলিমিনারি (প্রাথমিক) পরীক্ষায় উত্তীর্ণ হলে লিখিত পরীক্ষায় অংশ নেওয়া যায়।',
+    },
+    {
+      question: 'একটি বর্গক্ষেত্রের ক্ষেত্রফল নির্ণয়ের সঠিক সূত্র কোনটি?',
+      options: ['বাহু × বাহু', '২ × বাহু', '৪ × বাহু', 'বাহু ÷ ২'],
+      correctAnswer: 'বাহু × বাহু',
+      explanation: 'বর্গক্ষেত্রের সব বাহু সমান, তাই ক্ষেত্রফল = বাহু × বাহু।',
+    },
+  ],
+}
+
 export async function seedDemo(payload: Payload): Promise<DemoReport> {
   const db = payload as unknown as SlugAgnosticPayload
-  const report: DemoReport = { author: 0, articles: 0, deadlines: 0, skipped: 0 }
+  const report: DemoReport = {
+    author: 0,
+    articles: 0,
+    deadlines: 0,
+    liveBlog: 0,
+    poll: 0,
+    quiz: 0,
+    skipped: 0,
+  }
 
   /* ── A single demo author ─────────────────────────────────────────────── */
   const existingAuthors = await db.find({
@@ -461,6 +562,90 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
       overrideAccess: true,
     })
     report.deadlines++
+  }
+
+  /* ── Live blog (S8) ───────────────────────────────────────────────────── */
+  const existingLive = await db.find({
+    collection: 'live-blogs',
+    where: { slug: { equals: LIVE_BLOG.slug } },
+    limit: 1,
+    overrideAccess: true,
+  })
+
+  if (existingLive.docs.length > 0) {
+    report.skipped++
+  } else {
+    await db.create({
+      collection: 'live-blogs',
+      data: {
+        title: LIVE_BLOG.title,
+        slug: LIVE_BLOG.slug,
+        isActive: true,
+        entries: LIVE_BLOG.entries.map((entry) => ({
+          timestamp: minutesAgo(entry.minutesAgo),
+          // `richText(...)` supplies the `root` wrapper Payload's richText field
+          // requires — a bare paragraph node is rejected as invalid.
+          content: richText(para(entry.text)),
+          isKeyEvent: entry.isKeyEvent,
+        })),
+      },
+      overrideAccess: true,
+    })
+    report.liveBlog = 1
+  }
+
+  /* ── Poll (S8) ────────────────────────────────────────────────────────── */
+  const existingPoll = await db.find({
+    collection: 'polls',
+    where: { questionBn: { equals: POLL.questionBn } },
+    limit: 1,
+    overrideAccess: true,
+  })
+
+  if (existingPoll.docs.length > 0) {
+    report.skipped++
+  } else {
+    await db.create({
+      collection: 'polls',
+      data: {
+        questionBn: POLL.questionBn,
+        // Deliberately zero votes. Seeding a standing would be inventing reader
+        // opinion and showing it as fact — the poll must open empty.
+        options: POLL.options.map((label) => ({ label, voteCount: 0 })),
+        isActive: true,
+      },
+      overrideAccess: true,
+    })
+    report.poll = 1
+  }
+
+  /* ── Quiz (S8) ────────────────────────────────────────────────────────── */
+  const existingQuiz = await db.find({
+    collection: 'quizzes',
+    where: { title: { equals: QUIZ.title } },
+    limit: 1,
+    overrideAccess: true,
+  })
+
+  if (existingQuiz.docs.length > 0) {
+    report.skipped++
+  } else {
+    await db.create({
+      collection: 'quizzes',
+      data: {
+        title: QUIZ.title,
+        date: new Date().toISOString(),
+        isActive: true,
+        questions: QUIZ.questions.map((question) => ({
+          question: question.question,
+          options: question.options.map((label) => ({ label })),
+          correctAnswer: question.correctAnswer,
+          explanation: question.explanation,
+        })),
+      },
+      overrideAccess: true,
+    })
+    report.quiz = 1
   }
 
   return report

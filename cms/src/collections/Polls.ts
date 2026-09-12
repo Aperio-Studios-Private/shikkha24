@@ -1,12 +1,20 @@
 import type { CollectionConfig } from 'payload'
 
 import { anyone, isEditorial, isSuperAdminOrEditorInChief } from '../access/roles'
+import { pollVoteEndpoint } from '../endpoints/poll-vote'
 
 /**
  * Polls — re-scoped to education opinion.
  *
  * `docs/education-feature-inventory.md` §3: "Is the new admission policy fair?"
  * replaces political opinion polling.
+ *
+ * ## Voting
+ *
+ * Votes are cast through the custom endpoint below, never through the generated
+ * REST API — `PATCH /api/polls/:id` would let anyone rewrite the question and
+ * the tallies. The endpoint owns the abuse guards and is the only writer of
+ * `voteCount`. See `src/endpoints/poll-vote.ts`.
  */
 export const Polls: CollectionConfig = {
   slug: 'polls',
@@ -26,6 +34,7 @@ export const Polls: CollectionConfig = {
     update: isEditorial,
     delete: isSuperAdminOrEditorInChief,
   },
+  endpoints: [pollVoteEndpoint],
   fields: [
     { name: 'questionBn', type: 'text', required: true, label: { en: 'Question', bn: 'প্রশ্ন' } },
     {
@@ -40,6 +49,8 @@ export const Polls: CollectionConfig = {
           type: 'number',
           defaultValue: 0,
           label: { en: 'Votes', bn: 'ভোট' },
+          // Written only by the vote endpoint, never by hand — an editor typing
+          // a number here would silently corrupt the result.
           admin: { readOnly: true },
         },
       ],
@@ -50,13 +61,20 @@ export const Polls: CollectionConfig = {
       defaultValue: true,
       index: true,
       label: { en: 'Active', bn: 'সক্রিয়' },
-      admin: { position: 'sidebar' },
+      admin: {
+        position: 'sidebar',
+        description: 'বন্ধ করলে নতুন ভোট গ্রহণ করা হবে না — ফলাফল দেখানো চলবে।',
+      },
     },
     {
       name: 'expiresAt',
       type: 'date',
       label: { en: 'Expires at', bn: 'শেষ সময়' },
-      admin: { position: 'sidebar', date: { pickerAppearance: 'dayAndTime' } },
+      admin: {
+        position: 'sidebar',
+        date: { pickerAppearance: 'dayAndTime' },
+        description: 'এই সময়ের পর স্বয়ংক্রিয়ভাবে ভোট বন্ধ হবে।',
+      },
     },
   ],
   timestamps: true,

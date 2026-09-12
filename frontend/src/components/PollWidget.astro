@@ -1,0 +1,298 @@
+---
+/**
+ * Reader poll.
+ *
+ * ## Degradation follows the documented rule
+ *
+ * `docs/reliability.md` §4: "Quiz / polls — hide; do not break the article."
+ * So the widget is rendered only when it can actually work, and a browser with
+ * no JavaScript gets nothing rather than a control that silently fails. The
+ * `<noscript>` rule below enforces that without any layout cost.
+ *
+ * ## Why the numbers are hidden until you vote
+ *
+ * Showing the standing before a reader answers anchors them — the first option
+ * with a visible lead collects more votes for being in the lead. The bars and
+ * percentages are always in the DOM and always occupy their space; only
+ * `visibility` changes, so revealing them after a vote cannot shift the layout.
+ *
+ * ## The privacy line is not optional
+ *
+ * Counting votes server-side needs a way to recognise a repeat voter, which
+ * means storing something about the reader. That is disclosed on the widget
+ * itself, not buried in a policy page — a disclosure nobody reads is not a
+ * disclosure. See `cms/src/collections/PollVotes.ts` for exactly what is kept.
+ */
+import type { CmsPoll } from '../lib/interactive'
+import { toBnDigits } from '../lib/bangla-date'
+
+interface Props {
+  poll: CmsPoll
+  cmsOrigin: string | null
+}
+
+const { poll, cmsOrigin } = Astro.props
+
+const options = poll.options ?? []
+const total = options.reduce((sum, option) => sum + (option.voteCount ?? 0), 0)
+
+const percentOf = (count: number): number =>
+  total > 0 ? Math.round((count / total) * 100) : 0
+
+const expired = poll.expiresAt ? new Date(poll.expiresAt).getTime() < Date.now() : false
+const closed = poll.isActive === false || expired
+
+/** No origin means the vote could never be sent, so there is nothing to show. */
+const renderable = Boolean(cmsOrigin) && options.length >= 2
+---
+
+{
+  renderable && (
+    <section
+      class="poll-widget rounded-lg border border-rule bg-surface-raised p-4 dark:border-dark-rule dark:bg-dark-raised"
+      data-poll-widget
+      data-poll-id={String(poll.id)}
+      data-origin={cmsOrigin ?? ''}
+      data-closed={String(closed)}
+      aria-labelledby="poll-question"
+    >
+      <noscript>
+        <style>{'[data-poll-widget]{display:none}'}</style>
+      </noscript>
+
+      <h2
+        id="poll-question"
+        class="font-headline text-base font-bold text-ink dark:text-dark-ink"
+      >
+        {poll.questionBn}
+      </h2>
+
+      <fieldset class="mt-3" disabled={closed}>
+        <legend class="sr-only">একটি বিকল্প বেছে নিন</legend>
+
+        <div class="flex flex-col gap-2">
+          {options.map((option, index) => (
+            <label
+              class="poll-option flex min-h-12 cursor-pointer items-center gap-3 rounded-md border border-rule px-3 py-2 transition-colors hover:border-brand-red dark:border-dark-rule"
+              data-poll-option
+            >
+              <input
+                type="radio"
+                name={`poll-${poll.id}`}
+                value={index}
+                class="h-5 w-5 shrink-0 accent-[var(--color-brand-red)]"
+              />
+
+              <span class="min-w-0 flex-1 text-sm text-ink dark:text-dark-ink">
+                {option.label}
+              </span>
+
+              {/* Reserved at all times — only `visibility` changes, so revealing
+                  the result after a vote cannot move anything. */}
+              <span
+                class="poll-bar h-2 w-16 shrink-0 overflow-hidden rounded-full bg-rule dark:bg-dark-rule"
+                aria-hidden="true"
+              >
+                <span
+                  class="poll-bar-fill block h-full rounded-full bg-brand-red"
+                  data-poll-fill
+                  style={`width:${percentOf(option.voteCount ?? 0)}%`}
+                />
+              </span>
+
+              <span
+                class="poll-percent w-10 shrink-0 text-right text-xs font-medium text-ink-muted dark:text-dark-ink-muted"
+                data-poll-percent
+              >
+                {toBnDigits(percentOf(option.voteCount ?? 0))}%
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      {/* Honeypot — off-screen, never focusable, never filled by a human. */}
+      <input
+        type="text"
+        name="company"
+        data-poll-honeypot
+        tabindex="-1"
+        autocomplete="off"
+        aria-hidden="true"
+        class="pointer-events-none absolute h-0 w-0 opacity-0"
+      />
+
+      <div class="mt-3 flex flex-wrap items-center gap-3">
+        {
+          closed ? (
+            <p class="text-sm text-ink-muted dark:text-dark-ink-muted">
+              এই জরিপটি বন্ধ হয়ে গেছে। মোট {toBnDigits(total)}টি ভোট পড়েছে।
+            </p>
+          ) : (
+            <button
+              type="button"
+              data-poll-submit
+              class="min-h-12 rounded-md bg-brand-red px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+            >
+              ভোট দিন
+            </button>
+          )
+        }
+        <p
+          data-poll-status
+          role="status"
+          aria-live="polite"
+          class="text-sm text-ink-muted dark:text-dark-ink-muted"
+        />
+      </div>
+
+      <p class="mt-3 text-xs leading-relaxed text-ink-subtle dark:text-dark-ink-muted">
+        ডুপ্লিকেট ভোট ঠেকাতে আপনার আইপি ও ব্রাউজার তথ্যের একটি ওয়ান-ওয়ে হ্যাশ সংরক্ষণ করা হয় —
+        মূল তথ্য নয়, এবং কোন বিকল্পে ভোট দিয়েছেন তাও নয়।
+      </p>
+    </section>
+  )
+}
+
+<style>
+  /*
+   * Results stay hidden until the reader has voted. `visibility` rather than
+   * `display`, because the space must stay reserved — a bar that appears on
+   * reveal would shift everything below it.
+   */
+  [data-poll-widget]:not([data-voted='true']) .poll-bar,
+  [data-poll-widget]:not([data-voted='true']) .poll-percent {
+    visibility: hidden;
+  }
+
+  /* A closed poll has nothing to hide — the numbers are the whole point. */
+  [data-poll-widget][data-closed='true'] .poll-bar,
+  [data-poll-widget][data-closed='true'] .poll-percent {
+    visibility: visible;
+  }
+
+  [data-poll-widget] .poll-bar-fill {
+    transition: width 300ms ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-poll-widget] .poll-bar-fill {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  /**
+   * Poll voting.
+   *
+   * A second vote from the same browser is stopped before it is sent — the
+   * server would refuse it anyway, and a round trip to be told "no" is a worse
+   * experience than a button that already knows.
+   */
+  const STORAGE_KEY = 'shikkha24-poll-votes'
+  const BN_DIGITS = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯']
+  const toBn = (value: number | string): string =>
+    String(value).replace(/\d/g, (digit) => BN_DIGITS[Number(digit)])
+
+  function readVotes(): Record<string, number> {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY)
+      return raw ? (JSON.parse(raw) as Record<string, number>) : {}
+    } catch {
+      // Private mode, or storage disabled. Voting still works; it just is not
+      // remembered, and the server's own guard still applies.
+      return {}
+    }
+  }
+
+  function rememberVote(pollId: string, optionIndex: number): void {
+    try {
+      const votes = readVotes()
+      votes[pollId] = optionIndex
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(votes))
+    } catch {
+      /* storage unavailable — not fatal */
+    }
+  }
+
+  for (const widget of document.querySelectorAll<HTMLElement>('[data-poll-widget]')) {
+    const pollId = widget.dataset.pollId
+    const origin = widget.dataset.origin
+    const closed = widget.dataset.closed === 'true'
+    const submit = widget.querySelector<HTMLButtonElement>('[data-poll-submit]')
+    const status = widget.querySelector<HTMLElement>('[data-poll-status]')
+    const honeypot = widget.querySelector<HTMLInputElement>('[data-poll-honeypot]')
+
+    if (!pollId || !origin) continue
+
+    const setStatus = (message: string): void => {
+      if (status) status.textContent = message
+    }
+
+    const showResults = (): void => widget.setAttribute('data-voted', 'true')
+
+    /** Repaint the bars and percentages from the server's tallies. */
+    const applyTallies = (tallies: number[]): void => {
+      const total = tallies.reduce((sum, count) => sum + count, 0)
+      const rows = widget.querySelectorAll('[data-poll-option]')
+
+      rows.forEach((row, index) => {
+        const count = tallies[index] ?? 0
+        const percent = total > 0 ? Math.round((count / total) * 100) : 0
+
+        const fill = row.querySelector<HTMLElement>('[data-poll-fill]')
+        if (fill) fill.style.width = `${percent}%`
+
+        const label = row.querySelector<HTMLElement>('[data-poll-percent]')
+        if (label) label.textContent = `${toBn(percent)}%`
+      })
+    }
+
+    // Already voted in this browser, or the poll is closed → show the standing.
+    if (closed || readVotes()[pollId] !== undefined) showResults()
+
+    submit?.addEventListener('click', async () => {
+      const chosen = widget.querySelector<HTMLInputElement>('input[type="radio"]:checked')
+      if (!chosen) {
+        setStatus('একটি বিকল্প বেছে নিন।')
+        return
+      }
+
+      const optionIndex = Number(chosen.value)
+      submit.disabled = true
+      setStatus('পাঠানো হচ্ছে…')
+
+      try {
+        const response = await fetch(`${origin}/api/polls/${encodeURIComponent(pollId)}/vote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ optionIndex, company: honeypot?.value ?? '' }),
+        })
+
+        const payload = (await response.json().catch(() => ({}))) as {
+          tallies?: number[]
+          alreadyVoted?: boolean
+          error?: string
+        }
+
+        if (Array.isArray(payload.tallies)) applyTallies(payload.tallies)
+
+        if (response.ok) {
+          rememberVote(pollId, optionIndex)
+          showResults()
+          setStatus(payload.alreadyVoted ? 'আপনি আগেই ভোট দিয়েছেন।' : 'ধন্যবাদ — আপনার ভোট গণনা করা হয়েছে।')
+        } else {
+          // A closed or expired poll still returns tallies, so the reader gets
+          // the result rather than a bare error.
+          if (response.status === 409) showResults()
+          setStatus(payload.error ?? 'ভোট পাঠানো যায়নি।')
+        }
+      } catch {
+        setStatus('ভোট পাঠানো যায়নি। একটু পরে আবার চেষ্টা করুন।')
+      } finally {
+        submit.disabled = false
+      }
+    })
+  }
+</script>

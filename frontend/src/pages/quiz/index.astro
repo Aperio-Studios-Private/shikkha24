@@ -1,0 +1,119 @@
+---
+/**
+ * Quiz hub (S8) — `/quiz`.
+ *
+ * The landing page for the daily admission + BCS quiz. Its job is the habit
+ * loop: show today's quiz first, keep the previous ones visible so a reader who
+ * missed a day can still catch up.
+ *
+ * ## Flag behaviour
+ *
+ * `docs/reliability.md` §5 requires heavy features to be switchable off without
+ * a redeploy. A static page cannot simply disappear, so with the flag off it
+ * builds as a redirect to the 404 page — the URL stays valid and the feature is
+ * genuinely gone from the site.
+ */
+import Layout from '../../layouts/Layout.astro'
+import { getQuizzes } from '../../lib/interactive'
+import { toBnDigits } from '../../lib/bangla-date'
+import {
+  FALLBACK_CATEGORIES,
+  FALLBACK_SETTINGS,
+  getCategories,
+  getFooterPages,
+  getSiteSettings,
+} from '../../lib/cms'
+import { isEnabled } from '../../lib/feature-flags'
+
+if (!isEnabled('quiz')) return Astro.redirect('/404')
+
+const [settings, categories, footerPages, quizzes] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getQuizzes().catch(() => []),
+])
+
+const [today, ...earlier] = quizzes
+
+const formatDate = (value: string): string => {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+---
+
+<Layout
+  title="দৈনিক কুইজ — ভর্তি ও বিসিএস প্রস্তুতি"
+  description="প্রতিদিনের ভর্তি ও বিসিএস প্রস্তুতির কুইজ। তাৎক্ষণিক উত্তর, ব্যাখ্যা ও স্কোর।"
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <div class="container-page py-6">
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="flex flex-wrap items-center gap-1.5 text-xs text-ink-subtle dark:text-dark-ink-muted">
+        <li><a href="/" class="hover:text-brand-red">হোম</a></li>
+        <li aria-hidden="true">/</li>
+        <li>কুইজ</li>
+      </ol>
+    </nav>
+
+    <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+      দৈনিক কুইজ
+    </h1>
+    <p class="mt-2 max-w-prose text-ink-muted dark:text-dark-ink-muted">
+      প্রতিদিন কয়েকটি প্রশ্ন — ভর্তি পরীক্ষা ও বিসিএস প্রস্তুতির জন্য। উত্তর দিলেই সঙ্গে সঙ্গে
+      সঠিক উত্তর ও ব্যাখ্যা দেখতে পাবেন।
+    </p>
+
+    {
+      today ? (
+        <section class="mt-6 rounded-lg border border-rule p-5 dark:border-dark-rule">
+          <p class="text-xs font-semibold uppercase tracking-wide text-brand-red">আজকের কুইজ</p>
+          <h2 class="mt-1 font-headline text-xl font-bold text-ink dark:text-dark-ink">
+            <a href={`/quiz/${today.id}`} class="hover:text-brand-red no-underline">
+              {today.title}
+            </a>
+          </h2>
+          <p class="mt-1 text-sm text-ink-subtle dark:text-dark-ink-muted">
+            {formatDate(today.date)} · {toBnDigits(today.questions?.length ?? 0)}টি প্রশ্ন
+          </p>
+          <a
+            href={`/quiz/${today.id}`}
+            class="mt-4 inline-flex min-h-12 items-center rounded-md bg-brand-red px-4 text-sm font-semibold text-white no-underline hover:opacity-90"
+          >
+            কুইজ শুরু করুন
+          </a>
+        </section>
+      ) : (
+        <p class="mt-6 text-ink-muted dark:text-dark-ink-muted">এখনো কোনো কুইজ প্রকাশিত হয়নি।</p>
+      )
+    }
+
+    {
+      earlier.length > 0 && (
+        <section class="mt-8">
+          <h2 class="border-b-2 border-brand-red pb-2 font-headline text-xl font-bold text-ink dark:text-dark-ink">
+            আগের কুইজগুলো
+          </h2>
+          <ul class="mt-3 flex flex-col gap-2">
+            {earlier.map((quiz) => (
+              <li class="border-b border-rule py-2 dark:border-dark-rule">
+                <a href={`/quiz/${quiz.id}`} class="flex flex-wrap items-baseline gap-x-3 no-underline">
+                  <span class="font-headline text-base font-medium text-ink hover:text-brand-red dark:text-dark-ink">
+                    {quiz.title}
+                  </span>
+                  <span class="text-xs text-ink-subtle dark:text-dark-ink-muted">
+                    {formatDate(quiz.date)} · {toBnDigits(quiz.questions?.length ?? 0)}টি প্রশ্ন
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+  </div>
+</Layout>

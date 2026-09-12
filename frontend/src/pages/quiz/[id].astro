@@ -1,0 +1,102 @@
+---
+/**
+ * One quiz (S8) — `/quiz/:id`.
+ *
+ * ## No JSON-LD, deliberately
+ *
+ * `docs/seo-plan.md` §3 defines a per-template schema matrix, and a quiz
+ * template is not in it. Inventing `Quiz` schema here would put the build ahead
+ * of the plan (agent rule 13) — and a `Quiz` payload is required to carry
+ * `acceptedAnswer`, which would publish the answers to every crawler. Recorded
+ * as a documentation gap in `.sps/section-todos/S8.md` rather than guessed at.
+ *
+ * ## The URL is the id
+ *
+ * Quizzes have no slug field. The id is stable, short, and never needs to change
+ * when a title is edited — the same reasoning behind the `/:id/:slug` article
+ * architecture, minus the slug.
+ */
+import Layout from '../../layouts/Layout.astro'
+import QuizRunner from '../../components/QuizRunner.astro'
+import AdSlot from '../../components/AdSlot.astro'
+import { getQuizById, getQuizzes } from '../../lib/interactive'
+import { toBnDigits } from '../../lib/bangla-date'
+import {
+  FALLBACK_CATEGORIES,
+  FALLBACK_SETTINGS,
+  getCategories,
+  getFooterPages,
+  getSiteSettings,
+} from '../../lib/cms'
+import { isEnabled } from '../../lib/feature-flags'
+
+export async function getStaticPaths() {
+  if (!isEnabled('quiz')) return []
+
+  const quizzes = await getQuizzes().catch(() => [])
+  return quizzes.map((quiz) => ({ params: { id: String(quiz.id) } }))
+}
+
+const { id } = Astro.params
+
+const [settings, categories, footerPages] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+])
+
+const quiz = await getQuizById(id ?? '').catch(() => null)
+if (!quiz) return Astro.redirect('/404')
+
+const questionCount = quiz.questions?.length ?? 0
+
+const dateLabel = (() => {
+  const date = new Date(quiz.date)
+  return Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' })
+})()
+---
+
+<Layout
+  title={`${quiz.title} — দৈনিক কুইজ`}
+  description={`${quiz.title} — ${questionCount}টি প্রশ্নের দৈনিক কুইজ। তাৎক্ষণিক উত্তর ও ব্যাখ্যা।`}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <div class="container-page py-6">
+    <div class="grid-12">
+      <div class="col-span-4 sm:col-span-8 lg:col-span-8">
+        <nav aria-label="breadcrumb" class="mb-3">
+          <ol class="flex flex-wrap items-center gap-1.5 text-xs text-ink-subtle dark:text-dark-ink-muted">
+            <li><a href="/" class="hover:text-brand-red">হোম</a></li>
+            <li aria-hidden="true">/</li>
+            <li><a href="/quiz" class="hover:text-brand-red">কুইজ</a></li>
+          </ol>
+        </nav>
+
+        <h1 class="font-headline text-2xl font-bold leading-tight text-ink sm:text-3xl dark:text-dark-ink">
+          {quiz.title}
+        </h1>
+        <p class="mt-2 text-sm text-ink-subtle dark:text-dark-ink-muted">
+          {dateLabel} · {toBnDigits(questionCount)}টি প্রশ্ন
+        </p>
+
+        <div class="mt-6">
+          <QuizRunner quiz={quiz} />
+        </div>
+
+        <div class="mt-8 flex justify-center">
+          <AdSlot position="articleBottom" width={728} height={90} />
+        </div>
+      </div>
+
+      <aside class="col-span-4 mt-8 sm:col-span-8 lg:col-span-4 lg:mt-0">
+        <div class="lg:sticky lg:top-4">
+          <AdSlot position="sidebarTop" width={300} height={250} />
+        </div>
+      </aside>
+    </div>
+  </div>
+</Layout>

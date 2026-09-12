@@ -33,6 +33,10 @@ import CategorySection from '../components/CategorySection.astro'
 import LatestFeed from '../components/LatestFeed.astro'
 import TrendingList from '../components/TrendingList.astro'
 import AdSlot from '../components/AdSlot.astro'
+import InteractiveStrip from '../components/InteractiveStrip.astro'
+import PollWidget from '../components/PollWidget.astro'
+import { getActivePoll, getLiveBlogs, getPublicCmsOrigin, getQuizzes } from '../lib/interactive'
+import { isEnabled } from '../lib/feature-flags'
 import {
   getSiteSettings,
   getCategories,
@@ -66,6 +70,25 @@ const perCategory = await Promise.all(
     articles: await getArticles({ categorySlug: category.slug, limit: 5 }).catch(() => []),
   })),
 )
+
+/*
+ * Interactive features (S8).
+ *
+ * Each is flag-gated *before* the fetch, so switching one off removes both the
+ * request and the link. That matters more than it looks: a homepage linking to a
+ * page that was never built is a 404 the reader finds for you.
+ */
+const [liveBlogs, activePoll, quizzes] = await Promise.all([
+  isEnabled('liveBlog') ? getLiveBlogs().catch(() => []) : Promise.resolve([]),
+  isEnabled('poll') ? getActivePoll().catch(() => null) : Promise.resolve(null),
+  isEnabled('quiz') ? getQuizzes().catch(() => []) : Promise.resolve([]),
+])
+
+const liveBlog = liveBlogs[0] ?? null
+const latestQuiz = quizzes[0] ?? null
+
+/** `null` when unconfigured — the poll then renders nothing at all. */
+const cmsOrigin = getPublicCmsOrigin()
 
 /*
  * Sponsored stories are kept out of the masthead and the breaking ticker.
@@ -112,6 +135,10 @@ const remainingLatest = latest.filter((article) => !mastheadSlugs.has(article.sl
 >
   {/* 1 — Breaking ticker. Renders nothing when nothing is flagged. */}
   <BreakingTicker articles={breaking} />
+
+  {/* 1b — Entry point for the interactive features. Renders nothing when there
+          is no live blog and no quiz, so it can never advertise an empty page. */}
+  <InteractiveStrip liveBlog={liveBlog} latestQuiz={latestQuiz} />
 
   {/* 2 — Filter bar sits above the sections it filters. */}
   <FilterBar levels={levels} districts={districts} />
@@ -225,6 +252,7 @@ const remainingLatest = latest.filter((article) => !mastheadSlugs.has(article.sl
       <aside class="col-span-4 mt-8 sm:col-span-8 lg:col-span-4 lg:mt-0">
         <div class="lg:sticky lg:top-4 flex flex-col gap-4">
           <AdSlot position="sidebarTop" width={300} height={250} />
+          {activePoll && <PollWidget poll={activePoll} cmsOrigin={cmsOrigin} />}
           <TrendingList articles={remainingLatest} />
           <AdSlot position="sidebarSticky" width={300} height={250} />
         </div>

@@ -3,8 +3,8 @@
 # Source: docs/security.md §5 (security headers + CSP).
 #
 # TWO CSP PROFILES (docs/security.md §5): a strict one for static / editorial
-# pages, and a relaxed one for ad-bearing pages, because AdSense needs inline
-# scripts and dynamic script injection.
+# pages, and a relaxed one for ad-bearing and interactive pages, because AdSense
+# needs inline scripts and dynamic script injection.
 #
 # ⚠️ Cloudflare Pages does NOT override a duplicated header — **it joins the
 # values with a comma**, and a comma-joined CSP is enforced as two policies, so
@@ -17,6 +17,12 @@
 # ONE Content-Security-Policy header. If the detach does not take effect the
 # header will contain a comma, AdSense will be blocked, and this must be resolved
 # by moving the CSP into a Pages Function instead.
+#
+# ⚠️ **`connect-src` includes `https://cms.shikkha24.com` — a PLACEHOLDER.** The
+# two S8 islands (live-blog refresh, poll vote) call the CMS from the browser, and
+# a CSP `connect-src` cannot be templated. This host MUST match the production
+# `PUBLIC_CMS_ORIGIN` exactly. It is currently unset because the CMS hostname is
+# still pending DNS; see `.sps/section-todos/S8.md`.
 
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
@@ -30,28 +36,46 @@
   Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com; font-src 'self'; connect-src 'self'; media-src 'self' https://media.shikkha24.com; frame-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Relaxed profile — the three routes that carry ad slots (S7).
+# Relaxed profile — routes that carry ad slots, and the two routes whose islands
+# call the CMS.
 #
-# Exactly the pages where `AdSlot` renders: the homepage, article pages and
-# category listings. Every other route keeps the strict policy, which is the
-# point of having two profiles at all.
+#   /            homepage      — 4 ad slots + the poll
+#   /article/*   article       — 3 ad slots + embedded content blocks
+#   /category/*  category      — 1 ad slot
+#   /live/*      live blog     — 1 ad slot + the refresh island
+#   /quiz, /quiz/*  quiz       — 2 ad slots
 #
-# The AdSense loader in `AdCreative.astro` only injects the library when a real
-# AdSense unit exists, so today — with no unit configured — these routes still
-# make zero third-party requests. The relaxation costs nothing until ads ship.
+# Every other route keeps the strict policy, which is the point of two profiles.
+#
+# The AdSense loader only injects the library when a real AdSense unit exists, and
+# the islands only call the CMS when the reader taps something — so today these
+# routes still make zero third-party requests. The relaxation costs nothing until
+# the features are actually used.
 # ─────────────────────────────────────────────────────────────────────────────
 
 /
   ! Content-Security-Policy
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
 
 /article/*
   ! Content-Security-Policy
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
 
 /category/*
   ! Content-Security-Policy
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+
+/live/*
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+
+/quiz
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+
+/quiz/*
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
 
 # Hashed build assets are content-addressed — cache them forever.
 /_astro/*

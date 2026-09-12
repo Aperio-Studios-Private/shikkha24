@@ -1,0 +1,283 @@
+/*
+ * Styles for the S8 article content blocks.
+ *
+ * ## Why this file is global
+ *
+ * The block markup arrives through `set:html` from `lib/richtext.ts`. Astro's
+ * component-scoped styles only apply to elements a component renders itself, so
+ * scoped CSS would silently miss every one of these. They live in a global
+ * stylesheet, imported by `Layout.astro` so it is present in the rendered tree
+ * (a stylesheet imported only by a page is not inherited by its components —
+ * a trap this project already hit once).
+ *
+ * ## Every block degrades to readable content
+ *
+ * No block depends on JavaScript for its meaning:
+ *   - infographic  → a figure with a caption
+ *   - before/after → both images stacked, with labels
+ *   - scrollytelling → an ordered list of steps
+ *
+ * The scripts only ADD a comparison slider and a scroll animation. A reader who
+ * never receives them loses polish, never information.
+ */
+
+/* ── Infographic ─────────────────────────────────────────────────────────── */
+
+.content-infographic {
+  margin: 1.5rem 0;
+}
+
+.content-infographic img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--color-rule);
+}
+
+/* Payload did not record dimensions — reserve a box rather than shift. */
+.content-infographic img[data-unknown-ratio='true'] {
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  background-color: var(--color-surface-raised);
+}
+
+.content-infographic figcaption,
+.content-compare figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--color-ink-muted);
+}
+
+.content-source {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-ink-subtle);
+}
+
+.dark .content-infographic img {
+  border-color: var(--color-dark-rule);
+}
+
+.dark .content-infographic img[data-unknown-ratio='true'] {
+  background-color: var(--color-dark-raised);
+}
+
+.dark .content-infographic figcaption,
+.dark .content-compare figcaption {
+  color: var(--color-dark-ink-muted);
+}
+
+.dark .content-source {
+  color: var(--color-dark-ink-muted);
+}
+
+/* ── Before / after ──────────────────────────────────────────────────────── */
+
+.content-compare {
+  margin: 1.5rem 0;
+}
+
+/*
+ * Default: both images stacked, in legend order. No script needed, and nothing
+ * is hidden — the reader can compare by scrolling.
+ */
+.content-compare .compare-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.content-compare .compare-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+/* No slider until the script can drive it — a dead range input is a broken control. */
+.content-compare .compare-control {
+  display: none;
+}
+
+.content-compare .compare-legend {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-ink-muted);
+}
+
+/* Enhanced: the "before" image becomes a clipped overlay on the "after" image. */
+.content-compare.is-enhanced .compare-frame {
+  display: block;
+  position: relative;
+}
+
+.content-compare.is-enhanced .compare-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* Left portion of the before image, driven by --compare-position. */
+  clip-path: inset(0 calc(100% - var(--compare-position, 50%)) 0 0);
+}
+
+.content-compare.is-enhanced .compare-overlay .compare-image {
+  border-radius: 8px 0 0 8px;
+}
+
+.content-compare.is-enhanced .compare-control {
+  display: block;
+  margin-top: 0.75rem;
+}
+
+.content-compare.is-enhanced .compare-control-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-ink-subtle);
+}
+
+/* A full-width range is far easier to hit than a thin handle — and it satisfies
+   the 48px touch target on its own. */
+.content-compare.is-enhanced .compare-control input[type='range'] {
+  display: block;
+  width: 100%;
+  height: 3rem;
+  margin: 0;
+  cursor: ew-resize;
+  accent-color: var(--color-brand-red);
+}
+
+.dark .content-compare .compare-legend {
+  color: var(--color-dark-ink-muted);
+}
+
+.dark .content-compare.is-enhanced .compare-control-label {
+  color: var(--color-dark-ink-muted);
+}
+
+/* ── Scrollytelling ──────────────────────────────────────────────────────── */
+
+.content-scrolly {
+  margin: 2rem 0;
+}
+
+.content-scrolly .scrolly-heading {
+  margin-bottom: 1rem;
+  font-family: var(--font-headline);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.content-scrolly .scrolly-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: scrolly;
+}
+
+.content-scrolly .scrolly-step {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--color-rule);
+  counter-increment: scrolly;
+}
+
+.content-scrolly .scrolly-step:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.content-scrolly .scrolly-step h3 {
+  margin-bottom: 0.375rem;
+  font-family: var(--font-headline);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.content-scrolly .scrolly-step h3::before {
+  content: counter(scrolly) '. ';
+  color: var(--color-brand-red);
+}
+
+.content-scrolly .scrolly-step p {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--color-ink-muted);
+}
+
+.content-scrolly .scrolly-media img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.content-scrolly .scrolly-media img[data-unknown-ratio='true'] {
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background-color: var(--color-surface-raised);
+}
+
+@media (min-width: 768px) {
+  .content-scrolly .scrolly-step {
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+  }
+
+  /* Alternate sides so the eye moves down the page rather than in a straight line. */
+  .content-scrolly .scrolly-step:nth-child(even) .scrolly-media {
+    order: 2;
+  }
+}
+
+/*
+ * Scroll-driven animation, applied only where the browser can actually run it.
+ *
+ * `animation-timeline: view()` is supported by current Chrome/Android — the
+ * dominant platform for this audience — and simply not applied elsewhere, which
+ * leaves a perfectly readable static list.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .content-scrolly.is-enhanced .scrolly-step {
+      animation: scrolly-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 8% cover 35%;
+    }
+  }
+}
+
+@keyframes scrolly-reveal {
+  from {
+    opacity: 0.3;
+    transform: translateY(1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.dark .content-scrolly .scrolly-heading,
+.dark .content-scrolly .scrolly-step h3 {
+  color: var(--color-dark-ink);
+}
+
+.dark .content-scrolly .scrolly-step {
+  border-bottom-color: var(--color-dark-rule);
+}
+
+.dark .content-scrolly .scrolly-step p {
+  color: var(--color-dark-ink-muted);
+}
+
+.dark .content-scrolly .scrolly-media img[data-unknown-ratio='true'] {
+  background-color: var(--color-dark-raised);
+}

@@ -28,6 +28,7 @@ import ArticleAudio from '../../components/ArticleAudio.astro'
 import PrintStyles from '../../components/PrintStyles.astro'
 import SponsoredLabel from '../../components/SponsoredLabel.astro'
 import AdSlot from '../../components/AdSlot.astro'
+import ContentBlockScripts from '../../components/ContentBlockScripts.astro'
 import { countParagraphs, lexicalToHtml, lexicalToPlainText, splitHtmlAtParagraph } from '../../lib/richtext'
 import {
   getSiteSettings,
@@ -148,6 +149,9 @@ const jsonLd = {
 >
   <ReadingProgress />
   <PrintStyles />
+  {/* Enhances the before/after and scrollytelling blocks, if this article has
+      any. Renders nothing itself; both blocks are readable without it. */}
+  <ContentBlockScripts />
 
   {/* data-pagefind-body scopes the search index to the story itself, so
       results are not polluted by the nav, sidebar or footer. */}
