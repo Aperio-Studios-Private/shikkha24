@@ -1,10 +1,11 @@
 # SPS Handoff
 
 ## Current Phase
-- **Status:** **S8 COMPLETE — awaiting owner approval.** S0–S4 approved 2026-09-12; S5–S7 evidence posted, approval implied by "please continue" but not explicitly given.
-- **Last Activity:** 2026-09-12T18:30+06:00
-- **Next Action:** owner reviews S8 (`.sps/section-todos/S8.md`) **and decides the team-leader proposal** (`docs/team-leader-proposal-review.md`) — two of its 17 points conflict with recorded owner decisions, and nothing has been changed on the strength of it.
-- **User instruction (latest):** "Please continue" — taken, per this project's recorded convention, as approval of the previous section plus instruction to build the next one. Two S8 architecture questions were asked directly and answered: **opt-in refresh** for the live blog, **CMS-persisted votes** for polls.
+- **Status:** **S9 BUILD COMPLETE — awaiting owner approval.** S0–S4 approved 2026-09-12; S5–S8 evidence posted, approval implied by "please continue" but not explicitly given.
+- **Last Activity:** 2026-09-13T14:20+06:00
+- **Next Action:** owner reviews S9 (`.sps/section-todos/S9.md`) — **132 harness checks, 0 failures**. Seven OWNER actions are listed there; two of them (VAPID keys, OAuth apps) are the difference between a control that renders and one that does not.
+- **⚠️ One S9 build item is deliberately NOT built:** bookmark → CMS sync. The browser-local half is complete and works with no account. The sync half is unblocked but needs a **policy decision** first — a naive union-merge resurrects a bookmark deleted on another device. Raised for the owner rather than guessed at.
+- **User instruction (latest):** "read all docs and everything then continue to work" — taken, per this project's recorded convention, as approval of the previous section plus instruction to build the next one.
 - **⚠️ Open owner question (raised 2026-09-12):** the owner plans to **upgrade DianaHost to a 5 GB plan** and asked whether Cloudflare is still needed. Answer given: **yes** — 5 GB eases storage (and maybe bandwidth) but does not address uptime isolation, the performance gates, or deploy mechanics. **Two figures still needed: the 5 GB plan's monthly bandwidth and its price.** No plan change has been made pending that answer.
 - **⚠️ Sequencing note:** S11's **sitemap / news-sitemap / RSS / robots** were built **ahead of the S0→S12 order** on 2026-09-12. They are verified and committed; the remaining S11 work (OG/Twitter, auto OG images, canonical, `llms.txt`, Publisher Center, E-E-A-T pages) is **not** started.
 - **⚠️ Owner action needed:** the E-E-A-T pages (privacy policy, terms of use, contact) must be **created in the CMS**. The `/page/:slug` route is built, but with no Pages in the CMS the footer links still 404.
@@ -13,10 +14,95 @@
   1. `HTTP_PROXY` is set here; build-time CMS fetches fail with 502 unless `NO_PROXY=localhost,127.0.0.1,::1` is set. Now baked into `frontend/package.json` `dev`/`build` scripts. `curl` needs `--noproxy '*'`.
   2. **The sandbox safe-delete shim aborts `astro build`.** Astro deletes its own `dist/` and `dist/.prerender/`; the shim's bulk-delete guard (threshold 50 per turn) trips and the build exits 1 **after** the pages are written — so `dist/` looks populated but `pagefind` never runs and `.prerender/` is left behind to be deployed. **Fix: prefix the build with `CODEBUDDY_SAFE_DELETE_ENABLED=0`.**
   3. **Parallel edits to the SAME file silently lose writes.** Several edits to one file in a single message report success but only some land (typically the first and third survive, the second and fourth are dropped). Cost two debugging rounds in S7 and one in S8. **Serialize edits to one file, and always read the value back.** Different files in parallel are fine.
-  4. **Drizzle's schema push is interactive and will hang the dev server.** Renaming or dropping a column makes Payload ask "is this a rename?" on stdin; the server blocks forever and the build's CMS health check never passes. Also, a manual `DROP TABLE` leaves Drizzle's bookkeeping stale, after which every push fails with `index ... already exists` — fix by dropping the named index and retrying.
-- **⚠️ Background servers do not survive between tool calls** — confirmed repeatedly. Start the CMS and run the build in the *same* command, or the build silently falls back to no-CMS data.
+  4. **Drizzle's schema push is interactive and will hang the dev server.** Renaming or dropping a column makes Payload ask "is this a rename?" on stdin; the server blocks forever and the build's CMS health check never passes. Also, a manual `DROP TABLE` leaves Drizzle's bookkeeping stale, after which every push fails with `index ... already exists` — fix by dropping the named index and retrying. **Hit three more times in S9**, including `readers_provider_id_idx` when `Readers.email` changed nullability (a column change makes Drizzle rebuild the table, and the rebuild re-creates indexes that already exist). Back up the DB first; the fix is always `DROP INDEX IF EXISTS <named index>` then retry.
+- **⚠️ Background servers do not survive between tool calls** — confirmed repeatedly. Start the CMS and run the build in the *same* command (`scripts/with-cms.sh`), or the build silently falls back to no-CMS data.
 - **S2 entry gate:** portal display name + logo — ✅ satisfied by owner decision 2026-09-12 (name = শিক্ষা২৪, logo = placeholder, Inter dropped)
 - **Font:** SolaimanLipi only (owner decision) — Hind Siliguri and Noto Sans Bengali both removed. 154.0 KB / 200 KB.
+
+## S9 — Media, Newsletter & Engagement (build complete) — 2026-09-13
+
+**132 harness checks, 0 failures.** Full evidence in `.sps/section-todos/S9.md`.
+
+| Harness | Result |
+|---|---|
+| `verify:media` | 13 / 13 |
+| `verify:newsletter` | 29 / 29 |
+| `verify:engagement` | 22 / 22 |
+| `verify:push` | 22 / 22 |
+| `verify:oauth` | 46 / 46 |
+
+**Build:** 34 pages + `404.html`; Pagefind 13 pages / 425 words; **0 executable
+inline scripts** across every page (the S8 invariant holds after five new
+client-script surfaces); 24 media files on disk, **all WebP, 0 originals
+retained**; lint 0 errors; typecheck clean.
+
+### New dependencies (rule 8)
+
+| Package | Version | Licence | Justification |
+|---|---|---|---|
+| `web-push` | 3.6.7 (pinned) | **MPL-2.0** | VAPID signing + aes128gcm payload encryption. **The project's first non-MIT dependency.** MPL-2.0 is file-level copyleft: it applies to modified *files of the library itself*, not to code that merely imports it. We do not modify it, so it imposes nothing on the rest of the project. Hand-rolling the crypto would have been ~150 lines of untestable code, which is the worse trade. |
+| `@types/web-push` | 3.6.4 (pinned, dev) | MIT | Types for the above. |
+
+Nothing else was added — the newsletter, push, OAuth and session layers are all
+built on Node's own `crypto`, `fetch` and Payload's config surface. In particular
+**no OAuth client library and no JWT library were taken**; `lib/signed-token.ts`
+is ~120 lines of `node:crypto` and has no interop surface to maintain.
+
+### The security fact this section turns on
+
+All three public write handlers (`comments`, `citizen`, `newsletter`) create rows
+with `overrideAccess: true`, because there is no session to run access control
+against. **That bypasses the collection's field-level restrictions** — including
+`Comments.isApproved` and `CitizenSubmissions.status`. So the protection is not
+the access rule; it is the **key-by-key whitelist** in each handler. The harness
+posts a forged `isApproved: true` and a forged `status: 'published'` and asserts
+both are ignored.
+
+`overrideAccess: true` also appears in `auth/reader-strategy.ts`, where it is
+**not** a hazard — it resolves *identity* from a token we signed, rather than
+writing attacker-influenced data. The argument is written into that file so the
+two uses are not confused.
+
+### Decisions taken this section
+
+- **Video embeds emit no third-party URL.** The poster is a self-hosted upload,
+  never YouTube's `i.ytimg.com` thumbnail. Build check: `youtube-nocookie` **0**,
+  `ytimg.com` **0**, `<iframe>` **0**; the embed URL exists only in one hashed
+  bundle and is built on click.
+- **The video block is offered only on the article body.** `/article/*` is the
+  only route whose CSP allows `frame-src` for the player, so the block is
+  available only where it can render. `cms/src/blocks/editors.ts` holds two
+  editor instances, defined once, to keep that true.
+- **`richtext.ts` was split.** It had grown to 439 lines, past the rule-1 budget,
+  so the block renderers moved to `frontend/src/lib/content-blocks.ts` (now 260 +
+  ~290 lines) and `escapeHtml` to `frontend/src/lib/html.ts`. Pure move; no
+  caller changed.
+- **Readers have no password.** `disableLocalStrategy: { enableFields: true }` is
+  load-bearing: `create` validates the password as required whenever that option
+  is falsy, so leaving it on would have made the OAuth callback unable to create
+  a reader. `enableFields` keeps the columns so the schema does not depend on the
+  choice.
+- **`Readers.email` is optional and non-unique.** Email is an attribute, never an
+  identity — the identity is `provider` + `providerId`. Facebook returns no
+  address for a phone-registered account, and one person may use the same address
+  with both providers. **Account linking is deliberately not implemented**:
+  merging identities by email is an account-takeover vector when a provider does
+  not verify email. Owner decision.
+- **Both cron triggers are disabled when their token is unset.** An endpoint that
+  can mail the whole list or push to every subscriber must not be reachable by
+  accident, so unset = off, not open.
+- **The social-login provider list is fetched from the CMS at build time**, not
+  duplicated into a `PUBLIC_*` variable. One source of truth, so the frontend
+  cannot drift into showing a button the CMS would refuse.
+
+### A test-quality lesson, twice
+
+Two harnesses failed on **correct** behaviour this section because they asserted
+on a global total they did not own: `verify:newsletter` hard-coded an audience of
+5, and `verify:media` asserted `count(media) === 0` until the demo seed added six
+gallery plates. Both now count only what they are responsible for. The rule:
+**never assert on a total the test does not own.**
+
 
 ## S8 — Live Blog & Interactive (complete) — 2026-09-12
 
@@ -542,6 +628,18 @@ and confirming the R2 80% usage alert.
 - Agent rules: mandatory, codified in AGENTS.md / GEMINI.md / CLAUDE.md (rules 1–13 identical in all three; hardening H1–H14 in GEMINI.md only)
 
 ## Pending
+
+**S9 owner actions (2026-09-13) — full detail in `.sps/section-todos/S9.md`:**
+
+- [ ] **VAPID key pair** → `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `PUBLIC_VAPID_PUBLIC_KEY`. Generate with `node -e "console.log(require('web-push').generateVAPIDKeys())"`. Until set, the deadline-reminder control is **not rendered at all**.
+- [ ] **OAuth apps** → `GOOGLE_OAUTH_CLIENT_ID` / `_SECRET`, `FACEBOOK_OAUTH_CLIENT_ID` / `_SECRET`, `OAUTH_REDIRECT_BASE`, `PUBLIC_SITE_URL`. Both are free and need no card. **Register the exact callback URLs** `{OAUTH_REDIRECT_BASE}/api/oauth/{google,facebook}/callback` — a mismatch is a redirect_uri error that only appears in production. Until set, **no login button is rendered**.
+- [ ] **Decide account linking** — two provider identities sharing an email stay two separate readers today. Merging them automatically would be an account-takeover vector when a provider does not verify email, so it was left unimplemented rather than guessed at.
+- [ ] **Decide the bookmark-sync policy** — the one open S9 build item. A union-merge resurrects a bookmark deleted on another device; correct behaviour needs the server to become authoritative after the first upload. A product decision about whose device wins, so it is raised rather than assumed.
+- [ ] **`NEWSLETTER_SEND_TOKEN` and `PUSH_SEND_TOKEN`** (`openssl rand -hex 32`) wired into cron. **Both endpoints are disabled while their token is unset** — an endpoint that can mail the whole list or push to every subscriber must not be reachable by accident.
+- [ ] **SMTP credentials** for the bulk-sending subdomain `mail.shikkha24.com` + SPF/DKIM/DMARC (S12 gate).
+- [ ] **Host-disk usage alert** — DianaHost publishes no storage metric; needs the support ticket.
+- [ ] ⚠️ **The off-host backup must include `cms/data/media/`**, not just the SQLite file. Media moved off R2 to the host disk in S9, so the backup scope changed — `docs/backup-and-recovery.md` must be updated before launch.
+
 **Owner actions for S0 (all four can be done in one sitting):**
 - [ ] **cPanel → Software → Select Node.js Version → Edit → Change Node.js version** — select 22.x or 24.x if offered. The host currently runs **20.18.2, which is end-of-life**
 - [ ] **One DianaHost support ticket** — inode/file-count quota, CPU/memory/process limits, hourly email send limits, and whether account-level backups exist. **None are published in their knowledge base**
