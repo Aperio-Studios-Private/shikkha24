@@ -39,10 +39,7 @@ export async function getActiveScholarships(limit = 100): Promise<CmsScholarship
     depth: '2',
     sort: 'deadline',
   })
-  const data = await cmsFetch<{ docs?: CmsScholarship[] } | null>(
-    `/api/scholarships?${q}`,
-    null,
-  )
+  const data = await cmsFetch<{ docs?: CmsScholarship[] } | null>(`/api/scholarships?${q}`, null)
   return data?.docs ?? []
 }
 
@@ -69,10 +66,7 @@ export async function getPublishedResults(limit = 50): Promise<CmsResultLink[]> 
     depth: '1',
     sort: '-publicationDate',
   })
-  const data = await cmsFetch<{ docs?: CmsResultLink[] } | null>(
-    `/api/result-links?${q}`,
-    null,
-  )
+  const data = await cmsFetch<{ docs?: CmsResultLink[] } | null>(`/api/result-links?${q}`, null)
   return data?.docs ?? []
 }
 
@@ -97,10 +91,7 @@ export interface CmsInstitution {
 /** All institutions, name-sorted. */
 export async function getInstitutions(limit = 200): Promise<CmsInstitution[]> {
   const q = new URLSearchParams({ limit: String(limit), depth: '2', sort: 'nameBn' })
-  const data = await cmsFetch<{ docs?: CmsInstitution[] } | null>(
-    `/api/institutions?${q}`,
-    null,
-  )
+  const data = await cmsFetch<{ docs?: CmsInstitution[] } | null>(`/api/institutions?${q}`, null)
   return data?.docs ?? []
 }
 
@@ -111,10 +102,7 @@ export async function getInstitutionBySlug(slug: string): Promise<CmsInstitution
     limit: '1',
     depth: '2',
   })
-  const data = await cmsFetch<{ docs?: CmsInstitution[] } | null>(
-    `/api/institutions?${q}`,
-    null,
-  )
+  const data = await cmsFetch<{ docs?: CmsInstitution[] } | null>(`/api/institutions?${q}`, null)
   return data?.docs?.[0] ?? null
 }
 
@@ -147,10 +135,7 @@ export interface CmsCircular {
 /** Active circulars, soonest deadline first (nulls last). */
 export async function getActiveCirculars(limit = 100): Promise<CmsCircular[]> {
   const q = new URLSearchParams({ limit: String(limit), depth: '2', sort: 'deadline' })
-  const data = await cmsFetch<{ docs?: CmsCircular[] } | null>(
-    `/api/circulars?${q}`,
-    null,
-  )
+  const data = await cmsFetch<{ docs?: CmsCircular[] } | null>(`/api/circulars?${q}`, null)
   return data?.docs ?? []
 }
 

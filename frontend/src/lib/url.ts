@@ -35,9 +35,7 @@ export interface ArticleRef {
  */
 export function articleUrl(article: ArticleRef): string {
   const categorySlug =
-    article.category && typeof article.category === 'object'
-      ? article.category.slug
-      : undefined
+    article.category && typeof article.category === 'object' ? article.category.slug : undefined
 
   if (categorySlug) {
     return `/${categorySlug}/${article.id}/${article.slug}`

@@ -53,15 +53,16 @@ export const GET: APIRoute = async () => {
   const site = (import.meta.env.PUBLIC_SITE_URL || 'https://shikkha24.com').replace(/\/$/, '')
   const today = new Date().toISOString().slice(0, 10)
 
-  const [articlePaths, pageSlugs, articles, categories, institutionSlugs, studyAbroadSlugs] = await Promise.all([
-    getAllArticlePaths().catch(() => []),
-    getAllPageSlugs().catch(() => []),
-    // Fetched only for the publish dates; the path list above stays canonical.
-    getArticles({ limit: 500 }).catch(() => []),
-    getCategories().catch(() => FALLBACK_CATEGORIES),
-    getAllInstitutionSlugs().catch(() => []),
-    getAllStudyAbroadSlugs().catch(() => []),
-  ])
+  const [articlePaths, pageSlugs, articles, categories, institutionSlugs, studyAbroadSlugs] =
+    await Promise.all([
+      getAllArticlePaths().catch(() => []),
+      getAllPageSlugs().catch(() => []),
+      // Fetched only for the publish dates; the path list above stays canonical.
+      getArticles({ limit: 500 }).catch(() => []),
+      getCategories().catch(() => FALLBACK_CATEGORIES),
+      getAllInstitutionSlugs().catch(() => []),
+      getAllStudyAbroadSlugs().catch(() => []),
+    ])
 
   /** slug → publish date, so each article carries its own accurate `lastmod`. */
   const publishedOn = new Map(
@@ -103,7 +104,11 @@ export const GET: APIRoute = async () => {
       changefreq: 'hourly',
     })),
     ...articlePaths.map((p) => ({
-      loc: articleUrl({ id: p.id, slug: p.slug, category: p.categorySlug ? { slug: p.categorySlug } : null }),
+      loc: articleUrl({
+        id: p.id,
+        slug: p.slug,
+        category: p.categorySlug ? { slug: p.categorySlug } : null,
+      }),
       priority: '0.6',
       changefreq: 'weekly',
       lastmod: publishedOn.get(p.slug),

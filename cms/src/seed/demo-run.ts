@@ -13,8 +13,8 @@ import { getPayload } from 'payload'
 
 import config from '../payload.config'
 import { seedDemo } from './demo'
-import { seedDemoEngagement } from './demo-engagement'
 import { seedDemoEducation } from './demo-education'
+import { seedDemoEngagement } from './demo-engagement'
 
 const payload = await getPayload({ config })
 

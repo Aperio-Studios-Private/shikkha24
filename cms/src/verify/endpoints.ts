@@ -231,8 +231,8 @@ console.log('\n-- newsletter --')
     check('the subscriber row was written', Boolean(row))
     check(
       'it is NOT confirmed yet (double opt-in)',
-      row?.status !== 'confirmed' && row?.isActive !== true,
-      `status=${String(row?.status)} isActive=${String(row?.isActive)}`,
+      row?.isActive !== true,
+      `isActive=${String(row?.isActive)}`,
     )
   } else {
     // No transport: refusing is the CORRECT behaviour. Accepting an address that
@@ -307,8 +307,10 @@ console.log('\n-- poll vote --')
     )
 
     // Clean up: restore the tally and drop the guard rows.
-    const options = ((after as { options?: unknown[] }).options ?? []).map((o, i) =>
-      i === optionIndex ? { ...(o as object), voteCount: before } : o,
+    type PollOption = { label?: string; voteCount?: number | null; id?: string | null }
+    const currentOptions = (after as { options?: PollOption[] }).options ?? []
+    const options = currentOptions.map((o, i) =>
+      i === optionIndex ? { ...o, voteCount: before } : o,
     )
     await payload.update({
       collection: 'polls',

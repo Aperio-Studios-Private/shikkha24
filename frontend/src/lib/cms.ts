@@ -497,7 +497,11 @@ export async function getAllArticlePaths(): Promise<
 
   do {
     const data = await cmsFetch<{
-      docs?: Array<{ slug: string; id: number | string; category?: { slug?: string } | number | null }>
+      docs?: Array<{
+        slug: string
+        id: number | string
+        category?: { slug?: string } | number | null
+      }>
       totalPages?: number
     } | null>(
       `/api/articles${qs({
