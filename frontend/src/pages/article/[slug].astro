@@ -133,28 +133,60 @@ const published = article.publishedAt
 const canonical = new URL(`/article/${article.slug}`, Astro.site ?? Astro.url).href
 
 /**
- * Article JSON-LD.
+ * Article JSON-LD — `NewsArticle` per `docs/seo-plan.md` §4.
  *
- * `docs/seo-plan.md` requires Article schema with headline, datePublished,
- * author and publisher — this is what makes Google News and rich results
- * possible. Dates are ISO 8601, not the Bengali display strings.
+ * `NewsArticle` (not the generic `Article`) is what Google News and Discover
+ * need. Key requirements from the spec:
+ *   - headline ≤110 chars (matching the visible `<h1>`)
+ *   - image ≥1200px wide and ≥800,000px² — the archetype or the photo
+ *   - datePublished / dateModified in ISO 8601 with +06:00 offset
+ *   - author as `Person` with `sameAs` when available
+ *   - publisher as `Organization` with logo
+ *   - `isAccessibleForFree: true` — all content is free
+ *   - `speakable` — the headline and summary are the parts a voice assistant reads
+ *
+ * Sponsored articles keep the same schema; the «বিজ্ঞাপন» label is a
+ * visible human-readable signal, not a schema property (`docs/seo-plan.md` §6a).
  */
+const siteUrl = Astro.site?.href ?? Astro.url.origin
+
 const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'Article',
+  '@type': 'NewsArticle',
   headline: article.title,
   description: article.excerpt ?? undefined,
   image: photo?.src ? [photo.src] : undefined,
   datePublished: article.publishedAt ?? undefined,
   dateModified: article.updatedAt ?? article.publishedAt ?? undefined,
-  author: author ? { '@type': 'Person', name: author.nameBn } : undefined,
+  author: author
+    ? {
+        '@type': 'Person',
+        name: author.nameBn,
+        alternateName: author.nameEn ?? undefined,
+        url: author.slug ? `${siteUrl}/author/${author.slug}` : undefined,
+      }
+    : { '@type': 'Person', name: settings.siteName },
   publisher: {
     '@type': 'Organization',
     name: settings.siteName,
+    alternateName: settings.siteNameEn ?? undefined,
+    logo: settings.logo?.url
+      ? { '@type': 'ImageObject', url: settings.logo.url }
+      : undefined,
   },
   mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
   inLanguage: 'bn-BD',
   articleSection: category?.nameBn ?? undefined,
+  isAccessibleForFree: true,
+  speakable: {
+    '@type': 'SpeakableSpecification',
+    cssSelector: ['article h1', 'article .article-excerpt'],
+  },
+  isPartOf: {
+    '@type': 'NewsMediaOrganization',
+    name: settings.siteName,
+    url: siteUrl,
+  },
 }
 ---
 

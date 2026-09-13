@@ -127,6 +127,57 @@ const small = masthead.slice(4, 9)
  */
 const mastheadSlugs = new Set(masthead.map((article) => article.slug))
 const remainingLatest = latest.filter((article) => !mastheadSlugs.has(article.slug))
+
+/**
+ * Site-level JSON-LD: Organization + WebSite + SearchAction.
+ *
+ * `docs/seo-plan.md` §4 calls for Organization (name, logo, sameAs,
+ * contactPoint) and WebSite with a SearchAction — the latter is what makes
+ * Google show a sitelinks search box. The search target points at `/search`
+ * with a `q` parameter, which is exactly how the Pagefind search page works.
+ *
+ * `sameAs` is built from the CMS `social` map — the keys are platform names
+ * (facebook, youtube, etc.) and the values are URLs. This is the same source
+ * the footer uses, so the two cannot drift.
+ */
+const socialUrls = settings.social
+  ? Object.values(settings.social).filter((v): v is string => Boolean(v))
+  : []
+
+const orgJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: settings.siteName,
+  alternateName: settings.siteNameEn ?? undefined,
+  url: Astro.site?.href ?? Astro.url.origin,
+  logo: settings.logo?.url ?? undefined,
+  sameAs: socialUrls.length > 0 ? socialUrls : undefined,
+  contactPoint: settings.contact?.email
+    ? {
+        '@type': 'ContactPoint',
+        email: settings.contact.email,
+        contactType: 'customer support',
+        availableLanguage: ['Bengali'],
+      }
+    : undefined,
+}
+
+const siteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: settings.siteName,
+  alternateName: settings.siteNameEn ?? undefined,
+  url: Astro.site?.href ?? Astro.url.origin,
+  inLanguage: 'bn-BD',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: `${Astro.site?.href ?? Astro.url.origin}/search?q={search_term_string}`,
+    },
+    'query-input': 'required name=search_term_string',
+  },
+}
 ---
 
 <Layout
@@ -135,6 +186,7 @@ const remainingLatest = latest.filter((article) => !mastheadSlugs.has(article.sl
   settings={settings}
   categories={categories}
   footerPages={footerPages}
+  jsonLd={[orgJsonLd, siteJsonLd]}
 >
   {/* 1 — Breaking ticker. Renders nothing when nothing is flagged. */}
   <BreakingTicker articles={breaking} />

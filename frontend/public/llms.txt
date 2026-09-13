@@ -1,0 +1,47 @@
+# Shikkha24
+
+> শিক্ষা২৪ — Bangladesh's Bengali-only education news portal. Latest education news, scholarship deadlines, exam routines, results, institution directory, study-abroad guides, and job circulars.
+
+Shikkha24 (shikkha24.com) is a Bengali-language education news portal covering all levels of education in Bangladesh: primary, secondary, higher secondary, undergraduate, and postgraduate. The site publishes 15-20 articles per day with burst capacity of 40+ on result days and admission seasons. Content is editorially curated by a 5-person newsroom.
+
+## Main sections
+
+- [Home](https://shikkha24.com/): Latest education news, breaking ticker, deadline strip
+- [Latest news](https://shikkha24.com/latest): Full chronological feed of all published articles
+- [Scholarships](https://shikkha24.com/scholarships): Deadline-sorted scholarship tracker (domestic and international)
+- [Deadlines](https://shikkha24.com/deadlines): Academic calendar — admission, exam, result, and scholarship deadlines with type/level/district filters
+- [Results](https://shikkha24.com/results): Results and merit lists hub with links to official portals and how-to guides
+- [Institutions](https://shikkha24.com/institutions): University and college directory with admission info and addresses
+- [Exams](https://shikkha24.com/exams): Exam routines and syllabus, sorted by date
+- [Circulars](https://shikkha24.com/circulars): Education and BCS/job circular tracker
+- [Study abroad](https://shikkha24.com/study-abroad): Country guides for studying abroad — costs, visas, scholarships
+
+## Categories
+
+- [Admission](https://shikkha24.com/category/admission): ভর্তি সংবাদ
+- [Results](https://shikkha24.com/category/results): ফলাফল সংবাদ
+- [Scholarship](https://shikkha24.com/category/scholarship): বৃত্তি সংবাদ
+- [Exam](https://shikkha24.com/category/exam): পরীক্ষা সংবাদ
+- [Circular](https://shikkha24.com/category/circular): নিয়োগ বিজ্ঞপ্তি
+- [Study abroad](https://shikkha24.com/category/study-abroad): বিদেশে পড়াশোনা
+- [Education news](https://shikkha24.com/category/education-news): শিক্ষা সংবাদ
+- [Teacher news](https://shikkha24.com/category/teacher): শিক্ষক সংবাদ
+
+## Tools
+
+- [GPA calculator](https://shikkha24.com/gpa): SSC/HSC GPA calculator (client-side, no backend)
+- [Search](https://shikkha24.com/search): Full-text search across all articles
+- [Bookmarks](https://shikkha24.com/bookmarks): Save articles and deadlines (browser-local, no account needed)
+
+## Feeds
+
+- [RSS](https://shikkha24.com/rss.xml): All articles
+- [Sitemap](https://shikkha24.com/sitemap.xml): All URLs
+- [News sitemap](https://shikkha24.com/news-sitemap.xml): Articles published in the last 48 hours
+
+## About
+
+- Language: Bengali (bn-BD)
+- Publisher: Shikkha24
+- Content is free and accessible to all readers
+- All content is original reporting or editorially curated from official sources

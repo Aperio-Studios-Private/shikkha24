@@ -33,8 +33,8 @@ interface Props {
   publishDate?: string
   /** Article modified date (ISO 8601). */
   modifiedDate?: string
-  /** JSON-LD structured data object. */
-  jsonLd?: Record<string, unknown>
+  /** JSON-LD structured data — a single object or an array of objects. */
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[]
   /** Disable the mobile share bar on this page. */
   hideShareBar?: boolean
   /** Site settings (fetched at build time). */
@@ -62,7 +62,7 @@ const {
 const siteName = settings.siteName
 const pageTitle = title ? `${title} — ${siteName}` : siteName
 const metaDescription = description || settings.tagline || ''
-const ogImageUrl = ogImage || '/og-default.png'
+const ogImageUrl = ogImage || '/og-default.svg'
 ---
 
 <!doctype html>

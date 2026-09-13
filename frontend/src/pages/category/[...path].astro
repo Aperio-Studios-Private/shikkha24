@@ -80,14 +80,64 @@ const [settings, categories, footerPages, result, subcategories] = await Promise
 
 const category = categories.find((c) => c.slug === slug)
 const basePath = `/category/${slug}`
+
+/**
+ * Category listing JSON-LD: CollectionPage + BreadcrumbList.
+ *
+ * `docs/seo-plan.md` §3 calls for `CollectionPage` + `BreadcrumbList` +
+ * `ItemList` on category pages. The breadcrumb trail matches the visible
+ * `Breadcrumbs` component exactly — a single source of truth prevents drift
+ * between the visible trail and the schema.
+ */
+const canonical = new URL(`${basePath}${page > 1 ? `/page/${page}` : ''}`, Astro.site ?? Astro.url).href
+
+const breadcrumbTrail = [
+  { name: 'হোম', url: new URL('/', Astro.site ?? Astro.url).href },
+  { name: category?.nameBn ?? slug, url: canonical },
+]
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: category?.nameBn ?? slug,
+  description: category?.description ?? undefined,
+  url: canonical,
+  inLanguage: 'bn-BD',
+  isPartOf: {
+    '@type': 'WebSite',
+    name: settings.siteName,
+    url: Astro.site?.href ?? Astro.url.origin,
+  },
+  breadcrumb: {
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbTrail.map((item, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  },
+  mainEntity: {
+    '@type': 'ItemList',
+    numberOfItems: result.totalDocs,
+    itemListElement: result.docs.slice(0, 10).map((article, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      url: new URL(`/article/${article.slug}`, Astro.site ?? Astro.url).href,
+      name: article.title,
+    })),
+  },
+}
 ---
 
 <Layout
   title={category ? `${category.nameBn}${page > 1 ? ` — পেজ ${page}` : ''}` : slug}
   description={category?.description ?? undefined}
+  canonical={canonical}
   settings={settings}
   categories={categories}
   footerPages={footerPages}
+  jsonLd={jsonLd}
 >
   <div class="container-page py-6">
     <Breadcrumbs
