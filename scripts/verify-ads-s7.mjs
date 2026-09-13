@@ -46,9 +46,7 @@ const count = (haystack, needle) => haystack.split(needle).length - 1
  * feature itself was fine. `depth=1` is required to populate `category.slug`.
  */
 const { docs } = await (
-  await fetch(
-    `http://localhost:3000/api/articles?limit=1&depth=1&where[slug][equals]=${SLUG}`,
-  )
+  await fetch(`http://localhost:3000/api/articles?limit=1&depth=1&where[slug][equals]=${SLUG}`)
 ).json()
 const article = docs[0]
 const CATEGORY_SLUG = article.category?.slug

@@ -44,17 +44,23 @@ console.log(`\n=== build output verification (${htmlFiles.length} html files) ==
 // ── 1. Zero executable inline scripts ────────────────────────────────────────
 let inlineCount = 0
 const offenders = []
+// `matchAll` rather than `while ((m = re.exec(...)))` — the assignment-in-
+// expression form trips `lint/suspicious/noAssignInExpressions`.
+const INLINE_SCRIPT =
+  /<script(?![^>]*\bsrc=)(?![^>]*type="application\/(?:ld\+)?json")[^>]*>([\s\S]*?)<\/script>/gi
 for (const file of htmlFiles) {
   const html = readFileSync(file, 'utf8')
-  const re = /<script(?![^>]*\bsrc=)(?![^>]*type="application\/(?:ld\+)?json")[^>]*>([\s\S]*?)<\/script>/gi
-  let m
-  while ((m = re.exec(html)) !== null) {
-    if (m[1].trim() === '') continue // empty script tag, not executable code
+  for (const match of html.matchAll(INLINE_SCRIPT)) {
+    if (match[1].trim() === '') continue // empty script tag, not executable code
     inlineCount += 1
     if (offenders.length < 3) offenders.push(file.replace(`${DIST}/`, ''))
   }
 }
-check('zero executable inline scripts (strict-CSP invariant)', inlineCount === 0, `${inlineCount} found ${offenders.join(', ')}`)
+check(
+  'zero executable inline scripts (strict-CSP invariant)',
+  inlineCount === 0,
+  `${inlineCount} found ${offenders.join(', ')}`,
+)
 
 // ── 2. Deploy-critical root files ────────────────────────────────────────────
 const rootFiles = [
@@ -80,14 +86,25 @@ const articlePages = htmlFiles.filter((f) => {
   const rel = f.slice(DIST.length + 1)
   return rel.split('/').length === 4 && rel.endsWith('/index.html')
 })
-check('articles built at /:category/:id/:slug', articlePages.length > 0, `${articlePages.length} found`)
+check(
+  'articles built at /:category/:id/:slug',
+  articlePages.length > 0,
+  `${articlePages.length} found`,
+)
 
 const legacyStubs = htmlFiles.filter((f) => f.includes('/article/'))
-check('legacy /article/:slug redirect stubs exist', legacyStubs.length > 0, `${legacyStubs.length} found`)
+check(
+  'legacy /article/:slug redirect stubs exist',
+  legacyStubs.length > 0,
+  `${legacyStubs.length} found`,
+)
 
 if (legacyStubs[0]) {
   const stub = readFileSync(legacyStubs[0], 'utf8')
-  check('a legacy stub carries a meta refresh + canonical', /http-equiv="refresh"/.test(stub) && /rel="canonical"/.test(stub))
+  check(
+    'a legacy stub carries a meta refresh + canonical',
+    /http-equiv="refresh"/.test(stub) && /rel="canonical"/.test(stub),
+  )
 }
 
 // ── 4. Search index ──────────────────────────────────────────────────────────
