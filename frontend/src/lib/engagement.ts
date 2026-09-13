@@ -136,3 +136,34 @@ export function resolveGalleryImages(
 
   return resolved
 }
+
+/* ── Newsletter availability ───────────────────────────────────── */
+
+/**
+ * Whether the newsletter can actually accept a signup.
+ *
+ * ## Why the frontend has to ask
+ *
+ * `NewsletterSignup` used to render whenever a CMS origin was configured. But
+ * the subscribe endpoint refuses with **503** when no mail transport is set —
+ * deliberately, because accepting an address that can never be mailed is a lie
+ * (see `cms/src/endpoints/newsletter.ts`). The form therefore rendered a
+ * control that could not work, which is exactly what the S8 self-hiding rule
+ * exists to prevent: "degrade by absence, not by a broken control"
+ * (`docs/reliability.md` §4).
+ *
+ * The CMS exposes the truth at `/api/newsletter/status`. Reading it at build
+ * time lets the footer hide the form instead of showing a box that always
+ * errors.
+ *
+ * ## Fail closed
+ *
+ * Returns `false` on any failure — CMS unreachable, non-2xx, malformed body.
+ * An unverifiable control is treated as unavailable, so a CMS outage at build
+ * time removes the form rather than shipping one that will 503 for every
+ * reader. This matches the other engagement helpers, which degrade to nothing.
+ */
+export async function getNewsletterStatus(): Promise<{ enabled: boolean }> {
+  const data = await cmsFetch<{ enabled?: boolean } | null>('/api/newsletter/status', null)
+  return { enabled: data?.enabled === true }
+}

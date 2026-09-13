@@ -14,6 +14,18 @@ import { rateLimit } from '../lib/rate-limit'
 /**
  * `POST /api/comments/submit` — reader comments on an article.
  *
+ * ⚠️ **This endpoint is mounted on the Comments collection, not at the root.**
+ * The `path` below is therefore relative to the collection slug, and the
+ * resolved public URL is `/api/comments/submit` either way.
+ *
+ * It must stay on the collection. A root endpoint whose first path segment
+ * equals a collection slug is shadowed by that collection's generated REST
+ * route: as a root endpoint, `/comments/submit` made Payload parse the request
+ * as "collection `comments`, document id `submit`" — so this handler was never
+ * reached and every reader comment returned `404 Route not found`. Collection
+ * endpoints are matched before the collection's generated routes. See
+ * `collections/Comments.ts` and `docs/security.md` §7.
+ *
  * ## Why not the generated `POST /api/comments`
  *
  * `Comments.access.create` is `() => true`, because readers have no session —
@@ -53,7 +65,8 @@ const MAX_NAME_LENGTH = 80
 const MAX_BODY_LENGTH = 2000
 
 export const commentSubmitEndpoint: Endpoint = {
-  path: '/comments/submit',
+  // Relative to the Comments collection slug → `/api/comments/submit`.
+  path: '/submit',
   method: 'post',
   handler: async (req: PayloadRequest): Promise<Response> => {
     const body = await readJsonBody(req)

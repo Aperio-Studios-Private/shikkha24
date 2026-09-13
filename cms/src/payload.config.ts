@@ -37,7 +37,8 @@ import { StudyAbroadGuides } from './collections/StudyAbroadGuides'
 import { Tags } from './collections/Tags'
 import { Users } from './collections/Users'
 import { citizenSubmitEndpoint } from './endpoints/citizen'
-import { commentSubmitEndpoint } from './endpoints/comments'
+// NOTE: the comment endpoint is intentionally NOT imported here — it mounts on
+// the Comments collection, not at the API root. See the `endpoints` block below.
 import { newsletterEndpoints } from './endpoints/newsletter'
 import { oauthEndpoints } from './endpoints/oauth'
 import { pushEndpoints } from './endpoints/push'
@@ -139,14 +140,16 @@ export default buildConfig({
    * confirm must not be able to activate an arbitrary address, unsubscribe must
    * be reachable from a link in an email with no session, and comment submission
    * must be rate-limited and unable to set its own approval.
+   *
+   * ⚠️ **A root endpoint whose FIRST path segment equals a collection slug is
+   * shadowed** by that collection's generated REST route and will 404. The
+   * comment endpoint hit exactly this: `/comments/submit` was parsed as
+   * "collection `comments`, document id `submit`". It now lives on the Comments
+   * collection (`collections/Comments.ts`) with a collection-relative path, and
+   * is deliberately absent from this array. When adding an endpoint here, check
+   * the first segment against every collection slug in `collections/`.
    */
-  endpoints: [
-    ...newsletterEndpoints,
-    ...oauthEndpoints,
-    citizenSubmitEndpoint,
-    commentSubmitEndpoint,
-    ...pushEndpoints,
-  ],
+  endpoints: [...newsletterEndpoints, ...oauthEndpoints, citizenSubmitEndpoint, ...pushEndpoints],
 
   collections: [
     // ── Editorial ────────────────────────────────────────────────────────────

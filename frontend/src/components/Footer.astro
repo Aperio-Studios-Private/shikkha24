@@ -14,6 +14,7 @@ import Logo from './Logo.astro'
 import NewsletterSignup from './NewsletterSignup.astro'
 import type { CmsSiteSettings, CmsCategory, CmsPage } from '../lib/cms'
 import { getPublicCmsOrigin } from '../lib/interactive'
+import { getNewsletterStatus } from '../lib/engagement'
 
 interface Props {
   settings: CmsSiteSettings
@@ -56,6 +57,14 @@ const SOCIAL_META: Record<string, { label: string; icon: string }> = {
  * `NewsletterSignup` renders nothing at all.
  */
 const cmsOrigin = getPublicCmsOrigin()
+
+/**
+ * The form also needs a working mail transport — the subscribe endpoint refuses
+ * with 503 when none is configured, so rendering the box regardless would show
+ * the reader a control that always errors. Resolved once per build and passed
+ * down, so the component stays a pure function of its props.
+ */
+const newsletter = await getNewsletterStatus()
 ---
 
 <footer class="border-t border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-surface">
@@ -74,8 +83,9 @@ const cmsOrigin = getPublicCmsOrigin()
           শিক্ষা২৪ — দেশ-বিদেশের শিক্ষা খবর, ভর্তি, বৃত্তি, পরীক্ষার রুটিন ও ফলাফলের সবচেয়ে দ্রুততম ঠিকানা।
         </p>
 
-        {/* Self-hiding: renders only when there is a CMS to subscribe against. */}
-        <NewsletterSignup cmsOrigin={cmsOrigin} />
+        {/* Self-hiding: renders only when there is a CMS to subscribe against
+            AND a mail transport that can actually deliver the confirmation. */}
+        <NewsletterSignup cmsOrigin={cmsOrigin} enabled={newsletter.enabled} />
       </div>
 
       {/* Column 2 — Education tools */}

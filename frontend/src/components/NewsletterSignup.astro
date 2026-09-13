@@ -4,9 +4,16 @@
  *
  * ## Self-hiding, per the S8 rule
  *
- * The form is rendered only when there is a CMS origin to post to. With
- * `PUBLIC_CMS_ORIGIN` unset — an unconfigured or preview deploy — nothing is
- * rendered at all, because a subscribe box that cannot subscribe reads to the
+ * The form is rendered only when **both** preconditions hold:
+ *
+ *   1. a CMS origin to post to — with `PUBLIC_CMS_ORIGIN` unset (an
+ *      unconfigured or preview deploy) nothing renders at all; and
+ *   2. a working mail transport, reported by `/api/newsletter/status`.
+ *
+ * The second one is not optional. The subscribe endpoint refuses with **503**
+ * when no transport is configured, because accepting an address that can never
+ * be mailed is a lie. Rendering the box anyway would show the reader a control
+ * that always errors — and a subscribe box that cannot subscribe reads to the
  * reader as their own failure. `docs/reliability.md` §4 calls for exactly this:
  * degrade by absence, not by a broken control.
  *
@@ -28,12 +35,21 @@ import { isEnabled } from '../lib/feature-flags'
 interface Props {
   /** The browser-reachable CMS origin, or `null` when unconfigured. */
   cmsOrigin: string | null
+  /**
+   * Whether the CMS reports a working mail transport.
+   *
+   * A second, independent precondition. The subscribe endpoint answers 503
+   * when no transport is configured — it refuses to accept an address it can
+   * never mail — so without this the footer would render a box that always
+   * errors. Resolved at build time from `/api/newsletter/status`.
+   */
+  enabled: boolean
 }
 
-const { cmsOrigin } = Astro.props
+const { cmsOrigin, enabled } = Astro.props
 
-/** No origin, or the feature switched off → render nothing. */
-const renderable = Boolean(cmsOrigin) && isEnabled('newsletter')
+/** No origin, feature off, or no transport → render nothing. */
+const renderable = Boolean(cmsOrigin) && enabled && isEnabled('newsletter')
 ---
 
 {

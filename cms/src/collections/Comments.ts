@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { hasRole, isSuperAdminOrEditorInChief } from '../access/roles'
+import { commentSubmitEndpoint } from '../endpoints/comments'
 
 /**
  * Comments — reader discussion, moderated before publication.
@@ -34,6 +35,21 @@ export const Comments: CollectionConfig = {
     update: isSuperAdminOrEditorInChief, // only moderators change state
     delete: isSuperAdminOrEditorInChief,
   },
+  /**
+   * The reader submission route, mounted at `/api/comments/submit`.
+   *
+   * ⚠️ It MUST live on the collection, not in the root `endpoints` array.
+   * A root endpoint whose first path segment equals a collection slug is
+   * shadowed by that collection's generated REST route: `/api/comments/submit`
+   * was parsed as "collection `comments`, document id `submit`", so the custom
+   * handler was never reached and every reader comment 404'd. Collection
+   * endpoints are matched before the collection's generated routes, which is
+   * why this position works and the root position did not.
+   *
+   * The full public URL is unchanged (`/api/comments/submit`), so the frontend
+   * contract is identical — only the mounting point moved.
+   */
+  endpoints: [commentSubmitEndpoint],
   fields: [
     {
       name: 'article',
