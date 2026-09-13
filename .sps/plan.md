@@ -98,6 +98,75 @@ Expected DianaHost footprint after this split: **≈400–700 MB**, leaving head
 
 **Fallback if R2 cannot be enabled without a payment method:** media stays on DianaHost under a strict upload quota (aggressive WebP/AVIF, originals discarded, per-day upload cap). This is workable but constrains publishing volume.
 
+---
+
+## Scope amendment (2026-09-12) — media, newsletter and identity
+
+Three S9 decisions taken by the owner. Two of them **activate fallbacks this plan already
+documented**, so they are not new inventions — but they change the architecture, and they are
+recorded here before any code was written (rule 13).
+
+### 1. Media moves to DianaHost — R2 is no longer used
+
+**Decision:** the fallback above is now the active architecture. Media is stored on the host,
+not on Cloudflare R2.
+
+| | Before | Now |
+|---|---|---|
+| Media storage | Cloudflare R2, 10 GB free | DianaHost disk — **2 GB total, shared with the app, database and backups** |
+| Media egress | Zero | **Counts against the host's 200 GB/month** |
+| Media backup | Not required (R2 is durable) | **Media is now part of the backup problem** (`docs/backup-and-recovery.md`) |
+
+**The storage arithmetic, stated plainly:** at the approved velocity of 15–20 articles/day with
+2–3 optimised images each, media grows **150–270 MB/month**. On the 2 GB plan that is **7–13 months
+to full**, before the database, backups and logs. On a 5 GB plan, 18–33 months. This is the binding
+constraint on publishing volume and it must be watched, not assumed.
+
+**Two mitigations that are now mandatory rather than optional:**
+
+1. **Aggressive conversion, originals discarded.** Every upload is converted to WebP (AVIF where it
+   wins) and the original is **not retained**. A 900 KB JPEG becomes a ~90 KB WebP.
+2. **A per-day upload cap**, so one burst day cannot silently consume the month's headroom.
+
+**One mitigation that recovers most of the lost bandwidth:** serve media through the **Cloudflare
+proxy** (proxied DNS record) with long-lived `Cache-Control`. Cloudflare's free tier has unlimited
+bandwidth for proxied traffic, so cached image views cost the origin nothing — only cache misses
+hit the host. It does **not** recover the storage benefit, and cache misses during a result-day
+spike still land on the origin.
+
+**Consequences:** `PUBLIC_MEDIA_BASE_URL` points at the CMS host rather than R2. The **S0 R2 gate is
+descoped** — R2 is no longer required for launch. The R2 80% usage alert is replaced by a host-disk
+alert, which DianaHost does not publish and must come from the support ticket already requested.
+
+### 2. Newsletter transport — cPanel SMTP, explicitly accepted
+
+**Decision:** the low-volume cPanel SMTP fallback is accepted; no ESP account.
+
+**The gate closes as "explicitly accepted", not "confirmed working"** — recorded deliberately,
+because the risks are real and documented in `docs/security.md` §7:
+
+- cPanel enforces **per-domain hourly send caps** — an over-long campaign is silently truncated.
+- Bulk sending from a **shared IP risks blacklisting the domain**, which would also break password
+  resets and contact forms.
+- No delivery reporting, no bounce handling, no unsubscribe automation.
+
+**Therefore the module is built transport-agnostic:** the subscriber list, double opt-in and campaign
+composer live in Payload and know nothing about SMTP. Swapping in an ESP later is a configuration
+change, not a rewrite. The SMTP path ships with a **hard per-hour send cap enforced in code**, so the
+module cannot trip cPanel's limit even if an editor tries.
+
+### 3. Social login — Meta + Google OAuth, started now
+
+**Decision:** proceed. Both are free (app review is a process, not a cost), so the no-card rule does
+not exclude them. The owner starts the Meta review early because it is slow by nature.
+
+**Consequence:** reader accounts become real, so bookmarks, saved deadlines and quiz streaks gain a
+cross-device home, and the **comments feature deferred from S4 finally has an identity to attach to**.
+Until the owner supplies client IDs the flow is built behind a flag and the browser-local fallback
+stays — the same pattern as `PUBLIC_CMS_ORIGIN` in S8: **no control is rendered that cannot work.**
+
+---
+
 **CI minutes constraint:** GitHub Actions gives 2,000 minutes/month on private repos. At the **chosen baseline of 15–20 articles/day plus bursts** (≈600–900 publishes/month), a per-publish build costs ~450 minutes if an incremental build is ~30s (comfortable) but ~4,500 minutes if it is a 5-minute full rebuild (over budget). **The deciding number is the measured incremental build time — an S0 gate.** Rebuilds are **adaptively batched** (15–30 min in quiet hours, 5 min at peak, on-demand for `is_breaking`).
 
 ⚠️ **Two additional hard limits found 2026-09-11** (see `docs/hosting-and-deployment.md`):
