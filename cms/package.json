@@ -21,6 +21,7 @@
     "seed:demo": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/demo-run.ts",
     "verify:media": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/media.ts",
     "verify:newsletter": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/newsletter.ts",
+    "verify:engagement": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/engagement.ts",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload"
   },
   "dependencies": {
