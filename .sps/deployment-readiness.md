@@ -79,11 +79,17 @@ code change.
 | 4 | `verify-ad-split` could not run at all | Node ESM cannot resolve `richtext.ts`'s extensionless `./content-blocks` import (fine for Vite) — broke when S8 split `richtext.ts` | Extracted the two pure HTML helpers to dependency-free `lib/html-split.ts`; `richtext.ts` re-exports them |
 | 5 | Lint gate failing with 1 error | Pre-existing formatting/import-order in 3 S10 files | Formatted (no behaviour change) |
 | 6 | `verify-endpoints` did not typecheck | Wrong field name (`status` vs `isActive`) and an `unknown[]` cast | Corrected |
+| 7 | `verify-endpoints` reported **8 failures on its second run** | All were **429** — the harness rate-limited *itself*. The limiter keys on `x-forwarded-for`, and a repeat run from the same address was throttled by its own earlier requests | Harness now sends a synthetic per-run IP. Verified twice consecutively: PASS, PASS |
 
 **Pattern worth noting:** defects 1, 3 and the earlier CSP regression all share one
 cause — **a URL or mounting change has consequences far beyond the route itself.**
 After any such change, grep for the old shape in CSP rules, feeds, canonicals,
 sitemaps **and test harnesses**.
+
+**A second pattern:** defects 3, 4 and 7 were all **harness** faults, not product
+faults. A harness that reads a stale path, cannot run, or fails on its second run
+is worse than no harness — it trains you to ignore it. Fix the harness before
+trusting its verdict.
 
 ---
 
