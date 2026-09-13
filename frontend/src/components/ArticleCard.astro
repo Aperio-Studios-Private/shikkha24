@@ -110,45 +110,58 @@ const isLead = variant === 'lead'
 const showRule = variant === 'default'
 ---
 
-<article class="group">
-  <a href={href} class:list={['no-underline', isLead ? 'flex flex-col' : 'flex flex-row gap-3']}>
+<article
+  class:list={[
+    'group h-full rounded-lg border border-rule bg-surface transition-all duration-200 hover:border-ink/20 hover:shadow-sm dark:border-dark-rule dark:bg-dark-surface dark:hover:border-dark-ink/20',
+    // The lead is a hero block — it earns more presence than the row cards.
+    isLead && 'overflow-hidden',
+  ]}
+>
+  <a
+    href={href}
+    class:list={[
+      'no-underline flex h-full',
+      isLead ? 'flex-col' : 'flex-row gap-3 p-3 sm:p-4',
+    ]}
+  >
     {
       /* Prefer the article's own photo; fall back to the category archetype.
          A card with neither renders as a text-only row, which is honest. */
       (photo || categoryImage) && (
         <div
           class:list={[
-            'shrink-0 overflow-hidden rounded bg-surface-raised dark:bg-dark-raised',
-            // Lead: 16:9 (matches the source) and height-capped so the headline
-            // and image are both visible without scrolling. A hero taller than
-            // ~420px pushes the masthead off-screen.
-            // Row variants: a fixed 80×80 square, so the headline column keeps
-            // a predictable width no matter what aspect the source image has.
-            isLead ? 'mb-3 aspect-16/9 w-full' : 'aspect-1 h-20 w-20',
+            'shrink-0 overflow-hidden bg-surface-raised dark:bg-dark-raised',
+            // Lead: 16:9 (matches the source) and full-width, the hero image.
+            // Row variants: a fixed square so the headline column keeps a
+            // predictable width regardless of the source aspect ratio. 88px
+            // (h-22) reads as a thumbnail, not a speck, and stays ≥48px touch.
+            isLead
+              ? 'aspect-16/9 w-full'
+              : 'aspect-square h-20 w-20 sm:h-24 sm:w-24 rounded-md',
           ]}
         >
           {photo ? (
             <img
               src={photo.src}
               srcset={photo.srcset}
-              sizes={isLead ? '(min-width: 1024px) 800px, 100vw' : '80px'}
+              sizes={isLead ? '(min-width: 1024px) 800px, 100vw' : '96px'}
               alt={photo.alt}
               width={photo.width}
               height={photo.height}
               loading={isLead ? 'eager' : 'lazy'}
               fetchpriority={isLead ? 'high' : 'auto'}
               decoding="async"
-              class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              class="h-full w-full object-cover"
             />
           ) : (
             categoryImage && (
               <CategoryImage
                 image={categoryImage}
                 alt={article.title}
-                sizes={isLead ? '(min-width: 1024px) 800px, 100vw' : '80px'}
-                widths={isLead ? [400, 800, 1200] : [80, 160]}
+                sizes={isLead ? '(min-width: 1024px) 800px, 100vw' : '96px'}
+                widths={isLead ? [400, 800, 1200] : [96, 192]}
                 priority={isLead}
-                class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                class="h-full w-full object-cover"
               />
             )
           )}
@@ -156,14 +169,16 @@ const showRule = variant === 'default'
       )
     }
 
-    <div class="flex min-w-0 flex-1 flex-col gap-1.5">
-      {/* The sponsored chip sits beside the category rather than in the meta row:
-          a reader scanning headlines must see that a story is paid for before
-          they read it, not after. */}
+    <div class:list={['flex min-w-0 flex-1 flex-col', isLead ? 'p-4 sm:p-5' : 'justify-center gap-2']}>
+      {/* The category tag and the sponsored chip sit together above the
+          headline: a reader scanning must see what section a story belongs to
+          and whether it is paid for before they read a word of it. */}
       <div class="flex flex-wrap items-center gap-1.5">
         {
           showCategory && category?.nameBn && (
-            <span class="text-xs font-semibold text-brand-red">{category.nameBn}</span>
+            <span class="rounded-sm bg-brand-red/10 px-1.5 py-0.5 text-xs font-semibold leading-none text-brand-red dark:bg-brand-red/15">
+              {category.nameBn}
+            </span>
           )
         }
         {article.isSponsored && <SponsoredLabel sponsorName={article.sponsorName} />}
@@ -172,9 +187,9 @@ const showRule = variant === 'default'
       <Heading
         class:list={[
           'font-headline font-bold text-ink transition-colors group-hover:text-brand-red dark:text-dark-ink dark:group-hover:text-brand-red',
-          isLead && 'text-2xl sm:text-3xl lg:text-4xl',
-          variant === 'default' && 'line-clamp-2 text-base sm:text-lg',
-          variant === 'compact' && 'line-clamp-2 text-base',
+          isLead && 'text-2xl leading-tight sm:text-3xl lg:text-4xl',
+          variant === 'default' && 'line-clamp-2 text-base leading-snug sm:text-lg',
+          variant === 'compact' && 'line-clamp-2 text-base leading-snug',
         ]}
       >
         {article.title}
@@ -194,10 +209,15 @@ const showRule = variant === 'default'
       }
 
       {/* Decorative: it separates headline from metadata, it is not a
-          thematic break a screen reader should announce. */}
-      {showRule && <div class="mt-0.5 border-t border-rule dark:border-dark-rule" aria-hidden="true" />}
+          thematic break a screen reader should announce. Only the
+          standalone `default` card carries it; `compact` rows live inside
+          lists that separate themselves with `divide-y`. */}
+      {showRule && <div class="my-1 border-t border-rule dark:border-dark-rule" aria-hidden="true" />}
 
-      <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
+      <div class:list={[
+        'flex flex-wrap items-center text-ink-subtle dark:text-dark-ink-muted',
+        isLead ? 'gap-x-3 gap-y-1 text-sm' : 'gap-x-2 text-xs',
+      ]}>
         {published && <time datetime={article.publishedAt ?? undefined}>{published}</time>}
         {
           article.readingTimeMinutes ? (
@@ -208,7 +228,7 @@ const showRule = variant === 'default'
           ) : null
         }
         {article.isBreaking && (
-          <span class="rounded bg-brand-red px-1.5 py-0.5 font-semibold text-white">ব্রেকিং</span>
+          <span class="rounded bg-brand-red px-1.5 py-0.5 font-semibold leading-none text-white">ব্রেকিং</span>
         )}
       </div>
     </div>
