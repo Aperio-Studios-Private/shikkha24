@@ -43,10 +43,21 @@ Recommendation: **ASCII slugs**, with the Bengali headline always in the `<title
 | Job circular | {organisation} নিয়োগ বিজ্ঞপ্তি | `JobPosting` |
 | Study-abroad guide | {country} — পড়াশোনার খরচ, ভিসা | `Article` + `FAQPage` + `BreadcrumbList` |
 | Guide / explainer | {topic} — সম্পূর্ণ গাইড | `Article` + `FAQPage` + `HowTo` (where applicable) |
+| Photo gallery | {title} — ছবির গ্যালারি | `ImageGallery` + `BreadcrumbList` |
+| Quiz | {quiz title} — কুইজ | `Quiz` + `BreadcrumbList` |
 | Author | {name} — Shikkha24 | `Person` + `ProfilePage` |
 | Search | Search results (noindex) | none |
 
 **`inLanguage: "bn-BD"` on every template.** Do **not** use `hreflang` — this is a single-language site (removed by the audit).
+
+### Video — deliberately no template and no schema
+
+Video is **embedded from a platform**, never uploaded (`.sps/plan.md`, `docs/security.md` §6 — the upload allow-list is images only). An embed is a block inside an article body, not a page, so it gets no `<title>` pattern and no standalone schema.
+
+Two consequences worth recording:
+
+- **`VideoObject` schema is not emitted.** Google requires `contentUrl` or `embedUrl` plus an upload date and a thumbnail that the page genuinely owns; a third-party embed whose thumbnail we do not host fails validation more often than it passes. Emitting schema that fails Rich Results is worse than emitting none.
+- **The embed is click-to-load.** No third-party request is made until the reader taps play, so an article carrying a video still meets the data-saver and initial-payload budgets. YouTube embeds use `youtube-nocookie.com` and are never autoplayed.
 
 ---
 
@@ -91,6 +102,24 @@ What actually drives eligibility: **freshness, velocity, original reporting, rea
 - `/contact` — physical address, map, phone
 
 ⚠️ **Owner dependency:** these pages cannot be written without your legal and company details (see the open questions list).
+
+---
+
+## 6a. Sponsored and advertorial content — labelling policy
+
+**Why this is an SEO document and not just a legal one.** Google's spam policies treat an advertorial that is not clearly labelled as a **deceptive practice**, and the helpful-content system discounts it. The label is therefore a ranking control, not decoration. The implementation already exists (S7); this section is the policy that governs it.
+
+| Rule | Detail |
+|---|---|
+| **Always labelled** | Every sponsored article carries a visible «বিজ্ঞাপন» label — on the card, in the byline block and on the article page. There is no configuration that turns the label off. |
+| **Label position** | Above the headline on the article page, and on the card itself in every listing. A label below the fold does not count. |
+| **Not in the news surfaces** | Sponsored content is **excluded from the masthead and the breaking ticker**. It may appear in category sections and the latest feed, labelled. A promoted story must never occupy a position a reader reads as editorial judgement. |
+| **`rel` attribute** | Every outbound sponsor link uses `rel="sponsored nofollow"`. |
+| **Schema** | A sponsored article's `NewsArticle` block is emitted as normal — the label is a visible, human-readable signal, not a schema property. Do **not** invent a `sponsored` schema field. |
+| **News sitemap** | Sponsored URLs are **excluded** from `news-sitemap.xml`. They may appear in the standard sitemap. |
+| **Disclosure page** | The advertising policy lives on an E-E-A-T page and states plainly that sponsored content is paid for, is labelled, and is not written by the newsroom. |
+
+**CMS enforcement (S7):** `isSponsored` + `sponsorName` on Articles drive all of the above in code. `sponsorName` is required whenever `isSponsored` is true, so a sponsored article cannot exist without a named sponsor.
 
 ---
 
@@ -146,6 +175,11 @@ Map each cluster to a template and a hub. **Keyword research is a follow-up task
 - [ ] **Slug language decision** (§2)
 - [ ] Validate the §8 clusters with real keyword research
 - [ ] Legal/company details for the E-E-A-T pages — **owner dependency**
-- [ ] Decide the news-sitemap generation approach (build-time vs serverless)
+- [x] ~~Decide the news-sitemap generation approach~~ — ✅ **build-time, hand-written** (S6/S11, 2026-09-12); `@astrojs/sitemap` / `@astrojs/rss` deliberately not used
 - [ ] Confirm the Publisher Center brand name once the display name is decided
 - [ ] Confirm `speakable` selectors survive the article template implementation
+- [x] ~~Quiz template row~~ — ✅ added to §3 (2026-09-13, S9)
+- [x] ~~Advertorial-label policy~~ — ✅ added as §6a (2026-09-13, S9)
+- [x] ~~Gallery template row~~ — ✅ added to §3 (2026-09-13, S9)
+- [x] ~~Video: template and schema position~~ — ✅ decided: no template, no schema, click-to-load (§3, 2026-09-13)
+- [ ] **`getAllArticleSlugs()` caps at 500 with no pagination** — past ~500 published articles the sitemap silently stops growing. Flagged at S6/S11, still unfixed.

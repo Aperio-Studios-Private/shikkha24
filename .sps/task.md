@@ -115,21 +115,34 @@
 - [x] **Relaxed CSP profile** for `/`, `/article/*`, `/category/*` — ⚠️ Cloudflare **joins** duplicate headers with a comma rather than overriding, so the more specific rule must `!`-detach the inherited policy first. **S12 check:** confirm production returns exactly one CSP header.
 - [x] S7 DoD evidence → **user approval pending** (`.sps/section-todos/S7.md`)
 
-## S8 — Live Blog & Interactive ✅ COMPLETE 2026-09-12
+## S8 — Live Blog & Interactive ✅ APPROVED 2026-09-13
 - [x] **Live blog engine** — `/live/:slug`, entries baked into the HTML at build time (the `docs/reliability.md` static fallback), key-event badges, a **no-JavaScript key-events filter** (`:has()`), and `LiveBlogPosting` JSON-LD with a nested `BlogPosting` per update.
 - [x] **Live updates — owner decision: opt-in refresh.** A **নতুন আপডেট দেখুন** button fetches once on tap, clones a `<template>`, and announces into an `aria-live` region. Deliberately **not** an auto-poll — see `.sps/section-todos/S8.md` §1.
 - [x] **Polls — owner decision: persist to the CMS.** `POST /api/polls/:id/vote` with three guards: honeypot (silent success, no write), per-IP rate limit, and a salted `HMAC-SHA256(ip+UA)` duplicate guard unique per poll. Results hidden until the reader votes; the privacy line is on the widget.
 - [x] **Quizzes** — `/quiz` hub + `/quiz/:id`, question-by-question flow, instant feedback with the explanation, score + percentage bar, days-in-a-row streak. **Fully client-side**, flag-gated on `PUBLIC_FLAG_QUIZ`.
 - [x] **Infographic · before/after · scrollytelling blocks** — Payload `BlocksFeature` blocks rendered by `lib/richtext.ts`, styled from a global stylesheet. Each is readable with JavaScript off; the scripts only add a slider and a scroll animation.
 - [x] **⚠️ Fixed a site-wide CSP bug found here:** Astro **inlines small component scripts**, and `script-src 'self'` (no `'unsafe-inline'`) blocks them — the theme toggle, mobile menu, text resizer, demo ads, share button and the `/search` bootstrap had all been silently dead since S2. Fixed with `vite.build.assetsInlineLimit: 0` plus moving two deliberate inline scripts into `public/`. **0 executable inline scripts across all 28 pages.**
-- [x] S8 DoD evidence → **user approval pending** (`.sps/section-todos/S8.md`) — 35/35 harness checks + a flag-off build
+- [x] S8 DoD evidence → **user approval received 2026-09-13** (`.sps/section-todos/S8.md`) — 35/35 harness checks + a flag-off build
 
 ## S9 — Media, Newsletter & Engagement
-- [ ] Gallery, video embeds, push notifications, bookmarks, social login, citizen journalism submission
-- [ ] **Cloudflare R2 media pipeline** (or the documented quota fallback if R2 cannot be enabled)
-- [ ] Newsletter: self-built Payload subscriber list + campaign module
-- [ ] **GATE: newsletter sending path confirmed** — free-tier ESP reachable, or the cPanel SMTP low-volume fallback explicitly accepted
-- [ ] S9 DoD evidence → **user approval**
+> ✅ **Entry gate SATISFIED 2026-09-12:** the newsletter sending path is **cPanel SMTP, explicitly accepted** (`.sps/plan.md` §"Scope amendment (2026-09-12)"). The gate closes as *accepted*, not *confirmed working* — the cPanel risks are real and documented in `docs/security.md` §7. The module is therefore built **transport-agnostic** so an ESP can be swapped in by configuration alone.
+> ⚠️ **Three S9 architecture changes were recorded in `.sps/plan.md` before any code** (rule 13): media moved to the **DianaHost disk** (R2 descoped), newsletter transport is **cPanel SMTP**, and **social login** proceeds behind a flag.
+
+- [ ] **Media pipeline — DianaHost disk, not R2.** Aggressive WebP/AVIF conversion with the **original discarded**, plus a **per-day upload cap** enforced in a hook. `PUBLIC_MEDIA_BASE_URL` / `MEDIA_PUBLIC_BASE_URL` now point at the CMS host.
+- [ ] **Photo galleries** — `/gallery` hub + `/gallery/[slug]` from the existing `photo-galleries` collection, with reserved image boxes.
+- [ ] **Video embeds** — click-to-load, `youtube-nocookie`, no third-party request until the reader taps play. **No `VideoObject` schema** (decided in `docs/seo-plan.md` §3 — a third-party embed fails Rich Results more often than it passes).
+- [ ] **Newsletter** — self-built Payload subscriber list + campaign module. **Double opt-in** (signup → confirmation token → confirm endpoint), **one-click unsubscribe**, and a **hard per-hour send cap enforced in code** so the module cannot trip cPanel's limit even if an editor tries.
+- [ ] **Comments** — the feature deferred from S4. Approved-comment list + submission form on the article page, moderation-gated, escaped on output, rate-limited.
+- [ ] **Bookmarks** — articles and deadlines. Browser-local first (works with no account), syncing to the CMS when a reader is signed in.
+- [ ] **Citizen journalism submission** — form + collection, moderation-gated and rate-limited.
+- [ ] **Push notifications + N7 deadline reminders** — Web Push with **self-generated VAPID keys** (free, no account, no card), a service worker, a subscription endpoint, and the save-a-deadline reminder flow. Self-hiding when unconfigured.
+- [ ] **Social login** — Meta + Google OAuth behind a flag, with the browser-local fallback retained. No button is rendered that cannot work.
+- [ ] S9 DoD evidence → **user approval** (`.sps/section-todos/S9.md`)
+- [ ] **OWNER:** generate the VAPID key pair and set `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` + `PUBLIC_VAPID_PUBLIC_KEY` — until then the reminder control is not rendered
+- [ ] **OWNER:** supply `OAUTH_GOOGLE_CLIENT_ID` / `OAUTH_FACEBOOK_APP_ID` + secrets (Meta review started early)
+- [ ] **OWNER:** SMTP credentials for the bulk-sending subdomain (`mail.shikkha24.com`) + SPF/DKIM/DMARC (S12 gate)
+- [ ] **OWNER:** host-disk usage alert — DianaHost publishes no storage metric; this comes from the support ticket already requested
+- [ ] **Deferred, recorded:** media is now part of the backup problem (`docs/backup-and-recovery.md`) — the off-host backup must include `data/media/`, not just the SQLite file
 
 ## S10 — Education Features & Specialized Sections
 - [ ] **N1** Scholarship tracker (deadline-sorted, filterable by level / country / funding)
