@@ -37,12 +37,27 @@ const build = () =>
 const read = (path) => readFileSync(path, 'utf8')
 const count = (haystack, needle) => haystack.split(needle).length - 1
 
-const articleHtml = () => read(`frontend/dist/article/${SLUG}/index.html`)
-
+/**
+ * Resolve the demo article's built path.
+ *
+ * ⚠️ Articles moved from `/article/:slug` to `/:category/:id/:slug` in S11. The
+ * old path still exists, but as a **redirect stub** with no banner, no ads and
+ * no byline — so reading it made every article-page assertion fail while the
+ * feature itself was fine. `depth=1` is required to populate `category.slug`.
+ */
 const { docs } = await (
-  await fetch(`http://localhost:3000/api/articles?limit=1&depth=0&where[slug][equals]=${SLUG}`)
+  await fetch(
+    `http://localhost:3000/api/articles?limit=1&depth=1&where[slug][equals]=${SLUG}`,
+  )
 ).json()
-const originalBody = JSON.stringify(docs[0].body)
+const article = docs[0]
+const CATEGORY_SLUG = article.category?.slug
+if (!CATEGORY_SLUG) throw new Error(`no category slug on ${SLUG} — cannot resolve the article URL`)
+const ARTICLE_PATH = `/${CATEGORY_SLUG}/${article.id}/${SLUG}`
+
+const articleHtml = () => read(`frontend/dist${ARTICLE_PATH}/index.html`)
+
+const originalBody = JSON.stringify(article.body)
 
 try {
   // ── 1. Sponsored content ──────────────────────────────────────────────────
@@ -56,13 +71,15 @@ try {
   check('byline badge renders', count(html, 'বিজ্ঞাপন') >= 2, `${count(html, 'বিজ্ঞাপন')} labels`)
 
   const home = read('frontend/dist/index.html')
-  const firstLink = home.match(/\/article\/[a-z0-9-]+/)?.[0] ?? ''
+  // The masthead lead is the first article link on the page. Match the current
+  // URL shape (`/<category>/<id>/<slug>`), not the retired `/article/<slug>`.
+  const firstLink = home.match(/href="\/[a-z0-9-]+\/\d+\/[a-z0-9-]+"/)?.[0] ?? ''
   check(
     'sponsored story displaced from the masthead',
-    firstLink !== `/article/${SLUG}`,
+    firstLink !== `href="${ARTICLE_PATH}"`,
     `lead is ${firstLink}`,
   )
-  check('sponsored story still reachable (latest feed)', home.includes(`/article/${SLUG}`))
+  check('sponsored story still reachable (latest feed)', home.includes(`href="${ARTICLE_PATH}"`))
 
   sql(`UPDATE articles SET is_sponsored = 0, sponsor_name = NULL WHERE slug = '${SLUG}';`)
 

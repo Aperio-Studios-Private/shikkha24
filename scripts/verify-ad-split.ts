@@ -6,8 +6,13 @@
  * Not part of the build. It exists because the demo articles are all four
  * paragraphs long, so the mid-article ad correctly never renders — which means
  * the split logic would otherwise ship unexercised.
+ *
+ * ⚠️ Import from `html-split.ts`, **not** `richtext.ts`. Node's ESM loader
+ * needs explicit extensions, and `richtext.ts` imports `./content-blocks`
+ * extensionless (fine for Vite, unresolvable for Node). `html-split.ts` is
+ * dependency-free, so this harness runs with no bundler and no extra package.
  */
-import { countParagraphs, splitHtmlAtParagraph } from '../frontend/src/lib/richtext.ts'
+import { countParagraphs, splitHtmlAtParagraph } from '../frontend/src/lib/html-split.ts'
 
 const body = (n: number): string =>
   Array.from({ length: n }, (_, i) => `<p>অনুচ্ছেদ ${i + 1}</p>`).join('\n')

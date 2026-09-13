@@ -230,40 +230,8 @@ export function lexicalToHtml(body: unknown): string {
   }
 }
 
-/** How many top-level paragraphs the rendered body contains. */
-export function countParagraphs(html: string): number {
-  return (html.match(/<\/p>/g) ?? []).length
-}
-
 /**
- * Split rendered body HTML into two parts, cutting immediately after the
- * `after`-th paragraph.
- *
- * Used to place a mid-article ad *inside* the prose rather than after it. The
- * cut is only ever made directly after a `</p>`, so no tag is ever sliced in
- * half and the two halves concatenate back to the original string.
- *
- * @returns `[before, after]`. When the body has fewer paragraphs than requested
- *          the whole body is returned first and the second part is empty, which
- *          lets the caller skip the ad instead of rendering it in the wrong place.
+ * Re-exported from `./html-split`, where they live as dependency-free pure
+ * functions. Kept exported here so existing callers do not change.
  */
-export function splitHtmlAtParagraph(html: string, after: number): [string, string] {
-  if (after < 1) return ['', html]
-
-  const pattern = /<\/p>/g
-  let seen = 0
-  let cut = -1
-
-  let match: RegExpExecArray | null = pattern.exec(html)
-  while (match !== null) {
-    seen += 1
-    if (seen === after) {
-      cut = match.index + match[0].length
-      break
-    }
-    match = pattern.exec(html)
-  }
-
-  if (cut === -1) return [html, '']
-  return [html.slice(0, cut), html.slice(cut)]
-}
+export { countParagraphs, splitHtmlAtParagraph } from './html-split'

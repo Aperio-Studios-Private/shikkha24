@@ -1,0 +1,121 @@
+/**
+ * Verify the built `dist/` is deployable.
+ *
+ * This is the gate that runs after the build and before a deploy. It asserts the
+ * invariants that are invisible in a build exit code:
+ *
+ *   1. **Zero executable inline scripts.** The CSP is `script-src 'self'` with
+ *      no `'unsafe-inline'`, so an inlined component script is blocked in
+ *      production. Astro inlines small scripts by default; `assetsInlineLimit: 0`
+ *      is what prevents it. A regression here kills every interactive control
+ *      silently.
+ *   2. **The deploy-critical root files exist.** Cloudflare Pages reads
+ *      `_headers`; crawlers read the feeds; AI crawlers read `llms.txt`. A
+ *      missing one is a silent production failure, not a build error.
+ *   3. **The article URL architecture is the one we decided.** Articles live at
+ *      `/:category/:id/:slug`, with `/article/:slug` as a redirect stub.
+ *   4. **No leftover build scratch.** `dist/.prerender/` gets deployed as junk.
+ *
+ * Run after `pnpm build`: node scripts/verify-build-output.mjs
+ */
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { join } from 'node:path'
+
+const DIST = 'frontend/dist'
+
+let failures = 0
+const check = (label, ok, detail = '') => {
+  if (!ok) failures += 1
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${detail ? ` — ${detail}` : ''}`)
+}
+
+/** Every .html file in dist/, as paths relative to dist. */
+const htmlFiles = []
+;(function walk(dir) {
+  for (const name of readdirSync(dir)) {
+    const full = join(dir, name)
+    if (statSync(full).isDirectory()) walk(full)
+    else if (name.endsWith('.html')) htmlFiles.push(full)
+  }
+})(DIST)
+
+console.log(`\n=== build output verification (${htmlFiles.length} html files) ===\n`)
+
+// ── 1. Zero executable inline scripts ────────────────────────────────────────
+let inlineCount = 0
+const offenders = []
+for (const file of htmlFiles) {
+  const html = readFileSync(file, 'utf8')
+  const re = /<script(?![^>]*\bsrc=)(?![^>]*type="application\/(?:ld\+)?json")[^>]*>([\s\S]*?)<\/script>/gi
+  let m
+  while ((m = re.exec(html)) !== null) {
+    if (m[1].trim() === '') continue // empty script tag, not executable code
+    inlineCount += 1
+    if (offenders.length < 3) offenders.push(file.replace(`${DIST}/`, ''))
+  }
+}
+check('zero executable inline scripts (strict-CSP invariant)', inlineCount === 0, `${inlineCount} found ${offenders.join(', ')}`)
+
+// ── 2. Deploy-critical root files ────────────────────────────────────────────
+const rootFiles = [
+  '_headers',
+  '_redirects',
+  'robots.txt',
+  'sitemap.xml',
+  'news-sitemap.xml',
+  'rss.xml',
+  'llms.txt',
+  'og-default.svg',
+  '404.html',
+  'favicon.svg',
+]
+for (const f of rootFiles) {
+  const present = existsSync(join(DIST, f))
+  // _redirects is optional (the article redirect stubs cover it), so note only.
+  check(`root file present: ${f}`, present || f === '_redirects', present ? '' : 'MISSING')
+}
+
+// ── 3. URL architecture ──────────────────────────────────────────────────────
+const articlePages = htmlFiles.filter((f) => {
+  const rel = f.slice(DIST.length + 1)
+  return rel.split('/').length === 4 && rel.endsWith('/index.html')
+})
+check('articles built at /:category/:id/:slug', articlePages.length > 0, `${articlePages.length} found`)
+
+const legacyStubs = htmlFiles.filter((f) => f.includes('/article/'))
+check('legacy /article/:slug redirect stubs exist', legacyStubs.length > 0, `${legacyStubs.length} found`)
+
+if (legacyStubs[0]) {
+  const stub = readFileSync(legacyStubs[0], 'utf8')
+  check('a legacy stub carries a meta refresh + canonical', /http-equiv="refresh"/.test(stub) && /rel="canonical"/.test(stub))
+}
+
+// ── 4. Search index ──────────────────────────────────────────────────────────
+const pagefindEntry = join(DIST, 'pagefind', 'pagefind-entry.json')
+check('pagefind index was generated (post-build step ran)', existsSync(pagefindEntry))
+
+// ── 5. No leftover scratch ───────────────────────────────────────────────────
+check('no dist/.prerender left behind', !existsSync(join(DIST, '.prerender')))
+
+// ── 6. Feeds are non-empty and use the new URL scheme ────────────────────────
+for (const feed of ['sitemap.xml', 'news-sitemap.xml', 'rss.xml']) {
+  const p = join(DIST, feed)
+  if (!existsSync(p)) continue
+  const body = readFileSync(p, 'utf8')
+  const urlCount = (body.match(/<loc>|<link>/g) ?? []).length
+  const stalePrefix = body.includes('/article/')
+  check(`${feed} is populated`, urlCount > 0, `${urlCount} entries`)
+  check(`${feed} uses the new URL scheme`, !stalePrefix, stalePrefix ? 'contains /article/' : '')
+}
+
+// ── 7. The CSP relaxed rule targets the new article path ─────────────────────
+const headers = readFileSync(join(DIST, '_headers'), 'utf8')
+check('_headers relaxes the CSP for /:category/:id/:slug', headers.includes('/:category/:id/:slug'))
+check('_headers no longer relaxes the stale /article/* prefix', !/^\/article\/\*/m.test(headers))
+
+console.log(
+  failures === 0
+    ? '\nBuild output is deployable.\n'
+    : `\n${failures} build-output check(s) FAILED.\n`,
+)
+process.exit(failures === 0 ? 0 : 1)
