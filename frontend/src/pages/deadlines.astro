@@ -8,7 +8,9 @@
  */
 import Layout from '../layouts/Layout.astro'
 import Breadcrumbs from '../components/Breadcrumbs.astro'
+import DeadlineReminder from '../components/DeadlineReminder.astro'
 import { toBnDigits } from '../lib/widgets'
+import { getPublicCmsOrigin } from '../lib/interactive'
 import {
   getSiteSettings,
   getCategories,
@@ -24,6 +26,13 @@ const [settings, categories, footerPages, deadlines] = await Promise.all([
   getFooterPages().catch(() => []),
   getAllDeadlines().catch(() => []),
 ])
+
+/**
+ * The browser-reachable CMS origin. `null` when unconfigured, in which case
+ * `DeadlineReminder` renders nothing at all — the N7 reminder needs a backend to
+ * register against, and a bell that cannot ring is worse than no bell.
+ */
+const cmsOrigin = getPublicCmsOrigin()
 
 const TYPE_LABELS: Record<string, string> = {
   admission: 'ভর্তি',
@@ -128,6 +137,15 @@ function formatDate(date: string | null | undefined): string {
                 <time class="mt-2 block text-xs text-ink-subtle dark:text-dark-ink-muted">
                   {formatDate(deadline.dateEnd ?? deadline.dateStart)}
                 </time>
+
+                {/* N7 — opt-in only. Renders nothing without a VAPID key, a CMS
+                    origin, or a reminder moment that is still in the future. */}
+                <DeadlineReminder
+                  deadlineId={deadline.id}
+                  deadlineTitle={deadline.title}
+                  deadlineDate={deadline.dateEnd ?? deadline.dateStart}
+                  cmsOrigin={cmsOrigin}
+                />
               </li>
             )
           })}

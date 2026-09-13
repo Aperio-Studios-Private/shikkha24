@@ -30,6 +30,7 @@ import { Pages } from './collections/Pages'
 import { PhotoGalleries } from './collections/PhotoGalleries'
 import { Polls } from './collections/Polls'
 import { PollVotes } from './collections/PollVotes'
+import { PushSubscriptions } from './collections/PushSubscriptions'
 import { Quizzes } from './collections/Quizzes'
 import { Readers } from './collections/Readers'
 import { ResultLinks } from './collections/ResultLinks'
@@ -41,6 +42,7 @@ import { Users } from './collections/Users'
 import { citizenSubmitEndpoint } from './endpoints/citizen'
 import { commentSubmitEndpoint } from './endpoints/comments'
 import { newsletterEndpoints } from './endpoints/newsletter'
+import { pushEndpoints } from './endpoints/push'
 import { SiteSettings } from './globals/SiteSettings'
 import { bn } from './i18n/bn'
 import { isMailConfigured } from './lib/mailer'
@@ -140,7 +142,12 @@ export default buildConfig({
    * be reachable from a link in an email with no session, and comment submission
    * must be rate-limited and unable to set its own approval.
    */
-  endpoints: [...newsletterEndpoints, citizenSubmitEndpoint, commentSubmitEndpoint],
+  endpoints: [
+    ...newsletterEndpoints,
+    citizenSubmitEndpoint,
+    commentSubmitEndpoint,
+    ...pushEndpoints,
+  ],
 
   collections: [
     // ── Editorial ────────────────────────────────────────────────────────────
@@ -179,6 +186,7 @@ export default buildConfig({
     SavedDeadlines,
     Bookmarks,
     CitizenSubmissions,
+    PushSubscriptions,
     Readers,
     PollVotes,
 

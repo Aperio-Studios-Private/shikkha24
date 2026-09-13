@@ -95,6 +95,7 @@ export interface Config {
     'saved-deadlines': SavedDeadline;
     bookmarks: Bookmark;
     'citizen-submissions': CitizenSubmission;
+    'push-subscriptions': PushSubscription;
     readers: Reader;
     'poll-votes': PollVote;
     users: User;
@@ -133,6 +134,7 @@ export interface Config {
     'saved-deadlines': SavedDeadlinesSelect<false> | SavedDeadlinesSelect<true>;
     bookmarks: BookmarksSelect<false> | BookmarksSelect<true>;
     'citizen-submissions': CitizenSubmissionsSelect<false> | CitizenSubmissionsSelect<true>;
+    'push-subscriptions': PushSubscriptionsSelect<false> | PushSubscriptionsSelect<true>;
     readers: ReadersSelect<false> | ReadersSelect<true>;
     'poll-votes': PollVotesSelect<false> | PollVotesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -1241,6 +1243,38 @@ export interface CitizenSubmission {
   createdAt: string;
 }
 /**
+ * ব্রাউজারভিত্তিক পুশ সাবস্ক্রিপশন ও সময়সীমার রিমাইন্ডার।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "push-subscriptions".
+ */
+export interface PushSubscription {
+  id: number;
+  /**
+   * ব্রাউজার যে ঠিকানায় নোটিফিকেশন নেয়।
+   */
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  /**
+   * সোশ্যাল লগইন করা পাঠক (যদি থাকে) — না থাকলেও কাজ করে।
+   */
+  reader?: (number | null) | Reader;
+  /**
+   * যে সময়সীমাগুলোর জন্য আগে জানতে চেয়েছেন।
+   */
+  reminders?:
+    | {
+        deadline: number | Deadline;
+        remindAt: string;
+        notified?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * ডুপ্লিকেট ভোট ঠেকানোর জন্য সংরক্ষিত ওয়ান-ওয়ে হ্যাশ। কোন বিকল্পে ভোট পড়েছে তা এখানে রাখা হয় না।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1516,6 +1550,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'citizen-submissions';
         value: number | CitizenSubmission;
+      } | null)
+    | ({
+        relationTo: 'push-subscriptions';
+        value: number | PushSubscription;
       } | null)
     | ({
         relationTo: 'readers';
@@ -2107,6 +2145,26 @@ export interface CitizenSubmissionsSelect<T extends boolean = true> {
   reporterPhone?: T;
   status?: T;
   editorNote?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "push-subscriptions_select".
+ */
+export interface PushSubscriptionsSelect<T extends boolean = true> {
+  endpoint?: T;
+  p256dh?: T;
+  auth?: T;
+  reader?: T;
+  reminders?:
+    | T
+    | {
+        deadline?: T;
+        remindAt?: T;
+        notified?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

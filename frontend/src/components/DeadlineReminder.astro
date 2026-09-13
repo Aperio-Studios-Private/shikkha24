@@ -1,0 +1,212 @@
+---
+/**
+ * "Remind me" control for one deadline (N7).
+ *
+ * ## Starts hidden, and is revealed only after every precondition is checked
+ *
+ * Browser support for `PushManager` and the notification permission state can
+ * only be read in the browser, but a server-rendered control that is visible and
+ * then disappears is a flash of a broken control. So the opposite: the markup
+ * ships with the `hidden` attribute and the script removes it once the feature
+ * is confirmed usable. With JavaScript off, the control is simply absent —
+ * which is correct, because push cannot work without it.
+ *
+ * ## The reminder time is chosen for the reader, not by them
+ *
+ * One day before the deadline, at 09:00 Asia/Dhaka. Asking a reader to pick a
+ * time for a notification is a decision they do not want to make, and the useful
+ * answer is always "the day before, in the morning". The CMS stores the resolved
+ * instant, so changing the policy later does not rewrite existing reminders.
+ *
+ * ## Why the offset is hard-coded
+ *
+ * Bangladesh has observed no DST since 2009, so +06:00 is a constant and a
+ * timezone library would be dead weight in the client bundle.
+ */
+import { PUSH_PUBLIC_KEY, pushConfigured } from '../lib/push'
+import { isEnabled } from '../lib/feature-flags'
+
+interface Props {
+  deadlineId: number | string
+  deadlineTitle: string
+  /** The deadline's own date — the reminder is scheduled one day before it. */
+  deadlineDate: string | null | undefined
+  /**
+   * The browser-reachable CMS origin, or `null` when unconfigured.
+   *
+   * Passed as a prop rather than read from `document.documentElement`, to match
+   * the convention the S8 islands established — one mechanism, not two.
+   */
+  cmsOrigin: string | null
+}
+
+const { deadlineId, deadlineTitle, deadlineDate, cmsOrigin } = Astro.props
+
+const DHAKA_OFFSET_MS = 6 * 60 * 60 * 1000
+const DAY_MS = 86_400_000
+
+/**
+ * 09:00 Dhaka on the day before the deadline, as an ISO instant.
+ *
+ * Returns `null` when that moment has already passed — a reminder for a deadline
+ * that is already imminent is not a reminder, it is noise.
+ */
+function reminderInstant(date: string | null | undefined): string | null {
+  if (!date) return null
+  const target = new Date(date)
+  if (Number.isNaN(target.getTime())) return null
+
+  // Shift into Dhaka wall-clock, floor to midnight, step back one day, then
+  // place it at 09:00 and shift back to UTC.
+  const dhakaWallClock = target.getTime() + DHAKA_OFFSET_MS
+  const dhakaMidnight = Math.floor(dhakaWallClock / DAY_MS) * DAY_MS
+  const instant = dhakaMidnight - DAY_MS + 9 * 60 * 60 * 1000 - DHAKA_OFFSET_MS
+
+  return instant > Date.now() ? new Date(instant).toISOString() : null
+}
+
+const remindAt = reminderInstant(deadlineDate)
+const renderable = isEnabled('push') && pushConfigured() && Boolean(cmsOrigin) && Boolean(remindAt)
+---
+
+{
+  renderable && (
+    <div
+      data-deadline-reminder
+      data-deadline-id={String(deadlineId)}
+      data-remind-at={remindAt}
+      data-vapid-key={PUSH_PUBLIC_KEY}
+      data-origin={cmsOrigin ?? ''}
+      data-title={deadlineTitle}
+      hidden
+      class="mt-3 flex flex-wrap items-center gap-3"
+    >
+      <button
+        type="button"
+        data-reminder-toggle
+        class="inline-flex min-h-12 items-center gap-1.5 rounded-md border border-rule bg-white px-3 text-sm font-medium text-ink-muted transition-colors hover:text-brand-red dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted"
+      >
+        <span aria-hidden="true">🔔</span>
+        <span data-reminder-label>মনে করিয়ে দিন</span>
+      </button>
+
+      <p
+        data-reminder-status
+        role="status"
+        aria-live="polite"
+        class="min-h-5 text-sm text-ink-muted dark:text-dark-ink-muted"
+      >
+      </p>
+    </div>
+  )
+}
+
+<script>
+  /**
+   * Reminder opt-in.
+   *
+   * `hidden` is removed only when the browser can actually deliver a push:
+   * `serviceWorker`, `PushManager` and `Notification` all present, and the
+   * permission not already denied. A denied permission is permanent until the
+   * reader changes it in browser settings, so re-prompting is impossible and
+   * offering the button would be a lie.
+   */
+  import { decodeBase64Url } from '../lib/push'
+
+  const SW_PATH = '/sw.js'
+
+  function setStatus(root: HTMLElement, message: string): void {
+    const status = root.querySelector<HTMLElement>('[data-reminder-status]')
+    if (status) status.textContent = message
+  }
+
+  function setLabel(root: HTMLElement, label: string): void {
+    const element = root.querySelector<HTMLElement>('[data-reminder-label]')
+    if (element) element.textContent = label
+  }
+
+  async function subscribe(root: HTMLElement, registration: ServiceWorkerRegistration): Promise<boolean> {
+    const key = root.dataset.vapidKey
+    const remindAt = root.dataset.remindAt
+    const deadlineId = root.dataset.deadlineId
+    if (!key || !remindAt || !deadlineId) return false
+
+    const existing = await registration.pushManager.getSubscription()
+    const subscription =
+      existing ??
+      (await registration.pushManager.subscribe({
+        // Required by Chrome: a push with no visible notification must not happen.
+        userVisibleOnly: true,
+        applicationServerKey: decodeBase64Url(key),
+      }))
+
+    const json = subscription.toJSON() as { endpoint?: string; keys?: Record<string, string> }
+    if (!json.endpoint || !json.keys?.p256dh || !json.keys.auth) return false
+
+    const origin = root.dataset.origin
+    if (!origin) return false
+
+    const response = await fetch(`${origin}/api/push/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        endpoint: json.endpoint,
+        keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
+        reminder: { deadlineId: Number(deadlineId), remindAt },
+      }),
+    })
+
+    return response.ok
+  }
+
+  async function init(): Promise<void> {
+    const supported =
+      'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+    if (!supported) return
+    if (Notification.permission === 'denied') return
+
+    let registration: ServiceWorkerRegistration
+    try {
+      registration = await navigator.serviceWorker.register(SW_PATH, { scope: '/' })
+    } catch {
+      return
+    }
+
+    for (const root of document.querySelectorAll<HTMLElement>('[data-deadline-reminder]')) {
+      if (!root.dataset.origin) continue
+      root.hidden = false
+
+      const button = root.querySelector<HTMLButtonElement>('[data-reminder-toggle]')
+      if (!button) continue
+
+      button.addEventListener('click', async () => {
+        button.disabled = true
+        setStatus(root, 'অনুমতি চাওয়া হচ্ছে…')
+
+        try {
+          const permission = await Notification.requestPermission()
+          if (permission !== 'granted') {
+            setStatus(root, 'অনুমতি দেওয়া হয়নি — ব্রাউজার সেটিংস থেকে চালু করতে হবে।')
+            return
+          }
+
+          setStatus(root, 'সংরক্ষণ করা হচ্ছে…')
+          const ok = await subscribe(root, registration)
+
+          if (ok) {
+            setLabel(root, 'মনে করানো চালু')
+            setStatus(root, 'সময়সীমার আগের দিন সকালে জানানো হবে।')
+          } else {
+            setStatus(root, 'রিমাইন্ডার চালু করা যায়নি। আবার চেষ্টা করুন।')
+          }
+        } catch {
+          setStatus(root, 'রিমাইন্ডার চালু করা যায়নি। আবার চেষ্টা করুন।')
+        } finally {
+          button.disabled = false
+        }
+      })
+    }
+  }
+
+  void init()
+</script>

@@ -7,7 +7,7 @@
 
 Field names below are written in `snake_case`, which is how they appear as **database columns**. In code they are **`camelCase`** — the JavaScript convention, and what Payload expects. Payload's Drizzle layer converts between the two, so `name_bn` in the DB is `nameBn` in `Articles.ts`.
 
-## Implemented — 29 collections + 1 global
+## Implemented — 30 collections + 1 global
 
 | Group (admin sidebar) | Collections |
 |---|---|
@@ -16,10 +16,10 @@ Field names below are written in `snake_case`, which is how they appear as **dat
 | ইন্টারঅ্যাকটিভ (Interactive) | `live-blogs` · `polls` · `quizzes` |
 | মিডিয়া (Media) | `media` · `photo-galleries` |
 | বিজ্ঞাপন (Advertising) | `ad-units` |
-| পাঠক (Readers) | `comments` · `newsletter-subscribers` · `newsletter-campaigns` · `saved-deadlines` · `bookmarks` · `citizen-submissions` · `readers` · `poll-votes` |
+| পাঠক (Readers) | `comments` · `newsletter-subscribers` · `newsletter-campaigns` · `saved-deadlines` · `bookmarks` · `citizen-submissions` · `push-subscriptions` · `readers` · `poll-votes` |
 | প্রশাসন (Administration) | `users` · global `site-settings` |
 
-*(`newsletter-campaigns`, `bookmarks` and `citizen-submissions` added in S9 — 2026-09-13.)*
+*(`newsletter-campaigns`, `bookmarks`, `citizen-submissions` and `push-subscriptions` added in S9 — 2026-09-13.)*
 
 ### Two structural decisions taken in S1
 
@@ -97,6 +97,10 @@ reader (relation) · kind (article / deadline) · article (relation, conditional
 ### Citizen Submissions
 title · body · district · media · reporter_name · reporter_email · reporter_phone · status (new / reviewing / published / rejected) · editor_note
 *(added S9. A **queue, not a publishing surface** — nothing here reaches the site without an editor. `reporter_email` and `reporter_phone` are field-level restricted to authenticated users.)*
+
+### Push Subscriptions
+endpoint (unique) · p256dh · auth · reader (optional relation) · reminders[] (deadline, remind_at, notified)
+*(added S9, backs N7. One row per **browser**, not per reader — `reader` is optional because the audience N7 targets has not signed in. **A subscription is a capability**: `endpoint` plus the two keys is enough to push to that browser, so `read`/`update`/`delete` are super-admin only and readers act through `/api/push/*`, keyed on the endpoint string the browser presents rather than an enumerable row id. No IP, no user agent, no referrer is stored.)*
 
 ### Photo Galleries
 title · slug · images[] (with caption) · description
