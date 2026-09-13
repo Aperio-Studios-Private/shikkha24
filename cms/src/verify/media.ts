@@ -166,7 +166,21 @@ console.log('\n── cleanup ────────────────�
 for (const id of createdIds) {
   await payload.delete({ collection: 'media', id, overrideAccess: true }).catch(() => null)
 }
-const remaining = await payload.count({ collection: 'media', overrideAccess: true })
+
+/*
+ * Count only **this harness's** uploads, not the whole collection.
+ *
+ * The first version asserted `count(media) === 0`, which was true when nothing
+ * else seeded media. The S9 demo seed then created six gallery plates, and the
+ * assertion started failing on correct behaviour — the harness's own files were
+ * gone, but the table was not empty. Every upload here is named `s9-verify-*`,
+ * so the check can name what it is actually responsible for.
+ */
+const remaining = await payload.count({
+  collection: 'media',
+  where: { filename: { like: 's9-verify' } },
+  overrideAccess: true,
+})
 check(
   'every test document was removed',
   remaining.totalDocs === 0,
