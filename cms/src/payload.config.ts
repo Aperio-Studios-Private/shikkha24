@@ -39,6 +39,7 @@ import { Users } from './collections/Users'
 import { citizenSubmitEndpoint } from './endpoints/citizen'
 import { commentSubmitEndpoint } from './endpoints/comments'
 import { newsletterEndpoints } from './endpoints/newsletter'
+import { oauthEndpoints } from './endpoints/oauth'
 import { pushEndpoints } from './endpoints/push'
 import { SiteSettings } from './globals/SiteSettings'
 import { bn } from './i18n/bn'
@@ -141,6 +142,7 @@ export default buildConfig({
    */
   endpoints: [
     ...newsletterEndpoints,
+    ...oauthEndpoints,
     citizenSubmitEndpoint,
     commentSubmitEndpoint,
     ...pushEndpoints,

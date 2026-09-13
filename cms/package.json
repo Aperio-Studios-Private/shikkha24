@@ -23,6 +23,7 @@
     "verify:newsletter": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/newsletter.ts",
     "verify:engagement": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/engagement.ts",
     "verify:push": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/push.ts",
+    "verify:oauth": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/oauth.ts",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload"
   },
   "dependencies": {

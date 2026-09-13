@@ -67,6 +67,16 @@ export const FEATURE_FLAGS = {
   /** Citizen-journalism submission form. */
   citizen: flag(import.meta.env.PUBLIC_FLAG_CITIZEN),
   /**
+   * Social login (Google / Facebook).
+   *
+   * Two gates, not one. This flag is the editorial switch; the control also
+   * needs the CMS to report at least one configured provider, so with no OAuth
+   * credentials the button is absent regardless of this value. The browser-local
+   * bookmark list works with no account either way — signing in adds sync, it
+   * does not unlock the feature.
+   */
+  socialLogin: flag(import.meta.env.PUBLIC_FLAG_SOCIAL_LOGIN),
+  /**
    * Ad slots. Default ON — the owner has AdSense activated, so ads ship.
    *
    * Gated because `docs/reliability.md` §5 requires third-party features to be

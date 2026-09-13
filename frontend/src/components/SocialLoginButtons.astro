@@ -1,0 +1,138 @@
+---
+/**
+ * Social login buttons.
+ *
+ * ## It renders nothing at all when it cannot work
+ *
+ * Three things must all be true before a button appears: the `socialLogin` flag
+ * is on, a CMS origin is configured, and the CMS reports at least one provider
+ * with real OAuth credentials. If any of them is false this component emits
+ * **no markup** — not a disabled button, not a tooltip explaining why.
+ *
+ * That is the same rule the S8 islands follow. A sign-in control that leads to a
+ * `503` reads to the reader as their own failure, and the reader has no way to
+ * tell the difference between "this site is broken" and "you did something
+ * wrong". Absence is honest; a broken control is not.
+ *
+ * ## The buttons are links, not form posts
+ *
+ * Each one points at the CMS's `start` route, which sets an httpOnly state
+ * cookie and then redirects to the provider. A link is the right element: it is
+ * a navigation, it works with no JavaScript, and it can be opened in a new tab.
+ */
+import { isEnabled } from '../lib/feature-flags'
+import { getPublicCmsOrigin } from '../lib/interactive'
+import { type SocialProviderInfo, loginStartUrl } from '../lib/social-login'
+
+interface Props {
+  /** Providers the CMS reported at build time. Empty means render nothing. */
+  providers: SocialProviderInfo[]
+  /** Site-relative path to land on after a successful login. */
+  next?: string
+  /** Shown above the buttons — e.g. "to sync your bookmarks". */
+  heading?: string
+}
+
+const { providers, next = '/', heading } = Astro.props
+
+const cmsOrigin = getPublicCmsOrigin()
+const usable = isEnabled('socialLogin') && cmsOrigin ? providers : []
+---
+
+{
+  usable.length > 0 && (
+    <div class="social-login">
+      {heading && <p class="social-login-heading">{heading}</p>}
+      <ul class="social-login-list">
+        {usable.map((provider) => (
+          <li>
+            <a
+              class="social-login-button"
+              href={loginStartUrl(cmsOrigin as string, provider.id, next)}
+              rel="nofollow"
+            >
+              {provider.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+      {/*
+        Stated plainly rather than buried in a policy page: the reader is about
+        to hand a third party their identity, and they should know what comes
+        back and what does not.
+      */}
+      <p class="social-login-note">
+        সাইন ইন করলে প্রোভাইডার থেকে শুধু আপনার নাম, ছবি ও ইমেইল (থাকলে) নেওয়া হয়।
+        পাসওয়ার্ড শিক্ষা২৪ কখনো দেখে না।
+      </p>
+    </div>
+  )
+}
+
+<style>
+  .social-login {
+    margin-top: 1rem;
+  }
+
+  .social-login-heading {
+    margin-bottom: 0.5rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+
+  .social-login-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* 48px minimum touch target, per the plan's accessibility gate. */
+  .social-login-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    padding: 0 1.25rem;
+    border: 1px solid var(--color-rule);
+    border-radius: 8px;
+    background-color: var(--color-surface-raised);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    text-decoration: none;
+  }
+
+  .social-login-button:hover {
+    border-color: var(--color-brand-red);
+  }
+
+  .social-login-button:focus-visible {
+    outline: 3px solid var(--color-brand-red);
+    outline-offset: 2px;
+  }
+
+  .social-login-note {
+    margin-top: 0.75rem;
+    font-size: 0.8125rem;
+    line-height: 1.65;
+    color: var(--color-ink-subtle);
+  }
+
+  .dark .social-login-heading {
+    color: var(--color-dark-ink);
+  }
+
+  .dark .social-login-button {
+    border-color: var(--color-dark-rule);
+    background-color: var(--color-dark-raised);
+    color: var(--color-dark-ink);
+  }
+
+  .dark .social-login-note {
+    color: var(--color-dark-ink-muted);
+  }
+</style>

@@ -1087,7 +1087,10 @@ export interface Reader {
     | null;
   updatedAt: string;
   createdAt: string;
-  email: string;
+  /**
+   * প্রোভাইডার থেকে পাওয়া ইমেইল (থাকলে)। এটি পরিচয় নয় — পরিচয় প্রোভাইডার আইডি। Facebook অনেক সময় ইমেইল দেয় না।
+   */
+  email?: string | null;
   resetPasswordToken?: string | null;
   resetPasswordExpiration?: string | null;
   salt?: string | null;

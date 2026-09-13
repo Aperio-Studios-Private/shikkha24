@@ -1,0 +1,129 @@
+---
+/**
+ * Sign in — `/login`.
+ *
+ * ## What signing in is for, and what it is not for
+ *
+ * Everything a reader can do without an account, they still can. The bookmark
+ * list is browser-local, comments accept a name, and deadline reminders only
+ * need a push subscription. An account adds exactly two things: comment
+ * attribution under a verified identity, and bookmarks that follow the reader
+ * between devices.
+ *
+ * The page says that plainly, because a reader who thinks the site is gated
+ * behind a login will simply leave.
+ *
+ * ## No button that cannot work
+ *
+ * `getConfiguredProviders()` asks the CMS at build time. With no OAuth
+ * credentials configured it returns `[]`, and the buttons are absent — the page
+ * then explains the state instead of offering a control that leads to a 503.
+ *
+ * ## The failure message is read in the browser
+ *
+ * The CMS redirects back with `?login=cancelled|invalid|failed`. This is a
+ * static page, so there is no server-side query to read: a tiny script reads
+ * `location.search` and reveals the matching line. The notice element ships
+ * `hidden` and is only unhidden when a known reason is present, so with
+ * JavaScript off it simply never appears — the reader still sees the buttons.
+ */
+import Layout from '../layouts/Layout.astro'
+import Breadcrumbs from '../components/Breadcrumbs.astro'
+import SocialLoginButtons from '../components/SocialLoginButtons.astro'
+import { getConfiguredProviders } from '../lib/social-login'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../lib/cms'
+
+const [settings, categories, footerPages, providers] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getConfiguredProviders(),
+])
+
+const available = providers.length > 0
+---
+
+<Layout
+  title="সাইন ইন"
+  description="শিক্ষা২৪-এ সাইন ইন করে মন্তব্যে আপনার পরিচয় যুক্ত করুন এবং বুকমার্ক সব ডিভাইসে রাখুন।"
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <Fragment slot="head">
+    <meta name="robots" content="noindex, nofollow" />
+  </Fragment>
+
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'সাইন ইন' }]} />
+
+    <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+      সাইন ইন
+    </h1>
+
+    {/* Shipped hidden; the script below reveals it only for a known reason. */}
+    <p
+      data-login-notice
+      hidden
+      class="mt-4 max-w-2xl rounded-md border border-rule bg-surface-raised px-4 py-3 text-base text-ink dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink"
+    ></p>
+
+    <p class="mt-3 max-w-2xl text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+      সাইন ইন করা বাধ্যতামূলক নয়। অ্যাকাউন্ট ছাড়াও আপনি মন্তব্য করতে, সময়সীমা সেভ করতে
+      ও বুকমার্ক রাখতে পারবেন — বুকমার্ক আপনার ব্রাউজারেই থাকে।
+    </p>
+
+    <ul
+      class="mt-4 max-w-2xl list-disc space-y-1 pl-5 text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted"
+    >
+      <li>মন্তব্যে যাচাই করা পরিচয় যুক্ত হয়।</li>
+      <li>বুকমার্ক এক ডিভাইস থেকে অন্য ডিভাইসে পাওয়া যায়।</li>
+    </ul>
+
+    {
+      available ? (
+        <SocialLoginButtons providers={providers} next="/bookmarks" />
+      ) : (
+        <div class="mt-6 max-w-2xl rounded-md border border-rule px-4 py-4 dark:border-dark-rule">
+          <p class="text-base font-semibold text-ink dark:text-dark-ink">
+            সাইন ইন এখনো চালু হয়নি।
+          </p>
+          <p class="mt-1 text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+            চালু হলে গুগল ও ফেসবুক দিয়ে সাইন ইন করা যাবে। ততদিন অ্যাকাউন্ট ছাড়াই সব
+            সুবিধা ব্যবহার করতে পারবেন।
+          </p>
+        </div>
+      )
+    }
+  </div>
+</Layout>
+
+<script>
+  /**
+   * Reveal the reason the login flow sent the reader back.
+   *
+   * The map is closed — an unrecognised value renders nothing rather than
+   * echoing attacker-controlled text into the page. The text is set with
+   * `textContent`, never `innerHTML`, so even a matched value cannot inject
+   * markup.
+   */
+  const REASONS: Record<string, string> = {
+    cancelled: 'সাইন ইন বাতিল করা হয়েছে।',
+    invalid: 'সাইন ইন সম্পন্ন হয়নি — লিংকটির মেয়াদ শেষ হয়ে থাকতে পারে। আবার চেষ্টা করুন।',
+    failed: 'সাইন ইন সম্পন্ন করা যায়নি। একটু পরে আবার চেষ্টা করুন।',
+  }
+
+  const notice = document.querySelector<HTMLElement>('[data-login-notice]')
+  const reason = new URLSearchParams(location.search).get('login')
+
+  if (notice && reason && reason in REASONS) {
+    notice.textContent = REASONS[reason] ?? ''
+    notice.hidden = false
+  }
+</script>
