@@ -95,7 +95,7 @@ function formatDate(date: string | null | undefined): string {
           </a>
         </div>
 
-        <ul class="deadline-rail flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2">
+        <ul id="deadline-rail" class="deadline-rail flex cursor-grab snap-x snap-mandatory gap-3 overflow-x-auto pb-2 active:cursor-grabbing">
           {deadlines.map((deadline) => {
             const days = daysUntil(deadline.dateEnd ?? deadline.dateStart)
             const urgency = urgencyLabel(days)
@@ -153,6 +153,7 @@ function formatDate(date: string | null | undefined): string {
      and pointer. A visible scrollbar on a 320px screen wastes vertical space. */
   .deadline-rail {
     scrollbar-width: thin;
+    user-select: none;
   }
 
   .deadline-rail::-webkit-scrollbar {
@@ -164,3 +165,39 @@ function formatDate(date: string | null | undefined): string {
     border-radius: 999px;
   }
 </style>
+
+<script>
+  (function () {
+    var rail = document.getElementById('deadline-rail')
+    if (!rail) return
+
+    var isDown = false
+    var startX = 0
+    var scrollLeft = 0
+
+    rail.addEventListener('mousedown', function (e) {
+      isDown = true
+      rail.classList.add('cursor-grabbing')
+      startX = e.pageX - rail.offsetLeft
+      scrollLeft = rail.scrollLeft
+    })
+
+    rail.addEventListener('mouseleave', function () {
+      isDown = false
+      rail.classList.remove('cursor-grabbing')
+    })
+
+    rail.addEventListener('mouseup', function () {
+      isDown = false
+      rail.classList.remove('cursor-grabbing')
+    })
+
+    rail.addEventListener('mousemove', function (e) {
+      if (!isDown) return
+      e.preventDefault()
+      var x = e.pageX - rail.offsetLeft
+      var walk = (x - startX) * 1.5
+      rail.scrollLeft = scrollLeft - walk
+    })
+  })()
+</script>

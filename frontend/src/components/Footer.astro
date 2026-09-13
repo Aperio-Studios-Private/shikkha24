@@ -3,9 +3,9 @@
  * Site footer.
  *
  * Three responsive zones:
- *   1. Top — brand wordmark + tagline + contact
- *   2. Middle — category links + footer pages (from CMS) + social links
- *   3. Bottom — copyright + legal links
+ *   1. Top — brand wordmark + tagline + newsletter + contact
+ *   2. Middle — education tools + category links + about pages + social
+ *   3. Bottom — copyright + legal links + developer credit
  *
  * The footer text is CMS-managed (SiteSettings.footerText) so the owner can
  * update it without a code change.
@@ -36,14 +36,14 @@ const cmsOrigin = getPublicCmsOrigin()
 ---
 
 <footer class="border-t border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-surface">
-  {/* ── Top zone: brand ─────────────────────────────────────────────── */}
+  {/* ── Top zone: brand + link columns ───────────────────────────────── */}
   <div class="container-page py-10">
-    <div class="grid-12 items-start">
-      {/* Brand */}
-      <div class="col-span-4 sm:col-span-8 lg:col-span-3">
+    <div class="grid-12 items-start gap-x-6">
+      {/* Brand — wider to fill space, includes tagline + newsletter + contact */}
+      <div class="col-span-12 lg:col-span-4">
         <Logo siteName={settings.siteName} siteNameEn={settings.siteNameEn} logo={settings.logo} />
         {settings.tagline && (
-          <p class="mt-3 text-sm text-ink-muted dark:text-dark-ink-muted">{settings.tagline}</p>
+          <p class="mt-3 text-sm leading-relaxed text-ink-muted dark:text-dark-ink-muted">{settings.tagline}</p>
         )}
 
         {/* Self-hiding: renders only when there is a CMS to subscribe against.
@@ -51,10 +51,11 @@ const cmsOrigin = getPublicCmsOrigin()
             — whether a newsletter is offered must not depend on whether the
             owner filled in a tagline. */}
         <NewsletterSignup cmsOrigin={cmsOrigin} />
+
         {/* Full contact block. The CMS stores all three; the footer must show
             all three — an address or phone the owner enters has to appear, or
             editing it looks broken. */}
-        <address class="mt-3 space-y-1 text-sm not-italic text-ink-muted dark:text-dark-ink-muted">
+        <address class="mt-4 space-y-1 text-sm not-italic text-ink-muted dark:text-dark-ink-muted">
           {settings.contact?.address && (
             <p class="whitespace-pre-line">{settings.contact.address}</p>
           )}
@@ -110,11 +111,11 @@ const cmsOrigin = getPublicCmsOrigin()
       </div>
 
       {/* Education tools — the S10 specialised sections */}
-      <div class="col-span-4 mt-8 sm:col-span-4 sm:mt-0 lg:col-span-3 lg:col-start-4">
-        <h3 class="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
+      <div class="col-span-6 mt-8 sm:col-span-4 lg:col-span-2 lg:col-start-5 lg:mt-0">
+        <h3 class="mb-4 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
           শিক্ষা সুবিধা
         </h3>
-        <ul class="space-y-2">
+        <ul class="space-y-2.5">
           <li>
             <a href="/scholarships" class="text-sm text-ink-muted transition-colors hover:text-brand-red dark:text-dark-ink-muted dark:hover:text-brand-red">
               বৃত্তি
@@ -154,11 +155,11 @@ const cmsOrigin = getPublicCmsOrigin()
       </div>
 
       {/* Category links */}
-      <div class="col-span-4 mt-8 sm:col-span-4 sm:mt-0 lg:col-span-3">
-        <h3 class="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
+      <div class="col-span-6 mt-8 sm:col-span-4 lg:col-span-3 lg:mt-0">
+        <h3 class="mb-4 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
           বিভাগ
         </h3>
-        <ul class="space-y-2">
+        <ul class="grid grid-cols-2 gap-x-4 gap-y-2.5">
           {
             categories.map((cat) => (
               <li>
@@ -174,14 +175,14 @@ const cmsOrigin = getPublicCmsOrigin()
         </ul>
       </div>
 
-      {/* Footer pages + social */}
-      <div class="col-span-4 mt-8 sm:col-span-4 sm:mt-0 lg:col-span-3">
+      {/* About pages + social — merged to fill space */}
+      <div class="col-span-12 mt-8 sm:col-span-4 lg:col-span-3 lg:mt-0">
         {footerPages.length > 0 && (
           <>
-            <h3 class="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
+            <h3 class="mb-4 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
               আমাদের সম্পর্কে
             </h3>
-            <ul class="space-y-2">
+            <ul class="grid grid-cols-2 gap-x-4 gap-y-2.5">
               {footerPages.map((page) => (
                 <li>
                   <a
@@ -198,19 +199,19 @@ const cmsOrigin = getPublicCmsOrigin()
 
         {socialLinks.length > 0 && (
           <div class="mt-6">
-            <h3 class="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
+            <h3 class="mb-4 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
               সোশ্যাল মিডিয়া
             </h3>
-            <div class="flex flex-wrap gap-3">
+            <div class="flex flex-wrap gap-2.5">
               {socialLinks.map(([platform, url]) => (
                 <a
                   href={url!}
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-sm text-ink-muted shadow-sm transition-colors hover:text-brand-red dark:bg-dark-raised dark:text-dark-ink-muted dark:hover:text-brand-red"
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white text-ink-muted shadow-sm transition-colors hover:bg-brand-red hover:text-white dark:bg-dark-raised dark:text-dark-ink-muted dark:hover:bg-brand-red dark:hover:text-white"
                   aria-label={platform}
                 >
-                  {platform}
+                  <span class="text-xs font-semibold uppercase">{platform.slice(0, 2)}</span>
                 </a>
               ))}
             </div>
@@ -220,14 +221,14 @@ const cmsOrigin = getPublicCmsOrigin()
     </div>
   </div>
 
-  {/* ── Bottom zone: copyright ──────────────────────────────────────── */}
+  {/* ── Bottom zone: copyright + legal links + developer credit ──────── */}
   <div class="border-t border-rule dark:border-dark-rule">
-    <div class="container-page flex flex-col items-center justify-between gap-3 py-5 sm:flex-row">
-      <p class="text-center text-xs text-ink-subtle dark:text-dark-ink-muted">
+    <div class="container-page flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+      <p class="text-center text-xs text-ink-subtle dark:text-dark-ink-muted sm:text-left">
         © {currentYear} {settings.siteName}। সর্বস্বত্ব সংরক্ষিত।
       </p>
       <nav aria-label="আইনি ও সহায়ক লিংক">
-        <ul class="flex flex-wrap items-center justify-center gap-4 text-xs">
+        <ul class="flex flex-wrap items-center justify-center gap-4 text-xs sm:justify-end">
           {/* Reader tools, not legal links, but this row is the only place a
               reader reliably finds them — a separate nav would be a fifth
               list in the footer for two items. */}
@@ -273,6 +274,43 @@ const cmsOrigin = getPublicCmsOrigin()
           </li>
         </ul>
       </nav>
+    </div>
+  </div>
+
+  {/* ── Developer credit ──────────────────────────────────────────────── */}
+  <div class="border-t border-rule bg-surface dark:border-dark-rule dark:bg-dark-base">
+    <div class="container-page flex flex-col items-center justify-between gap-3 py-4 sm:flex-row">
+      <p class="text-center text-xs text-ink-subtle dark:text-dark-ink-muted sm:text-left">
+        ডেভেলপ করেছেন <span class="font-medium text-ink-muted dark:text-dark-ink">শাহিদুর রহমান</span>
+      </p>
+      <div class="flex items-center gap-4">
+        {/* Facebook */}
+        <a
+          href="https://www.facebook.com/shahid88142"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1.5 text-xs text-ink-subtle transition-colors hover:text-brand-red dark:text-dark-ink-muted dark:hover:text-brand-red"
+          aria-label="ফেসবুক"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+          </svg>
+          <span>ফেসবুক</span>
+        </a>
+        {/* WhatsApp */}
+        <a
+          href="https://wa.me/8801840488142"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1.5 text-xs text-ink-subtle transition-colors hover:text-brand-red dark:text-dark-ink-muted dark:hover:text-brand-red"
+          aria-label="হোয়াটসঅ্যাপ"
+        >
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+          </svg>
+          <span>হোয়াটসঅ্যাপ</span>
+        </a>
+      </div>
     </div>
   </div>
 

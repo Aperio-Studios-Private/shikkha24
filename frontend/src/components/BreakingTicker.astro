@@ -38,11 +38,11 @@ const items = articles.slice(0, 8)
 {
   items.length > 0 && (
     <section
-      class="border-b border-rule bg-surface dark:border-dark-rule dark:bg-dark-surface"
+      class="border-b border-rule bg-brand-red dark:border-dark-rule dark:bg-brand-red"
       aria-label="ব্রেকিং নিউজ"
     >
-      <div class="container-page flex h-11 items-center gap-3 overflow-hidden">
-        <span class="shrink-0 rounded bg-brand-red px-2 py-1 text-xs font-bold text-white">
+      <div class="container-page flex h-9 items-center gap-3 overflow-hidden">
+        <span class="shrink-0 rounded bg-white px-2 py-0.5 text-xs font-bold text-brand-red">
           ব্রেকিং
         </span>
 
@@ -50,12 +50,10 @@ const items = articles.slice(0, 8)
           <ul class="ticker-track flex w-max items-center gap-8">
             {items.map((article) => (
               <li class="flex items-center gap-2 whitespace-nowrap">
-                <span class="text-brand-red" aria-hidden="true">
-                  •
-                </span>
+                <span class="text-white/80" aria-hidden="true">•</span>
                 <a
                   href={`/article/${article.slug}`}
-                  class="text-sm text-ink transition-colors hover:text-brand-red dark:text-dark-ink dark:hover:text-brand-red"
+                  class="text-sm text-white transition-colors hover:text-white/80"
                 >
                   {article.title}
                 </a>
@@ -65,11 +63,11 @@ const items = articles.slice(0, 8)
             {/* Seamless-loop duplicate — hidden from assistive tech. */}
             {items.map((article) => (
               <li class="flex items-center gap-2 whitespace-nowrap" aria-hidden="true">
-                <span class="text-brand-red">•</span>
+                <span class="text-white/80">•</span>
                 <a
                   href={`/article/${article.slug}`}
                   tabindex="-1"
-                  class="text-sm text-ink transition-colors hover:text-brand-red dark:text-dark-ink dark:hover:text-brand-red"
+                  class="text-sm text-white transition-colors hover:text-white/80"
                 >
                   {article.title}
                 </a>

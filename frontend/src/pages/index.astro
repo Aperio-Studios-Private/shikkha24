@@ -35,6 +35,9 @@ import TrendingList from '../components/TrendingList.astro'
 import AdSlot from '../components/AdSlot.astro'
 import InteractiveStrip from '../components/InteractiveStrip.astro'
 import PollWidget from '../components/PollWidget.astro'
+import CategoryImage from '../components/CategoryImage.astro'
+import { getCategoryImage } from '../lib/images'
+import { resolveCmsImage } from '../lib/media'
 import { getActivePoll, getLiveBlogs, getPublicCmsOrigin, getQuizzes } from '../lib/interactive'
 import { isEnabled } from '../lib/feature-flags'
 import {
@@ -143,7 +146,7 @@ const remainingLatest = latest.filter((article) => !mastheadSlugs.has(article.sl
   {/* 2 — Filter bar sits above the sections it filters. */}
   <FilterBar levels={levels} districts={districts} />
 
-  <div class="container-page py-6">
+  <div class="container-page pt-6 pb-2">
     {/* 3 — LEAD: the biggest story. Image height is capped so the headline
             and the picture are both visible without scrolling. */}
     {
@@ -216,28 +219,61 @@ const remainingLatest = latest.filter((article) => !mastheadSlugs.has(article.sl
                 </h2>
               </div>
 
-              <ul class="latest-scroll grid grid-cols-2 gap-x-4">
-                {remainingLatest.map((article) => (
-                  <li class="border-b border-rule py-2 dark:border-dark-rule">
-                    <a href={`/article/${article.slug}`} class="group block no-underline">
-                      <h3 class="font-headline line-clamp-2 text-sm font-medium text-ink transition-colors group-hover:text-brand-red dark:text-dark-ink dark:group-hover:text-brand-red">
-                        {article.title}
-                      </h3>
-                      {article.publishedAt && (
-                        <time
-                          datetime={article.publishedAt}
-                          class="mt-0.5 block text-xs text-ink-subtle dark:text-dark-ink-muted"
-                        >
-                          {new Date(article.publishedAt).toLocaleTimeString('bn-BD', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            hour12: false,
-                          })}
-                        </time>
-                      )}
-                    </a>
-                  </li>
-                ))}
+              <ul class="latest-scroll flex flex-col gap-2">
+                {remainingLatest.map((article) => {
+                  const thumb = resolveCmsImage(article.featuredImage, article.title)
+                  const category = article.category && typeof article.category === 'object' ? article.category : null
+                  const fallback = getCategoryImage(category?.slug)
+
+                  return (
+                    <li class="border-b border-rule py-2 dark:border-dark-rule">
+                      <a href={`/article/${article.slug}`} class="group flex gap-3 no-underline">
+                        <div class="aspect-1 h-16 w-16 shrink-0 overflow-hidden rounded bg-surface-raised dark:bg-dark-raised">
+                          {thumb ? (
+                            <img
+                              src={thumb.src}
+                              srcset={thumb.srcset}
+                              sizes="64px"
+                              alt={thumb.alt}
+                              width={thumb.width}
+                              height={thumb.height}
+                              loading="lazy"
+                              decoding="async"
+                              class="h-full w-full object-cover"
+                            />
+                          ) : (
+                            fallback && (
+                              <CategoryImage
+                                image={fallback}
+                                alt={article.title}
+                                sizes="64px"
+                                widths={[64, 128]}
+                                class="h-full w-full object-cover"
+                              />
+                            )
+                          )}
+                        </div>
+                        <div class="flex min-w-0 flex-col">
+                          <h3 class="font-headline line-clamp-2 text-sm font-medium text-ink transition-colors group-hover:text-brand-red dark:text-dark-ink dark:group-hover:text-brand-red">
+                            {article.title}
+                          </h3>
+                          {article.publishedAt && (
+                            <time
+                              datetime={article.publishedAt}
+                              class="mt-0.5 block text-xs text-ink-subtle dark:text-dark-ink-muted"
+                            >
+                              {new Date(article.publishedAt).toLocaleTimeString('bn-BD', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false,
+                              })}
+                            </time>
+                          )}
+                        </div>
+                      </a>
+                    </li>
+                  )
+                })}
               </ul>
             </section>
           )
@@ -250,7 +286,7 @@ const remainingLatest = latest.filter((article) => !mastheadSlugs.has(article.sl
 
       {/* 9 — Right rail: sticky ad cards. */}
       <aside class="col-span-4 mt-8 sm:col-span-8 lg:col-span-4 lg:mt-0">
-        <div class="lg:sticky lg:top-4 flex flex-col gap-4">
+        <div class="lg:sticky lg:top-4 flex flex-col gap-4 py-6">
           <AdSlot position="sidebarTop" width={300} height={250} />
           {activePoll && <PollWidget poll={activePoll} cmsOrigin={cmsOrigin} />}
           <TrendingList articles={remainingLatest} />
