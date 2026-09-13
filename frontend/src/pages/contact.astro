@@ -1,0 +1,131 @@
+---
+/**
+ * Contact — `/contact`.
+ *
+ * E-E-A-T requirement (`docs/master-plan.md` item 87, `docs/seo-plan.md` §6):
+ * a news portal has to publish a way to be reached. Every value on this page is
+ * read from **Site Settings**, so the owner edits the address, phone and email
+ * once in the admin and both this page and the footer follow — there is no
+ * second copy of the contact details that can drift out of date.
+ *
+ * No embedded map, deliberately: an iframe would add a third-party origin to
+ * the CSP and to the initial payload, both of which are budgeted, and it fails
+ * outright in data-saver mode. The address renders as text instead.
+ */
+import Layout from '../layouts/Layout.astro'
+import Breadcrumbs from '../components/Breadcrumbs.astro'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../lib/cms'
+
+const [settings, categories, footerPages] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+])
+
+const contact = settings.contact ?? {}
+const socialEntries = Object.entries(settings.social ?? {}).filter(([, url]) => !!url)
+const hasContact = Boolean(contact.email || contact.phone || contact.address)
+---
+
+<Layout
+  title="যোগাযোগ"
+  description={`${settings.siteName}-এর সাথে যোগাযোগ — ফোন, ইমেইল ও ঠিকানা।`}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'যোগাযোগ' }]} />
+
+    <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+      যোগাযোগ
+    </h1>
+
+    <p class="mt-2 max-w-2xl text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+      যেকোনো প্রশ্ন, ভুল সংশোধনের অনুরোধ বা প্রতিবেদনের জন্য নিচের মাধ্যমগুলোতে যোগাযোগ করতে
+      পারেন।
+    </p>
+
+    {
+      !hasContact ? (
+        <p class="mt-6 rounded-lg border border-rule bg-surface p-4 text-base leading-relaxed text-ink-muted dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink-muted">
+          যোগাযোগের তথ্য এখনো যোগ করা হয়নি। সাইট সেটিংসে (প্রশাসন → সাইট সেটিংস) ইমেইল, ফোন ও
+          ঠিকানা দিলে এই পাতায় স্বয়ংক্রিয়ভাবে দেখা যাবে।
+        </p>
+      ) : (
+        <dl class="mt-6 grid gap-4 sm:grid-cols-2">
+          {contact.email && (
+            <div class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
+              <dt class="text-sm font-medium text-ink-muted dark:text-dark-ink-muted">ইমেইল</dt>
+              <dd class="mt-1 text-base">
+                <a href={`mailto:${contact.email}`} class="text-brand-red hover:underline">
+                  {contact.email}
+                </a>
+              </dd>
+            </div>
+          )}
+
+          {contact.phone && (
+            <div class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
+              <dt class="text-sm font-medium text-ink-muted dark:text-dark-ink-muted">ফোন</dt>
+              <dd class="mt-1 text-base">
+                <a
+                  href={`tel:${contact.phone.replace(/\s+/g, '')}`}
+                  class="text-brand-red hover:underline"
+                >
+                  {contact.phone}
+                </a>
+              </dd>
+            </div>
+          )}
+
+          {contact.address && (
+            <div class="rounded-lg border border-rule bg-surface p-4 sm:col-span-2 dark:border-dark-rule dark:bg-dark-surface">
+              <dt class="text-sm font-medium text-ink-muted dark:text-dark-ink-muted">ঠিকানা</dt>
+              <dd class="mt-1 whitespace-pre-line text-base text-ink dark:text-dark-ink">
+                {contact.address}
+              </dd>
+            </div>
+          )}
+        </dl>
+      )
+    }
+
+    {
+      socialEntries.length > 0 && (
+        <section class="mt-8" aria-labelledby="contact-social">
+          <h2 id="contact-social" class="font-headline text-lg font-bold text-ink dark:text-dark-ink">
+            সোশ্যাল মাধ্যম
+          </h2>
+          <ul class="mt-3 flex flex-wrap gap-3">
+            {socialEntries.map(([name, url]) => (
+              <li>
+                <a
+                  href={url ?? '#'}
+                  class="inline-block rounded-full border border-rule px-4 py-1.5 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
+                  rel="noopener noreferrer"
+                >
+                  {name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    <section class="mt-8 border-t border-rule pt-6 dark:border-dark-rule">
+      <h2 class="font-headline text-lg font-bold text-ink dark:text-dark-ink">খবর পাঠাতে চান?</h2>
+      <p class="mt-2 max-w-2xl text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+        আপনার এলাকার শিক্ষা সংক্রান্ত খবর, ছবি বা তথ্য থাকলে সরাসরি পাঠাতে পারেন —
+        <a href="/citizen" class="text-brand-red hover:underline">খবর পাঠান</a> পাতা ব্যবহার করুন।
+      </p>
+    </section>
+  </div>
+</Layout>

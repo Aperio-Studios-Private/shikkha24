@@ -249,6 +249,47 @@ export async function getFooterPages(): Promise<CmsPage[]> {
  * cross-workspace import — the frontend and CMS are separate workspaces.
  */
 
+/**
+ * A Payload relationship value as it arrives over REST.
+ *
+ * A `hasMany` relationship is always an ARRAY — even when only one entry is set
+ * — and at `depth=0` every relationship is a bare id. Callers must handle all
+ * three shapes, which is why `relationSlugs` / `relationName` exist.
+ */
+export type CmsRelation = { slug?: string; nameBn?: string } | number | string | null
+
+/**
+ * Every slug in a relationship, in document order.
+ *
+ * Written in response to a real defect. `Articles.level` and `district` are
+ * `hasMany`, so Payload returns `[{ slug: 'primary' }]`. Reading that as a
+ * single relation is **silently** wrong rather than obviously wrong: `typeof []
+ * === 'object'` is `true`, so `value.slug` evaluates to `undefined` and the
+ * caller quietly produces nothing instead of failing.
+ *
+ * On the homepage that meant no card ever received a `data-level` attribute, so
+ * the FilterBar found zero filterable items and every level pill did nothing.
+ */
+export function relationSlugs(value: CmsRelation | CmsRelation[] | undefined): string[] {
+  if (!value) return []
+  const entries = Array.isArray(value) ? value : [value]
+  const slugs: string[] = []
+  for (const entry of entries) {
+    if (entry && typeof entry === 'object' && entry.slug) slugs.push(entry.slug)
+  }
+  return slugs
+}
+
+/** Bengali display name of the first populated entry, else its slug. */
+export function relationName(value: CmsRelation | CmsRelation[] | undefined): string {
+  if (!value) return ''
+  const entries = Array.isArray(value) ? value : [value]
+  for (const entry of entries) {
+    if (entry && typeof entry === 'object') return entry.nameBn ?? entry.slug ?? ''
+  }
+  return ''
+}
+
 export interface CmsArticle {
   id: number | string
   title: string
@@ -260,8 +301,9 @@ export interface CmsArticle {
    */
   featuredImage?: CmsMedia | number | null
   category?: { nameBn?: string; slug?: string } | number | null
-  level?: { nameBn?: string; slug?: string } | number | null
-  district?: { nameBn?: string; slug?: string } | number | null
+  /** `hasMany` in the CMS — an array even when a single level is set. */
+  level?: CmsRelation | CmsRelation[]
+  district?: CmsRelation | CmsRelation[]
   author?: { name?: string } | number | null
   isBreaking?: boolean | null
   isLead?: boolean | null
@@ -281,8 +323,9 @@ export interface CmsDeadline {
   type?: string | null
   dateStart?: string | null
   dateEnd?: string | null
-  level?: { nameBn?: string; slug?: string } | number | null
-  district?: { nameBn?: string; slug?: string } | number | null
+  /** `hasMany` in the CMS — an array even when a single level is set. */
+  level?: CmsRelation | CmsRelation[]
+  district?: CmsRelation | CmsRelation[]
   description?: string | null
 }
 

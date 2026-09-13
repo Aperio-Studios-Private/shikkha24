@@ -21,9 +21,12 @@ import {
   getCategories,
   getFooterPages,
   getAllDeadlines,
+  relationName,
+  relationSlugs,
   FALLBACK_SETTINGS,
   FALLBACK_CATEGORIES,
 } from '../lib/cms'
+import type { CmsRelation } from '../lib/cms'
 
 const [settings, categories, footerPages, deadlines] = await Promise.all([
   getSiteSettings().catch(() => FALLBACK_SETTINGS),
@@ -55,16 +58,27 @@ const TYPE_FILTERS = [
   { value: 'circular', label: 'বিজ্ঞপ্তি' },
 ]
 
-/** Extract the slug from a relation that may be an object, number, or null. */
-function relSlug(rel: { slug?: string } | number | null | undefined): string {
-  if (rel && typeof rel === 'object' && rel.slug) return rel.slug
-  return ''
+/**
+ * First slug of a relation.
+ *
+ * `level` / `district` are `hasMany` in the CMS, so Payload returns an array
+ * even when one value is set. Reading it as a single object is silently wrong —
+ * `typeof [] === 'object'` is true, so `rel.slug` is `undefined` and the filter
+ * options came out empty. Only the first slug is needed to *name* an option;
+ * the data attributes below carry every slug so filtering stays correct.
+ */
+function relSlug(rel: CmsRelation | CmsRelation[] | undefined): string {
+  return relationSlugs(rel)[0] ?? ''
 }
 
-/** Extract the Bengali name from a relation. */
-function relName(rel: { nameBn?: string; slug?: string } | number | null | undefined): string {
-  if (rel && typeof rel === 'object') return rel.nameBn ?? rel.slug ?? ''
-  return ''
+/** Bengali display name of a relation. */
+function relName(rel: CmsRelation | CmsRelation[] | undefined): string {
+  return relationName(rel)
+}
+
+/** Every slug, space-separated, for the `data-level` / `data-district` match. */
+function relSlugs(rel: CmsRelation | CmsRelation[] | undefined): string {
+  return relationSlugs(rel).join(' ')
 }
 
 /** Unique level options from the deadlines themselves (not all levels). */
@@ -168,8 +182,8 @@ function formatDate(date: string | null | undefined): string {
               const days = daysUntil(deadline.dateEnd ?? deadline.dateStart)
               const urgency = urgencyLabel(days)
               const typeLabel = deadline.type ? TYPE_LABELS[deadline.type] ?? deadline.type : null
-              const lSlug = relSlug(deadline.level)
-              const dSlug = relSlug(deadline.district)
+              const lSlug = relSlugs(deadline.level)
+              const dSlug = relSlugs(deadline.district)
 
               return (
                 <li
@@ -254,13 +268,14 @@ function formatDate(date: string | null | undefined): string {
       var visible = 0
       items.forEach(function (item) {
         var type = item.getAttribute('data-type') || ''
-        var level = item.getAttribute('data-level') || ''
-        var district = item.getAttribute('data-district') || ''
+        // hasMany relations: several slugs, space-separated, match on any.
+        var levels = (item.getAttribute('data-level') || '').split(/\s+/).filter(Boolean)
+        var districts = (item.getAttribute('data-district') || '').split(/\s+/).filter(Boolean)
 
         var match =
           (!activeType || type === activeType) &&
-          (!activeLevel || level === activeLevel) &&
-          (!activeDistrict || district === activeDistrict)
+          (!activeLevel || levels.length === 0 || levels.indexOf(activeLevel) !== -1) &&
+          (!activeDistrict || districts.length === 0 || districts.indexOf(activeDistrict) !== -1)
 
         if (match) {
           item.classList.remove('hidden')

@@ -1,0 +1,128 @@
+---
+/**
+ * About — `/about`.
+ *
+ * The first of the E-E-A-T governance pages (`docs/master-plan.md` item 87,
+ * `docs/seo-plan.md` §6, `docs/competitive-analysis.md` §8): a portal that
+ * publishes news has to say who owns it and under what registration. The legal
+ * rows are read from **Site Settings → আইনি তথ্য**, so the owner fills them in
+ * once and they appear here and in the footer — they are never typed into a
+ * page template where they could be forgotten.
+ *
+ * `/about-us` redirects here rather than duplicating the content; two URLs with
+ * the same body would compete in search and split whatever authority the page
+ * earns.
+ */
+import Layout from '../layouts/Layout.astro'
+import Breadcrumbs from '../components/Breadcrumbs.astro'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../lib/cms'
+
+const [settings, categories, footerPages] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+])
+
+const legal = settings.legal ?? {}
+const legalRows = [
+  { label: 'ট্রেড লাইসেন্স', value: legal.tradeLicense },
+  { label: 'টিআইএন (TIN)', value: legal.tin },
+  { label: 'তথ্য মন্ত্রণালয় নিবন্ধন', value: legal.ministryRegistration },
+].filter((row) => Boolean(row.value))
+---
+
+<Layout
+  title="আমাদের সম্পর্কে"
+  description={`${settings.siteName} — ${settings.tagline || 'দেশ-বিদেশের শিক্ষার সর্বশেষ খবর ও সুযোগ'}।`}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'আমাদের সম্পর্কে' }]} />
+
+    <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+      আমাদের সম্পর্কে
+    </h1>
+
+    <div class="mt-4 max-w-3xl space-y-4 text-base leading-relaxed text-ink dark:text-dark-ink">
+      <p>
+        <strong class="font-semibold">{settings.siteName}</strong> একটি শিক্ষা সংবাদমাধ্যম।
+        {settings.tagline ? ` ${settings.tagline} — এই লক্ষ্যেই আমরা কাজ করি।` : ''}
+      </p>
+      <p>
+        শিক্ষার্থী, অভিভাবক ও শিক্ষকদের জন্য ভর্তি, পরীক্ষা, ফলাফল, বৃত্তি, উচ্চশিক্ষা ও
+        শিক্ষানীতির খবর এক জায়গায় পাওয়া যায়। আমরা প্রতিটি খবর যাচাই করার চেষ্টা করি এবং
+        কোনো ভুল হলে দ্রুত সংশোধন করি।
+      </p>
+    </div>
+
+    {
+      categories.length > 0 && (
+        <section class="mt-8" aria-labelledby="about-coverage">
+          <h2
+            id="about-coverage"
+            class="font-headline text-lg font-bold text-ink dark:text-dark-ink"
+          >
+            আমরা যা যা কভার করি
+          </h2>
+          <ul class="mt-3 flex flex-wrap gap-2">
+            {categories.map((category) => (
+              <li>
+                <a
+                  href={`/category/${category.slug}`}
+                  class="inline-block rounded-full border border-rule px-3 py-1 text-sm text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
+                >
+                  {category.nameBn}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    <section class="mt-8" aria-labelledby="about-legal">
+      <h2 id="about-legal" class="font-headline text-lg font-bold text-ink dark:text-dark-ink">
+        মালিকানা ও নিবন্ধন
+      </h2>
+
+      {
+        legalRows.length > 0 ? (
+          <dl class="mt-3 grid gap-3 sm:grid-cols-2">
+            {legalRows.map((row) => (
+              <div class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
+                <dt class="text-sm font-medium text-ink-muted dark:text-dark-ink-muted">
+                  {row.label}
+                </dt>
+                <dd class="mt-1 text-base text-ink dark:text-dark-ink">{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p class="mt-3 max-w-3xl rounded-lg border border-rule bg-surface p-4 text-base leading-relaxed text-ink-muted dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink-muted">
+            মালিকানা ও নিবন্ধন সংক্রান্ত তথ্য (ট্রেড লাইসেন্স, টিআইএন, তথ্য মন্ত্রণালয় নিবন্ধন)
+            এখনো যোগ করা হয়নি। সাইট সেটিংসে (প্রশাসন → সাইট সেটিংস → আইনি তথ্য) এই তথ্য দিলে
+            এই পাতায় ও ফুটারে স্বয়ংক্রিয়ভাবে প্রকাশিত হবে।
+          </p>
+        )
+      }
+    </section>
+
+    <section class="mt-8 border-t border-rule pt-6 dark:border-dark-rule">
+      <h2 class="font-headline text-lg font-bold text-ink dark:text-dark-ink">যোগাযোগ</h2>
+      <p class="mt-2 max-w-2xl text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+        আমাদের ঠিকানা, ফোন ও ইমেইল জানতে
+        <a href="/contact" class="text-brand-red hover:underline">যোগাযোগ</a> পাতাটি দেখুন।
+        কোনো খবর বা তথ্য পাঠাতে চাইলে
+        <a href="/citizen" class="text-brand-red hover:underline">খবর পাঠান</a> পাতা ব্যবহার করুন।
+      </p>
+    </section>
+  </div>
+</Layout>

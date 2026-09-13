@@ -152,25 +152,41 @@ const newsletter = await getNewsletterStatus()
           }
         </ul>
 
-        {footerPages.length > 0 && (
-          <>
-            <h3 class="mb-3 mt-6 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
-              আমাদের সম্পর্কে
-            </h3>
-            <ul class="space-y-2">
-              {footerPages.map((page) => (
-                <li>
-                  <a
-                    href={`/page/${page.slug}`}
-                    class="text-sm text-ink-muted transition-colors hover:text-brand-red dark:text-dark-ink-muted dark:hover:text-brand-red"
-                  >
-                    {page.title}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
+        {/* Always present: the E-E-A-T pages are required, and they must be
+            reachable from every page rather than only from a sitemap. */}
+        <>
+          <h3 class="mb-3 mt-6 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
+            আমাদের সম্পর্কে
+          </h3>
+          <ul class="space-y-2">
+            <li>
+              <a
+                href="/about"
+                class="text-sm text-ink-muted transition-colors hover:text-brand-red dark:text-dark-ink-muted dark:hover:text-brand-red"
+              >
+                আমাদের সম্পর্কে
+              </a>
+            </li>
+            <li>
+              <a
+                href="/contact"
+                class="text-sm text-ink-muted transition-colors hover:text-brand-red dark:text-dark-ink-muted dark:hover:text-brand-red"
+              >
+                যোগাযোগ
+              </a>
+            </li>
+            {footerPages.map((page) => (
+              <li>
+                <a
+                  href={`/page/${page.slug}`}
+                  class="text-sm text-ink-muted transition-colors hover:text-brand-red dark:text-dark-ink-muted dark:hover:text-brand-red"
+                >
+                  {page.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </>
       </div>
 
       {/* Column 4 — Contact + social + legal */}

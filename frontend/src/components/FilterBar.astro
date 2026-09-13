@@ -123,14 +123,17 @@ const divisions = [...byDivision.entries()].sort((a, b) => a[0].localeCompare(b[
       let visible = 0
 
       for (const item of items) {
-        const level = item.dataset.level ?? ''
-        const district = item.dataset.district ?? ''
+        // The taxonomy relationships are hasMany, so a card can carry several
+        // slugs; they are stored space-separated and match if any one hits.
+        const levels = (item.dataset.level ?? '').split(/\s+/).filter(Boolean)
+        const districts = (item.dataset.district ?? '').split(/\s+/).filter(Boolean)
 
         // An empty filter value means "no restriction".
         // A card with NO taxonomy is treated as "no restriction" too, so a
         // general education story is never hidden from a Rajshahi reader.
-        const levelOk = !activeLevel || !level || level === activeLevel
-        const districtOk = !activeDistrict || !district || district === activeDistrict
+        const levelOk = !activeLevel || levels.length === 0 || levels.includes(activeLevel)
+        const districtOk =
+          !activeDistrict || districts.length === 0 || districts.includes(activeDistrict)
         const show = levelOk && districtOk
 
         item.hidden = !show

@@ -88,12 +88,22 @@ export const GET: APIRoute = async () => {
     { loc: '/gpa', priority: '0.3', changefreq: 'yearly' },
   ]
 
-  /** E-E-A-T pages (privacy, terms, contact). Empty until they exist in the CMS. */
-  const pages: SitemapEntry[] = pageSlugs.map((slug) => ({
-    loc: `/page/${slug}`,
-    priority: '0.4',
-    changefreq: 'yearly',
-  }))
+  /**
+   * E-E-A-T pages (privacy, terms, contact). Empty until they exist in the CMS.
+   *
+   * `/about` and `/contact` are built into the site rather than authored, so
+   * they are listed here directly. `/about-us` is deliberately absent: it is a
+   * redirect stub, and a redirect in a sitemap is a soft 404 to a crawler.
+   */
+  const pages: SitemapEntry[] = [
+    { loc: '/about', priority: '0.4', changefreq: 'yearly' },
+    { loc: '/contact', priority: '0.4', changefreq: 'yearly' },
+    ...pageSlugs.map((slug) => ({
+      loc: `/page/${slug}`,
+      priority: '0.4',
+      changefreq: 'yearly',
+    })),
+  ]
 
   const urls: SitemapEntry[] = [
     ...staticPaths,

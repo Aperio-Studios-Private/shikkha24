@@ -11,6 +11,7 @@
  * grid of nothing is worse than no section: it promises content that isn't there.
  */
 import type { CmsArticle, CmsCategory } from '../lib/cms'
+import { relationSlugs } from '../lib/cms'
 import ArticleCard from './ArticleCard.astro'
 
 interface Props {
@@ -50,8 +51,8 @@ const [lead, ...rest] = articles
           {featured && lead && (
             <div
               class="col-span-4 sm:col-span-8 lg:col-span-6"
-              data-level={lead.level && typeof lead.level === 'object' ? lead.level.slug : ''}
-              data-district={lead.district && typeof lead.district === 'object' ? lead.district.slug : ''}
+              data-level={relationSlugs(lead.level).join(' ')}
+              data-district={relationSlugs(lead.district).join(' ')}
             >
               <ArticleCard article={lead} variant="default" headingLevel={3} />
             </div>
@@ -61,8 +62,8 @@ const [lead, ...rest] = articles
             <ul class="flex flex-col gap-4">
               {rest.slice(0, 4).map((article) => (
                 <li
-                  data-level={article.level && typeof article.level === 'object' ? article.level.slug : ''}
-                  data-district={article.district && typeof article.district === 'object' ? article.district.slug : ''}
+                  data-level={relationSlugs(article.level).join(' ')}
+                  data-district={relationSlugs(article.district).join(' ')}
                 >
                   <ArticleCard article={article} variant="compact" showExcerpt={false} headingLevel={3} />
                 </li>
