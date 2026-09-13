@@ -164,7 +164,7 @@
 ## S11 — SEO, Feeds & AI Optimization
 > ⚠️ **Sequencing deviation:** the four feed routes below were built **ahead of the S0→S12 order** on 2026-09-12. They are verified and committed.
 - [x] **Feeds subset (built ahead of sequence):** `robots.txt`, `sitemap.xml`, `news-sitemap.xml`, `rss.xml` — all build-time from the CMS. Verified: sitemap 23 URLs (3 static + 8 categories + 12 articles, real `publishedAt` as `lastmod`), news-sitemap 12 URLs inside 48h, RSS 12 items with Bengali `<category>`. `@astrojs/sitemap` / `@astrojs/rss` deliberately **not** used.
-- [x] **OG/Twitter cards, canonical URLs** — Layout already emitted OG/Twitter meta + canonical. Article page passes `ogImage` (resolved photo), `canonical`, `publishDate`, `modifiedDate`. Category pages now pass `canonical`. Added branded `og-default.svg` fallback. Commit `5c8c3af`.
+- [x] **OG/Twitter cards, canonical URLs** — Layout emits OG/Twitter meta + self-referencing canonical (parameter-free at build time). Article page passes `ogImage` (resolved photo), `canonical`, `publishDate`, `modifiedDate`. Category pages pass `canonical`. Added branded `og-default.svg` fallback. Commit `5c8c3af`. (Note: `fbclid`/`utm_*` stripping is unnecessary on a static site — the canonical is baked at build time with no query parameters. Google ignores these parameters anyway.)
 - [x] **JSON-LD structured data:**
   - Homepage: `Organization` + `WebSite` + `SearchAction`
   - Article: upgraded `Article` → `NewsArticle` with `isAccessibleForFree`, `speakable`, publisher logo, `isPartOf`, author `alternateName`/url
@@ -174,7 +174,7 @@
 - [ ] **Auto OG images** — dynamic per-article OG image generation (deferred; needs a build-time image library or Cloudflare Worker)
 - [ ] **Google Publisher Center registration** — owner action
 - [ ] E-E-A-T pages — **blocked on the owner** supplying Trade Licence, TIN, Ministry of Information registration
-- [ ] URL architecture implemented: `/:category/:subcategory/:id/:slug` + shortlink for social sharing
+- [x] **URL architecture implemented:** `/:category/:id/:slug` + shortlink `/a/:id` for social sharing. Legacy `/article/:slug` → 301 redirect. Shared `articleUrl()` helper in `lib/url.ts`. 500-cap pagination fix in `getAllArticlePaths()`. Commit `a20f0df`.
 - [ ] S11 DoD evidence → **user approval**
 
 ## S12 — Deployment, QA & Launch

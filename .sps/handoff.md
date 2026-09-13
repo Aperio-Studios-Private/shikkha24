@@ -1,10 +1,11 @@
 # SPS Handoff
 
 ## Current Phase
-- **Status:** **S11 SEO work in progress.** S0–S4 approved 2026-09-12; S5–S8 evidence posted; S9 approved 2026-09-13; S10 built 2026-09-13; S11 SEO core (JSON-LD, OG, llms.txt) built 2026-09-13.
-- **Last Activity:** 2026-09-13T18:51+06:00 — S11 SEO core built (JSON-LD on homepage/article/category, OG default image, llms.txt).
-- **Next Action:** remaining S11 items (auto OG images, URL architecture, E-E-A-T pages blocked on owner), then S12.
-- **⚠️ S11 progress:** JSON-LD structured data added to all three main page types (homepage Organization+WebSite, article NewsArticle with speakable+isAccessibleForFree, category CollectionPage+BreadcrumbList+ItemList). Layout `jsonLd` prop now accepts arrays. `og-default.svg` branded fallback created. `llms.txt` for AI search created. Feeds (sitemap, RSS, news-sitemap, robots) were already built ahead of sequence. Commit: `5c8c3af`. Also: ArticleCard polish committed (`348780b`), featured image fix (`d5272fe`), sidebar fix (`5448434`).
+- **Status:** **S11 SEO in progress.** S0–S4 approved 2026-09-12; S5–S8 evidence posted; S9 approved 2026-09-13; S10 built 2026-09-13; S11 core built 2026-09-13 (JSON-LD, OG, llms.txt, URL architecture).
+- **Last Activity:** 2026-09-13T19:22+06:00 — S11 URL architecture built (`/:category/:id/:slug` + shortlink + 500-cap fix).
+- **Next Action:** remaining S11 items (auto OG images — deferred; Google Publisher Center — owner action; E-E-A-T pages — blocked on owner), then S12.
+- **⚠️ S11 progress:** JSON-LD structured data on all three main page types. URL architecture changed from `/article/:slug` to `/:category/:id/:slug` with legacy 301 redirects and `/a/:id` shortlinks. 500-cap pagination fix in `getAllArticlePaths()`. Feeds (sitemap, RSS, news-sitemap) all updated to new URL scheme. `llms.txt` and `og-default.svg` created. Commits: `5c8c3af` (JSON-LD+OG+llms.txt), `a20f0df` (URL architecture). Also: ArticleCard polish (`348780b`), featured image fix (`d5272fe`), sidebar fix (`5448434`).
+- **⚠️ Build now produces 79 pages** (was 55): 12 new article pages at `/:category/:id/:slug` + 12 legacy redirect pages at `/article/:slug` + 12 shortlink pages at `/a/:id`.
 - **⚠️ One S9 build item is deliberately NOT built:** bookmark → CMS sync. The browser-local half is complete and works with no account. The sync half is unblocked but needs a **policy decision** first — a naive union-merge resurrects a bookmark deleted on another device. Raised for the owner rather than guessed at.
 - **User instruction (latest):** "read all docs and everything then continue to work" — taken, per this project's recorded convention, as approval of the previous section plus instruction to build the next one.
 - **⚠️ Open owner question (raised 2026-09-12):** the owner plans to **upgrade DianaHost to a 5 GB plan** and asked whether Cloudflare is still needed. Answer given: **yes** — 5 GB eases storage (and maybe bandwidth) but does not address uptime isolation, the performance gates, or deploy mechanics. **Two figures still needed: the 5 GB plan's monthly bandwidth and its price.** No plan change has been made pending that answer.
