@@ -22,7 +22,7 @@
  *
  * Run: node scripts/verify-csp-routes.mjs
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 const HEADERS = 'frontend/public/_headers'
@@ -145,7 +145,10 @@ const articleRe = compile('/:category/:id/:slug')
 check('matches /admission/10/some-slug', articleRe.test('/admission/10/some-slug'))
 check('rejects /admission (one segment)', !articleRe.test('/admission'))
 check('rejects /category/admission (two segments)', !articleRe.test('/category/admission'))
-check('rejects /category/admission/page/2 (four segments)', !articleRe.test('/category/admission/page/2'))
+check(
+  'rejects /category/admission/page/2 (four segments)',
+  !articleRe.test('/category/admission/page/2'),
+)
 
 console.log(failures === 0 ? '\nAll CSP route checks passed.' : `\n${failures} check(s) failed.`)
 process.exit(failures === 0 ? 0 : 1)
