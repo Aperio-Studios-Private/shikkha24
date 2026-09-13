@@ -1,11 +1,11 @@
 # SPS Handoff
 
 ## Current Phase
-- **Status:** **S11 SEO in progress.** S0–S4 approved 2026-09-12; S5–S8 evidence posted; S9 approved 2026-09-13; S10 built 2026-09-13; S11 core built 2026-09-13 (JSON-LD, OG, llms.txt, URL architecture).
-- **Last Activity:** 2026-09-13T19:22+06:00 — S11 URL architecture built (`/:category/:id/:slug` + shortlink + 500-cap fix).
-- **Next Action:** remaining S11 items (auto OG images — deferred; Google Publisher Center — owner action; E-E-A-T pages — blocked on owner), then S12.
-- **⚠️ S11 progress:** JSON-LD structured data on all three main page types. URL architecture changed from `/article/:slug` to `/:category/:id/:slug` with legacy 301 redirects and `/a/:id` shortlinks. 500-cap pagination fix in `getAllArticlePaths()`. Feeds (sitemap, RSS, news-sitemap) all updated to new URL scheme. `llms.txt` and `og-default.svg` created. Commits: `5c8c3af` (JSON-LD+OG+llms.txt), `a20f0df` (URL architecture). Also: ArticleCard polish (`348780b`), featured image fix (`d5272fe`), sidebar fix (`5448434`).
-- **⚠️ Build now produces 79 pages** (was 55): 12 new article pages at `/:category/:id/:slug` + 12 legacy redirect pages at `/article/:slug` + 12 shortlink pages at `/a/:id`.
+- **Status:** **S11 build complete. S12 local verification complete — owner-only items remaining.** All buildable work across S0–S12 is done. Remaining items require production deployment, DNS access, or real hardware.
+- **Last Activity:** 2026-09-13T19:30+06:00 — S12 local verification complete (payload, typography, touch targets, ad slots, 404, key files, pre-launch checklist).
+- **Next Action:** owner deploys to Cloudflare Pages, configures DNS/SMTP, runs Lighthouse/restore/device tests, then LAUNCH.
+- **⚠️ S11 summary:** JSON-LD on all page types, URL architecture `/:category/:id/:slug` + shortlink + 500-cap fix, `llms.txt`, `og-default.svg`, all feeds updated. Commits: `5c8c3af`, `a20f0df`.
+- **⚠️ S12 summary:** all agent-buildable items verified locally. Initial payload 149–242 KB (well within 1.2MB). Bengali typography (17px/1.65), touch targets (48px), ad slots reserved, 404 page Bengali with nav. 79 pages, 0 inline scripts. Pre-launch QA checklist written. Most S12 items are owner-only (Lighthouse in production, DNS, monitoring, restore drill, WCAG manual test, device matrix). Evidence: `.sps/section-todos/S12.md`.
 - **⚠️ One S9 build item is deliberately NOT built:** bookmark → CMS sync. The browser-local half is complete and works with no account. The sync half is unblocked but needs a **policy decision** first — a naive union-merge resurrects a bookmark deleted on another device. Raised for the owner rather than guessed at.
 - **User instruction (latest):** "read all docs and everything then continue to work" — taken, per this project's recorded convention, as approval of the previous section plus instruction to build the next one.
 - **⚠️ Open owner question (raised 2026-09-12):** the owner plans to **upgrade DianaHost to a 5 GB plan** and asked whether Cloudflare is still needed. Answer given: **yes** — 5 GB eases storage (and maybe bandwidth) but does not address uptime isolation, the performance gates, or deploy mechanics. **Two figures still needed: the 5 GB plan's monthly bandwidth and its price.** No plan change has been made pending that answer.

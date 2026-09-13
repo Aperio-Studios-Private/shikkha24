@@ -178,13 +178,21 @@
 - [ ] S11 DoD evidence → **user approval**
 
 ## S12 — Deployment, QA & Launch
-- [ ] Cloudflare Pages + R2 setup; GitHub Actions pipeline; DianaHost Passenger config
-- [ ] Lighthouse ≥95 **and accessibility ≥90**; LCP <1.5s; INP <100ms; CLS <0.02; TTFB <200ms (measured here, in production behind Cloudflare); initial payload <1.2MB; data-saver <30KB
-- [ ] **AdSense-vs-≥95 trade-off resolved** — two measurement profiles (`docs/performance-budget.md`)
-- [ ] **GATE: monitoring + alerting live** on a verified card-free tool (`docs/reliability.md`)
-- [ ] **GATE: full restore drill completed and timed** against RPO 24h / RTO 4h (`docs/backup-and-recovery.md`)
-- [ ] **SPF / DKIM / DMARC configured** + dedicated bulk-sending subdomain (`docs/security.md`)
-- [ ] **WCAG 2.2 AA**: automated pass + **manual keyboard and screen-reader pass** (`docs/testing-and-qa.md`)
-- [ ] Browser/device matrix incl. **UC Browser and Opera Mini**, plus a low-end Symphony/Walton-class device
-- [ ] Bengali font + conjunct rendering audit; error/404 pages verified; pre-launch QA checklist completed
-- [ ] S12 DoD evidence → **user approval → LAUNCH**
+- [ ] Cloudflare Pages + R2 setup; GitHub Actions pipeline; DianaHost Passenger config — **OWNER-ONLY**
+- [x] **Initial payload measured:** all 5 key templates within 1.2MB budget (149–242 KB). See `.sps/section-todos/S12.md`.
+- [x] **Bengali typography verified:** 17px base, 1.65 line-height, 154 KB font total (within 200 KB budget).
+- [x] **Touch targets verified:** 48px pattern present in CSS.
+- [x] **Ad slots reserved:** inline `max-width` + `height` on every AdSlot.
+- [x] **404 page verified:** exists, Bengali, has header+footer.
+- [x] **Key files verified:** robots.txt, sitemap.xml, news-sitemap.xml, rss.xml, llms.txt, og-default.svg, _headers all present in dist/.
+- [x] **Inline script scan:** 79 pages, 0 executable inline scripts (S8 invariant holds).
+- [x] **Pre-launch QA checklist written:** `.sps/section-todos/S12.md`.
+- [ ] Lighthouse ≥95 **and accessibility ≥90**; LCP <1.5s; INP <100ms; CLS <0.02; TTFB <200ms — **needs production deployment**
+- [ ] **AdSense-vs-≥95 trade-off resolved** — two measurement profiles documented (`docs/performance-budget.md` + `.sps/section-todos/S12.md`)
+- [ ] **GATE: monitoring + alerting live** — **OWNER-ONLY** (card-free tool not yet selected)
+- [ ] **GATE: full restore drill completed and timed** — **OWNER-ONLY**
+- [ ] **SPF / DKIM / DMARC configured** — **OWNER-ONLY** (needs DNS access)
+- [ ] **WCAG 2.2 AA**: automated pass + **manual keyboard and screen-reader pass** — **needs human + lab**
+- [ ] Browser/device matrix incl. **UC Browser and Opera Mini** — **needs real devices**
+- [ ] Bengali font + conjunct rendering audit; error/404 pages verified; pre-launch QA checklist completed — **needs real devices**
+- [ ] S12 DoD evidence → **user approval → LAUNCH** — **blocked on owner-only items above**
