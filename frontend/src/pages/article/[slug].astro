@@ -31,7 +31,10 @@ import SponsoredLabel from '../../components/SponsoredLabel.astro'
 import AdSlot from '../../components/AdSlot.astro'
 import ContentBlockScripts from '../../components/ContentBlockScripts.astro'
 import CommentSection from '../../components/CommentSection.astro'
+import CategoryImage from '../../components/CategoryImage.astro'
 import { countParagraphs, lexicalToHtml, lexicalToPlainText, splitHtmlAtParagraph } from '../../lib/richtext'
+import { resolveCmsImage } from '../../lib/media'
+import { getCategoryImage } from '../../lib/images'
 import { getPublicCmsOrigin } from '../../lib/interactive'
 import { getApprovedComments } from '../../lib/engagement'
 import {
@@ -103,16 +106,21 @@ const [bodyBeforeAd, bodyAfterAd] = showMiddleAd
 const category =
   article.category && typeof article.category === 'object' ? article.category : null
 
-const mediaBase = import.meta.env.PUBLIC_MEDIA_BASE_URL || ''
-const hero =
-  article.featuredImage && typeof article.featuredImage === 'object'
-    ? article.featuredImage
-    : null
-const heroUrl = hero?.url
-  ? hero.url.startsWith('http')
-    ? hero.url
-    : `${mediaBase}${hero.url}`
-  : null
+/**
+ * Hero image — the article's own photo, else the category archetype.
+ *
+ * The homepage cards have always fallen back to `getCategoryImage()`; this page
+ * did not. It rendered the hero only when `featuredImage` resolved, so an
+ * article with no photo of its own (which is most of them — reporters publish
+ * the text first and upload a photo later) showed no image at all, while its
+ * card on the homepage showed the category archetype.
+ *
+ * Sharing `resolveCmsImage` with the cards also means the hero gets a real
+ * `srcset` from the CMS variants and the true dimensions, instead of the
+ * hard-coded 1200×675 box this page used to reserve.
+ */
+const photo = resolveCmsImage(article.featuredImage, article.title)
+const categoryImage = getCategoryImage(category?.slug)
 
 const published = article.publishedAt
   ? new Date(article.publishedAt).toLocaleDateString('bn-BD', {
@@ -136,7 +144,7 @@ const jsonLd = {
   '@type': 'Article',
   headline: article.title,
   description: article.excerpt ?? undefined,
-  image: heroUrl ? [heroUrl] : undefined,
+  image: photo?.src ? [photo.src] : undefined,
   datePublished: article.publishedAt ?? undefined,
   dateModified: article.updatedAt ?? article.publishedAt ?? undefined,
   author: author ? { '@type': 'Person', name: author.nameBn } : undefined,
@@ -154,7 +162,7 @@ const jsonLd = {
   title={article.title}
   description={article.excerpt ?? undefined}
   canonical={canonical}
-  ogImage={heroUrl ?? undefined}
+  ogImage={photo?.src ?? undefined}
   publishDate={article.publishedAt ?? undefined}
   modifiedDate={article.updatedAt ?? article.publishedAt ?? undefined}
   jsonLd={jsonLd}
@@ -226,17 +234,41 @@ const jsonLd = {
           )}
         </div>
 
-        {heroUrl && (
-          <img
-            src={heroUrl}
-            alt={hero?.alt || article.title}
-            width="1200"
-            height="675"
-            loading="eager"
-            decoding="async"
-            class="mt-5 aspect-16/9 w-full rounded-lg object-cover"
-          />
-        )}
+        {
+          /* The hero is the LCP element on this page, so it is eager and
+             high-priority. The wrapper carries `aspect-16/9` and both branches
+             write intrinsic width/height, so the box is reserved before the
+             bytes arrive — zero CLS, which the budget treats as a hard gate. */
+          (photo || categoryImage) && (
+            <div class="mt-5 aspect-16/9 w-full overflow-hidden rounded-lg bg-surface-raised dark:bg-dark-raised">
+              {photo ? (
+                <img
+                  src={photo.src}
+                  srcset={photo.srcset}
+                  sizes="(min-width: 1024px) 800px, 100vw"
+                  alt={photo.alt}
+                  width={photo.width}
+                  height={photo.height}
+                  loading="eager"
+                  fetchpriority="high"
+                  decoding="async"
+                  class="h-full w-full object-cover"
+                />
+              ) : (
+                categoryImage && (
+                  <CategoryImage
+                    image={categoryImage}
+                    alt={article.title}
+                    sizes="(min-width: 1024px) 800px, 100vw"
+                    widths={[400, 800, 1200]}
+                    priority
+                    class="h-full w-full object-cover"
+                  />
+                )
+              )}
+            </div>
+          )
+        }
 
         {/* Correction — above the body, never buried */}
         <CorrectionNotice
