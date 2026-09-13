@@ -1,0 +1,94 @@
+---
+/**
+ * Institution detail — N4. One institution's profile page.
+ *
+ * `getStaticPaths` gates page *generation* on the flag — but institutions are
+ * core content (not flag-gated), so the flag check is omitted here. If the
+ * CMS is down at build time, the slugs list is empty and no pages are
+ * generated.
+ */
+import Layout from '../../layouts/Layout.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import { lexicalToHtml } from '../../lib/richtext'
+import { getInstitutionBySlug, getAllInstitutionSlugs, type CmsInstitution } from '../../lib/education'
+import { getSiteSettings, getCategories, getFooterPages, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../../lib/cms'
+
+export async function getStaticPaths() {
+  const slugs = await getAllInstitutionSlugs().catch(() => [])
+  return slugs.map((slug) => ({ params: { slug } }))
+}
+
+const slug = Astro.params.slug!
+const [settings, categories, footerPages, institution] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getInstitutionBySlug(slug).catch(() => null),
+])
+
+if (!institution) return Astro.redirect('/404')
+
+const TYPE_LABELS: Record<string, string> = {
+  public: 'সরকারি', private: 'বেসরকারি', madrasa: 'মাদ্রাসা', college: 'কলেজ',
+}
+
+const typeLabel = institution.type ? TYPE_LABELS[institution.type] ?? institution.type : null
+const districtName = typeof institution.district === 'object' && institution.district ? institution.district.nameBn : null
+const levelNames = Array.isArray(institution.levelOffered)
+  ? institution.levelOffered.map((l) => (typeof l === 'object' && l ? l.nameBn : null)).filter(Boolean) as string[]
+  : []
+const descHtml = lexicalToHtml(institution.description)
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollegeOrUniversity',
+  name: institution.nameBn,
+  alternateName: institution.nameEn ?? undefined,
+  url: institution.website ?? undefined,
+  address: institution.address ?? undefined,
+  foundingDate: institution.established ? String(institution.established) : undefined,
+}
+---
+
+<Layout title={institution.nameBn} description={`${institution.nameBn}${institution.nameEn ? ` (${institution.nameEn})` : ''}`}
+  settings={settings} categories={categories} footerPages={footerPages} jsonLd={jsonLd}>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[
+      { label: 'প্রতিষ্ঠান', href: '/institutions' },
+      { label: institution.nameBn },
+    ]} />
+
+    <header class="mb-6 border-b-2 border-brand-red pb-3">
+      <div class="flex flex-wrap items-center gap-2">
+        {typeLabel && <span class="rounded bg-brand-red/10 px-2 py-0.5 text-xs font-semibold text-brand-red dark:bg-brand-red/20">{typeLabel}</span>}
+        {institution.isVerified && <span class="text-xs text-green-600 dark:text-green-400">✓ যাচাইকৃত</span>}
+      </div>
+      <h1 class="font-headline mt-2 text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">{institution.nameBn}</h1>
+      {institution.nameEn && <p class="mt-1 text-base text-ink-muted dark:text-dark-ink-muted">{institution.nameEn}</p>}
+    </header>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
+        <h2 class="font-headline text-base font-semibold text-ink dark:text-dark-ink">তথ্য</h2>
+        <dl class="mt-2 space-y-1 text-sm text-ink-muted dark:text-dark-ink-muted">
+          {districtName && <div><dt class="inline font-semibold">জেলা: </dt><dd class="inline">{districtName}</dd></div>}
+          {institution.established && <div><dt class="inline font-semibold">প্রতিষ্ঠা: </dt><dd class="inline">{institution.established}</dd></div>}
+          {levelNames.length > 0 && <div><dt class="inline font-semibold">শ্রেণি: </dt><dd class="inline">{levelNames.join(', ')}</dd></div>}
+          {institution.website && (
+            <div><dt class="inline font-semibold">ওয়েবসাইট: </dt>
+            <dd class="inline"><a href={institution.website} rel="noopener noreferrer nofollow" class="text-brand-red hover:underline">{institution.website}</a></dd></div>
+          )}
+        </dl>
+      </div>
+
+      {institution.address && (
+        <div class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
+          <h2 class="font-headline text-base font-semibold text-ink dark:text-dark-ink">ঠিকানা</h2>
+          <p class="mt-2 text-sm text-ink-muted dark:text-dark-ink-muted">{institution.address}</p>
+        </div>
+      )}
+    </div>
+
+    {descHtml && <div class="prose-bn mt-4 text-ink dark:text-dark-ink" set:html={descHtml} />}
+  </div>
+</Layout>

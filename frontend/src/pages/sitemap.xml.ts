@@ -6,6 +6,7 @@ import {
   getArticles,
   getCategories,
 } from '../lib/cms'
+import { getAllInstitutionSlugs, getAllStudyAbroadSlugs } from '../lib/education'
 
 /**
  * sitemap.xml
@@ -51,12 +52,14 @@ export const GET: APIRoute = async () => {
   const site = (import.meta.env.PUBLIC_SITE_URL || 'https://shikkha24.com').replace(/\/$/, '')
   const today = new Date().toISOString().slice(0, 10)
 
-  const [slugs, pageSlugs, articles, categories] = await Promise.all([
+  const [slugs, pageSlugs, articles, categories, institutionSlugs, studyAbroadSlugs] = await Promise.all([
     getAllArticleSlugs().catch(() => []),
     getAllPageSlugs().catch(() => []),
     // Fetched only for the publish dates; the slug list above stays canonical.
     getArticles({ limit: 500 }).catch(() => []),
     getCategories().catch(() => FALLBACK_CATEGORIES),
+    getAllInstitutionSlugs().catch(() => []),
+    getAllStudyAbroadSlugs().catch(() => []),
   ])
 
   /** slug → publish date, so each article carries its own accurate `lastmod`. */
@@ -66,13 +69,21 @@ export const GET: APIRoute = async () => {
 
   /**
    * Static routes are always present. `/` and `/latest` genuinely change on
-   * every publish, so today's date is accurate for them; `/deadlines` changes
-   * only when a deadline is added or passes, so it carries no date at all.
+   * every publish, so today's date is accurate for them; `/deadlines` and the
+   * education pages change only when an editor updates content, so they carry
+   * no date at all — an absent `lastmod` is honest, a wrong one is not.
    */
   const staticPaths: SitemapEntry[] = [
     { loc: '/', priority: '1.0', changefreq: 'hourly', lastmod: today },
     { loc: '/latest', priority: '0.8', changefreq: 'hourly', lastmod: today },
     { loc: '/deadlines', priority: '0.7', changefreq: 'daily' },
+    { loc: '/scholarships', priority: '0.7', changefreq: 'daily' },
+    { loc: '/results', priority: '0.7', changefreq: 'daily' },
+    { loc: '/institutions', priority: '0.6', changefreq: 'weekly' },
+    { loc: '/circulars', priority: '0.7', changefreq: 'daily' },
+    { loc: '/study-abroad', priority: '0.6', changefreq: 'weekly' },
+    { loc: '/exams', priority: '0.7', changefreq: 'daily' },
+    { loc: '/gpa', priority: '0.3', changefreq: 'yearly' },
   ]
 
   /** E-E-A-T pages (privacy, terms, contact). Empty until they exist in the CMS. */
@@ -95,6 +106,16 @@ export const GET: APIRoute = async () => {
       priority: '0.6',
       changefreq: 'weekly',
       lastmod: publishedOn.get(slug),
+    })),
+    ...institutionSlugs.map((slug) => ({
+      loc: `/institutions/${slug}`,
+      priority: '0.5',
+      changefreq: 'monthly',
+    })),
+    ...studyAbroadSlugs.map((slug) => ({
+      loc: `/study-abroad/${slug}`,
+      priority: '0.5',
+      changefreq: 'monthly',
     })),
   ]
 

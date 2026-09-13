@@ -1,0 +1,97 @@
+---
+/**
+ * Study-abroad country guide detail — N10.
+ *
+ * Shows visa requirements, tuition range, living cost, intakes, application
+ * steps and scholarship notes for one destination.
+ */
+import Layout from '../../layouts/Layout.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import { lexicalToHtml } from '../../lib/richtext'
+import { getStudyAbroadGuideBySlug, getAllStudyAbroadSlugs } from '../../lib/education'
+import { getSiteSettings, getCategories, getFooterPages, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../../lib/cms'
+
+export async function getStaticPaths() {
+  const slugs = await getAllStudyAbroadSlugs().catch(() => [])
+  return slugs.map((slug) => ({ params: { slug } }))
+}
+
+const slug = Astro.params.slug!
+const [settings, categories, footerPages, guide] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getStudyAbroadGuideBySlug(slug).catch(() => null),
+])
+
+if (!guide) return Astro.redirect('/404')
+
+const visaHtml = lexicalToHtml(guide.visaRequirements)
+const stepsHtml = lexicalToHtml(guide.applicationSteps)
+const scholarshipHtml = lexicalToHtml(guide.scholarshipNotes)
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: `বিদেশে পড়াশোনা: ${guide.country}`,
+  about: { '@type': 'Country', name: guide.country },
+}
+---
+
+<Layout title={`${guide.country} — বিদেশে পড়াশোনা`} description={`${guide.country}এ পড়াশোনা: ভিসা, খরচ, ইনটেক ও আবেদন।`}
+  settings={settings} categories={categories} footerPages={footerPages} jsonLd={jsonLd}>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[
+      { label: 'বিদেশে পড়াশোনা', href: '/study-abroad' },
+      { label: guide.country },
+    ]} />
+
+    <header class="mb-6 border-b-2 border-brand-red pb-3">
+      {guide.isFeatured && <span class="mb-2 inline-block rounded bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-400/20 dark:text-blue-300">বিশেষ</span>}
+      <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">{guide.country}</h1>
+      <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">বিদেশে পড়াশোনার সম্ভাবনা — ভিসা, খরচ ও আবেদনের ধাপ।</p>
+    </header>
+
+    <div class="grid gap-4 sm:grid-cols-3">
+      {guide.tuitionRange && (
+        <div class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
+          <h2 class="text-xs font-semibold text-ink-subtle dark:text-dark-ink-muted">টিউশন ফি</h2>
+          <p class="mt-1 text-sm font-semibold text-ink dark:text-dark-ink">{guide.tuitionRange}</p>
+        </div>
+      )}
+      {guide.livingCostRange && (
+        <div class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
+          <h2 class="text-xs font-semibold text-ink-subtle dark:text-dark-ink-muted">জীবনযাত্রার খরচ</h2>
+          <p class="mt-1 text-sm font-semibold text-ink dark:text-dark-ink">{guide.livingCostRange}</p>
+        </div>
+      )}
+      {guide.intakes && (
+        <div class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
+          <h2 class="text-xs font-semibold text-ink-subtle dark:text-dark-ink-muted">ভর্তির সময়</h2>
+          <p class="mt-1 text-sm font-semibold text-ink dark:text-dark-ink">{guide.intakes}</p>
+        </div>
+      )}
+    </div>
+
+    {visaHtml && (
+      <section class="mt-6">
+        <h2 class="font-headline text-lg font-bold text-ink dark:text-dark-ink">ভিসার শর্ত</h2>
+        <div class="prose-bn mt-2 text-ink dark:text-dark-ink" set:html={visaHtml} />
+      </section>
+    )}
+
+    {stepsHtml && (
+      <section class="mt-6">
+        <h2 class="font-headline text-lg font-bold text-ink dark:text-dark-ink">আবেদনের ধাপ</h2>
+        <div class="prose-bn mt-2 text-ink dark:text-dark-ink" set:html={stepsHtml} />
+      </section>
+    )}
+
+    {scholarshipHtml && (
+      <section class="mt-6">
+        <h2 class="font-headline text-lg font-bold text-ink dark:text-dark-ink">বৃত্তির তথ্য</h2>
+        <div class="prose-bn mt-2 text-ink dark:text-dark-ink" set:html={scholarshipHtml} />
+      </section>
+    )}
+  </div>
+</Layout>

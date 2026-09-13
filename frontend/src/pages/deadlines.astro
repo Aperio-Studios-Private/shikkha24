@@ -2,9 +2,14 @@
 /**
  * Deadlines — `/deadlines`.
  *
- * The full N1 (scholarship) + N2 (academic calendar) list. The homepage strip
- * shows the urgent head; this is the complete, filterable-by-scroll surface and
- * the target of the strip's "সব দেখুন".
+ * The full N1 (scholarship) + N2 (academic calendar) list with N9
+ * district-first filtering. The homepage strip shows the urgent head;
+ * this is the complete, filterable surface and the target of the
+ * strip's "সব দেখুন".
+ *
+ * N2/N9: client-side filter by type, level, and district. Each deadline
+ * li carries data-* attributes; a component script (emitted as an external
+ * hashed file by Astro, so strict CSP holds) toggles `hidden` on change.
  */
 import Layout from '../layouts/Layout.astro'
 import Breadcrumbs from '../components/Breadcrumbs.astro'
@@ -27,11 +32,7 @@ const [settings, categories, footerPages, deadlines] = await Promise.all([
   getAllDeadlines().catch(() => []),
 ])
 
-/**
- * The browser-reachable CMS origin. `null` when unconfigured, in which case
- * `DeadlineReminder` renders nothing at all — the N7 reminder needs a backend to
- * register against, and a bell that cannot ring is worse than no bell.
- */
+/** Browser-reachable CMS origin — null when unconfigured → no reminder UI. */
 const cmsOrigin = getPublicCmsOrigin()
 
 const TYPE_LABELS: Record<string, string> = {
@@ -41,6 +42,39 @@ const TYPE_LABELS: Record<string, string> = {
   scholarshipDeadline: 'বৃত্তির সময়সীমা',
   holiday: 'ছুটি',
   circular: 'বিজ্ঞপ্তি',
+}
+
+/** Type filter chips — the first entry (empty value) means "all". */
+const TYPE_FILTERS = [
+  { value: '', label: 'সব' },
+  { value: 'admission', label: 'ভর্তি' },
+  { value: 'result', label: 'ফলাফল' },
+  { value: 'examRoutine', label: 'পরীক্ষার রুটিন' },
+  { value: 'scholarshipDeadline', label: 'বৃত্তির সময়সীমা' },
+  { value: 'holiday', label: 'ছুটি' },
+  { value: 'circular', label: 'বিজ্ঞপ্তি' },
+]
+
+/** Extract the slug from a relation that may be an object, number, or null. */
+function relSlug(rel: { slug?: string } | number | null | undefined): string {
+  if (rel && typeof rel === 'object' && rel.slug) return rel.slug
+  return ''
+}
+
+/** Extract the Bengali name from a relation. */
+function relName(rel: { nameBn?: string; slug?: string } | number | null | undefined): string {
+  if (rel && typeof rel === 'object') return rel.nameBn ?? rel.slug ?? ''
+  return ''
+}
+
+/** Unique level options from the deadlines themselves (not all levels). */
+const levelOptions = new Map<string, string>()
+const districtOptions = new Map<string, string>()
+for (const d of deadlines) {
+  const ls = relSlug(d.level)
+  if (ls) levelOptions.set(ls, relName(d.level))
+  const ds = relSlug(d.district)
+  if (ds) districtOptions.set(ds, relName(d.district))
 }
 
 const TODAY = new Date()
@@ -96,61 +130,174 @@ function formatDate(date: string | null | undefined): string {
           এখনো কোনো ডেডলাইন যোগ করা হয়নি।
         </p>
       ) : (
-        <ul class="flex flex-col gap-3">
-          {deadlines.map((deadline) => {
-            const days = daysUntil(deadline.dateEnd ?? deadline.dateStart)
-            const urgency = urgencyLabel(days)
-            const typeLabel = deadline.type ? TYPE_LABELS[deadline.type] ?? deadline.type : null
+        <>
+          {/* N2/N9 filter bar — client-side, no-JS fallback shows all */}
+          <div class="mb-4 flex flex-wrap items-center gap-2" role="group" aria-label="ফিল্টার">
+            <div class="flex flex-wrap gap-1.5">
+              {TYPE_FILTERS.map((t) => (
+                <button
+                  type="button"
+                  data-type-filter={t.value}
+                  class="rounded-full border border-rule px-3 py-1 text-xs font-medium text-ink-muted transition-colors hover:border-brand-red hover:text-brand-red aria-pressed:border-brand-red aria-pressed:bg-brand-red aria-pressed:text-white dark:border-dark-rule dark:text-dark-ink-muted dark:aria-pressed:border-brand-red dark:aria-pressed:text-white"
+                  aria-pressed={t.value === ''}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            {levelOptions.size > 0 && (
+              <select data-level-filter class="h-8 rounded-md border border-rule bg-surface px-2 text-xs text-ink dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink" aria-label="স্তর ফিল্টার">
+                <option value="">সব স্তর</option>
+                {[...levelOptions.entries()].map(([slug, name]) => (
+                  <option value={slug}>{name}</option>
+                ))}
+              </select>
+            )}
+            {districtOptions.size > 0 && (
+              <select data-district-filter class="h-8 rounded-md border border-rule bg-surface px-2 text-xs text-ink dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink" aria-label="জেলা ফিল্টার">
+                <option value="">সব জেলা</option>
+                {[...districtOptions.entries()].map(([slug, name]) => (
+                  <option value={slug}>{name}</option>
+                ))}
+              </select>
+            )}
+          </div>
 
-            return (
-              <li class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
-                <div class="flex flex-wrap items-center gap-2">
-                  {typeLabel && (
-                    <span class="rounded bg-brand-red/10 px-2 py-0.5 text-xs font-semibold text-brand-red dark:bg-brand-red/20">
-                      {typeLabel}
-                    </span>
+          <ul id="deadline-list" class="flex flex-col gap-3">
+            {deadlines.map((deadline) => {
+              const days = daysUntil(deadline.dateEnd ?? deadline.dateStart)
+              const urgency = urgencyLabel(days)
+              const typeLabel = deadline.type ? TYPE_LABELS[deadline.type] ?? deadline.type : null
+              const lSlug = relSlug(deadline.level)
+              const dSlug = relSlug(deadline.district)
+
+              return (
+                <li
+                  data-deadline-item
+                  data-type={deadline.type ?? ''}
+                  data-level={lSlug}
+                  data-district={dSlug}
+                  class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface"
+                >
+                  <div class="flex flex-wrap items-center gap-2">
+                    {typeLabel && (
+                      <span class="rounded bg-brand-red/10 px-2 py-0.5 text-xs font-semibold text-brand-red dark:bg-brand-red/20">
+                        {typeLabel}
+                      </span>
+                    )}
+                    {urgency && (
+                      <span
+                        class:list={[
+                          'text-xs font-semibold',
+                          urgency.urgent
+                            ? 'text-brand-red'
+                            : 'text-ink-subtle dark:text-dark-ink-muted',
+                        ]}
+                      >
+                        {urgency.text}
+                      </span>
+                    )}
+                  </div>
+
+                  <h2 class="font-headline mt-2 text-lg font-bold text-ink dark:text-dark-ink">
+                    {deadline.title}
+                  </h2>
+
+                  {deadline.description && (
+                    <p class="mt-1 text-sm text-ink-muted dark:text-dark-ink-muted">
+                      {deadline.description}
+                    </p>
                   )}
-                  {urgency && (
-                    <span
-                      class:list={[
-                        'text-xs font-semibold',
-                        urgency.urgent
-                          ? 'text-brand-red'
-                          : 'text-ink-subtle dark:text-dark-ink-muted',
-                      ]}
-                    >
-                      {urgency.text}
-                    </span>
-                  )}
-                </div>
 
-                <h2 class="font-headline mt-2 text-lg font-bold text-ink dark:text-dark-ink">
-                  {deadline.title}
-                </h2>
+                  <time class="mt-2 block text-xs text-ink-subtle dark:text-dark-ink-muted">
+                    {formatDate(deadline.dateEnd ?? deadline.dateStart)}
+                  </time>
 
-                {deadline.description && (
-                  <p class="mt-1 text-sm text-ink-muted dark:text-dark-ink-muted">
-                    {deadline.description}
-                  </p>
-                )}
+                  {/* N7 — opt-in only. Renders nothing without a VAPID key, a CMS
+                      origin, or a reminder moment that is still in the future. */}
+                  <DeadlineReminder
+                    deadlineId={deadline.id}
+                    deadlineTitle={deadline.title}
+                    deadlineDate={deadline.dateEnd ?? deadline.dateStart}
+                    cmsOrigin={cmsOrigin}
+                  />
+                </li>
+              )
+            })}
+          </ul>
 
-                <time class="mt-2 block text-xs text-ink-subtle dark:text-dark-ink-muted">
-                  {formatDate(deadline.dateEnd ?? deadline.dateStart)}
-                </time>
-
-                {/* N7 — opt-in only. Renders nothing without a VAPID key, a CMS
-                    origin, or a reminder moment that is still in the future. */}
-                <DeadlineReminder
-                  deadlineId={deadline.id}
-                  deadlineTitle={deadline.title}
-                  deadlineDate={deadline.dateEnd ?? deadline.dateStart}
-                  cmsOrigin={cmsOrigin}
-                />
-              </li>
-            )
-          })}
-        </ul>
+          {/* No-results message — shown by the script when all items are hidden */}
+          <p id="no-results" class="mt-4 hidden rounded-md border border-rule bg-surface-raised p-6 text-center text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
+            এই ফিল্টারে কোনো ডেডলাইন নেই।
+          </p>
+        </>
       )
     }
   </div>
 </Layout>
+
+<script>
+  (function () {
+    var list = document.getElementById('deadline-list')
+    if (!list) return
+    var items = list.querySelectorAll('[data-deadline-item]')
+    var typeChips = document.querySelectorAll('[data-type-filter]')
+    var levelSelect = document.querySelector('[data-level-filter]')
+    var districtSelect = document.querySelector('[data-district-filter]')
+    var noResults = document.getElementById('no-results')
+
+    var activeType = ''
+    var activeLevel = ''
+    var activeDistrict = ''
+
+    function applyFilters() {
+      var visible = 0
+      items.forEach(function (item) {
+        var type = item.getAttribute('data-type') || ''
+        var level = item.getAttribute('data-level') || ''
+        var district = item.getAttribute('data-district') || ''
+
+        var match =
+          (!activeType || type === activeType) &&
+          (!activeLevel || level === activeLevel) &&
+          (!activeDistrict || district === activeDistrict)
+
+        if (match) {
+          item.classList.remove('hidden')
+          visible++
+        } else {
+          item.classList.add('hidden')
+        }
+      })
+
+      if (noResults) {
+        noResults.classList.toggle('hidden', visible > 0)
+      }
+    }
+
+    typeChips.forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        activeType = chip.getAttribute('data-type-filter') || ''
+        typeChips.forEach(function (c) {
+          c.setAttribute('aria-pressed', 'false')
+        })
+        chip.setAttribute('aria-pressed', 'true')
+        applyFilters()
+      })
+    })
+
+    if (levelSelect) {
+      levelSelect.addEventListener('change', function () {
+        activeLevel = levelSelect.value
+        applyFilters()
+      })
+    }
+
+    if (districtSelect) {
+      districtSelect.addEventListener('change', function () {
+        activeDistrict = districtSelect.value
+        applyFilters()
+      })
+    }
+  })()
+</script>

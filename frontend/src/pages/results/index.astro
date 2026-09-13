@@ -1,0 +1,63 @@
+---
+/**
+ * Results & merit-lists hub — N3.
+ *
+ * Links + how-to guides around the government portals. The boards publish on
+ * their own sites and expose no API, so the value Shikkha24 adds is the "how to
+ * use this" layer, not the data itself.
+ */
+import Layout from '../../layouts/Layout.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import { getPublishedResults } from '../../lib/education'
+import { getSiteSettings, getCategories, getFooterPages, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../../lib/cms'
+
+const [settings, categories, footerPages, results] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getPublishedResults().catch(() => []),
+])
+
+function formatDate(date: string | null | undefined): string {
+  if (!date) return ''
+  return new Date(date).toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+const jsonLd = results.length > 0 ? {
+  '@context': 'https://schema.org', '@type': 'ItemList', name: 'ফলাফলের তালিকা',
+  itemListElement: results.slice(0, 10).map((r, i) => ({
+    '@type': 'ListItem', position: i + 1, name: r.title, url: r.officialUrl,
+  })),
+} : undefined
+---
+
+<Layout title="ফলাফল ও মেধাতালিকা" description="পরীক্ষার ফলাফল ও মেধাতালিকার লিংক — কিভাবে দেখবেন সহ।"
+  settings={settings} categories={categories} footerPages={footerPages} jsonLd={jsonLd}>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'ফলাফল', href: '/results' }]} />
+    <header class="mb-6 border-b-2 border-brand-red pb-3">
+      <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">ফলাফল ও মেধাতালিকা</h1>
+      <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">পরীক্ষার ফলাফল ও মেধাতালিকার লিংক — কিভাবে দেখবেন তার নির্দেশনা সহ।</p>
+    </header>
+    {results.length === 0 ? (
+      <p class="rounded-md border border-rule bg-surface-raised p-6 text-center text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">এখনো কোনো ফলাফল যোগ করা হয়নি।</p>
+    ) : (
+      <ul class="flex flex-col gap-3">
+        {results.map((r) => (
+          <li class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
+            <h2 class="font-headline text-lg font-bold text-ink dark:text-dark-ink">{r.title}</h2>
+            <div class="mt-2 flex flex-wrap gap-3 text-xs text-ink-subtle dark:text-dark-ink-muted">
+              <span>পরীক্ষা: {r.examName}</span>
+              {r.boardOrInstitution && <span>বোর্ড: {r.boardOrInstitution}</span>}
+              {r.publicationDate && <span>প্রকাশ: {formatDate(r.publicationDate)}</span>}
+            </div>
+            <div class="mt-3 flex flex-wrap items-center gap-3">
+              <a href={r.officialUrl} rel="noopener noreferrer nofollow" class="text-sm font-semibold text-brand-red hover:underline">ফলাফল দেখুন →</a>
+              {r.meritListUrl && <a href={r.meritListUrl} rel="noopener noreferrer nofollow" class="text-sm font-semibold text-blue-700 hover:underline dark:text-blue-300">মেধাতালিকা →</a>}
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+</Layout>

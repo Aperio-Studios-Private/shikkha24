@@ -1,0 +1,79 @@
+---
+/**
+ * Exam routine hub — N5. Shares the Deadlines dated-events model.
+ *
+ * Shows only deadlines with `type === 'examRoutine'`. This is a filtered view
+ * of the same data the academic calendar uses, kept on its own page so the
+ * reader who needs "exam routines only" does not have to scroll past
+ * admissions and holidays.
+ */
+import Layout from '../layouts/Layout.astro'
+import Breadcrumbs from '../components/Breadcrumbs.astro'
+import { toBnDigits } from '../lib/widgets'
+import { getSiteSettings, getCategories, getFooterPages, getAllDeadlines, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../lib/cms'
+
+const [settings, categories, footerPages, allDeadlines] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getAllDeadlines().catch(() => []),
+])
+
+/** N5: only exam routines, soonest first. */
+const exams = allDeadlines
+  .filter((d) => d.type === 'examRoutine')
+  .sort((a, b) => {
+    const aDate = a.dateEnd ?? a.dateStart ?? ''
+    const bDate = b.dateEnd ?? b.dateStart ?? ''
+    return aDate.localeCompare(bDate)
+  })
+
+const TODAY = new Date()
+TODAY.setHours(0, 0, 0, 0)
+
+function formatDate(date: string | null | undefined): string {
+  if (!date) return ''
+  return new Date(date).toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function daysUntil(date: string | null | undefined): number | null {
+  if (!date) return null
+  const target = new Date(date); target.setHours(0, 0, 0, 0)
+  return Math.round((target.getTime() - TODAY.getTime()) / 86_400_000)
+}
+---
+
+<Layout title="পরীক্ষার রুটিন" description="পরীক্ষার রুটিন ও সিলেবাস — তারিখ অনুযায়ী।"
+  settings={settings} categories={categories} footerPages={footerPages}>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'পরীক্ষার রুটিন', href: '/exams' }]} />
+    <header class="mb-6 border-b-2 border-brand-red pb-3">
+      <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">পরীক্ষার রুটিন</h1>
+      <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">সব পরীক্ষার রুটিন ও তারিখ — এক জায়গায়।</p>
+    </header>
+    {exams.length === 0 ? (
+      <p class="rounded-md border border-rule bg-surface-raised p-6 text-center text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">এখনো কোনো পরীক্ষার রুটিন যোগ করা হয়নি।</p>
+    ) : (
+      <ul class="flex flex-col gap-3">
+        {exams.map((exam) => {
+          const days = daysUntil(exam.dateEnd ?? exam.dateStart)
+          return (
+            <li class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="rounded bg-brand-red/10 px-2 py-0.5 text-xs font-semibold text-brand-red dark:bg-brand-red/20">পরীক্ষার রুটিন</span>
+                {days !== null && days >= 0 && (
+                  <span class:list={['text-xs font-semibold', days <= 7 ? 'text-brand-red' : 'text-ink-subtle dark:text-dark-ink-muted']}>
+                    {days === 0 ? 'আজ' : days === 1 ? 'আগামীকাল' : `${toBnDigits(days)} দিন বাকি`}
+                  </span>
+                )}
+              </div>
+              <h2 class="font-headline mt-2 text-lg font-bold text-ink dark:text-dark-ink">{exam.title}</h2>
+              {exam.description && <p class="mt-1 text-sm text-ink-muted dark:text-dark-ink-muted">{exam.description}</p>}
+              <time class="mt-2 block text-xs text-ink-subtle dark:text-dark-ink-muted">{formatDate(exam.dateEnd ?? exam.dateStart)}</time>
+            </li>
+          )
+        })}
+      </ul>
+    )}
+  </div>
+</Layout>

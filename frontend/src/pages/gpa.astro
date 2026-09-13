@@ -1,0 +1,167 @@
+---
+/**
+ * GPA / grade calculator — N6. SSC/HSC GPA from marks.
+ *
+ * Client-side, zero backend — graded in the browser, nothing stored. Flagged
+ * on `PUBLIC_FLAG_GPA_CALCULATOR` so it can be dropped from a build if a
+ * device class misbehaves. Like the quiz, the answers are in the page (there
+ * is nothing to hide — it is a calculator, not an assessment).
+ */
+import Layout from '../layouts/Layout.astro'
+import Breadcrumbs from '../components/Breadcrumbs.astro'
+import { isEnabled } from '../lib/feature-flags'
+import { getSiteSettings, getCategories, getFooterPages, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../lib/cms'
+
+if (!isEnabled('gpaCalculator')) {
+  return Astro.redirect('/404')
+}
+
+const [settings, categories, footerPages] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+])
+---
+
+<Layout title="জিপিএ ক্যালকুলেটর" description="এসএসসি/এইচএসসি জিপিএ ক্যালকুলেটর — নম্বর থেকে গ্রেড পয়েন্ট।"
+  settings={settings} categories={categories} footerPages={footerPages}>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'জিপিএ ক্যালকুলেটর', href: '/gpa' }]} />
+
+    <header class="mb-6 border-b-2 border-brand-red pb-3">
+      <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">জিপিএ ক্যালকুলেটর</h1>
+      <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">
+        প্রতিটি বিষয়ের নম্বর দিন — গ্রেড পয়েন্ট ও জিপিএ দেখুন।
+      </p>
+    </header>
+
+    <noscript>
+      <p class="rounded-md border border-rule bg-surface-raised p-4 text-center text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
+        এই ক্যালকুলেটরটি ব্যবহার করতে জাভাস্ক্রিপ্ট প্রয়োজন।
+      </p>
+    </noscript>
+
+    <div id="gpa-calc" class="hidden">
+      <p class="mb-3 text-sm text-ink-muted dark:text-dark-ink-muted">
+        ঐচ্ছিক বিষয় (৪র্থ/৫ম) চিহ্নিত করলে তার অতিরিক্ত পয়েন্ট জিপিএ-তে যোগ হবে (সর্বোচ্চ ২.০)।
+      </p>
+
+      <table class="w-full border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-rule dark:border-dark-rule">
+            <th class="p-2 text-left text-ink dark:text-dark-ink">বিষয়</th>
+            <th class="p-2 text-left text-ink dark:text-dark-ink">নম্বর (০–১০০)</th>
+            <th class="p-2 text-left text-ink dark:text-dark-ink">গ্রেড</th>
+            <th class="p-2 text-center text-ink dark:text-dark-ink">ঐচ্ছিক</th>
+          </tr>
+        </thead>
+        <tbody id="gpa-rows"></tbody>
+      </table>
+
+      <button id="gpa-add-row" type="button"
+        class="mt-3 rounded-md border border-rule px-3 py-1.5 text-sm text-ink hover:bg-surface-raised dark:border-dark-rule dark:text-dark-ink dark:hover:bg-dark-raised">
+        + আরও বিষয়
+      </button>
+
+      <div class="mt-6 rounded-lg border-2 border-brand-red/20 bg-brand-red/5 p-4 dark:border-brand-red/30 dark:bg-brand-red/10">
+        <p class="text-sm text-ink-muted dark:text-dark-ink-muted">আপনার জিপিএ</p>
+        <p id="gpa-result" class="font-headline text-3xl font-bold text-brand-red">—</p>
+        <p id="gpa-grade" class="mt-1 text-sm text-ink dark:text-dark-ink"></p>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  // Grade boundaries: Bangladeshi SSC/HSC system.
+  const GRADES = [
+    { min: 80, point: 5.0, label: 'A+', bn: 'এ+' },
+    { min: 70, point: 4.0, label: 'A', bn: 'এ' },
+    { min: 60, point: 3.5, label: 'A-', bn: 'এ-' },
+    { min: 50, point: 3.0, label: 'B', bn: 'বি' },
+    { min: 40, point: 2.0, label: 'C', bn: 'সি' },
+    { min: 33, point: 1.0, label: 'D', bn: 'ডি' },
+    { min: 0, point: 0.0, label: 'F', bn: 'এফ' },
+  ]
+
+  function gradeFor(marks: number) {
+    return GRADES.find((g) => marks >= g.min) ?? GRADES[GRADES.length - 1]
+  }
+
+  function bnDigits(value: string | number): string {
+    return String(value).replace(/[0-9]/g, (d) => '\u09E7\u09E8\u09E9\u09EA\u09EB\u09EC\u09ED\u09EE\u09EF\u09E6'[
+      '0123456789'.indexOf(d)
+    ])
+  }
+
+  function fmtGPA(g: number): string {
+    return bnDigits(g.toFixed(2))
+  }
+
+  const tbody = document.getElementById('gpa-rows')!
+  const result = document.getElementById('gpa-result')!
+  const gradeLabel = document.getElementById('gpa-grade')!
+  const calc = document.getElementById('gpa-calc')!
+  calc.classList.remove('hidden')
+
+  const SUBJECTS = ['বাংলা', 'ইংরেজি', 'গণিত', 'বিজ্ঞান', 'ধর্ম']
+  let rowCount = 0
+
+  function addRow(name = '', marks = '') {
+    rowCount++
+    const tr = document.createElement('tr')
+    tr.className = 'border-b border-rule dark:border-dark-rule'
+    const idx = rowCount
+    tr.innerHTML = `
+      <td class="p-2"><input type="text" class="gpa-name w-full rounded border border-rule bg-transparent px-2 py-1 text-ink dark:border-dark-rule dark:text-dark-ink" placeholder="${SUBJECTS[(idx - 1) % SUBJECTS.length]}" /></td>
+      <td class="p-2"><input type="number" class="gpa-marks w-24 rounded border border-rule bg-transparent px-2 py-1 text-ink dark:border-dark-rule dark:text-dark-ink" min="0" max="100" placeholder="০–১০০" /></td>
+      <td class="p-2 gpa-grade text-ink dark:text-dark-ink">—</td>
+      <td class="p-2 text-center"><input type="checkbox" class="gpa-opt" /></td>
+    `
+    tbody.appendChild(tr)
+    tr.querySelector('.gpa-marks')!.addEventListener('input', recalc)
+    tr.querySelector('.gpa-opt')!.addEventListener('change', recalc)
+  }
+
+  function recalc() {
+    const rows = tbody.querySelectorAll('tr')
+    let mainSum = 0, mainCount = 0, optPoint = 0, hasOpt = false
+
+    for (const row of rows) {
+      const input = row.querySelector('.gpa-marks') as HTMLInputElement
+      const gradeCell = row.querySelector('.gpa-grade')!
+      const optBox = row.querySelector('.gpa-opt') as HTMLInputElement
+      const val = parseFloat(input.value)
+      gradeCell.textContent = '—'
+      if (isNaN(val) || val < 0 || val > 100) continue
+      const g = gradeFor(val)
+      gradeCell.textContent = `${g.bn} (${bnDigits(g.point.toFixed(1))})`
+      if (optBox.checked) {
+        hasOpt = true
+        optPoint = Math.max(optPoint, g.point)
+      } else {
+        mainSum += g.point
+        mainCount++
+      }
+    }
+
+    if (mainCount === 0) {
+      result.textContent = '—'
+      gradeLabel.textContent = ''
+      return
+    }
+
+    let gpa = mainSum / mainCount
+    if (hasOpt) gpa += Math.min(optPoint, 2.0) / mainCount
+    gpa = Math.min(gpa, 5.0)
+
+    result.textContent = fmtGPA(gpa)
+    const letter = GRADES.find((g) => gpa >= g.min - 0.01) ?? GRADES[GRADES.length - 1]
+    gradeLabel.textContent = `গ্রেড: ${letter.bn}`
+  }
+
+  document.getElementById('gpa-add-row')!.addEventListener('click', () => addRow())
+
+  for (let i = 0; i < 5; i++) addRow()
+  recalc()
+</script>

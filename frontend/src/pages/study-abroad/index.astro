@@ -1,0 +1,56 @@
+---
+/**
+ * Study-abroad country guides hub — N10.
+ *
+ * Starter set: 8 destinations (UK, USA, Canada, Australia, Malaysia, Japan,
+ * South Korea, Germany). The *দেশ-বিদেশের* half of the positioning.
+ */
+import Layout from '../../layouts/Layout.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import { getStudyAbroadGuides } from '../../lib/education'
+import { getSiteSettings, getCategories, getFooterPages, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../../lib/cms'
+
+const [settings, categories, footerPages, guides] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getStudyAbroadGuides().catch(() => []),
+])
+
+const jsonLd = guides.length > 0 ? {
+  '@context': 'https://schema.org', '@type': 'ItemList', name: 'বিদেশে পড়াশোনার গাইড',
+  itemListElement: guides.map((g, i) => ({
+    '@type': 'ListItem', position: i + 1, name: g.country, url: `/study-abroad/${g.slug}`,
+  })),
+} : undefined
+---
+
+<Layout title="বিদেশে পড়াশোনা" description="বিদেশে পড়াশোনার সম্ভাবনা — ভিসা, খরচ, ইনটেক ও আবেদনের ধাপ।"
+  settings={settings} categories={categories} footerPages={footerPages} jsonLd={jsonLd}>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'বিদেশে পড়াশোনা', href: '/study-abroad' }]} />
+    <header class="mb-6 border-b-2 border-brand-red pb-3">
+      <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">বিদেশে পড়াশোনা</h1>
+      <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">প্রতিটি দেশের জন্য ভিসা, খরচ, ইনটেক ও আবেদনের ধাপ।</p>
+    </header>
+    {guides.length === 0 ? (
+      <p class="rounded-md border border-rule bg-surface-raised p-6 text-center text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">এখনো কোনো গাইড যোগ করা হয়নি।</p>
+    ) : (
+      <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {guides.map((g) => (
+          <li>
+            <a href={`/study-abroad/${g.slug}`} class="block rounded-lg border border-rule bg-surface p-4 transition hover:border-brand-red/40 dark:border-dark-rule dark:bg-dark-surface dark:hover:border-brand-red/60">
+              {g.isFeatured && <span class="mb-2 inline-block rounded bg-blue-500/10 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-400/20 dark:text-blue-300">বিশেষ</span>}
+              <h2 class="font-headline text-lg font-bold text-ink dark:text-dark-ink">{g.country}</h2>
+              <div class="mt-2 space-y-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
+                {g.tuitionRange && <p>টিউশন: {g.tuitionRange}</p>}
+                {g.livingCostRange && <p>জীবনযাত্রা: {g.livingCostRange}</p>}
+                {g.intakes && <p>ইনটেক: {g.intakes}</p>}
+              </div>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+</Layout>
