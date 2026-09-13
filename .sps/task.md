@@ -186,6 +186,7 @@
 - [x] **404 page verified:** exists, Bengali, has header+footer.
 - [x] **Key files verified:** robots.txt, sitemap.xml, news-sitemap.xml, rss.xml, llms.txt, og-default.svg, _headers all present in dist/.
 - [x] **Inline script scan:** 79 pages, 0 executable inline scripts (S8 invariant holds).
+- [x] **⚠️ CSP route coverage fixed + verified:** the S11 URL change left the article CSP rule at `/article/*`, which matched no article page — every article would have fallen to the strict profile and lost AdSense silently. Fixed to the placeholder pattern `/:category/:id/:slug` (a splat cannot express it: only one splat per rule, and a splat crosses `/`). Verified by `scripts/verify-csp-routes.mjs`, wired into `pnpm verify`. Docs synced (`docs/security.md` §5 + three CMS comments).
 - [x] **Pre-launch QA checklist written:** `.sps/section-todos/S12.md`.
 - [ ] Lighthouse ≥95 **and accessibility ≥90**; LCP <1.5s; INP <100ms; CLS <0.02; TTFB <200ms — **needs production deployment**
 - [ ] **AdSense-vs-≥95 trade-off resolved** — two measurement profiles documented (`docs/performance-budget.md` + `.sps/section-todos/S12.md`)

@@ -21,7 +21,8 @@
     "typecheck:cms": "pnpm --filter @shikkha24/cms typecheck",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "verify": "pnpm run lint && pnpm run typecheck && pnpm run build",
+    "verify:csp": "node scripts/verify-csp-routes.mjs",
+    "verify": "pnpm run lint && pnpm run typecheck && pnpm run build && pnpm run verify:csp",
     "audit:ci": "pnpm audit --audit-level=high"
   },
   "devDependencies": {

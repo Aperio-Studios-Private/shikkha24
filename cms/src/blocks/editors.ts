@@ -12,10 +12,15 @@ import { VideoEmbedBlock } from './VideoEmbedBlock'
  * Payload lets a field override the editor it inherits. That is the only clean
  * way to keep the **video block** off fields whose route cannot render it:
  *
- *   - `/article/*` allows `frame-src` for `youtube-nocookie.com` → video is fine
+ *   - `/:category/:id/:slug` (the article route) allows `frame-src` for
+ *     `youtube-nocookie.com` → video is fine
  *   - `/live/*` and `/page/*` do not → a video block there would be a control
  *     that silently does nothing, which is the failure mode this project keeps
  *     designing out (see the S8 self-hiding islands)
+ *
+ * ⚠️ The article route was `/article/*` before the S11 URL change. The CSP rule
+ * in `frontend/public/_headers` is now the placeholder pattern
+ * `/:category/:id/:slug` — see the note there before editing either side.
  *
  * The block list is the *contract* between the editor and the frontend renderer
  * in `frontend/src/lib/content-blocks.ts`. A block added here without a matching
@@ -46,7 +51,8 @@ export const defaultEditor = lexicalEditor({
 
 /**
  * Editor for the article body — the same three blocks plus the click-to-load
- * video embed, which only `/article/*` is permitted to frame.
+ * video embed, which only the article route (`/:category/:id/:slug`) is
+ * permitted to frame.
  *
  * Assign it to a field with `editor: articleBodyEditor`.
  */

@@ -89,8 +89,22 @@ Set at Cloudflare (or the origin if Cloudflare cannot):
 
 A strict CSP will break AdSense, which needs inline scripts and dynamic script injection. Two profiles:
 
-- **Static/editorial pages (no ads):** strict CSP — `default-src 'self'`, no `unsafe-inline` for scripts, explicit `img-src` including the R2 domain, `frame-ancestors 'none'`.
+- **Static/editorial pages (no ads):** strict CSP — `default-src 'self'`, no `unsafe-inline` for scripts, explicit `img-src` naming the CMS/media host, `frame-ancestors 'none'`.
 - **Ad-bearing pages:** a relaxed CSP that allowlists Google's ad domains and the minimum inline allowance AdSense requires.
+
+**Which routes get the relaxed profile** (the authoritative list is the comment block in `frontend/public/_headers`):
+
+| Route pattern | Why |
+|---|---|
+| `/` | Homepage — 4 ad slots + poll + newsletter |
+| `/:category/:id/:slug` | Article — 3 ad slots + comments + bookmarks + video embeds |
+| `/category/*` | Category listing — 1 ad slot |
+| `/live/*` | Live blog — 1 ad slot + refresh island |
+| `/quiz`, `/quiz/*` | Quiz — 2 ad slots |
+
+⚠️ **The article rule uses `_headers` placeholders, not a splat, and this is load-bearing.** A splat greedily matches `/` and only one splat is allowed per rule; an article URL (`/:category/:id/:slug`) shares no literal prefix with its category listing (`/category/:slug`), so a prefix rule cannot express it. A placeholder matches exactly one path segment. **Do not "simplify" it to `/*` — that would relax the CSP for the whole site.**
+
+⚠️ **Media host:** the `img-src` / `media-src` host is the DianaHost CMS origin (`cms.shikkha24.com`), **not** an R2 domain — R2 was descoped on 2026-09-12 and media now lives on the host disk. The literal host in `_headers` must match `PUBLIC_CMS_ORIGIN` / `PUBLIC_MEDIA_BASE_URL` exactly; a CSP cannot be templated.
 
 ⚠️ A CSP that allows `unsafe-inline` and `unsafe-eval` globally provides little XSS protection. Document the relaxation explicitly rather than shipping a permissive policy everywhere.
 

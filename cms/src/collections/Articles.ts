@@ -122,8 +122,9 @@ export const Articles: CollectionConfig = {
       name: 'body',
       type: 'richText',
       label: { en: 'Body', bn: 'মূল লেখা' },
-      // The only field that carries the video block — `/article/*` is the only
-      // route whose CSP allows a third-party frame. See `blocks/editors.ts`.
+      // The only field that carries the video block — the article route
+      // (`/:category/:id/:slug`) is the only one whose CSP allows a third-party
+      // frame. See `blocks/editors.ts`.
       editor: articleBodyEditor,
     },
     {
