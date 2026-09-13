@@ -1,0 +1,198 @@
+---
+/**
+ * Reader bookmarks — `/bookmarks`.
+ *
+ * ## This page is a shell, and that is unavoidable
+ *
+ * The site is statically built, so a per-reader list cannot be baked into the
+ * HTML — one build is shared by every reader. The list is therefore rendered by
+ * a small script from `localStorage`, and the static HTML carries only the
+ * frame: the heading, the empty state, the clear control and a reserved box.
+ *
+ * That has one consequence worth stating plainly: **with JavaScript off this
+ * page is empty.** It is the only page on the site with that property, and it
+ * is acceptable because the alternative — a reader identifier in a URL so the
+ * server can render the list — would be a far worse trade on a site about
+ * scholarships and admissions. A `<noscript>` note says so instead of leaving
+ * the reader guessing.
+ *
+ * ## Titles from storage are untrusted
+ *
+ * A bookmark title is copied from the CMS, but it then lives in a store the
+ * reader can edit. So the script builds nodes and sets `textContent` — never
+ * `innerHTML` — and every href is re-validated against a path prefix before it
+ * is used. A stored `javascript:` URL must not become a link.
+ */
+import Layout from '../layouts/Layout.astro'
+import Breadcrumbs from '../components/Breadcrumbs.astro'
+import { isEnabled } from '../lib/feature-flags'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../lib/cms'
+
+const [settings, categories, footerPages] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+])
+
+const enabled = isEnabled('bookmarks')
+---
+
+<Layout
+  title="সংরক্ষিত"
+  description="আপনার সংরক্ষিত সংবাদ ও সময়সীমার তালিকা।"
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <Fragment slot="head">
+    <meta name="robots" content="noindex, nofollow" />
+  </Fragment>
+
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'সংরক্ষিত' }]} />
+
+    <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+      সংরক্ষিত
+    </h1>
+
+    {
+      !enabled ? (
+        <p class="mt-4 text-base text-ink-muted dark:text-dark-ink-muted">
+          এই সুবিধাটি এই মুহূর্তে বন্ধ রয়েছে।
+        </p>
+      ) : (
+        <>
+          <p class="mt-2 max-w-2xl text-sm leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+            আপনার সংরক্ষিত তালিকা এই ব্রাউজারেই রাখা হয় — কোনো অ্যাকাউন্ট লাগে না, এবং আমরা এটি
+            কোথাও পাঠাই না। ব্রাউজারের ডেটা মুছে ফেললে তালিকাটিও মুছে যাবে।
+          </p>
+
+          <noscript>
+            <p class="mt-4 rounded-md border border-rule bg-surface-raised p-3 text-sm text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
+              সংরক্ষিত তালিকা দেখতে জাভাস্ক্রিপ্ট চালু করুন। আপনার সংরক্ষিত আইটেমগুলো ব্রাউজারেই
+              সংরক্ষিত আছে — চালু করলে আবার দেখা যাবে।
+            </p>
+          </noscript>
+
+          {/* Reserved height so the list appearing does not shift the footer. */}
+          <ul
+            data-bookmark-list
+            class="mt-6 min-h-24 space-y-3"
+            aria-live="polite"
+            aria-busy="true"
+          >
+          </ul>
+
+          <p
+            data-bookmark-empty
+            class="mt-2 hidden text-base text-ink-muted dark:text-dark-ink-muted"
+          >
+            এখনো কিছু সংরক্ষণ করা হয়নি। যেকোনো সংবাদের পাশে ☆ চিহ্নে চাপ দিয়ে সংরক্ষণ করুন।
+          </p>
+
+          <div class="mt-6 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              data-bookmark-clear
+              class="hidden min-h-12 rounded-md border border-rule bg-white px-4 text-sm font-medium text-ink-muted transition-colors hover:text-brand-red dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted"
+            >
+              সব মুছে ফেলুন
+            </button>
+            <p
+              data-bookmark-status
+              role="status"
+              class="min-h-5 text-sm text-ink-muted dark:text-dark-ink-muted"
+            >
+            </p>
+          </div>
+        </>
+      )
+    }
+  </div>
+</Layout>
+
+<script>
+  /**
+   * Render the saved list.
+   *
+   * Nodes are built with `createElement` and filled with `textContent`. Titles
+   * come from a store the reader can edit, so they are treated as untrusted
+   * input — `innerHTML` here would be a self-inflicted XSS with the site's own
+   * origin. Hrefs are rebuilt from the stored `slug` and checked against the
+   * expected path prefix, so a stored `javascript:` value cannot become a link.
+   */
+  import {
+    BOOKMARKS_CHANGED_EVENT,
+    type BookmarkEntry,
+    clearBookmarks,
+    readBookmarks,
+  } from '../lib/bookmarks'
+
+  const list = document.querySelector<HTMLElement>('[data-bookmark-list]')
+  const empty = document.querySelector<HTMLElement>('[data-bookmark-empty]')
+  const clear = document.querySelector<HTMLButtonElement>('[data-bookmark-clear]')
+  const status = document.querySelector<HTMLElement>('[data-bookmark-status]')
+
+  /** Bengali date, or nothing if the stored value is unparseable. */
+  function bnDate(value: string): string {
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return ''
+    return date.toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' })
+  }
+
+  /** Only a same-site path is allowed through. */
+  function safeHref(entry: BookmarkEntry): string | null {
+    const candidate =
+      entry.kind === 'article' ? `/article/${entry.slug}` : `/deadlines#${entry.slug}`
+    return candidate.startsWith('/') && !candidate.startsWith('//') ? candidate : null
+  }
+
+  function render(): void {
+    if (!list) return
+    const entries = readBookmarks()
+
+    list.replaceChildren()
+
+    for (const entry of entries) {
+      const item = document.createElement('li')
+      item.className =
+        'rounded-md border border-rule bg-surface-raised p-3 dark:border-dark-rule dark:bg-dark-raised'
+
+      const href = safeHref(entry)
+      const title = document.createElement(href ? 'a' : 'span')
+      title.className = href
+        ? 'font-headline text-base font-semibold text-ink hover:text-brand-red dark:text-dark-ink'
+        : 'font-headline text-base font-semibold text-ink dark:text-dark-ink'
+      // `textContent`, never `innerHTML`.
+      title.textContent = entry.title
+      if (href) (title as HTMLAnchorElement).href = href
+
+      const meta = document.createElement('p')
+      meta.className = 'mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted'
+      meta.textContent = [entry.kind === 'article' ? 'সংবাদ' : 'সময়সীমা', bnDate(entry.savedAt)]
+        .filter(Boolean)
+        .join(' · ')
+
+      item.append(title, meta)
+      list.append(item)
+    }
+
+    if (empty) empty.classList.toggle('hidden', entries.length > 0)
+    if (clear) clear.classList.toggle('hidden', entries.length === 0)
+    list.setAttribute('aria-busy', 'false')
+  }
+
+  clear?.addEventListener('click', () => {
+    clearBookmarks()
+    if (status) status.textContent = 'সব সংরক্ষিত আইটেম মুছে ফেলা হয়েছে।'
+  })
+
+  document.addEventListener(BOOKMARKS_CHANGED_EVENT, render)
+  render()
+</script>

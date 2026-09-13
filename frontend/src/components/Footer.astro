@@ -182,8 +182,27 @@ const cmsOrigin = getPublicCmsOrigin()
       <p class="text-center text-xs text-ink-subtle dark:text-dark-ink-muted">
         © {currentYear} {settings.siteName}। সর্বস্বত্ব সংরক্ষিত।
       </p>
-      <nav aria-label="আইনি লিংক">
+      <nav aria-label="আইনি ও সহায়ক লিংক">
         <ul class="flex flex-wrap items-center justify-center gap-4 text-xs">
+          {/* Reader tools, not legal links, but this row is the only place a
+              reader reliably finds them — a separate nav would be a fifth
+              list in the footer for two items. */}
+          <li>
+            <a
+              href="/bookmarks"
+              class="text-ink-subtle underline decoration-transparent underline-offset-2 transition-colors hover:text-brand-red hover:decoration-brand-red dark:text-dark-ink-muted dark:hover:text-brand-red"
+            >
+              সংরক্ষিত
+            </a>
+          </li>
+          <li>
+            <a
+              href="/citizen"
+              class="text-ink-subtle underline decoration-transparent underline-offset-2 transition-colors hover:text-brand-red hover:decoration-brand-red dark:text-dark-ink-muted dark:hover:text-brand-red"
+            >
+              খবর পাঠান
+            </a>
+          </li>
           <li>
             <a
               href="/page/privacy-policy"

@@ -1,0 +1,120 @@
+---
+/**
+ * Save-for-later button.
+ *
+ * ## Works with no backend
+ *
+ * The only S9 reader control that needs no CMS origin: the list lives in
+ * `localStorage` (`lib/bookmarks.ts`), so this renders even when the CMS is
+ * down. That is deliberate — saving an article is the one reader action that
+ * must not depend on a server being reachable.
+ *
+ * ## No layout shift on toggle
+ *
+ * The label swaps between "সংরক্ষণ" and "সংরক্ষিত" and the icon between two
+ * glyphs. Both states are given the same reserved box (`min-w-28`, fixed
+ * `min-h-12`) so a tap cannot move anything around it — the CLS budget is a
+ * page-level gate and a button that reflows its own row would spend it.
+ */
+import { isEnabled } from '../lib/feature-flags'
+
+interface Props {
+  kind: 'article' | 'deadline'
+  id: number | string
+  slug: string
+  title: string
+  /** `compact` drops the label and keeps the icon — for list rows. */
+  variant?: 'full' | 'compact'
+}
+
+const { kind, id, slug, title, variant = 'full' } = Astro.props
+
+const renderable = isEnabled('bookmarks')
+---
+
+{
+  renderable && (
+    <button
+      type="button"
+      data-bookmark
+      data-kind={kind}
+      data-id={String(id)}
+      data-slug={slug}
+      data-title={title}
+      aria-pressed="false"
+      class:list={[
+        'bookmark-btn inline-flex min-h-12 items-center justify-center gap-1.5 rounded-md border border-rule bg-white px-3 text-sm font-medium text-ink-muted transition-colors hover:text-brand-red dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted',
+        variant === 'full' && 'min-w-28',
+      ]}
+    >
+      <span data-bookmark-icon aria-hidden="true">
+        ☆
+      </span>
+      {variant === 'full' && <span data-bookmark-label>সংরক্ষণ</span>}
+    </button>
+  )
+}
+
+<script>
+  /**
+   * Bookmark toggling.
+   *
+   * The saved state is read from storage on load rather than baked into the
+   * HTML, because the HTML is static and shared by every reader — the state is
+   * per browser by definition. So the button renders in its "not saved" form
+   * and is corrected on the next tick, before paint, which is why the icon
+   * starts as the outline glyph: a brief flash of the wrong state is better
+   * than a flash of a filled star that then empties.
+   */
+  import {
+    BOOKMARKS_CHANGED_EVENT,
+    type BookmarkEntry,
+    hasBookmark,
+    toggleBookmark,
+  } from '../lib/bookmarks'
+
+  const SAVED_LABEL = 'সংরক্ষিত'
+  const UNSAVED_LABEL = 'সংরক্ষণ'
+
+  function entryOf(button: HTMLElement): Omit<BookmarkEntry, 'savedAt'> | null {
+    const kind = button.dataset.kind
+    const id = button.dataset.id
+    const slug = button.dataset.slug
+    const title = button.dataset.title
+    if (!kind || !id || !slug || !title) return null
+    if (kind !== 'article' && kind !== 'deadline') return null
+    return { kind, id, slug, title }
+  }
+
+  function paint(button: HTMLElement, saved: boolean): void {
+    const icon = button.querySelector<HTMLElement>('[data-bookmark-icon]')
+    const label = button.querySelector<HTMLElement>('[data-bookmark-label]')
+    button.setAttribute('aria-pressed', saved ? 'true' : 'false')
+    button.setAttribute(
+      'aria-label',
+      saved ? 'সংরক্ষিত তালিকা থেকে সরান' : 'সংরক্ষিত তালিকায় যোগ করুন',
+    )
+    if (icon) icon.textContent = saved ? '★' : '☆'
+    if (label) label.textContent = saved ? SAVED_LABEL : UNSAVED_LABEL
+  }
+
+  function refreshAll(): void {
+    for (const button of document.querySelectorAll<HTMLElement>('[data-bookmark]')) {
+      const entry = entryOf(button)
+      if (entry) paint(button, hasBookmark(entry))
+    }
+  }
+
+  for (const button of document.querySelectorAll<HTMLElement>('[data-bookmark]')) {
+    button.addEventListener('click', () => {
+      const entry = entryOf(button)
+      if (!entry) return
+      paint(button, toggleBookmark(entry))
+    })
+  }
+
+  // Two buttons for the same item can be on one page (header and footer of an
+  // article), so every one repaints when any of them changes.
+  document.addEventListener(BOOKMARKS_CHANGED_EVENT, refreshAll)
+  refreshAll()
+</script>

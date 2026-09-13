@@ -22,6 +22,7 @@ import KeyTakeaways from '../../components/KeyTakeaways.astro'
 import AuthorCard from '../../components/AuthorCard.astro'
 import RelatedArticles from '../../components/RelatedArticles.astro'
 import ShareRow from '../../components/ShareRow.astro'
+import BookmarkButton from '../../components/BookmarkButton.astro'
 import ReadingProgress from '../../components/ReadingProgress.astro'
 import CorrectionNotice from '../../components/CorrectionNotice.astro'
 import ArticleAudio from '../../components/ArticleAudio.astro'
@@ -272,7 +273,18 @@ const jsonLd = {
           <div class="prose-bn text-ink dark:text-dark-ink" set:html={bodyAfterAd} />
         )}
 
-        <ShareRow url={canonical} title={article.title} />
+        {/* Share and save sit together — both are "keep this" actions, and a
+            reader looking for one will look where the other is. The bookmark
+            button needs no CMS origin: the list is browser-local. */}
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <ShareRow url={canonical} title={article.title} />
+          <BookmarkButton
+            kind="article"
+            id={article.id}
+            slug={article.slug}
+            title={article.title}
+          />
+        </div>
 
         <AuthorCard author={author} publishedAt={article.publishedAt} />
 

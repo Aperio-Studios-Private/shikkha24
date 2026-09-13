@@ -23,11 +23,11 @@ export const FEATURE_FLAGS = {
   weatherWidget: flag(import.meta.env.PUBLIC_FLAG_WEATHER_WIDGET),
   /** Prayer times + Hijri date in the header (Aladhan, build-time fetch). */
   prayerWidget: flag(import.meta.env.PUBLIC_FLAG_PRAYER_WIDGET),
-  /** Reader comments. Default OFF — not built until S4/S9. */
+  /** Reader comments. Built in S9; self-hiding without a CMS origin. */
   comments: flag(import.meta.env.PUBLIC_FLAG_COMMENTS),
-  /** Live blog engine (result days, admission days). Default OFF until S8. */
+  /** Live blog engine (result days, admission days). Built in S8. */
   liveBlog: flag(import.meta.env.PUBLIC_FLAG_LIVE_BLOG),
-  /** Quizzes and polls. Default OFF until S8. */
+  /** Quizzes. Built in S8; graded in the browser, so no backend is involved. */
   quiz: flag(import.meta.env.PUBLIC_FLAG_QUIZ),
   /**
    * Reader polls.

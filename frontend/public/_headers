@@ -29,9 +29,13 @@
 #   • `img-src` / `media-src` now name the CMS host, not the retired R2 host —
 #     every article image would otherwise be blocked in production
 #   • `connect-src` now names the CMS host in the STRICT profile too, because the
-#     newsletter signup sits in the footer of every page
+#     newsletter signup sits in the footer of every page and the comment,
+#     citizen and bookmark surfaces post to the CMS from editorial pages
 #   • `/article/*` gains `frame-src` for the click-to-load video embeds
-#   • `/gallery` and `/gallery/*` join the relaxed list (they carry an ad slot)
+#   • `/gallery` and `/gallery/*` were REMOVED from the relaxed list: the gallery
+#     carries no ad slot (none of the eight approved `AD_POSITIONS` is a gallery
+#     slot) and no inline script, so the strict profile is sufficient and
+#     tighter. If a gallery ad slot is ever approved, add both rules back.
 
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
@@ -50,16 +54,19 @@
   Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com; font-src 'self'; connect-src 'self' https://cms.shikkha24.com; media-src 'self' https://cms.shikkha24.com; frame-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Relaxed profile — routes that carry ad slots, or whose islands call the CMS.
+# Relaxed profile — routes that carry ad slots, or whose islands need a
+# third-party frame.
 #
 #   /               homepage   — 4 ad slots + the poll + newsletter
 #   /article/*      article    — 3 ad slots + comments + bookmarks + video embeds
 #   /category/*     category   — 1 ad slot
 #   /live/*         live blog  — 1 ad slot + the refresh island
 #   /quiz, /quiz/*  quiz       — 2 ad slots
-#   /gallery, /gallery/*       — 1 ad slot
 #
 # Every other route keeps the strict policy, which is the point of two profiles.
+# That now includes `/gallery` (no ad slot, no inline script), `/bookmarks` (no
+# CMS call at all — the list is browser-local) and `/citizen` (posts to the CMS,
+# which the strict `connect-src` already allows).
 #
 # The AdSense loader only injects the library when a real AdSense unit exists, and
 # the islands only call the CMS when the reader taps something — so today these
@@ -93,14 +100,6 @@
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
 
 /quiz/*
-  ! Content-Security-Policy
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
-
-/gallery
-  ! Content-Security-Policy
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
-
-/gallery/*
   ! Content-Security-Policy
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
 
