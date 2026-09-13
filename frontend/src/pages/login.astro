@@ -51,7 +51,7 @@ const available = providers.length > 0
 
 <Layout
   title="সাইন ইন"
-  description="শিক্ষা২৪-এ সাইন ইন করে মন্তব্যে আপনার পরিচয় যুক্ত করুন এবং বুকমার্ক সব ডিভাইসে রাখুন।"
+  description={`${settings.siteName}-এ সাইন ইন করে মন্তব্যে আপনার পরিচয় যুক্ত করুন এবং বুকমার্ক সব ডিভাইসে রাখুন।`}
   settings={settings}
   categories={categories}
   footerPages={footerPages}
@@ -88,7 +88,7 @@ const available = providers.length > 0
 
     {
       available ? (
-        <SocialLoginButtons providers={providers} next="/bookmarks" />
+        <SocialLoginButtons providers={providers} next="/bookmarks" siteName={settings.siteName} />
       ) : (
         <div class="mt-6 max-w-2xl rounded-md border border-rule px-4 py-4 dark:border-dark-rule">
           <p class="text-base font-semibold text-ink dark:text-dark-ink">

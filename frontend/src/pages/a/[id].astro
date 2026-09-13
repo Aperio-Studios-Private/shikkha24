@@ -11,7 +11,7 @@
  * emits a 301 redirect via `<meta http-equiv="refresh">` + a canonical
  * link to the new URL.
  */
-import { getAllArticlePaths } from '../../lib/cms'
+import { FALLBACK_SETTINGS, getAllArticlePaths, getSiteSettings } from '../../lib/cms'
 import { articleUrl } from '../../lib/url'
 import type { ArticleRef } from '../../lib/url'
 
@@ -30,6 +30,9 @@ const { slug, categorySlug } = Astro.props
 const ref: ArticleRef = { id: Astro.params.id!, slug, category: categorySlug ? { slug: categorySlug } : null }
 const newUrl = articleUrl(ref)
 const canonical = new URL(newUrl, Astro.site ?? Astro.url).href
+
+/** A bare redirect shell, but its `<title>` is still the brand. */
+const settings = await getSiteSettings().catch(() => FALLBACK_SETTINGS)
 ---
 
 <html lang="bn">
@@ -38,7 +41,7 @@ const canonical = new URL(newUrl, Astro.site ?? Astro.url).href
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="canonical" href={canonical} />
     <meta http-equiv="refresh" content={`0; url=${canonical}`} />
-    <title>শিক্ষা২৪</title>
+    <title>{settings.siteName}</title>
   </head>
   <body>
     <p style="font-family: sans-serif; text-align: center; padding: 2rem;">

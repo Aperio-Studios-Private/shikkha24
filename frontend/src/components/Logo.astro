@@ -1,53 +1,100 @@
 ---
 /**
- * Site logo.
+ * Site logo lockup.
  *
- * CMS-first: if `SiteSettings.logo` has an uploaded asset it is rendered,
- * otherwise the built-in wordmark is used. This is what lets the owner drop the
- * real logo into the admin with **no code change** (`.sps/profile.md` — the logo
- * is a CMS-managed field; owner decision 2026-09-12).
+ * The logo and the site name are INDEPENDENT (owner decision 2026-09-13):
+ *   - `logo` (Site Settings → logo) renders as a mark **beside** the name. It
+ *     never replaces the name — that was the old bug, where uploading a logo
+ *     silently deleted the brand text from the header and footer.
+ *   - The name is derived from `siteName`, so a rename in the CMS reaches every
+ *     page. Nothing in this file is hardcoded.
+ *   - `showNameWithLogo: false` hides the name, for a logo that already spells
+ *     the brand out. It is **ignored when there is no logo** — a page must never
+ *     render an empty brand.
  *
- * The fallback is a real wordmark in brand red rather than a grey box, so the
- * header looks intentional before the asset arrives.
+ * The wordmark auto-accents its trailing digit run (Bengali or ASCII), which
+ * reproduces the approved শিক্ষা / ২৪ two-tone for any name. A name with no
+ * trailing digits renders entirely in brand red rather than losing the brand
+ * colour to a guessed split.
  */
+interface LogoAsset {
+  url?: string | null
+  alt?: string | null
+  width?: number | null
+  height?: number | null
+}
+
 interface Props {
-  logo?: { url?: string | null; alt?: string | null } | null
+  /** CMS-managed logo asset. Rendered as a mark, never as a name replacement. */
+  logo?: LogoAsset | null
+  /** CMS-managed site name — the single source for the wordmark. */
   siteName: string
-  siteNameEn?: string | null
+  /** CMS toggle — hide the name when the logo already contains the wordmark. */
+  showNameWithLogo?: boolean | null
   class?: string
 }
 
-const { logo, siteName, siteNameEn, class: className = '' } = Astro.props
+const { logo, siteName, showNameWithLogo = true, class: className = '' } = Astro.props
+
 const mediaBase = import.meta.env.PUBLIC_MEDIA_BASE_URL || ''
-const logoSrc = logo?.url ? (logo.url.startsWith('http') ? logo.url : `${mediaBase}${logo.url}`) : null
+const logoSrc = logo?.url
+  ? logo.url.startsWith('http')
+    ? logo.url
+    : `${mediaBase}${logo.url}`
+  : null
+
+/** The name may only be hidden when a logo exists to carry the brand. */
+const showName = showNameWithLogo !== false || !logoSrc
+
+/**
+ * Split at the trailing digit run. The lazy `.*?` makes that run as long as
+ * possible, so শিক্ষা২৪ → ["শিক্ষা", "২৪"] and Shikkha24 → ["Shikkha", "24"].
+ * An empty prefix means the whole name is digits — treat it as unsplit.
+ */
+const match = siteName.match(/^(.*?)([0-9\u09E6-\u09EF]+)$/u)
+const hasAccent = Boolean(match && match[1].length > 0)
+const namePrefix = hasAccent ? match![1] : siteName
+const nameAccent = hasAccent ? match![2] : ''
+
+/**
+ * The accent is the brand red; the rest of the name is charcoal. When there is
+ * no accent the whole name takes the brand red, so the brand colour is never
+ * dropped just because a name happens to end in a letter.
+ */
+const nameBaseClass = hasAccent ? 'text-brand-charcoal dark:text-white' : 'text-brand-red'
+
+/**
+ * Intrinsic dimensions give the browser an aspect-ratio hint so the mark
+ * reserves its box before the image loads (CLS). Older uploads without
+ * dimensions fall back to a square, which is the common mark shape.
+ */
+const markWidth = logo?.width ?? 40
+const markHeight = logo?.height ?? 40
 ---
 
-<a href="/" class={`inline-flex items-center gap-2 no-underline ${className}`} aria-label={siteName}>
+<a
+  href="/"
+  class={`inline-flex items-center gap-2 no-underline ${className}`}
+  aria-label={showName ? undefined : siteName}
+>
   {
-    logoSrc ? (
+    logoSrc && (
       <img
         src={logoSrc}
-        alt={logo?.alt || siteName}
-        width="160"
-        height="40"
-        class="h-9 w-auto sm:h-10"
+        alt=""
+        width={markWidth}
+        height={markHeight}
+        class="h-9 w-auto shrink-0 sm:h-10"
         decoding="async"
       />
-    ) : (
-      <span class="inline-flex items-baseline gap-1.5">
-        <span
-          class="font-headline text-2xl leading-none font-bold text-brand-red sm:text-3xl"
-          aria-hidden="true"
-        >
-          শিক্ষা
-        </span>
-        <span
-          class="font-headline text-2xl leading-none font-bold text-brand-charcoal sm:text-3xl dark:text-white"
-          aria-hidden="true"
-        >
-          ২৪
-        </span>
-        {siteNameEn && <span class="sr-only">{siteNameEn}</span>}
+    )
+  }
+
+  {
+    showName && (
+      <span class="font-headline text-2xl leading-none font-bold sm:text-3xl">
+        <span class={nameBaseClass}>{namePrefix}</span>
+        {hasAccent && <span class="text-brand-red">{nameAccent}</span>}
       </span>
     )
   }

@@ -40,7 +40,8 @@ Two real defects sat behind that instruction, both now fixed:
 **Contract (do not break):**
 - `SiteSettings.siteName` and `SiteSettings.logo` are **independent fields**. Neither overrides the other — a rename never touches the logo, a logo upload never hides the name.
 - **`showNameWithLogo`** (new checkbox, default **true**) is the *only* way to hide the name. It exists for a logo that already contains the wordmark.
-- **Auto-accent:** the wordmark splits at its trailing digit/Latin run — `শিক্ষা` charcoal + `২৪` brand red. Works for any name; a name with no trailing digit/Latin run renders single-colour.
+- **Auto-accent:** the wordmark splits at its trailing digit run (Bengali or ASCII) — `শিক্ষা` charcoal + `২৪` brand red. A name with no trailing digit run renders single-colour in brand red, so the brand colour is never lost.
+  - ⚠️ **Observed on the live CMS (2026-09-13):** the configured `siteName` is **`শিক্ষা২৪.com`**, which ends in `.com`, so **no accent fires** and the whole wordmark renders brand red — the two-tone is not reproduced for the real name. Raised with the owner; the fix is a decision, not a guess: either accent the digit run *inside* the name (`শিক্ষা` + `২৪` + `.com`), or drop `.com` from the display name. Verified against the live CMS, not assumed.
 - **No hardcoded site name anywhere.** A rename in the CMS must propagate to header, footer, meta descriptions, `robots.txt`, newsletter copy, login, structured data and OG tags in one rebuild. **Grep for `শিক্ষা২৪` before shipping any new page.** The only permitted occurrences are the documented fallbacks: `FALLBACK_SETTINGS` in `frontend/src/lib/cms.ts`, and the `|| 'শিক্ষা২৪'` guards in `rss.xml.ts` / `news-sitemap.xml.ts`.
 
 ## S9 — Media, Newsletter & Engagement (build complete) — 2026-09-13

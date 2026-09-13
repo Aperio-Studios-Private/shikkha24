@@ -44,7 +44,7 @@ const [settings, categories, footerPages] = await Promise.all([
 
 <Layout
   title="অনুসন্ধান"
-  description="শিক্ষা২৪-এ অনুসন্ধান করুন।"
+  description={`${settings.siteName}-এ অনুসন্ধান করুন।`}
   settings={settings}
   categories={categories}
   footerPages={footerPages}

@@ -31,9 +31,11 @@ interface Props {
   next?: string
   /** Shown above the buttons — e.g. "to sync your bookmarks". */
   heading?: string
+  /** CMS-managed site name, so the privacy note follows a rename. */
+  siteName: string
 }
 
-const { providers, next = '/', heading } = Astro.props
+const { providers, next = '/', heading, siteName } = Astro.props
 
 const cmsOrigin = getPublicCmsOrigin()
 const usable = isEnabled('socialLogin') && cmsOrigin ? providers : []
@@ -63,7 +65,7 @@ const usable = isEnabled('socialLogin') && cmsOrigin ? providers : []
       */}
       <p class="social-login-note">
         সাইন ইন করলে প্রোভাইডার থেকে শুধু আপনার নাম, ছবি ও ইমেইল (থাকলে) নেওয়া হয়।
-        পাসওয়ার্ড শিক্ষা২৪ কখনো দেখে না।
+        পাসওয়ার্ড {siteName} কখনো দেখে না।
       </p>
     </div>
   )

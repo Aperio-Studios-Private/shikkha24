@@ -38,7 +38,7 @@ const [settings, categories, footerPages, result] = await Promise.all([
 
 <Layout
   title="সর্বশেষ খবর"
-  description="শিক্ষা২৪-এ প্রকাশিত সর্বশেষ সংবাদ।"
+  description={`${settings.siteName}-এ প্রকাশিত সর্বশেষ সংবাদ।`}
   settings={settings}
   categories={categories}
   footerPages={footerPages}

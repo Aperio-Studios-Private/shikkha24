@@ -73,14 +73,18 @@ const newsletter = await getNewsletterStatus()
     <div class="grid-12 gap-x-6">
       {/* Column 1 — Brand & about */}
       <div class="col-span-12 sm:col-span-6 lg:col-span-3 order-1">
-        <Logo siteName={settings.siteName} siteNameEn={settings.siteNameEn} logo={settings.logo} />
+        <Logo
+          siteName={settings.siteName}
+          logo={settings.logo}
+          showNameWithLogo={settings.showNameWithLogo}
+        />
         {settings.tagline && (
           <p class="mt-3 text-sm leading-relaxed text-ink-muted dark:text-dark-ink-muted">
             {settings.tagline}
           </p>
         )}
         <p class="mt-3 text-sm leading-relaxed text-ink-muted dark:text-dark-ink-muted">
-          শিক্ষা২৪ — দেশ-বিদেশের শিক্ষা খবর, ভর্তি, বৃত্তি, পরীক্ষার রুটিন ও ফলাফলের সবচেয়ে দ্রুততম ঠিকানা।
+          {settings.siteName} — দেশ-বিদেশের শিক্ষা খবর, ভর্তি, বৃত্তি, পরীক্ষার রুটিন ও ফলাফলের সবচেয়ে দ্রুততম ঠিকানা।
         </p>
 
         {/* Self-hiding: renders only when there is a CMS to subscribe against

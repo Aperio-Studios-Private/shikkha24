@@ -31,7 +31,7 @@ const cmsOrigin = getPublicCmsOrigin()
 
 <Layout
   title="সাবস্ক্রিপশন নিশ্চিত করুন"
-  description="শিক্ষা২৪ নিউজলেটার সাবস্ক্রিপশন নিশ্চিত করুন।"
+  description={`${settings.siteName} নিউজলেটার সাবস্ক্রিপশন নিশ্চিত করুন।`}
   settings={settings}
   categories={categories}
   footerPages={footerPages}
@@ -48,7 +48,7 @@ const cmsOrigin = getPublicCmsOrigin()
         heading="সাবস্ক্রিপশন নিশ্চিত করুন"
         intro="নিচের বোতামে ক্লিক করলে আপনার ইমেইলটি নিউজলেটার তালিকায় যুক্ত হবে।"
         action="নিশ্চিত করুন"
-        success="ধন্যবাদ — আপনার সাবস্ক্রিপশন নিশ্চিত হয়েছে। এখন থেকে শিক্ষা২৪-এর নিউজলেটার পাবেন।"
+        success={`ধন্যবাদ — আপনার সাবস্ক্রিপশন নিশ্চিত হয়েছে। এখন থেকে ${settings.siteName}-এর নিউজলেটার পাবেন।`}
       />
     ) : (
       <section class="mx-auto max-w-xl py-8">

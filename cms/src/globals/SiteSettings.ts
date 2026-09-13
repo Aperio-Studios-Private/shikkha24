@@ -54,7 +54,19 @@ export const SiteSettings: GlobalConfig = {
       type: 'upload',
       relationTo: 'media',
       label: { en: 'Logo', bn: 'লোগো' },
-      admin: { description: 'খালি থাকলে প্লেসহোল্ডার SVG ব্যবহৃত হবে।' },
+      admin: {
+        description:
+          'লোগোটি সাইটের নামের **পাশে** মার্ক হিসেবে বসে — নাম মুছে যায় না। খালি থাকলে প্লেসহোল্ডার ওয়ার্ডমার্ক ব্যবহৃত হবে।',
+      },
+    },
+    {
+      name: 'showNameWithLogo',
+      type: 'checkbox',
+      defaultValue: true,
+      label: { en: 'Show site name beside the logo', bn: 'লোগোর পাশে সাইটের নাম দেখাও' },
+      admin: {
+        description: 'ডিফল্টভাবে চালু। লোগোর ভেতরেই যদি নাম লেখা থাকে, তাহলে বন্ধ করুন — নাম লুকাবে, লোগো থাকবে।',
+      },
     },
     {
       name: 'favicon',

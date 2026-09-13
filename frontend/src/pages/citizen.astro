@@ -55,7 +55,7 @@ const renderable = Boolean(cmsOrigin) && isEnabled('citizen')
 
 <Layout
   title="খবর পাঠান"
-  description="আপনার এলাকার শিক্ষা সংক্রান্ত খবর, ছবি বা তথ্য শিক্ষা২৪-কে পাঠান।"
+  description={`আপনার এলাকার শিক্ষা সংক্রান্ত খবর, ছবি বা তথ্য ${settings.siteName}-কে পাঠান।`}
   settings={settings}
   categories={categories}
   footerPages={footerPages}

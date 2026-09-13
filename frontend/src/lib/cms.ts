@@ -41,7 +41,22 @@ export interface CmsSiteSettings {
   siteName: string
   siteNameEn?: string | null
   tagline?: string | null
-  logo?: { url?: string | null; alt?: string | null } | null
+  /**
+   * Logo asset, rendered as a mark **beside** the name — never as a
+   * replacement for it. `width`/`height` come from the media record and give
+   * the browser an aspect-ratio hint, so the mark reserves its box (no CLS).
+   */
+  logo?: {
+    url?: string | null
+    alt?: string | null
+    width?: number | null
+    height?: number | null
+  } | null
+  /**
+   * CMS toggle — hide the name when the logo already contains the wordmark.
+   * Ignored when no logo is set, so the brand can never render empty.
+   */
+  showNameWithLogo?: boolean | null
   contact?: { email?: string | null; phone?: string | null; address?: string | null } | null
   social?: Record<string, string | null> | null
   footerText?: string | null
@@ -86,6 +101,7 @@ export const FALLBACK_SETTINGS: CmsSiteSettings = {
   siteName: 'শিক্ষা২৪',
   siteNameEn: 'Shikkha24',
   tagline: 'দেশ-বিদেশের শিক্ষার সর্বশেষ খবর ও সুযোগ',
+  showNameWithLogo: true,
   contact: {},
   social: {},
 }

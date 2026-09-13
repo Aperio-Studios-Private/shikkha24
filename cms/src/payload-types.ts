@@ -2326,9 +2326,13 @@ export interface SiteSetting {
   siteNameEn?: string | null;
   tagline?: string | null;
   /**
-   * খালি থাকলে প্লেসহোল্ডার SVG ব্যবহৃত হবে।
+   * লোগোটি সাইটের নামের **পাশে** মার্ক হিসেবে বসে — নাম মুছে যায় না। খালি থাকলে প্লেসহোল্ডার ওয়ার্ডমার্ক ব্যবহৃত হবে।
    */
   logo?: (number | null) | Media;
+  /**
+   * ডিফল্টভাবে চালু। লোগোর ভেতরেই যদি নাম লেখা থাকে, তাহলে বন্ধ করুন — নাম লুকাবে, লোগো থাকবে।
+   */
+  showNameWithLogo?: boolean | null;
   favicon?: (number | null) | Media;
   contact?: {
     email?: string | null;
@@ -2369,6 +2373,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   siteNameEn?: T;
   tagline?: T;
   logo?: T;
+  showNameWithLogo?: T;
   favicon?: T;
   contact?:
     | T

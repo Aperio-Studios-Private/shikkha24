@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro'
 
+import { FALLBACK_SETTINGS, getSiteSettings } from '../lib/cms'
+
 /**
  * robots.txt
  *
@@ -12,10 +14,11 @@ import type { APIRoute } from 'astro'
  * discoverability; blocking the crawlers while publishing an llms.txt would be
  * contradictory.
  */
-export const GET: APIRoute = () => {
+export const GET: APIRoute = async () => {
   const site = (import.meta.env.PUBLIC_SITE_URL || 'https://shikkha24.com').replace(/\/$/, '')
+  const settings = await getSiteSettings().catch(() => FALLBACK_SETTINGS)
 
-  const body = `# শিক্ষা২৪ — robots.txt
+  const body = `# ${settings.siteName} — robots.txt
 
 User-agent: *
 Allow: /

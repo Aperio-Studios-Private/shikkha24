@@ -143,7 +143,11 @@ const socialLinks = Object.entries(settings.social ?? {}).filter(([, url]) => !!
   {/* ── 2. Main header row: logo + navigation ───────────────────────── */}
   <div class="container-page flex items-center justify-between gap-4 py-3 sm:py-4">
     {/* Logo */}
-    <Logo siteName={settings.siteName} siteNameEn={settings.siteNameEn} logo={settings.logo} />
+    <Logo
+      siteName={settings.siteName}
+      logo={settings.logo}
+      showNameWithLogo={settings.showNameWithLogo}
+    />
 
     {/* Main navigation — desktop */}
     <nav class="hidden items-center gap-1 sm:flex" aria-label="প্রধান নেভিগেশন">
