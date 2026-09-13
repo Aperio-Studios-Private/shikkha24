@@ -124,7 +124,7 @@
 - [x] **⚠️ Fixed a site-wide CSP bug found here:** Astro **inlines small component scripts**, and `script-src 'self'` (no `'unsafe-inline'`) blocks them — the theme toggle, mobile menu, text resizer, demo ads, share button and the `/search` bootstrap had all been silently dead since S2. Fixed with `vite.build.assetsInlineLimit: 0` plus moving two deliberate inline scripts into `public/`. **0 executable inline scripts across all 28 pages.**
 - [x] S8 DoD evidence → **user approval received 2026-09-13** (`.sps/section-todos/S8.md`) — 35/35 harness checks + a flag-off build
 
-## S9 — Media, Newsletter & Engagement
+## S9 — Media, Newsletter & Engagement ✅ APPROVED 2026-09-13
 > ✅ **Entry gate SATISFIED 2026-09-12:** the newsletter sending path is **cPanel SMTP, explicitly accepted** (`.sps/plan.md` §"Scope amendment (2026-09-12)"). The gate closes as *accepted*, not *confirmed working* — the cPanel risks are real and documented in `docs/security.md` §7. The module is therefore built **transport-agnostic** so an ESP can be swapped in by configuration alone.
 > ⚠️ **Three S9 architecture changes were recorded in `.sps/plan.md` before any code** (rule 13): media moved to the **DianaHost disk** (R2 descoped), newsletter transport is **cPanel SMTP**, and **social login** proceeds behind a flag.
 
@@ -138,7 +138,7 @@
 - [x] **Citizen journalism submission** — form + collection, moderation-gated and rate-limited. ✅ Built.
 - [x] **Push notifications + N7 deadline reminders** — Web Push, **self-generated VAPID keys**, a service worker, a subscription endpoint, the save-a-deadline flow. Self-hiding when unconfigured. ✅ `verify:push` 22/22.
 - [x] **Social login** — Meta + Google OAuth behind a flag, browser-local fallback retained. No button rendered that cannot work. ✅ `verify:oauth` 46/46. Readers have **no password** at all (`disableLocalStrategy`), and `email` is optional + non-unique because it is an attribute, not an identity.
-- [x] S9 DoD evidence → **user approval** (`.sps/section-todos/S9.md`)
+- [x] S9 DoD evidence → **user approval received 2026-09-13** (`.sps/section-todos/S9.md`)
 - [ ] **OWNER:** generate the VAPID key pair and set `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` + `PUBLIC_VAPID_PUBLIC_KEY` — until then the reminder control is not rendered
 - [ ] **OWNER:** create the OAuth apps and set **`GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET`** and **`FACEBOOK_OAUTH_CLIENT_ID` / `FACEBOOK_OAUTH_CLIENT_SECRET`** (Meta calls the pair "App ID" / "App Secret"), plus `OAUTH_REDIRECT_BASE` and `PUBLIC_SITE_URL`. Register the exact callback URLs — until then **no login button is rendered at all**.
 - [ ] **OWNER:** decide **account linking**. Two provider identities sharing an email stay two separate readers today. Merging them automatically would be an account-takeover vector when a provider does not verify email, so it was deliberately left unimplemented rather than guessed at.

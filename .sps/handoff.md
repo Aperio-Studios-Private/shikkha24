@@ -1,9 +1,9 @@
 # SPS Handoff
 
 ## Current Phase
-- **Status:** **S9 BUILD COMPLETE — awaiting owner approval.** S0–S4 approved 2026-09-12; S5–S8 evidence posted, approval implied by "please continue" but not explicitly given.
-- **Last Activity:** 2026-09-13T14:20+06:00
-- **Next Action:** owner reviews S9 (`.sps/section-todos/S9.md`) — **132 harness checks, 0 failures**. Seven OWNER actions are listed there; two of them (VAPID keys, OAuth apps) are the difference between a control that renders and one that does not.
+- **Status:** **S10 BUILD — in progress.** S0–S4 approved 2026-09-12; S5–S8 evidence posted; **S9 approved 2026-09-13** (132 harness checks, 0 failures).
+- **Last Activity:** 2026-09-13T18:15+06:00 — S9 approved, S10 started.
+- **Next Action:** build S10 (Education Features & Specialized Sections): N1 scholarship tracker, N2 academic calendar enhancement, N3 results hub, N4 institution directory, N5 exam routine hub, N6 GPA calculator, N8 circular tracker, N9 district-first opportunities, N10 study-abroad guides.
 - **⚠️ One S9 build item is deliberately NOT built:** bookmark → CMS sync. The browser-local half is complete and works with no account. The sync half is unblocked but needs a **policy decision** first — a naive union-merge resurrects a bookmark deleted on another device. Raised for the owner rather than guessed at.
 - **User instruction (latest):** "read all docs and everything then continue to work" — taken, per this project's recorded convention, as approval of the previous section plus instruction to build the next one.
 - **⚠️ Open owner question (raised 2026-09-12):** the owner plans to **upgrade DianaHost to a 5 GB plan** and asked whether Cloudflare is still needed. Answer given: **yes** — 5 GB eases storage (and maybe bandwidth) but does not address uptime isolation, the performance gates, or deploy mechanics. **Two figures still needed: the 5 GB plan's monthly bandwidth and its price.** No plan change has been made pending that answer.
