@@ -3,9 +3,19 @@
  * Article card — the workhorse of every listing surface.
  *
  * Three variants:
- *   `lead`    — the homepage's primary story. Large image, larger headline.
- *   `default` — grid card used in category sections.
- *   `compact` — dense list row used for "latest" and sidebars.
+ *   `lead`    — the homepage's primary story. Large stacked image, larger headline.
+ *   `default` — the standard news card. Single row: image left, text right.
+ *   `compact` — the dense list row. Same single-row shape, tighter type.
+ *
+ * ## ⚠️ The flex row belongs on the anchor, never on the outer <article>
+ *
+ * The image and the text block are *both* children of the `<a>` that wraps the
+ * whole card, so the `<a>` is the element that lays them out. Declaring
+ * `flex flex-row` on the outer `<article>` looks correct but does nothing: that
+ * element has a single child (the anchor), and the anchor is `display: inline`,
+ * so its block children simply stack. That is exactly why every card rendered
+ * image-above-text regardless of which variant classes were applied. Keep the
+ * row/column choice on the anchor.
  *
  * ## Zero CLS
  *
@@ -19,6 +29,13 @@
  * Bengali headlines run longer than Latin ones for the same information, so
  * truncation is a real design case, not an edge case. `line-clamp` truncates
  * with an ellipsis rather than slicing mid-glyph, which would break conjuncts.
+ *
+ * ## Why the row variants carry no standfirst
+ *
+ * A standfirst beside an 80px thumbnail competes with the headline for a very
+ * narrow column and pushes the card's height around. The approved card
+ * reference shows category, headline, rule, then date — so the excerpt is
+ * reserved for the `lead`, where there is width to spend.
  */
 import type { CmsArticle } from '../lib/cms'
 import { getCategoryImage } from '../lib/images'
@@ -29,6 +46,7 @@ import SponsoredLabel from './SponsoredLabel.astro'
 interface Props {
   article: CmsArticle
   variant?: 'lead' | 'default' | 'compact'
+  /** Only `lead` renders a standfirst by default; see the note above. */
   showExcerpt?: boolean
   showCategory?: boolean
   /** Render the headline as <h3> instead of <h2> when nested under a section. */
@@ -38,7 +56,7 @@ interface Props {
 const {
   article,
   variant = 'default',
-  showExcerpt = variant !== 'compact',
+  showExcerpt = variant === 'lead',
   showCategory = true,
   headingLevel = 2,
 } = Astro.props
@@ -48,9 +66,9 @@ const {
  *
  * `resolveCmsImage` supplies a real `srcset` from the WebP variants Payload
  * generated, plus the **true** width/height — which is what keeps the reserved
- * box honest. Hard-coding 1376×768 for every remote image (as this card used to)
- * reserves the wrong box for any other aspect ratio, and a wrong box either
- * letterboxes or shifts layout.
+ * box honest. Hard-coding 1376×768 for every remote image reserves the wrong
+ * box for any other aspect ratio, and a wrong box either letterboxes or shifts
+ * layout.
  */
 const photo = resolveCmsImage(article.featuredImage, article.title)
 
@@ -78,93 +96,67 @@ const published = article.publishedAt
   : null
 
 const Heading = headingLevel === 2 ? 'h2' : 'h3'
+
+/** The hero is the only stacked variant; every other card is a single row. */
+const isLead = variant === 'lead'
+
+/**
+ * The rule between headline and metadata.
+ *
+ * Only the standalone `default` card carries it. `compact` rows live inside
+ * lists that already separate themselves with `divide-y`, so a second line
+ * inside each row would read as a mistake rather than as structure.
+ */
+const showRule = variant === 'default'
 ---
 
-<article class:list={['group', variant === 'compact' ? 'flex gap-3' : variant === 'default' ? 'flex flex-row sm:flex-col' : 'flex flex-col']}>
-  <a href={href} class="no-underline">
+<article class="group">
+  <a href={href} class:list={['no-underline', isLead ? 'flex flex-col' : 'flex flex-row gap-3']}>
     {
-      /* Prefer the article's own photo; fall back to the category archetype. */
-      (photo || categoryImage) &&
-        variant !== 'compact' && (
-          <div
-            class:list={[
-              'relative overflow-hidden rounded-md bg-surface-raised dark:bg-dark-raised',
-              // Lead: 16:9 (matches the source) and height-capped so the
-              // headline and image are both visible without scrolling.
-              // A hero taller than ~420px pushes the masthead off-screen.
-              variant === 'lead'
-                ? 'mb-3 aspect-16/9 max-h-[26rem]'
-                : 'mb-0 mr-3 h-20 w-20 shrink-0 sm:mb-3 sm:mr-0 sm:aspect-3/2 sm:h-auto sm:w-full',
-            ]}
-          >
-            {photo ? (
-              <img
-                src={photo.src}
-                srcset={photo.srcset}
-                sizes={
-                  variant === 'lead'
-                    ? '(min-width: 1024px) 800px, 100vw'
-                    : '(min-width: 640px) 600px, 80px'
-                }
-                alt={photo.alt}
-                width={photo.width}
-                height={photo.height}
-                loading={variant === 'lead' ? 'eager' : 'lazy'}
-                decoding="async"
+      /* Prefer the article's own photo; fall back to the category archetype.
+         A card with neither renders as a text-only row, which is honest. */
+      (photo || categoryImage) && (
+        <div
+          class:list={[
+            'shrink-0 overflow-hidden rounded bg-surface-raised dark:bg-dark-raised',
+            // Lead: 16:9 (matches the source) and height-capped so the headline
+            // and image are both visible without scrolling. A hero taller than
+            // ~420px pushes the masthead off-screen.
+            // Row variants: a fixed 80×80 square, so the headline column keeps
+            // a predictable width no matter what aspect the source image has.
+            isLead ? 'mb-3 aspect-16/9 w-full' : 'aspect-1 h-20 w-20',
+          ]}
+        >
+          {photo ? (
+            <img
+              src={photo.src}
+              srcset={photo.srcset}
+              sizes={isLead ? '(min-width: 1024px) 800px, 100vw' : '80px'}
+              alt={photo.alt}
+              width={photo.width}
+              height={photo.height}
+              loading={isLead ? 'eager' : 'lazy'}
+              fetchpriority={isLead ? 'high' : 'auto'}
+              decoding="async"
+              class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            />
+          ) : (
+            categoryImage && (
+              <CategoryImage
+                image={categoryImage}
+                alt={article.title}
+                sizes={isLead ? '(min-width: 1024px) 800px, 100vw' : '80px'}
+                widths={isLead ? [400, 800, 1200] : [80, 160]}
+                priority={isLead}
                 class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
               />
-            ) : (
-              categoryImage && (
-                <CategoryImage
-                  image={categoryImage}
-                  alt={article.title}
-                  sizes={
-                    variant === 'lead'
-                      ? '(min-width: 1024px) 800px, 100vw'
-                      : '(min-width: 640px) 600px, 80px'
-                  }
-                  widths={[400, 800, 1200]}
-                  priority={variant === 'lead'}
-                  class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                />
-              )
-            )}
-          </div>
-        )
+            )
+          )}
+        </div>
+      )
     }
 
-    {
-      (photo || categoryImage) &&
-        variant === 'compact' && (
-          <div class="aspect-1 h-20 w-20 shrink-0 overflow-hidden rounded bg-surface-raised dark:bg-dark-raised">
-            {photo ? (
-              <img
-                src={photo.src}
-                srcset={photo.srcset}
-                sizes="80px"
-                alt={photo.alt}
-                width={photo.width}
-                height={photo.height}
-                loading="lazy"
-                decoding="async"
-                class="h-full w-full object-cover"
-              />
-            ) : (
-              categoryImage && (
-                <CategoryImage
-                  image={categoryImage}
-                  alt={article.title}
-                  sizes="80px"
-                  widths={[80, 160]}
-                  class="h-full w-full object-cover"
-                />
-              )
-            )}
-          </div>
-        )
-    }
-
-    <div class="flex min-w-0 flex-col gap-1.5">
+    <div class="flex min-w-0 flex-1 flex-col gap-1.5">
       {/* The sponsored chip sits beside the category rather than in the meta row:
           a reader scanning headlines must see that a story is paid for before
           they read it, not after. */}
@@ -180,8 +172,8 @@ const Heading = headingLevel === 2 ? 'h2' : 'h3'
       <Heading
         class:list={[
           'font-headline font-bold text-ink transition-colors group-hover:text-brand-red dark:text-dark-ink dark:group-hover:text-brand-red',
-          variant === 'lead' && 'text-2xl sm:text-3xl lg:text-4xl',
-          variant === 'default' && 'line-clamp-2 text-base sm:line-clamp-3 sm:text-xl',
+          isLead && 'text-2xl sm:text-3xl lg:text-4xl',
+          variant === 'default' && 'line-clamp-2 text-base sm:text-lg',
           variant === 'compact' && 'line-clamp-2 text-base',
         ]}
       >
@@ -193,13 +185,17 @@ const Heading = headingLevel === 2 ? 'h2' : 'h3'
           <p
             class:list={[
               'text-ink-muted dark:text-dark-ink-muted',
-              variant === 'lead' ? 'line-clamp-3 text-base sm:text-lg' : 'line-clamp-2 text-sm',
+              isLead ? 'line-clamp-3 text-base sm:text-lg' : 'line-clamp-2 text-sm',
             ]}
           >
             {article.excerpt}
           </p>
         )
       }
+
+      {/* Decorative: it separates headline from metadata, it is not a
+          thematic break a screen reader should announce. */}
+      {showRule && <div class="mt-0.5 border-t border-rule dark:border-dark-rule" aria-hidden="true" />}
 
       <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
         {published && <time datetime={article.publishedAt ?? undefined}>{published}</time>}
