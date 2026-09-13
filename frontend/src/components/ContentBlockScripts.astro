@@ -15,8 +15,10 @@
  *     drives the clip position from the range input
  *   - **scrollytelling** — marks the section so the CSS scroll-driven animation
  *     applies
+ *   - **video embed** — turns the link into an inline player on the reader's
+ *     first tap, and only then
  *
- * Both are additive. Neither block needs this script to be readable, so a
+ * All are additive. None of the blocks needs this script to be readable, so a
  * failure here costs polish and nothing else.
  */
 
@@ -62,5 +64,50 @@ import '../styles/content-blocks.css'
    */
   for (const section of document.querySelectorAll('[data-scrolly]')) {
     section.classList.add('is-enhanced')
+  }
+
+  /**
+   * Click-to-load video embeds.
+   *
+   * The iframe is built here rather than shipped in the markup, so an article
+   * carrying a video makes **no third-party request** until the reader asks for
+   * one. The trigger is a real link, so if this script never runs the reader
+   * still reaches the video — in a new tab, which is worse than playing in place
+   * but far better than a dead button.
+   *
+   * The id is read back out of the DOM and re-validated. `parseYouTubeId` already
+   * guaranteed it at build time, but a page is not a trusted input once it is on
+   * a CDN edge, and this is the line that decides what gets framed.
+   */
+  const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/
+
+  for (const figure of document.querySelectorAll<HTMLElement>('[data-video]')) {
+    const trigger = figure.querySelector<HTMLAnchorElement>('[data-video-trigger]')
+    const id = figure.dataset.videoId ?? ''
+
+    if (!trigger || !VIDEO_ID.test(id)) continue
+
+    trigger.addEventListener('click', (event) => {
+      // The link stays a link until this handler decides otherwise — so a
+      // browser that blocks the frame still has the ordinary navigation path.
+      event.preventDefault()
+
+      const frame = document.createElement('iframe')
+      frame.className = 'video-frame'
+      // `autoplay=1` is allowed because a tap is a user gesture. `rel=0` keeps
+      // the end screen inside this channel; `playsinline` stops iOS Safari from
+      // hijacking the screen with its own fullscreen player.
+      frame.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1`
+      frame.title = figure.querySelector('.video-label')?.textContent?.trim() || 'ভিডিও'
+      // Scoped to what a player needs — not a blanket permission delegation.
+      frame.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture'
+      frame.allowFullscreen = true
+      frame.setAttribute('loading', 'lazy')
+
+      trigger.replaceWith(frame)
+      // The trigger has just left the document. Without this, focus falls back
+      // to `<body>` and a keyboard reader loses their place entirely.
+      frame.focus()
+    })
   }
 </script>

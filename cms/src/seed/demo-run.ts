@@ -34,6 +34,7 @@ try {
   console.log(`  media     ${engagement.media}`)
   console.log(`  galleries ${engagement.galleries}`)
   console.log(`  comments  ${engagement.comments}`)
+  console.log(`  video     ${engagement.video}`)
   console.log(`  skipped   ${report.skipped} (already present, or category unresolved)`)
   console.log('')
   console.log('These are throwaway rows — delete before launch.')

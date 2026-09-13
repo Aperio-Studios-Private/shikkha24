@@ -1,14 +1,14 @@
 /*
- * Styles for the S8 article content blocks.
+ * Styles for the S8/S9 article content blocks.
  *
  * ## Why this file is global
  *
- * The block markup arrives through `set:html` from `lib/richtext.ts`. Astro's
- * component-scoped styles only apply to elements a component renders itself, so
- * scoped CSS would silently miss every one of these. They live in a global
- * stylesheet, imported by `Layout.astro` so it is present in the rendered tree
- * (a stylesheet imported only by a page is not inherited by its components —
- * a trap this project already hit once).
+ * The block markup arrives through `set:html` from `lib/content-blocks.ts`.
+ * Astro's component-scoped styles only apply to elements a component renders
+ * itself, so scoped CSS would silently miss every one of these. They live in a
+ * global stylesheet, imported by `Layout.astro` so it is present in the rendered
+ * tree (a stylesheet imported only by a page is not inherited by its components
+ * — a trap this project already hit once).
  *
  * ## Every block degrades to readable content
  *
@@ -16,9 +16,10 @@
  *   - infographic  → a figure with a caption
  *   - before/after → both images stacked, with labels
  *   - scrollytelling → an ordered list of steps
+ *   - video embed  → a link to the video, with its title and poster
  *
- * The scripts only ADD a comparison slider and a scroll animation. A reader who
- * never receives them loses polish, never information.
+ * The scripts only ADD a comparison slider, a scroll animation and an inline
+ * player. A reader who never receives them loses polish, never information.
  */
 
 /* ── Infographic ─────────────────────────────────────────────────────────── */
@@ -280,4 +281,149 @@
 
 .dark .content-scrolly .scrolly-media img[data-unknown-ratio='true'] {
   background-color: var(--color-dark-raised);
+}
+
+/* ── Video embed ─────────────────────────────────────────────────────────── */
+
+.content-video {
+  margin: 1.5rem 0;
+}
+
+/*
+ * The trigger is a real link, so it is focusable and works with no JavaScript.
+ * It is also the entire touch target — a full-width 16:9 box, far past the 48px
+ * minimum and impossible to miss with a thumb.
+ *
+ * No poster: a centred play glyph beside the title, on a plain raised surface.
+ */
+.content-video .video-trigger {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  aspect-ratio: 16 / 9;
+  padding: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--color-rule);
+  border-radius: 8px;
+  background-color: var(--color-surface-raised);
+  text-decoration: none;
+}
+
+.content-video .video-trigger:focus-visible {
+  outline: 3px solid var(--color-brand-red);
+  outline-offset: 3px;
+}
+
+/* The play glyph is drawn in CSS — no icon font, no sprite, no extra request. */
+.content-video .video-play {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 9999px;
+  background-color: var(--color-brand-red);
+  box-shadow: 0 2px 12px rgb(0 0 0 / 35%);
+}
+
+.content-video .video-play::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 54%;
+  transform: translate(-50%, -50%);
+  border-style: solid;
+  border-width: 0.625rem 0 0.625rem 1rem;
+  border-color: transparent transparent transparent #fff;
+}
+
+.content-video .video-label {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-headline);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.65;
+  color: var(--color-ink);
+}
+
+/*
+ * With a poster the image fills the box, the glyph centres over it and the title
+ * sits along the bottom. The scrim is what keeps that title readable — the
+ * poster is an arbitrary photograph, and white text on a pale one would fail
+ * contrast. It is the only reason the label may be white here.
+ */
+.content-video .video-trigger.has-poster {
+  display: block;
+}
+
+.content-video .video-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.content-video .video-trigger.has-poster::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgb(0 0 0 / 72%) 0%,
+    rgb(0 0 0 / 10%) 55%,
+    transparent 100%
+  );
+}
+
+.content-video .video-trigger.has-poster .video-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.content-video .video-trigger.has-poster .video-label {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.875rem;
+  left: 1rem;
+  color: #fff;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 60%);
+}
+
+/* The swapped-in player. 16:9 reserved before the frame loads, so nothing moves. */
+.content-video .video-frame {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 8px;
+  background-color: #000;
+}
+
+.content-video figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--color-ink-muted);
+}
+
+.dark .content-video .video-trigger {
+  border-color: var(--color-dark-rule);
+  background-color: var(--color-dark-raised);
+}
+
+.dark .content-video .video-label {
+  /* Deliberately loses to the `.has-poster` rule above (lower specificity), so
+     a title over a poster stays white in both themes — the scrim, not the theme,
+     is what makes it readable there. */
+  color: var(--color-dark-ink);
+}
+
+.dark .content-video figcaption {
+  color: var(--color-dark-ink-muted);
 }

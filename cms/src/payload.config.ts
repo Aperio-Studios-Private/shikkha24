@@ -2,12 +2,9 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { sqliteAdapter } from '@payloadcms/db-sqlite'
 import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
-import { BlocksFeature, lexicalEditor } from '@payloadcms/richtext-lexical'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
-import { BeforeAfterBlock } from './blocks/BeforeAfterBlock'
-import { InfographicBlock } from './blocks/InfographicBlock'
-import { ScrollytellingBlock } from './blocks/ScrollytellingBlock'
+import { defaultEditor } from './blocks/editors'
 import { AdUnits } from './collections/AdUnits'
 import { Articles } from './collections/Articles'
 import { Authors } from './collections/Authors'
@@ -197,22 +194,13 @@ export default buildConfig({
   globals: [SiteSettings],
 
   /**
-   * Rich text editor, plus the three article-embedded content blocks added in S8.
+   * Rich text editor for every field that does not override it.
    *
-   * `defaultFeatures` is spread rather than replaced — the editor keeps its
-   * standard formatting toolbar and gains the blocks on top. The frontend
-   * renderer in `lib/richtext.ts` handles each `blockType` explicitly; a block it
-   * does not recognise falls through to its children, so an unknown block can
-   * never silently swallow an article's text.
+   * The block list and the per-field override both live in `blocks/editors.ts`,
+   * next to the block definitions they reference. See that file for why the
+   * article body gets a different instance from everything else.
    */
-  editor: lexicalEditor({
-    features: ({ defaultFeatures }) => [
-      ...defaultFeatures,
-      BlocksFeature({
-        blocks: [InfographicBlock, BeforeAfterBlock, ScrollytellingBlock],
-      }),
-    ],
-  }),
+  editor: defaultEditor,
   secret: process.env.PAYLOAD_SECRET || '',
 
   // Bengali admin UI. Payload ships no Bengali locale; `src/i18n/bn.ts` writes one.

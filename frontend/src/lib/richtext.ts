@@ -12,6 +12,13 @@
  * runtime), which would drag the entire admin bundle into a static site build.
  * This is ~150 lines with no dependencies instead.
  *
+ * ## What this module does not do
+ *
+ * The `BlocksFeature` content blocks — infographic, before/after, scrollytelling,
+ * video embed — are rendered in `content-blocks.ts`. This file walks the Lexical
+ * tree and dispatches to it. Escaping lives in `html.ts` so both share one
+ * implementation.
+ *
  * ## Security — non-negotiable
  *
  * Every piece of text is **escaped**. Rich text entered by a reporter is still
@@ -20,8 +27,10 @@
  * trusted-authoring, untrusted-content boundary.
  *
  * There is deliberately **no** mechanism to pass raw HTML through. If a future
- * need requires embedded media, extend the node handlers here — do not add an
- * "allow raw HTML" escape hatch.
+ * need requires embedded media, add a node handler — do not add an "allow raw
+ * HTML" escape hatch. (The S9 video embed is the worked example: it validates
+ * the input down to an 11-character id and builds a fixed URL from it, rather
+ * than trusting the URL an editor pasted.)
  *
  * ## Coverage and degradation
  *
@@ -33,6 +42,9 @@
  * anticipate should see their words with slightly wrong markup, not find their
  * paragraph silently missing from the published article.
  */
+
+import { renderContentBlock } from './content-blocks'
+import { escapeHtml } from './html'
 
 /** A Lexical node. Deliberately loose — the shape varies by node type. */
 interface LexicalNode {
@@ -58,16 +70,6 @@ const FORMAT = {
   underline: 8,
   code: 16,
 } as const
-
-/** Escape for safe inclusion in HTML text and attributes. */
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
 
 /**
  * Only allow http(s) and mailto in links.
@@ -158,9 +160,10 @@ function renderBlock(node: LexicalNode): string {
       return '<hr />'
 
     case 'block':
-      // Payload's `BlocksFeature` nodes. Each `blockType` has a renderer below;
-      // an unrecognised one falls through to its children so an article can
-      // never lose text to a block the frontend has not caught up with.
+      // Payload's `BlocksFeature` nodes. Each `blockType` has a renderer in
+      // `content-blocks.ts`; an unrecognised one renders as nothing, so an
+      // article can never lose text to a block the frontend has not caught up
+      // with — and the editor sees it missing rather than broken.
       return renderContentBlock(node.fields)
 
     default:
@@ -263,177 +266,4 @@ export function splitHtmlAtParagraph(html: string, after: number): [string, stri
 
   if (cut === -1) return [html, '']
   return [html.slice(0, cut), html.slice(cut)]
-}
-
-/* ────────────────────────────────────────────────────────────────────────────
- * Article content blocks (S8)
- *
- * These render Payload `BlocksFeature` nodes — an infographic, a before/after
- * comparison and a scrollytelling sequence — that an editor can drop inside an
- * article body.
- *
- * Everything is escaped exactly like the rest of this file. A block's fields are
- * still reporter input, and the fact that they arrive inside a richer node type
- * does not make them any more trustworthy.
- * ──────────────────────────────────────────────────────────────────────────── */
-
-const MEDIA_BASE = (import.meta.env.PUBLIC_MEDIA_BASE_URL || '').replace(/\/$/, '')
-
-/** Resolve a Payload upload field to a usable image, or `null` when unusable. */
-function mediaOf(
-  value: unknown,
-): { url: string; alt: string; width?: number; height?: number } | null {
-  if (!value || typeof value !== 'object') return null
-
-  const media = value as { url?: unknown; alt?: unknown; width?: unknown; height?: unknown }
-  if (typeof media.url !== 'string' || media.url === '') return null
-
-  return {
-    url: media.url.startsWith('http') ? media.url : `${MEDIA_BASE}${media.url}`,
-    alt: typeof media.alt === 'string' ? media.alt : '',
-    width: typeof media.width === 'number' ? media.width : undefined,
-    height: typeof media.height === 'number' ? media.height : undefined,
-  }
-}
-
-function str(value: unknown): string {
-  return typeof value === 'string' ? value : ''
-}
-
-/**
- * `<img>` with its box reserved.
- *
- * Real dimensions are emitted when Payload recorded them, which is the normal
- * case. When they are missing the image is given a 16:9 box with
- * `object-fit: contain` — a reserved box of the wrong ratio letterboxes the
- * image, which is a cosmetic cost, whereas an unreserved box is a layout shift,
- * which is a budget failure.
- */
-function figureImage(
-  image: { url: string; alt: string; width?: number; height?: number },
-  alt: string,
-  className = '',
-): string {
-  const dimensions =
-    image.width && image.height
-      ? ` width="${image.width}" height="${image.height}"`
-      : ' data-unknown-ratio="true"'
-
-  return `<img src="${escapeHtml(image.url)}" alt="${escapeHtml(alt)}"${dimensions} loading="lazy" decoding="async"${className ? ` class="${className}"` : ''} />`
-}
-
-function renderInfographic(fields: Record<string, unknown>): string {
-  const image = mediaOf(fields.image)
-  if (!image) return ''
-
-  // The editor's own alt wins; the media library's is the fallback.
-  const alt = str(fields.alt) || image.alt
-  const caption = str(fields.caption)
-  const source = str(fields.source)
-
-  const captionHtml = caption
-    ? `<figcaption>${escapeHtml(caption)}${
-        source ? ` <span class="content-source">সূত্র: ${escapeHtml(source)}</span>` : ''
-      }</figcaption>`
-    : ''
-
-  return `<figure class="content-infographic">${figureImage(image, alt)}${captionHtml}</figure>`
-}
-
-function renderBeforeAfter(fields: Record<string, unknown>): string {
-  const before = mediaOf(fields.beforeImage)
-  const after = mediaOf(fields.afterImage)
-  if (!before || !after) return ''
-
-  const beforeAlt = str(fields.beforeAlt) || before.alt
-  const afterAlt = str(fields.afterAlt) || after.alt
-  const beforeLabel = str(fields.beforeLabel) || 'আগে'
-  const afterLabel = str(fields.afterLabel) || 'পরে'
-  const caption = str(fields.caption)
-
-  const captionHtml = caption ? `<figcaption>${escapeHtml(caption)}</figcaption>` : ''
-
-  /*
-   * Without JavaScript this renders as the two images stacked with their labels
-   * — a complete, honest comparison. The slider is switched on by adding
-   * `is-enhanced` from `ContentBlockScripts.astro`, so a reader who never gets
-   * the script still sees both pictures.
-   *
-   * The "before" layer comes FIRST in the DOM so the stacked order matches the
-   * legend (আগে, পরে). When enhanced it becomes an absolutely-positioned overlay,
-   * which paints above the static "after" image regardless of DOM order.
-   */
-  return `<figure class="content-compare" data-compare>
-  <div class="compare-frame">
-    <div class="compare-overlay" data-compare-overlay>${figureImage(before, beforeAlt, 'compare-image')}</div>
-    ${figureImage(after, afterAlt, 'compare-image')}
-  </div>
-  <label class="compare-control">
-    <span class="compare-control-label">আগে ও পরের ছবি তুলনা করুন</span>
-    <input type="range" min="0" max="100" value="50" step="1" data-compare-range />
-  </label>
-  <p class="compare-legend">
-    <span>${escapeHtml(beforeLabel)}</span>
-    <span>${escapeHtml(afterLabel)}</span>
-  </p>
-  ${captionHtml}
-</figure>`
-}
-
-function renderScrollytelling(fields: Record<string, unknown>): string {
-  const steps = Array.isArray(fields.steps) ? fields.steps : []
-  if (steps.length < 2) return ''
-
-  const heading = str(fields.heading)
-  const headingHtml = heading ? `<h2 class="scrolly-heading">${escapeHtml(heading)}</h2>` : ''
-
-  const stepsHtml = steps
-    .map((raw) => {
-      if (!raw || typeof raw !== 'object') return ''
-      const step = raw as Record<string, unknown>
-
-      const title = str(step.title)
-      const body = str(step.body)
-      const image = mediaOf(step.image)
-
-      return `<li class="scrolly-step">
-  ${image ? `<div class="scrolly-media">${figureImage(image, str(step.imageAlt) || image.alt)}</div>` : ''}
-  <div class="scrolly-text">
-    <h3>${escapeHtml(title)}</h3>
-    ${body ? `<p>${escapeHtml(body)}</p>` : ''}
-  </div>
-</li>`
-    })
-    .filter(Boolean)
-    .join('\n')
-
-  /*
-   * An `<ol>` because the steps are a sequence — the order carries meaning, and
-   * a screen reader announcing "৩ of ৫" is exactly the right information. The
-   * animation is applied by CSS and removed entirely under reduced motion.
-   */
-  return `<section class="content-scrolly" data-scrolly>${headingHtml}
-<ol class="scrolly-steps">
-${stepsHtml}
-</ol>
-</section>`
-}
-
-/** Dispatch a `BlocksFeature` node to its renderer. */
-function renderContentBlock(fields: Record<string, unknown> | undefined): string {
-  if (!fields) return ''
-
-  switch (fields.blockType) {
-    case 'infographic':
-      return renderInfographic(fields)
-    case 'beforeAfter':
-      return renderBeforeAfter(fields)
-    case 'scrollytelling':
-      return renderScrollytelling(fields)
-    default:
-      // A block the frontend does not know about renders as nothing rather than
-      // as broken markup — and the editor sees it missing, which is the signal
-      // to add a renderer.
-      return ''
-  }
 }

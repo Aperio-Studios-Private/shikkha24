@@ -7,6 +7,7 @@ import {
   isSuperAdminOrEditorInChief,
   publishedOrEditor,
 } from '../access/roles'
+import { articleBodyEditor } from '../blocks/editors'
 
 /** Review states on top of Payload's own draft/published `_status`. */
 export const REVIEW_STATUSES = ['draft', 'pendingReview', 'changesRequested', 'approved'] as const
@@ -121,6 +122,9 @@ export const Articles: CollectionConfig = {
       name: 'body',
       type: 'richText',
       label: { en: 'Body', bn: 'মূল লেখা' },
+      // The only field that carries the video block — `/article/*` is the only
+      // route whose CSP allows a third-party frame. See `blocks/editors.ts`.
+      editor: articleBodyEditor,
     },
     {
       name: 'keyTakeaways',
