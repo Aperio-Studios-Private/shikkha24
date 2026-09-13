@@ -6,7 +6,7 @@
 ## Project identity
 - Name: **Shikkha24 (শিক্ষা২৪)** — ✅ **CONFIRMED 2026-09-12** by the owner, derived from the domain. **CMS-editable** via Site Settings.
 - Domain: **shikkha24.com** — ✅ **registered** (owner-confirmed 2026-09-11). DNS configuration not yet provided; the owner will supply it later. Reachability could not be verified from the auditing environment.
-- Logo: **placeholder SVG for now** (owner decision 2026-09-11) — `docs/assets/logo-placeholder.svg`. The real logo will be supplied later. The logo is a **CMS-managed field** (Site Settings global), so it can be replaced without a code change.
+- Logo: **placeholder SVG for now** (owner decision 2026-09-11) — `docs/assets/logo-placeholder.svg`. The real logo will be supplied later. The logo is a **CMS-managed field** (Site Settings global), so it can be replaced without a code change. The logo and the site name are **independent** (owner decision 2026-09-13): the logo renders as a **mark beside** the name, never in place of it, and the name is derived from `siteName` on every page.
 - Goal: Bangladesh's best **education** news and opportunity portal — production-grade, Bengali-first
 - Positioning (owner's words, verbatim):
   - 🎓 Education News | Scholarship | Admission | University | Higher Study
@@ -128,6 +128,7 @@ Dynamic and admin-editable. Full detail in `docs/education-feature-inventory.md`
 - ✅ **AdSense account activated** (2026-09-11) → AdSense is definitely shipping, so the two-profile Lighthouse measurement (≥95 no-ads, ≥85 with-ads) is adopted
 - ✅ **Social login (Facebook/Google): keep** (2026-09-11) — Meta Login and Google OAuth are **free**; only app review (a process, not a cost) is required. No cost → no reason to drop them
 - ✅ **Logo: placeholder SVG now, CMS-editable** (2026-09-11)
+- ✅ **Logo and site name are independent; a rename propagates everywhere** (2026-09-13) — the uploaded logo renders as a mark beside the name (never replacing it), a new `showNameWithLogo` toggle (default on) is the only way to hide the name, the wordmark auto-accents its trailing digit/Latin run, and no site name is hardcoded anywhere — every occurrence reads `settings.siteName`
 
 ## Explicit rejections
 - ❌ Strapi 5 CE (missing review workflows, versioning, scheduled publish in free tier)

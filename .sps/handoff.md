@@ -27,6 +27,22 @@
 - **S2 entry gate:** portal display name + logo — ✅ satisfied by owner decision 2026-09-12 (name = শিক্ষা২৪, logo = placeholder, Inter dropped)
 - **Font:** SolaimanLipi only (owner decision) — Hind Siliguri and Noto Sans Bengali both removed. 154.0 KB / 200 KB.
 
+## Branding — logo and site name are independent — 2026-09-13
+
+**Owner instruction:** "the logo and the name should work independently — if I change the company from CMS then it should update everywhere, and if I add a company logo on CMS then show the logo as mark, not replace the entire company name."
+
+Two real defects sat behind that instruction, both now fixed:
+
+1. **`Logo.astro` rendered the uploaded logo *instead of* the name.** The wordmark branch was the `else` of `logoSrc ? … : …`, so uploading a logo silently deleted the company name from the header and footer. The logo now renders as a **mark beside** the name — the two are independent.
+2. **The wordmark was hardcoded.** The fallback rendered literal `শিক্ষা` (brand red) + `২৪` (charcoal) and never read `settings.siteName`, so a CMS rename changed only `aria-label`, `<title>`, OG tags and JSON-LD — never the visible brand. The wordmark is now derived from `settings.siteName`.
+3. **Fourteen hardcoded `শিক্ষা২৪` strings** in meta descriptions, `robots.txt`, newsletter copy, login, the shortlink page and structured data also ignored the CMS. All now read `settings.siteName`.
+
+**Contract (do not break):**
+- `SiteSettings.siteName` and `SiteSettings.logo` are **independent fields**. Neither overrides the other — a rename never touches the logo, a logo upload never hides the name.
+- **`showNameWithLogo`** (new checkbox, default **true**) is the *only* way to hide the name. It exists for a logo that already contains the wordmark.
+- **Auto-accent:** the wordmark splits at its trailing digit/Latin run — `শিক্ষা` charcoal + `২৪` brand red. Works for any name; a name with no trailing digit/Latin run renders single-colour.
+- **No hardcoded site name anywhere.** A rename in the CMS must propagate to header, footer, meta descriptions, `robots.txt`, newsletter copy, login, structured data and OG tags in one rebuild. **Grep for `শিক্ষা২৪` before shipping any new page.** The only permitted occurrences are the documented fallbacks: `FALLBACK_SETTINGS` in `frontend/src/lib/cms.ts`, and the `|| 'শিক্ষা২৪'` guards in `rss.xml.ts` / `news-sitemap.xml.ts`.
+
 ## S9 — Media, Newsletter & Engagement (build complete) — 2026-09-13
 
 **132 harness checks, 0 failures.** Full evidence in `.sps/section-todos/S9.md`.
