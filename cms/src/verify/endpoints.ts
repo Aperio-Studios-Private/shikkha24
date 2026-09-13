@@ -44,6 +44,19 @@ const check = (label: string, ok: boolean, detail = '') => {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${detail ? ` — ${detail}` : ''}`)
 }
 
+/**
+ * A synthetic client IP, unique per run.
+ *
+ * ⚠️ **This is what makes the harness repeatable.** Every write endpoint is
+ * rate-limited per IP (comments 5/10min, citizen 3/10min, newsletter 5/min), and
+ * the limiter keys on `clientIp(req)` — which reads `x-forwarded-for` first. A
+ * second run from the same address would be throttled with **429**, and the
+ * harness would report eight failures that are really just its own earlier
+ * requests. Sending a fresh address per run gives each run its own bucket, so
+ * the results describe the code rather than how many times the test has been run.
+ */
+const CLIENT_IP = `198.51.100.${Math.floor(Math.random() * 200) + 1}`
+
 const call = async (
   method: string,
   path: string,
@@ -51,7 +64,10 @@ const call = async (
 ): Promise<{ status: number; json: Record<string, unknown> | null }> => {
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      'x-forwarded-for': CLIENT_IP,
+    },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   })
   const text = await res.text()
@@ -67,7 +83,7 @@ const call = async (
 /** A stamp unique to this run, so cleanup can never touch real content. */
 const STAMP = `verify-${Date.now()}`
 
-console.log(`\n=== custom endpoint verification (stamp ${STAMP}) ===\n`)
+console.log(`\n=== custom endpoint verification (stamp ${STAMP}, ip ${CLIENT_IP}) ===\n`)
 
 /* ── 1. Route reachability — the collision class ───────────────────────────── */
 
