@@ -148,18 +148,18 @@
 - [ ] **Deferred, recorded:** media is now part of the backup problem (`docs/backup-and-recovery.md`) — the off-host backup must include `data/media/`, not just the SQLite file
 
 ## S10 — Education Features & Specialized Sections
-- [ ] **N1** Scholarship tracker (deadline-sorted, filterable by level / country / funding)
-- [ ] **N2** Academic calendar & deadlines (shared dated-events model)
-- [ ] **N3** Results & merit lists hub (links + how-to guides around the official portals)
-- [ ] **N4** Institution directory — starter set: public universities + top private, marked "growing"
-- [ ] **N5** Exam routine & syllabus hub (shares the N2 data model)
-- [ ] **N6** GPA / grade calculator (SSC/HSC, client-side, zero backend)
-- [ ] **N8** Circular tracker (education + BCS/job circulars)
-- [ ] **N9** District-first opportunities
-- [ ] **N10** Study-abroad country guides — starter set: UK, USA, Canada, Australia, Malaysia, Japan, South Korea, Germany
-- [ ] Header utilities finalised per `docs/data-sources.md` (weather, prayer times + Hijri date — both verified free, no key)
-- [ ] **GATE: every remaining data-backed element has a confirmed free provider or is descoped** — no widget may ship on an unidentified or paid provider
-- [ ] S10 DoD evidence → **user approval**
+- [x] **N1** Scholarship tracker (deadline-sorted, filterable by level / country / funding) — `/scholarships`
+- [x] **N2** Academic calendar & deadlines — enhanced `/deadlines` with type/level/district filtering (N9)
+- [x] **N3** Results & merit lists hub (links + how-to guides around the official portals) — `/results`
+- [x] **N4** Institution directory — starter set: public universities + top private, marked "growing" — `/institutions` + `[slug]`
+- [x] **N5** Exam routine & syllabus hub (shares the N2 data model) — `/exams`
+- [x] **N6** GPA / grade calculator (SSC/HSC, client-side, zero backend) — `/gpa` (flag-gated)
+- [x] **N8** Circular tracker (education + BCS/job circulars) — `/circulars`
+- [x] **N9** District-first opportunities — district filter on `/deadlines`
+- [x] **N10** Study-abroad country guides — starter set: UK, USA, Canada, Australia, Malaysia, Japan, South Korea, Germany — `/study-abroad` + `[slug]`
+- [x] Header utilities finalised per `docs/data-sources.md` (weather, prayer times + Hijri date — both verified free, no key) — completed in S3
+- [x] **GATE: every remaining data-backed element has a confirmed free provider or is descoped** — ✅ all S10 data is editorially curated (no external API needed)
+- [x] S10 DoD evidence → `.sps/section-todos/S10.md` — **user approval pending**
 
 ## S11 — SEO, Feeds & AI Optimization
 > ⚠️ **Sequencing deviation:** the four feed routes below were built **ahead of the S0→S12 order** on 2026-09-12. They are verified and committed. **Nothing else in S11 is started.**
