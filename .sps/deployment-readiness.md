@@ -26,7 +26,7 @@ Every check below was run in this pass, in this order, against a clean tree.
 | Post-build Pagefind step ran | ✅ index present |
 | `dist/.prerender` left behind | ✅ none |
 
-### Harnesses — 13/13 PASS
+### Harnesses — 14/14 PASS
 
 | Harness | Covers | Result |
 |---|---|---|
@@ -80,6 +80,9 @@ code change.
 | 5 | Lint gate failing with 1 error | Pre-existing formatting/import-order in 3 S10 files | Formatted (no behaviour change) |
 | 6 | `verify-endpoints` did not typecheck | Wrong field name (`status` vs `isActive`) and an `unknown[]` cast | Corrected |
 | 7 | `verify-endpoints` reported **8 failures on its second run** | All were **429** — the harness rate-limited *itself*. The limiter keys on `x-forwarded-for`, and a repeat run from the same address was throttled by its own earlier requests | Harness now sends a synthetic per-run IP. Verified twice consecutively: PASS, PASS |
+| 8 | **Level/district filters did nothing** — every pill inert | `level` and `district` are `hasMany`, so Payload returns an **array**; `typeof [] === 'object'` is true, so `article.level.slug` was `undefined` and Astro dropped the attribute. **Zero cards carried `data-level`**, so FilterBar hit `if (items.length === 0) return`. `lib/cms.ts` typed `level` as object-or-number, never an array — the bug was in the *type* | Added `relationSlugs()` / `relationName()` (array, object or bare id) and corrected the types. Built output went 0 → 9 cards with `data-level`. Same wrong `relSlug` in `deadlines.astro` meant its level dropdown had **no options at all** |
+| 9 | **`/about` and `/contact` did not exist** | Required by `docs/master-plan.md` item 87 and `docs/seo-plan.md` (E-E-A-T) but never built. The footer block that would have linked them was gated on `footerPages.length > 0`, and the `pages` collection is empty — so it had never rendered | Added both, driven by Site Settings with Bengali placeholders while fields are empty. `/about-us` redirects to `/about` (no duplicate body content) and is excluded from the sitemap. Footer block is now unconditional. Sitemap 43 → 45 |
+| 10 | **Editing Site Settings changed nothing on the site** | Not a defect in the data — the edits were saved correctly. The static site simply had **no trigger to rebuild**, so nothing propagated until someone ran a build by hand | Added `cms/src/lib/rebuild-trigger.ts`: a debounced webhook fired from `afterChange` on published content (and Site Settings). No-op until `DEPLOY_WEBHOOK_URL` is set. Reader writes (comments, poll votes) are deliberately excluded so an anonymous commenter cannot spend a build |
 
 **Pattern worth noting:** defects 1, 3 and the earlier CSP regression all share one
 cause — **a URL or mounting change has consequences far beyond the route itself.**
@@ -106,11 +109,31 @@ None of these is code. The project is complete pending them.
 | 3 | **Deploy the CMS to DianaHost** (Passenger) | Every reader write and the admin depend on it |
 | 4 | **Set `PUBLIC_CMS_ORIGIN`** to the real CMS hostname | Currently `http://localhost:3000`. Until set, the live-blog refresh and poll vote controls are simply not rendered (by design) |
 | 5 | **Update the CSP host** in `frontend/public/_headers` (`cms.shikkha24.com` is a literal placeholder — a CSP cannot be templated) | Article images and CMS calls would be blocked |
-| 6 | **Create the E-E-A-T pages** in the CMS (privacy, terms, contact, about) | Footer links 404; these are load-bearing for Google News eligibility |
-| 7 | **Upload the real logo** in SiteSettings | Cosmetic — the wordmark fallback works |
+| 6 | **Create the remaining E-E-A-T pages** — privacy, terms, editorial/corrections policy | `/about` and `/contact` are now built into the site and driven by Site Settings; privacy and terms are still required for Google News eligibility |
+| 7 | ~~Upload the real logo~~ — **done**: an SVG logo is uploaded and renders in the header and footer | Just confirm it is the final artwork |
 | 8 | **Generate VAPID keys** and set them | Push reminders stay hidden until then |
 | 9 | **Generate `NEWSLETTER_SEND_TOKEN` / `PUSH_SEND_TOKEN`** | Both cron endpoints are disabled while unset |
 | 10 | **SMTP credentials** for `mail.shikkha24.com` + SPF/DKIM/DMARC | The newsletter form stays hidden until a transport exists |
+
+### Also required before launch: wire the rebuild trigger
+
+The site is static, so **no CMS edit reaches the live site until something
+rebuilds it.** That is the root cause of "I changed Site Settings and nothing
+happened". The trigger is built (`cms/src/lib/rebuild-trigger.ts`) but inert
+until configured:
+
+| Action | Why |
+|---|---|
+| **Set `DEPLOY_WEBHOOK_URL`** on the CMS host to the CI endpoint that starts a rebuild (GitHub Actions `repository_dispatch` / `workflow_dispatch`, or a Cloudflare Pages deploy hook) | Unset means a **no-op** — edits will save correctly and still never appear |
+| **Set `DEPLOY_WEBHOOK_TOKEN`** if the endpoint requires auth | Optional |
+| **Create the GitHub Actions workflow** that rebuilds and deploys | The webhook has nothing to call otherwise. Not yet in the repo — it needs the Pages project and deploy method decided first |
+| **Tune `REBUILD_MIN_INTERVAL_MS`** (default 300000 = 5 min) | Quota guard: Cloudflare Pages allows **500 builds/month**; at 15–20 articles/day, per-save triggering would exceed it. Debouncing collapses a burst into one build |
+
+Note the quota tension is documented but **unresolved**: `docs/hosting-and-deployment.md`
+§4 asks whether `wrangler pages deploy` (direct upload) bypasses the 500 build
+limit. If it does not, per-publish builds are impossible and the fallback is to
+serve the static output from DianaHost instead (§4 option 4). **Owner decision
+before the pipeline is finalised.**
 
 ### Verification that can only happen in production
 

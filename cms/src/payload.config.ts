@@ -45,6 +45,7 @@ import { pushEndpoints } from './endpoints/push'
 import { SiteSettings } from './globals/SiteSettings'
 import { bn } from './i18n/bn'
 import { isMailConfigured } from './lib/mailer'
+import { withRebuildTrigger, withRebuildTriggerGlobal } from './lib/rebuild-trigger'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -152,36 +153,47 @@ export default buildConfig({
   endpoints: [...newsletterEndpoints, ...oauthEndpoints, citizenSubmitEndpoint, ...pushEndpoints],
 
   collections: [
+    /**
+     * Everything below the "Readers" heading is published content: editing it
+     * must eventually rebuild the static site, or the change simply never
+     * appears. `withRebuildTrigger` is what schedules that.
+     *
+     * It is a no-op until `DEPLOY_WEBHOOK_URL` is set, so local development and
+     * seeding are unaffected. See `lib/rebuild-trigger.ts` for why the trigger
+     * is debounced rather than fired per save.
+     */
     // ── Editorial ────────────────────────────────────────────────────────────
-    Articles,
-    Categories,
-    Levels,
-    Districts,
-    Tags,
-    Authors,
-    Pages,
-    FactChecks,
+    withRebuildTrigger(Articles),
+    withRebuildTrigger(Categories),
+    withRebuildTrigger(Levels),
+    withRebuildTrigger(Districts),
+    withRebuildTrigger(Tags),
+    withRebuildTrigger(Authors),
+    withRebuildTrigger(Pages),
+    withRebuildTrigger(FactChecks),
 
     // ── Education ────────────────────────────────────────────────────────────
-    Scholarships,
-    Deadlines,
-    Institutions,
-    Circulars,
-    ResultLinks,
-    StudyAbroadGuides,
-    Jobs,
+    withRebuildTrigger(Scholarships),
+    withRebuildTrigger(Deadlines),
+    withRebuildTrigger(Institutions),
+    withRebuildTrigger(Circulars),
+    withRebuildTrigger(ResultLinks),
+    withRebuildTrigger(StudyAbroadGuides),
+    withRebuildTrigger(Jobs),
 
     // ── Interactive ──────────────────────────────────────────────────────────
-    LiveBlogs,
-    Polls,
-    Quizzes,
+    withRebuildTrigger(LiveBlogs),
+    withRebuildTrigger(Polls),
+    withRebuildTrigger(Quizzes),
 
     // ── Media & advertising ──────────────────────────────────────────────────
-    Media,
-    PhotoGalleries,
-    AdUnits,
+    withRebuildTrigger(Media),
+    withRebuildTrigger(PhotoGalleries),
+    withRebuildTrigger(AdUnits),
 
     // ── Readers ──────────────────────────────────────────────────────────────
+    // Deliberately NOT wrapped: these are written by the public, not published
+    // by editors. A reader comment or a poll vote must never cost a rebuild.
     Comments,
     NewsletterSubscribers,
     NewsletterCampaigns,
@@ -196,7 +208,12 @@ export default buildConfig({
     Users,
   ],
 
-  globals: [SiteSettings],
+  /**
+   * Site Settings is the one that caused the confusion: editing the site name,
+   * contact details or logo changed nothing on the live site until a rebuild
+   * ran. It now schedules one like any other published content.
+   */
+  globals: [withRebuildTriggerGlobal(SiteSettings)],
 
   /**
    * Rich text editor for every field that does not override it.
