@@ -12,10 +12,12 @@
  *     the brand out. It is **ignored when there is no logo** — a page must never
  *     render an empty brand.
  *
- * The wordmark auto-accents its trailing digit run (Bengali or ASCII), which
- * reproduces the approved শিক্ষা / ২৪ two-tone for any name. A name with no
- * trailing digits renders entirely in brand red rather than losing the brand
- * colour to a guessed split.
+ * The wordmark auto-accents its **last digit run** (Bengali or ASCII), which
+ * reproduces the approved শিক্ষা / ২৪ two-tone for any name. A trailing
+ * TLD-like suffix stays outside the accent, so the real CMS name শিক্ষা২৪.com
+ * renders শিক্ষা charcoal + ২৪ red + .com charcoal (owner decision 2026-09-13).
+ * A name whose digit run is not at the end renders entirely in brand red,
+ * rather than accenting a run in the middle of a word.
  */
 interface LogoAsset {
   url?: string | null
@@ -47,14 +49,19 @@ const logoSrc = logo?.url
 const showName = showNameWithLogo !== false || !logoSrc
 
 /**
- * Split at the trailing digit run. The lazy `.*?` makes that run as long as
- * possible, so শিক্ষা২৪ → ["শিক্ষা", "২৪"] and Shikkha24 → ["Shikkha", "24"].
- * An empty prefix means the whole name is digits — treat it as unsplit.
+ * Split around the **last digit run**, keeping an optional trailing TLD-like
+ * suffix outside the accent. The lazy `.*?` makes the digit run as long as
+ * possible, so:
+ *   শিক্ষা২৪.com → ["শিক্ষা", "২৪", ".com"]
+ *   Shikkha24    → ["Shikkha", "24", ""]
+ *   শিক্ষা ২৪ ডট কম → no match (the run is not at the end) → single colour
+ * An empty prefix means the whole name is digits — also treated as unsplit.
  */
-const match = siteName.match(/^(.*?)([0-9\u09E6-\u09EF]+)$/u)
+const match = siteName.match(/^(.*?)([0-9\u09E6-\u09EF]+)((?:\.[A-Za-z]{2,6})+)?$/u)
 const hasAccent = Boolean(match && match[1].length > 0)
 const namePrefix = hasAccent ? match![1] : siteName
 const nameAccent = hasAccent ? match![2] : ''
+const nameSuffix = hasAccent ? (match![3] ?? '') : ''
 
 /**
  * The accent is the brand red; the rest of the name is charcoal. When there is
@@ -95,6 +102,7 @@ const markHeight = logo?.height ?? 40
       <span class="font-headline text-2xl leading-none font-bold sm:text-3xl">
         <span class={nameBaseClass}>{namePrefix}</span>
         {hasAccent && <span class="text-brand-red">{nameAccent}</span>}
+        {nameSuffix && <span class={nameBaseClass}>{nameSuffix}</span>}
       </span>
     )
   }
