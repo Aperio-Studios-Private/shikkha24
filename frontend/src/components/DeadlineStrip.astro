@@ -83,16 +83,25 @@ function formatDate(date: string | null | undefined): string {
   deadlines.length > 0 && (
     <section class="border-y border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-surface">
       <div class="container-page py-6">
-        <div class="mb-4 flex items-baseline justify-between gap-4">
+        <div class="mb-4 flex flex-wrap items-baseline justify-between gap-4">
           <h2 class="font-headline text-xl font-bold text-ink dark:text-dark-ink">
             শিক্ষা ক্যালেন্ডার ও ডেডলাইন
           </h2>
-          <a
-            href="/deadlines"
-            class="shrink-0 text-sm font-medium text-brand-red hover:underline"
-          >
-            সব দেখুন →
-          </a>
+          <div class="flex items-center gap-4">
+            <p class="flex items-center gap-1.5 text-xs text-ink-subtle dark:text-dark-ink-muted">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 4 4 14M20 10 10 20" />
+                <path d="M4 4h10v10H4z" opacity="0.3" />
+              </svg>
+              <span>মাউস/আঙুলে টেনে দেখুন</span>
+            </p>
+            <a
+              href="/deadlines"
+              class="shrink-0 text-sm font-medium text-brand-red hover:underline"
+            >
+              সব দেখুন →
+            </a>
+          </div>
         </div>
 
         <ul id="deadline-rail" class="deadline-rail flex cursor-grab snap-x snap-mandatory gap-3 overflow-x-auto pb-2 active:cursor-grabbing">
@@ -154,6 +163,7 @@ function formatDate(date: string | null | undefined): string {
   .deadline-rail {
     scrollbar-width: thin;
     user-select: none;
+    touch-action: pan-x;
   }
 
   .deadline-rail::-webkit-scrollbar {

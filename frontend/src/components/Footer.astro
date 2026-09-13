@@ -2,10 +2,10 @@
 /**
  * Site footer.
  *
- * Three responsive zones:
- *   1. Top — brand wordmark + tagline + newsletter + contact
- *   2. Middle — education tools + category links + about pages + social
- *   3. Bottom — copyright + legal links + developer credit
+ * Responsive zones:
+ *   1. Main — brand + education tools + categories + contact/social
+ *   2. Bottom — copyright + legal links
+ *   3. Developer credit — portal social + developer contact as one grouped row
  *
  * The footer text is CMS-managed (SiteSettings.footerText) so the owner can
  * update it without a code change.
@@ -25,7 +25,30 @@ const { settings, categories, footerPages = [] } = Astro.props
 
 const currentYear = new Date().getFullYear()
 
-const socialLinks = Object.entries(settings.social ?? {}).filter(([, url]) => !!url)
+const socialEntries = Object.entries(settings.social ?? {}).filter(([, url]) => !!url)
+
+/**
+ * Known social platforms and their Bengali labels.
+ * Any key not listed still renders with a generic icon.
+ */
+const SOCIAL_META: Record<string, { label: string; icon: string }> = {
+  facebook: {
+    label: 'ফেসবুক',
+    icon: 'M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z',
+  },
+  youtube: {
+    label: 'ইউটিউব',
+    icon: 'M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z',
+  },
+  twitter: {
+    label: 'এক্স',
+    icon: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z',
+  },
+  instagram: {
+    label: 'ইনস্টাগ্রাম',
+    icon: 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z',
+  },
+}
 
 /**
  * The newsletter form posts to the CMS from the browser, so it needs the
@@ -36,82 +59,27 @@ const cmsOrigin = getPublicCmsOrigin()
 ---
 
 <footer class="border-t border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-surface">
-  {/* ── Top zone: brand + link columns ───────────────────────────────── */}
+  {/* ── Main zone: four balanced columns ─────────────────────────────── */}
   <div class="container-page py-10">
-    <div class="grid-12 items-start gap-x-6">
-      {/* Brand — wider to fill space, includes tagline + newsletter + contact */}
-      <div class="col-span-12 lg:col-span-4">
+    <div class="grid-12 gap-x-6">
+      {/* Column 1 — Brand & about */}
+      <div class="col-span-12 sm:col-span-6 lg:col-span-3 order-1">
         <Logo siteName={settings.siteName} siteNameEn={settings.siteNameEn} logo={settings.logo} />
         {settings.tagline && (
-          <p class="mt-3 text-sm leading-relaxed text-ink-muted dark:text-dark-ink-muted">{settings.tagline}</p>
+          <p class="mt-3 text-sm leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+            {settings.tagline}
+          </p>
         )}
+        <p class="mt-3 text-sm leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+          শিক্ষা২৪ — দেশ-বিদেশের শিক্ষা খবর, ভর্তি, বৃত্তি, পরীক্ষার রুটিন ও ফলাফলের সবচেয়ে দ্রুততম ঠিকানা।
+        </p>
 
-        {/* Self-hiding: renders only when there is a CMS to subscribe against.
-            Deliberately a sibling of the tagline, not a child of its conditional
-            — whether a newsletter is offered must not depend on whether the
-            owner filled in a tagline. */}
+        {/* Self-hiding: renders only when there is a CMS to subscribe against. */}
         <NewsletterSignup cmsOrigin={cmsOrigin} />
-
-        {/* Full contact block. The CMS stores all three; the footer must show
-            all three — an address or phone the owner enters has to appear, or
-            editing it looks broken. */}
-        <address class="mt-4 space-y-1 text-sm not-italic text-ink-muted dark:text-dark-ink-muted">
-          {settings.contact?.address && (
-            <p class="whitespace-pre-line">{settings.contact.address}</p>
-          )}
-          {settings.contact?.phone && (
-            <p>
-              <a
-                href={`tel:${settings.contact.phone.replace(/\s+/g, '')}`}
-                class="underline decoration-rule underline-offset-2 transition-colors hover:text-brand-red dark:decoration-dark-rule"
-              >
-                {settings.contact.phone}
-              </a>
-            </p>
-          )}
-          {settings.contact?.email && (
-            <p>
-              <a
-                href={`mailto:${settings.contact.email}`}
-                class="underline decoration-rule underline-offset-2 transition-colors hover:text-brand-red dark:decoration-dark-rule"
-              >
-                {settings.contact.email}
-              </a>
-            </p>
-          )}
-        </address>
-
-        {/* E-E-A-T legal block — shown when the owner has supplied it. */}
-        {
-          (settings.legal?.tradeLicense ||
-            settings.legal?.tin ||
-            settings.legal?.ministryRegistration) && (
-            <dl class="mt-3 space-y-0.5 text-xs text-ink-subtle dark:text-dark-ink-muted">
-              {settings.legal?.tradeLicense && (
-                <div class="flex gap-1.5">
-                  <dt>ট্রেড লাইসেন্স:</dt>
-                  <dd>{settings.legal.tradeLicense}</dd>
-                </div>
-              )}
-              {settings.legal?.tin && (
-                <div class="flex gap-1.5">
-                  <dt>টিআইএন:</dt>
-                  <dd>{settings.legal.tin}</dd>
-                </div>
-              )}
-              {settings.legal?.ministryRegistration && (
-                <div class="flex gap-1.5">
-                  <dt>নিবন্ধন:</dt>
-                  <dd>{settings.legal.ministryRegistration}</dd>
-                </div>
-              )}
-            </dl>
-          )
-        }
       </div>
 
-      {/* Education tools — the S10 specialised sections */}
-      <div class="col-span-6 mt-8 sm:col-span-4 lg:col-span-2 lg:col-start-5 lg:mt-0">
+      {/* Column 2 — Education tools */}
+      <div class="col-span-6 mt-8 sm:col-span-6 lg:col-span-3 lg:mt-0 order-2">
         <h3 class="mb-4 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
           শিক্ষা সুবিধা
         </h3>
@@ -154,8 +122,8 @@ const cmsOrigin = getPublicCmsOrigin()
         </ul>
       </div>
 
-      {/* Category links */}
-      <div class="col-span-6 mt-8 sm:col-span-4 lg:col-span-3 lg:mt-0">
+      {/* Column 3 — Categories + footer pages */}
+      <div class="col-span-6 mt-8 sm:col-span-6 lg:col-span-3 lg:mt-0 order-3">
         <h3 class="mb-4 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
           বিভাগ
         </h3>
@@ -173,16 +141,13 @@ const cmsOrigin = getPublicCmsOrigin()
             ))
           }
         </ul>
-      </div>
 
-      {/* About pages + social — merged to fill space */}
-      <div class="col-span-12 mt-8 sm:col-span-4 lg:col-span-3 lg:mt-0">
         {footerPages.length > 0 && (
           <>
-            <h3 class="mb-4 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
+            <h3 class="mb-3 mt-6 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
               আমাদের সম্পর্কে
             </h3>
-            <ul class="grid grid-cols-2 gap-x-4 gap-y-2.5">
+            <ul class="space-y-2">
               {footerPages.map((page) => (
                 <li>
                   <a
@@ -196,24 +161,110 @@ const cmsOrigin = getPublicCmsOrigin()
             </ul>
           </>
         )}
+      </div>
 
-        {socialLinks.length > 0 && (
-          <div class="mt-6">
-            <h3 class="mb-4 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
-              সোশ্যাল মিডিয়া
+      {/* Column 4 — Contact + social + legal */}
+      <div class="col-span-12 mt-8 sm:col-span-6 lg:col-span-3 lg:mt-0 order-4">
+        <h3 class="mb-4 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
+          যোগাযোগ
+        </h3>
+        <address class="space-y-2 text-sm not-italic text-ink-muted dark:text-dark-ink-muted">
+          {settings.contact?.address && (
+            <p class="flex items-start gap-2 whitespace-pre-line">
+              <svg class="mt-0.5 h-4 w-4 shrink-0 text-ink-subtle dark:text-dark-ink-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+              <span>{settings.contact.address}</span>
+            </p>
+          )}
+          {settings.contact?.phone && (
+            <p class="flex items-center gap-2">
+              <svg class="h-4 w-4 shrink-0 text-ink-subtle dark:text-dark-ink-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+              </svg>
+              <a
+                href={`tel:${settings.contact.phone.replace(/\s+/g, '')}`}
+                class="underline decoration-rule underline-offset-2 transition-colors hover:text-brand-red dark:decoration-dark-rule"
+              >
+                {settings.contact.phone}
+              </a>
+            </p>
+          )}
+          {settings.contact?.email && (
+            <p class="flex items-center gap-2">
+              <svg class="h-4 w-4 shrink-0 text-ink-subtle dark:text-dark-ink-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect width="20" height="16" x="2" y="4" rx="2" />
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+              </svg>
+              <a
+                href={`mailto:${settings.contact.email}`}
+                class="underline decoration-rule underline-offset-2 transition-colors hover:text-brand-red dark:decoration-dark-rule"
+              >
+                {settings.contact.email}
+              </a>
+            </p>
+          )}
+        </address>
+
+        {/* E-E-A-T legal block — shown when supplied. */}
+        {
+          (settings.legal?.tradeLicense ||
+            settings.legal?.tin ||
+            settings.legal?.ministryRegistration) && (
+            <dl class="mt-4 space-y-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
+              {settings.legal?.tradeLicense && (
+                <div class="flex gap-1.5">
+                  <dt>ট্রেড লাইসেন্স:</dt>
+                  <dd>{settings.legal.tradeLicense}</dd>
+                </div>
+              )}
+              {settings.legal?.tin && (
+                <div class="flex gap-1.5">
+                  <dt>টিআইএন:</dt>
+                  <dd>{settings.legal.tin}</dd>
+                </div>
+              )}
+              {settings.legal?.ministryRegistration && (
+                <div class="flex gap-1.5">
+                  <dt>নিবন্ধন:</dt>
+                  <dd>{settings.legal.ministryRegistration}</dd>
+                </div>
+              )}
+            </dl>
+          )
+        }
+
+        {/* Portal social media */}
+        {socialEntries.length > 0 && (
+          <div class="mt-5">
+            <h3 class="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
+              সোশ্যাল মিডিয়ায় আমরা
             </h3>
             <div class="flex flex-wrap gap-2.5">
-              {socialLinks.map(([platform, url]) => (
-                <a
-                  href={url!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white text-ink-muted shadow-sm transition-colors hover:bg-brand-red hover:text-white dark:bg-dark-raised dark:text-dark-ink-muted dark:hover:bg-brand-red dark:hover:text-white"
-                  aria-label={platform}
-                >
-                  <span class="text-xs font-semibold uppercase">{platform.slice(0, 2)}</span>
-                </a>
-              ))}
+              {socialEntries.map(([platform, url]) => {
+                const meta = SOCIAL_META[platform.toLowerCase()]
+                const label = meta?.label ?? platform
+                return (
+                  <a
+                    href={url!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-3 text-sm text-ink-muted shadow-sm transition-colors hover:bg-brand-red hover:text-white dark:bg-dark-raised dark:text-dark-ink-muted dark:hover:bg-brand-red dark:hover:text-white"
+                    aria-label={label}
+                    title={label}
+                  >
+                    {meta ? (
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d={meta.icon} />
+                      </svg>
+                    ) : (
+                      <span class="text-xs font-semibold uppercase">{platform.slice(0, 2)}</span>
+                    )}
+                    <span class="text-xs">{label}</span>
+                  </a>
+                )
+              })}
             </div>
           </div>
         )}
@@ -221,7 +272,7 @@ const cmsOrigin = getPublicCmsOrigin()
     </div>
   </div>
 
-  {/* ── Bottom zone: copyright + legal links + developer credit ──────── */}
+  {/* ── Bottom zone: copyright + legal links ─────────────────────────── */}
   <div class="border-t border-rule dark:border-dark-rule">
     <div class="container-page flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
       <p class="text-center text-xs text-ink-subtle dark:text-dark-ink-muted sm:text-left">
@@ -229,9 +280,6 @@ const cmsOrigin = getPublicCmsOrigin()
       </p>
       <nav aria-label="আইনি ও সহায়ক লিংক">
         <ul class="flex flex-wrap items-center justify-center gap-4 text-xs sm:justify-end">
-          {/* Reader tools, not legal links, but this row is the only place a
-              reader reliably finds them — a separate nav would be a fifth
-              list in the footer for two items. */}
           <li>
             <a
               href="/bookmarks"
@@ -277,33 +325,34 @@ const cmsOrigin = getPublicCmsOrigin()
     </div>
   </div>
 
-  {/* ── Developer credit ──────────────────────────────────────────────── */}
+  {/* ── Developer credit — Facebook + WhatsApp grouped together ───────── */}
   <div class="border-t border-rule bg-surface dark:border-dark-rule dark:bg-dark-base">
     <div class="container-page flex flex-col items-center justify-between gap-3 py-4 sm:flex-row">
       <p class="text-center text-xs text-ink-subtle dark:text-dark-ink-muted sm:text-left">
-        ডেভেলপ করেছেন <span class="font-medium text-ink-muted dark:text-dark-ink">শাহিদুর রহমান</span>
+        ডেভেলপার: <span class="font-medium text-ink-muted dark:text-dark-ink">শাহিদুল ইসলাম</span>
       </p>
-      <div class="flex items-center gap-4">
-        {/* Facebook */}
+
+      {/* Grouped developer contact — visually one unit */}
+      <div class="inline-flex items-center rounded-lg border border-rule bg-white p-1 shadow-sm dark:border-dark-rule dark:bg-dark-raised">
         <a
           href="https://www.facebook.com/shahid88142"
           target="_blank"
           rel="noopener noreferrer"
-          class="inline-flex items-center gap-1.5 text-xs text-ink-subtle transition-colors hover:text-brand-red dark:text-dark-ink-muted dark:hover:text-brand-red"
-          aria-label="ফেসবুক"
+          class="inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium text-ink-subtle transition-colors hover:bg-brand-red hover:text-white dark:text-dark-ink-muted"
+          aria-label="ডেভেলপারের ফেসবুক"
         >
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
           </svg>
           <span>ফেসবুক</span>
         </a>
-        {/* WhatsApp */}
+        <span class="mx-1 h-4 w-px bg-rule dark:bg-dark-rule" aria-hidden="true" />
         <a
           href="https://wa.me/8801840488142"
           target="_blank"
           rel="noopener noreferrer"
-          class="inline-flex items-center gap-1.5 text-xs text-ink-subtle transition-colors hover:text-brand-red dark:text-dark-ink-muted dark:hover:text-brand-red"
-          aria-label="হোয়াটসঅ্যাপ"
+          class="inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium text-ink-subtle transition-colors hover:bg-brand-red hover:text-white dark:text-dark-ink-muted"
+          aria-label="ডেভেলপারের হোয়াটসঅ্যাপ"
         >
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />

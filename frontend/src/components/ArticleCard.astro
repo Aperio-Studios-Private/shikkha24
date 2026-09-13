@@ -80,7 +80,7 @@ const published = article.publishedAt
 const Heading = headingLevel === 2 ? 'h2' : 'h3'
 ---
 
-<article class:list={['group', variant === 'compact' ? 'flex gap-3' : 'flex flex-col']}>
+<article class:list={['group', variant === 'compact' ? 'flex gap-3' : variant === 'default' ? 'flex flex-row sm:flex-col' : 'flex flex-col']}>
   <a href={href} class="no-underline">
     {
       /* Prefer the article's own photo; fall back to the category archetype. */
@@ -88,11 +88,13 @@ const Heading = headingLevel === 2 ? 'h2' : 'h3'
         variant !== 'compact' && (
           <div
             class:list={[
-              'relative mb-3 overflow-hidden rounded-md bg-surface-raised dark:bg-dark-raised',
+              'relative overflow-hidden rounded-md bg-surface-raised dark:bg-dark-raised',
               // Lead: 16:9 (matches the source) and height-capped so the
               // headline and image are both visible without scrolling.
               // A hero taller than ~420px pushes the masthead off-screen.
-              variant === 'lead' ? 'aspect-16/9 max-h-[26rem]' : 'aspect-3/2',
+              variant === 'lead'
+                ? 'mb-3 aspect-16/9 max-h-[26rem]'
+                : 'mb-0 mr-3 h-20 w-20 shrink-0 sm:mb-3 sm:mr-0 sm:aspect-3/2 sm:h-auto sm:w-full',
             ]}
           >
             {photo ? (
@@ -102,7 +104,7 @@ const Heading = headingLevel === 2 ? 'h2' : 'h3'
                 sizes={
                   variant === 'lead'
                     ? '(min-width: 1024px) 800px, 100vw'
-                    : '(min-width: 1024px) 600px, 100vw'
+                    : '(min-width: 640px) 600px, 80px'
                 }
                 alt={photo.alt}
                 width={photo.width}
@@ -119,7 +121,7 @@ const Heading = headingLevel === 2 ? 'h2' : 'h3'
                   sizes={
                     variant === 'lead'
                       ? '(min-width: 1024px) 800px, 100vw'
-                      : '(min-width: 1024px) 600px, 100vw'
+                      : '(min-width: 640px) 600px, 80px'
                   }
                   widths={[400, 800, 1200]}
                   priority={variant === 'lead'}
@@ -179,7 +181,7 @@ const Heading = headingLevel === 2 ? 'h2' : 'h3'
         class:list={[
           'font-headline font-bold text-ink transition-colors group-hover:text-brand-red dark:text-dark-ink dark:group-hover:text-brand-red',
           variant === 'lead' && 'text-2xl sm:text-3xl lg:text-4xl',
-          variant === 'default' && 'line-clamp-3 text-lg sm:text-xl',
+          variant === 'default' && 'line-clamp-2 text-base sm:line-clamp-3 sm:text-xl',
           variant === 'compact' && 'line-clamp-2 text-base',
         ]}
       >
