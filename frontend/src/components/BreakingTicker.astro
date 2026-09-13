@@ -24,6 +24,7 @@
  * screen-reader-friendly and needs no JS.
  */
 import type { CmsArticle } from '../lib/cms'
+import { articleUrl } from '../lib/url'
 
 interface Props {
   articles: CmsArticle[]
@@ -52,7 +53,7 @@ const items = articles.slice(0, 8)
               <li class="flex items-center gap-2 whitespace-nowrap">
                 <span class="text-white/80" aria-hidden="true">•</span>
                 <a
-                  href={`/article/${article.slug}`}
+                  href={articleUrl(article)}
                   class="text-sm text-white transition-colors hover:text-white/80"
                 >
                   {article.title}
@@ -65,7 +66,7 @@ const items = articles.slice(0, 8)
               <li class="flex items-center gap-2 whitespace-nowrap" aria-hidden="true">
                 <span class="text-white/80">•</span>
                 <a
-                  href={`/article/${article.slug}`}
+                  href={articleUrl(article)}
                   tabindex="-1"
                   class="text-sm text-white transition-colors hover:text-white/80"
                 >

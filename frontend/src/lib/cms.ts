@@ -473,17 +473,63 @@ export async function getArticleBySlug(slug: string): Promise<CmsFullArticle | n
   return data?.docs?.[0] ?? null
 }
 
-/** Every published slug — used to generate the static article routes. */
+/**
+ * Every published article's slug + id + category slug — used to generate
+ * the static article routes.
+ *
+ * Returns enough to build the new `/:category/:id/:slug` URL without an
+ * extra fetch per article. Depth 0 is fine because `category.slug` is a
+ * populated relation field by default in Payload.
+ *
+ * ## Pagination fix
+ *
+ * The old version had `limit: 500` and no pagination — past 500 published
+ * articles the sitemap silently stopped growing. Now paginates through
+ * the full result set using Payload's `page` + `limit` parameters.
+ */
+export async function getAllArticlePaths(): Promise<
+  Array<{ slug: string; id: number | string; categorySlug?: string }>
+> {
+  const limit = 500
+  let page = 1
+  let totalPages = 1
+  const all: Array<{ slug: string; id: number | string; categorySlug?: string }> = []
+
+  do {
+    const data = await cmsFetch<{
+      docs?: Array<{ slug: string; id: number | string; category?: { slug?: string } | number | null }>
+      totalPages?: number
+    } | null>(
+      `/api/articles${qs({
+        limit,
+        page,
+        depth: 1,
+        'where[_status][equals]': 'published',
+      })}`,
+      null,
+    )
+    const docs = data?.docs ?? []
+    for (const doc of docs) {
+      const categorySlug =
+        doc.category && typeof doc.category === 'object' ? doc.category.slug : undefined
+      if (doc.slug) {
+        all.push({ slug: doc.slug, id: doc.id, categorySlug })
+      }
+    }
+    totalPages = data?.totalPages ?? 1
+    page++
+  } while (page <= totalPages)
+
+  return all
+}
+
+/**
+ * Every published slug — thin wrapper around `getAllArticlePaths` for
+ * callers that only need the slug (e.g. the sitemap).
+ */
 export async function getAllArticleSlugs(): Promise<string[]> {
-  const data = await cmsFetch<{ docs?: Array<{ slug: string }> } | null>(
-    `/api/articles${qs({
-      limit: 500,
-      depth: 0,
-      'where[_status][equals]': 'published',
-    })}`,
-    null,
-  )
-  return (data?.docs ?? []).map((doc) => doc.slug).filter(Boolean)
+  const paths = await getAllArticlePaths()
+  return paths.map((p) => p.slug).filter(Boolean)
 }
 
 /**

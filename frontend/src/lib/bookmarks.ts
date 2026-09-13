@@ -139,7 +139,13 @@ export function clearBookmarks(): void {
   write([])
 }
 
-/** The URL an entry points at. */
+/**
+ * The URL an entry points at.
+ *
+ * Articles use the shortlink `/a/:id` — the bookmark stores only the id and
+ * slug (no category), so the shortlink resolves to the full `/:category/:id/:slug`
+ * URL via the redirect page. Shortlinks are stable and never reused.
+ */
 export function bookmarkHref(entry: BookmarkEntry): string {
-  return entry.kind === 'article' ? `/article/${entry.slug}` : `/deadlines#${entry.slug}`
+  return entry.kind === 'article' ? `/a/${entry.id}` : `/deadlines#${entry.slug}`
 }

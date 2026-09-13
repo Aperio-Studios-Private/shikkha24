@@ -23,6 +23,7 @@
  */
 import type { CmsArticle } from '../lib/cms'
 import { toBnDigits } from '../lib/widgets'
+import { articleUrl } from '../lib/url'
 
 interface Props {
   articles: CmsArticle[]
@@ -50,7 +51,7 @@ const items = articles.slice(0, 8)
             >
               {toBnDigits(index + 1)}
             </span>
-            <a href={`/article/${article.slug}`} class="group min-w-0 flex-1 no-underline">
+            <a href={articleUrl(article)} class="group min-w-0 flex-1 no-underline">
               <h3 class="font-headline line-clamp-2 text-base font-bold text-ink transition-colors group-hover:text-brand-red dark:text-dark-ink dark:group-hover:text-brand-red">
                 {article.title}
               </h3>

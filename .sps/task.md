@@ -162,10 +162,17 @@
 - [x] S10 DoD evidence → `.sps/section-todos/S10.md` — **user approval pending**
 
 ## S11 — SEO, Feeds & AI Optimization
-> ⚠️ **Sequencing deviation:** the four feed routes below were built **ahead of the S0→S12 order** on 2026-09-12. They are verified and committed. **Nothing else in S11 is started.**
+> ⚠️ **Sequencing deviation:** the four feed routes below were built **ahead of the S0→S12 order** on 2026-09-12. They are verified and committed.
 - [x] **Feeds subset (built ahead of sequence):** `robots.txt`, `sitemap.xml`, `news-sitemap.xml`, `rss.xml` — all build-time from the CMS. Verified: sitemap 23 URLs (3 static + 8 categories + 12 articles, real `publishedAt` as `lastmod`), news-sitemap 12 URLs inside 48h, RSS 12 items with Bengali `<category>`. `@astrojs/sitemap` / `@astrojs/rss` deliberately **not** used.
-- [ ] OG/Twitter cards, auto OG images, canonical + parameter stripping
-- [ ] `llms.txt`, Google Publisher Center registration
+- [x] **OG/Twitter cards, canonical URLs** — Layout already emitted OG/Twitter meta + canonical. Article page passes `ogImage` (resolved photo), `canonical`, `publishDate`, `modifiedDate`. Category pages now pass `canonical`. Added branded `og-default.svg` fallback. Commit `5c8c3af`.
+- [x] **JSON-LD structured data:**
+  - Homepage: `Organization` + `WebSite` + `SearchAction`
+  - Article: upgraded `Article` → `NewsArticle` with `isAccessibleForFree`, `speakable`, publisher logo, `isPartOf`, author `alternateName`/url
+  - Category: `CollectionPage` + `BreadcrumbList` + `ItemList`
+  - Layout `jsonLd` prop now accepts array of objects
+- [x] **`llms.txt`** — created at `/llms.txt`, describes portal structure for AI search crawlers
+- [ ] **Auto OG images** — dynamic per-article OG image generation (deferred; needs a build-time image library or Cloudflare Worker)
+- [ ] **Google Publisher Center registration** — owner action
 - [ ] E-E-A-T pages — **blocked on the owner** supplying Trade Licence, TIN, Ministry of Information registration
 - [ ] URL architecture implemented: `/:category/:subcategory/:id/:slug` + shortlink for social sharing
 - [ ] S11 DoD evidence → **user approval**

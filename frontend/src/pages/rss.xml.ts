@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro'
 import { FALLBACK_SETTINGS, getArticles, getSiteSettings } from '../lib/cms'
+import { articleUrl } from '../lib/url'
 
 /**
  * RSS 2.0 feed.
@@ -34,7 +35,7 @@ export const GET: APIRoute = async () => {
 
   const items = articles
     .map((article) => {
-      const link = `${site}/article/${article.slug}`
+      const link = `${site}${articleUrl(article)}`
       const published = article.publishedAt
         ? new Date(article.publishedAt).toUTCString()
         : new Date().toUTCString()

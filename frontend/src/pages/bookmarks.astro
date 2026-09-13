@@ -149,7 +149,7 @@ const enabled = isEnabled('bookmarks')
   /** Only a same-site path is allowed through. */
   function safeHref(entry: BookmarkEntry): string | null {
     const candidate =
-      entry.kind === 'article' ? `/article/${entry.slug}` : `/deadlines#${entry.slug}`
+      entry.kind === 'article' ? `/a/${entry.id}` : `/deadlines#${entry.slug}`
     return candidate.startsWith('/') && !candidate.startsWith('//') ? candidate : null
   }
 

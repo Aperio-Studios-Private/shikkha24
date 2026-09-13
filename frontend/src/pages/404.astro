@@ -9,6 +9,7 @@
  * navigate away, not hit a dead end.
  */
 import Layout from '../layouts/Layout.astro'
+import { articleUrl } from '../lib/url'
 import {
   getSiteSettings,
   getCategories,
@@ -69,7 +70,7 @@ const [settings, categories, footerPages, latest] = await Promise.all([
             {latest.docs.map((article) => (
               <li class="col-span-4 sm:col-span-4 lg:col-span-4">
                 <a
-                  href={`/article/${article.slug}`}
+                  href={articleUrl(article)}
                   class="group block no-underline"
                 >
                   <h3 class="font-headline line-clamp-2 text-base font-bold text-ink transition-colors group-hover:text-brand-red dark:text-dark-ink">

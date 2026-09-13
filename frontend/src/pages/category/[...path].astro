@@ -14,6 +14,7 @@ import Breadcrumbs from '../../components/Breadcrumbs.astro'
 import ArticleGrid from '../../components/ArticleGrid.astro'
 import Pagination from '../../components/Pagination.astro'
 import AdSlot from '../../components/AdSlot.astro'
+import { articleUrl } from '../../lib/url'
 import {
   getSiteSettings,
   getCategories,
@@ -123,7 +124,7 @@ const jsonLd = {
     itemListElement: result.docs.slice(0, 10).map((article, idx) => ({
       '@type': 'ListItem',
       position: idx + 1,
-      url: new URL(`/article/${article.slug}`, Astro.site ?? Astro.url).href,
+      url: new URL(articleUrl(article), Astro.site ?? Astro.url).href,
       name: article.title,
     })),
   },

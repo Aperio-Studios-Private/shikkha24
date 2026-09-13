@@ -11,6 +11,7 @@
  * alone cannot distinguish "just published" from "this morning".
  */
 import type { CmsArticle } from '../lib/cms'
+import { articleUrl } from '../lib/url'
 
 interface Props {
   articles: CmsArticle[]
@@ -44,7 +45,7 @@ function timeOf(iso: string | null | undefined): string {
       <ul class="flex flex-col divide-y divide-rule dark:divide-dark-rule">
         {items.map((article) => (
           <li class="py-3 first:pt-0">
-            <a href={`/article/${article.slug}`} class="group flex flex-col gap-1 no-underline">
+            <a href={articleUrl(article)} class="group flex flex-col gap-1 no-underline">
               <h3 class="font-headline line-clamp-2 text-base font-bold text-ink transition-colors group-hover:text-brand-red dark:text-dark-ink dark:group-hover:text-brand-red">
                 {article.title}
               </h3>

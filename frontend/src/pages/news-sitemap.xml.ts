@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro'
 import { FALLBACK_SETTINGS, getArticles, getSiteSettings } from '../lib/cms'
+import { articleUrl } from '../lib/url'
 
 /**
  * Google News sitemap.
@@ -55,7 +56,7 @@ export const GET: APIRoute = async () => {
   const entries = recent
     .map(({ article, published }) => {
       return `  <url>
-    <loc>${escapeXml(`${site}/article/${article.slug}`)}</loc>
+    <loc>${escapeXml(`${site}${articleUrl(article)}`)}</loc>
     <news:news>
       <news:publication>
         <news:name>${escapeXml(publicationName)}</news:name>

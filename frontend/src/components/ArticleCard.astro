@@ -40,6 +40,7 @@
 import type { CmsArticle } from '../lib/cms'
 import { getCategoryImage } from '../lib/images'
 import { resolveCmsImage } from '../lib/media'
+import { articleUrl } from '../lib/url'
 import CategoryImage from './CategoryImage.astro'
 import SponsoredLabel from './SponsoredLabel.astro'
 
@@ -84,7 +85,7 @@ const category =
  */
 const categoryImage = getCategoryImage(category?.slug)
 
-const href = `/article/${article.slug}`
+const href = articleUrl(article)
 
 /** Bengali date. Resolved at build time, so no client-side locale work. */
 const published = article.publishedAt

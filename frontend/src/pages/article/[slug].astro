@@ -1,378 +1,57 @@
 ---
 /**
- * Article page (S4).
+ * Legacy article URL redirect — `/article/:slug` → `/:category/:id/:slug`.
  *
- * `/article/:slug` — one static page per published article.
+ * The old URL scheme was `/article/:slug`. The new scheme (S11,
+ * `docs/seo-plan.md` §2) is `/:category/:id/:slug`, where the `:id` is the
+ * stable part. This page resolves the slug to the new URL and 301-redirects
+ * so old links (from WhatsApp, Facebook, Google's index) don't break.
  *
- * ## Rendering the body
+ * `docs/seo-plan.md` §9: "Never change a published URL." The redirect is
+ * the safety net for the URLs that were already published under the old
+ * scheme before S11.
  *
- * The body is Lexical JSON from Payload, converted to HTML by
- * `lib/richtext.ts`, which escapes everything. The CMS is never trusted to
- * emit markup: reporter-entered text is still user input, and this page carries
- * our domain's authority.
- *
- * ## Graceful degradation
- *
- * If the CMS is unreachable at build time, `getAllArticleSlugs` returns nothing
- * and no article pages are generated — the build still succeeds. A missing
- * article is a 404 at runtime, not a broken build.
+ * On a static site (Cloudflare Pages) the 301 is baked at build time —
+ * each old URL generates a tiny HTML page with a `<meta http-equiv="refresh">`
+ * and a `<link rel="canonical">`. Cloudflare's edge also honours the redirect.
  */
+import { getAllArticlePaths } from '../../lib/cms'
+import { articleUrl } from '../../lib/url'
 import Layout from '../../layouts/Layout.astro'
-import KeyTakeaways from '../../components/KeyTakeaways.astro'
-import AuthorCard from '../../components/AuthorCard.astro'
-import RelatedArticles from '../../components/RelatedArticles.astro'
-import ShareRow from '../../components/ShareRow.astro'
-import BookmarkButton from '../../components/BookmarkButton.astro'
-import ReadingProgress from '../../components/ReadingProgress.astro'
-import CorrectionNotice from '../../components/CorrectionNotice.astro'
-import ArticleAudio from '../../components/ArticleAudio.astro'
-import PrintStyles from '../../components/PrintStyles.astro'
-import SponsoredLabel from '../../components/SponsoredLabel.astro'
-import AdSlot from '../../components/AdSlot.astro'
-import ContentBlockScripts from '../../components/ContentBlockScripts.astro'
-import CommentSection from '../../components/CommentSection.astro'
-import CategoryImage from '../../components/CategoryImage.astro'
-import { countParagraphs, lexicalToHtml, lexicalToPlainText, splitHtmlAtParagraph } from '../../lib/richtext'
-import { resolveCmsImage } from '../../lib/media'
-import { getCategoryImage } from '../../lib/images'
-import { getPublicCmsOrigin } from '../../lib/interactive'
-import { getApprovedComments } from '../../lib/engagement'
-import {
-  getSiteSettings,
-  getCategories,
-  getFooterPages,
-  getAllArticleSlugs,
-  getArticleBySlug,
-  getRelatedArticles,
-  getAuthor,
-  FALLBACK_SETTINGS,
-  FALLBACK_CATEGORIES,
-} from '../../lib/cms'
+import { getSiteSettings, getCategories, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../../lib/cms'
 
 export async function getStaticPaths() {
-  const slugs = await getAllArticleSlugs().catch(() => [])
-  // No CMS → no article pages. The build must still succeed.
-  return slugs.map((slug) => ({ params: { slug } }))
+  const paths = await getAllArticlePaths().catch(() => [])
+  return paths.map((p) => ({
+    params: { slug: p.slug },
+    props: {
+      newUrl: p.categorySlug
+        ? articleUrl({ id: p.id, slug: p.slug, category: { slug: p.categorySlug } })
+        : `/article/${p.slug}`,
+    },
+  }))
 }
 
-const { slug } = Astro.params
-
-const [settings, categories, footerPages] = await Promise.all([
+const { newUrl } = Astro.props
+const [settings, categories] = await Promise.all([
   getSiteSettings().catch(() => FALLBACK_SETTINGS),
   getCategories().catch(() => FALLBACK_CATEGORIES),
-  getFooterPages().catch(() => []),
 ])
-
-const article = await getArticleBySlug(slug!).catch(() => null)
-
-// Unknown slug → 404. Astro serves the framework's default 404 for a missing
-// route; returning it explicitly keeps the behaviour obvious.
-if (!article) return Astro.redirect('/404')
-
-const [author, related] = await Promise.all([
-  getAuthor(article.author).catch(() => null),
-  getRelatedArticles(article).catch(() => []),
-])
-
-/**
- * Comments — baked in at build time, like everything else on this page.
- *
- * Fetched only when there is a CMS origin to submit to. With no origin the
- * section is not rendered at all, so there is no point paying for the request:
- * a comment list with no way to comment is a dead end. This is the same
- * self-hiding rule the S8 islands follow.
- */
-const cmsOrigin = getPublicCmsOrigin()
-const comments = cmsOrigin ? await getApprovedComments(article.id).catch(() => []) : []
-
-const bodyHtml = lexicalToHtml(article.body)
-const bodyText = lexicalToPlainText(article.body)
-
-/**
- * Mid-article ad placement.
- *
- * Splitting the body is only worth doing on a piece long enough that a reader
- * scrolls past the middle — on a four-paragraph story an "in-article" unit lands
- * next to the byline and reads as a mistake. Six paragraphs is the floor, and the
- * cut is made at the midpoint rather than a fixed paragraph count so short and
- * long pieces both get a sensible position.
- */
-const paragraphCount = countParagraphs(bodyHtml)
-const showMiddleAd = paragraphCount >= 6
-const [bodyBeforeAd, bodyAfterAd] = showMiddleAd
-  ? splitHtmlAtParagraph(bodyHtml, Math.floor(paragraphCount / 2))
-  : [bodyHtml, '']
-
-const category =
-  article.category && typeof article.category === 'object' ? article.category : null
-
-/**
- * Hero image — the article's own photo, else the category archetype.
- *
- * The homepage cards have always fallen back to `getCategoryImage()`; this page
- * did not. It rendered the hero only when `featuredImage` resolved, so an
- * article with no photo of its own (which is most of them — reporters publish
- * the text first and upload a photo later) showed no image at all, while its
- * card on the homepage showed the category archetype.
- *
- * Sharing `resolveCmsImage` with the cards also means the hero gets a real
- * `srcset` from the CMS variants and the true dimensions, instead of the
- * hard-coded 1200×675 box this page used to reserve.
- */
-const photo = resolveCmsImage(article.featuredImage, article.title)
-const categoryImage = getCategoryImage(category?.slug)
-
-const published = article.publishedAt
-  ? new Date(article.publishedAt).toLocaleDateString('bn-BD', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-  : null
-
-const canonical = new URL(`/article/${article.slug}`, Astro.site ?? Astro.url).href
-
-/**
- * Article JSON-LD — `NewsArticle` per `docs/seo-plan.md` §4.
- *
- * `NewsArticle` (not the generic `Article`) is what Google News and Discover
- * need. Key requirements from the spec:
- *   - headline ≤110 chars (matching the visible `<h1>`)
- *   - image ≥1200px wide and ≥800,000px² — the archetype or the photo
- *   - datePublished / dateModified in ISO 8601 with +06:00 offset
- *   - author as `Person` with `sameAs` when available
- *   - publisher as `Organization` with logo
- *   - `isAccessibleForFree: true` — all content is free
- *   - `speakable` — the headline and summary are the parts a voice assistant reads
- *
- * Sponsored articles keep the same schema; the «বিজ্ঞাপন» label is a
- * visible human-readable signal, not a schema property (`docs/seo-plan.md` §6a).
- */
-const siteUrl = Astro.site?.href ?? Astro.url.origin
-
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'NewsArticle',
-  headline: article.title,
-  description: article.excerpt ?? undefined,
-  image: photo?.src ? [photo.src] : undefined,
-  datePublished: article.publishedAt ?? undefined,
-  dateModified: article.updatedAt ?? article.publishedAt ?? undefined,
-  author: author
-    ? {
-        '@type': 'Person',
-        name: author.nameBn,
-        alternateName: author.nameEn ?? undefined,
-        url: author.slug ? `${siteUrl}/author/${author.slug}` : undefined,
-      }
-    : { '@type': 'Person', name: settings.siteName },
-  publisher: {
-    '@type': 'Organization',
-    name: settings.siteName,
-    alternateName: settings.siteNameEn ?? undefined,
-    logo: settings.logo?.url
-      ? { '@type': 'ImageObject', url: settings.logo.url }
-      : undefined,
-  },
-  mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
-  inLanguage: 'bn-BD',
-  articleSection: category?.nameBn ?? undefined,
-  isAccessibleForFree: true,
-  speakable: {
-    '@type': 'SpeakableSpecification',
-    cssSelector: ['article h1', 'article .article-excerpt'],
-  },
-  isPartOf: {
-    '@type': 'NewsMediaOrganization',
-    name: settings.siteName,
-    url: siteUrl,
-  },
-}
+const canonical = new URL(newUrl, Astro.site ?? Astro.url).href
 ---
 
-<Layout
-  title={article.title}
-  description={article.excerpt ?? undefined}
-  canonical={canonical}
-  ogImage={photo?.src ?? undefined}
-  publishDate={article.publishedAt ?? undefined}
-  modifiedDate={article.updatedAt ?? article.publishedAt ?? undefined}
-  jsonLd={jsonLd}
-  settings={settings}
-  categories={categories}
-  footerPages={footerPages}
->
-  <ReadingProgress />
-  <PrintStyles />
-  {/* Enhances the before/after and scrollytelling blocks, if this article has
-      any. Renders nothing itself; both blocks are readable without it. */}
-  <ContentBlockScripts />
-
-  {/* data-pagefind-body scopes the search index to the story itself, so
-      results are not polluted by the nav, sidebar or footer. */}
-  <article class="container-page py-6" data-pagefind-body>
-    <div class="grid-12">
-      <div class="col-span-4 sm:col-span-8 lg:col-span-8">
-        {/* Breadcrumb */}
-        <nav aria-label="breadcrumb" class="mb-3">
-          <ol class="flex flex-wrap items-center gap-1.5 text-xs text-ink-subtle dark:text-dark-ink-muted">
-            <li><a href="/" class="hover:text-brand-red">হোম</a></li>
-            {
-              category && (
-                <>
-                  <li aria-hidden="true">/</li>
-                  <li>
-                    <a href={`/category/${category.slug}`} class="hover:text-brand-red">
-                      {category.nameBn}
-                    </a>
-                  </li>
-                </>
-              )
-            }
-          </ol>
-        </nav>
-
-        {/* Paid content must be disclosed before the headline is read. */}
-        {article.isSponsored && (
-          <SponsoredLabel sponsorName={article.sponsorName} variant="banner" />
-        )}
-
-        {/* Headline */}
-        <h1 class="font-headline text-2xl font-bold leading-tight text-ink sm:text-3xl lg:text-4xl dark:text-dark-ink">
-          {article.title}
-        </h1>
-
-        {/* Byline */}
-        <div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-subtle dark:text-dark-ink-muted">
-          {author && <span class="font-medium text-ink dark:text-dark-ink">{author.nameBn}</span>}
-          {published && (
-            <time datetime={article.publishedAt ?? undefined}>{published}</time>
-          )}
-          {
-            article.readingTimeMinutes ? (
-              <>
-                <span aria-hidden="true">·</span>
-                <span>{article.readingTimeMinutes} মিনিট</span>
-              </>
-            ) : null
-          }
-          {article.isBreaking && (
-            <span class="rounded bg-brand-red px-1.5 py-0.5 text-xs font-semibold text-white">
-              ব্রেকিং
-            </span>
-          )}
-          {article.isSponsored && (
-            <SponsoredLabel sponsorName={article.sponsorName} />
-          )}
-        </div>
-
-        {
-          /* The hero is the LCP element on this page, so it is eager and
-             high-priority. The wrapper carries `aspect-16/9` and both branches
-             write intrinsic width/height, so the box is reserved before the
-             bytes arrive — zero CLS, which the budget treats as a hard gate. */
-          (photo || categoryImage) && (
-            <div class="mt-5 aspect-16/9 w-full overflow-hidden rounded-lg bg-surface-raised dark:bg-dark-raised">
-              {photo ? (
-                <img
-                  src={photo.src}
-                  srcset={photo.srcset}
-                  sizes="(min-width: 1024px) 800px, 100vw"
-                  alt={photo.alt}
-                  width={photo.width}
-                  height={photo.height}
-                  loading="eager"
-                  fetchpriority="high"
-                  decoding="async"
-                  class="h-full w-full object-cover"
-                />
-              ) : (
-                categoryImage && (
-                  <CategoryImage
-                    image={categoryImage}
-                    alt={article.title}
-                    sizes="(min-width: 1024px) 800px, 100vw"
-                    widths={[400, 800, 1200]}
-                    priority
-                    class="h-full w-full object-cover"
-                  />
-                )
-              )}
-            </div>
-          )
-        }
-
-        {/* Correction — above the body, never buried */}
-        <CorrectionNotice
-          notice={article.correctionNotice?.hasCorrection ? article.correctionNotice.note : null}
-          updatedAt={article.updatedAt}
-        />
-
-        {article.keyTakeaways?.length ? (
-          <KeyTakeaways points={article.keyTakeaways.map((k) => k.point)} />
-        ) : null}
-
-        {bodyText && <ArticleAudio text={`${article.title}. ${bodyText}`} />}
-
-        {/* In-article, top — placed after the header block so it can never land
-            in the initial viewport, which the performance budget forbids. */}
-        <div class="mt-6 flex justify-center">
-          <AdSlot position="articleTop" width={728} height={90} />
-        </div>
-
-        {/* Body — converted Lexical, already escaped. Split so a mid-article ad
-            can sit inside the prose; the cut is always made directly after a
-            `</p>`, so no tag is ever sliced in half. */}
-        <div class="prose-bn mt-6 text-ink dark:text-dark-ink" set:html={bodyBeforeAd} />
-
-        {
-          showMiddleAd && (
-            <div class="my-6 flex justify-center">
-              <AdSlot position="articleMiddle" width={728} height={90} />
-            </div>
-          )
-        }
-
-        {showMiddleAd && (
-          <div class="prose-bn text-ink dark:text-dark-ink" set:html={bodyAfterAd} />
-        )}
-
-        {/* Share and save sit together — both are "keep this" actions, and a
-            reader looking for one will look where the other is. The bookmark
-            button needs no CMS origin: the list is browser-local. */}
-        <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
-          <ShareRow url={canonical} title={article.title} />
-          <BookmarkButton
-            kind="article"
-            id={article.id}
-            slug={article.slug}
-            title={article.title}
-          />
-        </div>
-
-        <AuthorCard author={author} publishedAt={article.publishedAt} />
-
-        <div class="mt-8 flex justify-center">
-          <AdSlot position="articleBottom" width={728} height={90} />
-        </div>
-
-        {/* Below the ad, deliberately: a reader who has finished the story meets
-            the discussion last, and an ad between the byline and the comments
-            reads as an interruption of the conversation. */}
-        <CommentSection articleId={article.id} comments={comments} cmsOrigin={cmsOrigin} />
-      </div>
-
-      {/* Sidebar — related articles on desktop.
-          Excluded from the index: these headlines belong to other stories and
-          would make this article match queries it is not about. */}
-      <aside
-        class="col-span-4 mt-8 sm:col-span-8 lg:col-span-4 lg:mt-0"
-        data-pagefind-ignore
-      >
-        <div class="lg:sticky lg:top-4">
-          <RelatedArticles articles={related} />
-        </div>
-      </aside>
-    </div>
-  </article>
-</Layout>
+<html lang="bn">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="canonical" href={canonical} />
+    <meta http-equiv="refresh" content={`0; url=${canonical}`} />
+    <title>পুনর্নির্দেশ — {settings.siteName}</title>
+  </head>
+  <body>
+    <p style="font-family: sans-serif; text-align: center; padding: 2rem;">
+      স্বয়ংক্রিয়ভাবে নতুন ঠিকানায় নিয়ে যাওয়া হচ্ছে…
+      <a href={canonical}>এগিয়ে যান</a>
+    </p>
+  </body>
+</html>

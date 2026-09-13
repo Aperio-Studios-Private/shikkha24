@@ -1,12 +1,13 @@
 import type { APIRoute } from 'astro'
 import {
   FALLBACK_CATEGORIES,
-  getAllArticleSlugs,
+  getAllArticlePaths,
   getAllPageSlugs,
   getArticles,
   getCategories,
 } from '../lib/cms'
 import { getAllInstitutionSlugs, getAllStudyAbroadSlugs } from '../lib/education'
+import { articleUrl } from '../lib/url'
 
 /**
  * sitemap.xml
@@ -52,10 +53,10 @@ export const GET: APIRoute = async () => {
   const site = (import.meta.env.PUBLIC_SITE_URL || 'https://shikkha24.com').replace(/\/$/, '')
   const today = new Date().toISOString().slice(0, 10)
 
-  const [slugs, pageSlugs, articles, categories, institutionSlugs, studyAbroadSlugs] = await Promise.all([
-    getAllArticleSlugs().catch(() => []),
+  const [articlePaths, pageSlugs, articles, categories, institutionSlugs, studyAbroadSlugs] = await Promise.all([
+    getAllArticlePaths().catch(() => []),
     getAllPageSlugs().catch(() => []),
-    // Fetched only for the publish dates; the slug list above stays canonical.
+    // Fetched only for the publish dates; the path list above stays canonical.
     getArticles({ limit: 500 }).catch(() => []),
     getCategories().catch(() => FALLBACK_CATEGORIES),
     getAllInstitutionSlugs().catch(() => []),
@@ -101,11 +102,11 @@ export const GET: APIRoute = async () => {
       priority: '0.7',
       changefreq: 'hourly',
     })),
-    ...slugs.map((slug) => ({
-      loc: `/article/${slug}`,
+    ...articlePaths.map((p) => ({
+      loc: articleUrl({ id: p.id, slug: p.slug, category: p.categorySlug ? { slug: p.categorySlug } : null }),
       priority: '0.6',
       changefreq: 'weekly',
-      lastmod: publishedOn.get(slug),
+      lastmod: publishedOn.get(p.slug),
     })),
     ...institutionSlugs.map((slug) => ({
       loc: `/institutions/${slug}`,

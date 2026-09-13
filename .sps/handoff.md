@@ -1,10 +1,10 @@
 # SPS Handoff
 
 ## Current Phase
-- **Status:** **S10 BUILD COMPLETE — awaiting owner approval.** S0–S4 approved 2026-09-12; S5–S8 evidence posted; S9 approved 2026-09-13; S10 built 2026-09-13.
-- **Last Activity:** 2026-09-13T19:15+06:00 — S10 build complete, evidence posted.
-- **Next Action:** owner approval for S10, then S11 (SEO, Feeds & AI Optimization).
-- **⚠️ S10 summary:** 55 pages, 0 inline scripts, 61 data blocks, 9 new page files + footer/header/deadlines/sitemap changes. All 10 education features (N1–N10) built. No new dependencies. All data is editorially curated — no external API needed. Evidence: `.sps/section-todos/S10.md`. Commit: `cb36d92`.
+- **Status:** **S11 SEO work in progress.** S0–S4 approved 2026-09-12; S5–S8 evidence posted; S9 approved 2026-09-13; S10 built 2026-09-13; S11 SEO core (JSON-LD, OG, llms.txt) built 2026-09-13.
+- **Last Activity:** 2026-09-13T18:51+06:00 — S11 SEO core built (JSON-LD on homepage/article/category, OG default image, llms.txt).
+- **Next Action:** remaining S11 items (auto OG images, URL architecture, E-E-A-T pages blocked on owner), then S12.
+- **⚠️ S11 progress:** JSON-LD structured data added to all three main page types (homepage Organization+WebSite, article NewsArticle with speakable+isAccessibleForFree, category CollectionPage+BreadcrumbList+ItemList). Layout `jsonLd` prop now accepts arrays. `og-default.svg` branded fallback created. `llms.txt` for AI search created. Feeds (sitemap, RSS, news-sitemap, robots) were already built ahead of sequence. Commit: `5c8c3af`. Also: ArticleCard polish committed (`348780b`), featured image fix (`d5272fe`), sidebar fix (`5448434`).
 - **⚠️ One S9 build item is deliberately NOT built:** bookmark → CMS sync. The browser-local half is complete and works with no account. The sync half is unblocked but needs a **policy decision** first — a naive union-merge resurrects a bookmark deleted on another device. Raised for the owner rather than guessed at.
 - **User instruction (latest):** "read all docs and everything then continue to work" — taken, per this project's recorded convention, as approval of the previous section plus instruction to build the next one.
 - **⚠️ Open owner question (raised 2026-09-12):** the owner plans to **upgrade DianaHost to a 5 GB plan** and asked whether Cloudflare is still needed. Answer given: **yes** — 5 GB eases storage (and maybe bandwidth) but does not address uptime isolation, the performance gates, or deploy mechanics. **Two figures still needed: the 5 GB plan's monthly bandwidth and its price.** No plan change has been made pending that answer.
