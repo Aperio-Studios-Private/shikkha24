@@ -7,7 +7,7 @@
 
 Field names below are written in `snake_case`, which is how they appear as **database columns**. In code they are **`camelCase`** — the JavaScript convention, and what Payload expects. Payload's Drizzle layer converts between the two, so `name_bn` in the DB is `nameBn` in `Articles.ts`.
 
-## Implemented — 26 collections + 1 global
+## Implemented — 29 collections + 1 global
 
 | Group (admin sidebar) | Collections |
 |---|---|
@@ -16,8 +16,10 @@ Field names below are written in `snake_case`, which is how they appear as **dat
 | ইন্টারঅ্যাকটিভ (Interactive) | `live-blogs` · `polls` · `quizzes` |
 | মিডিয়া (Media) | `media` · `photo-galleries` |
 | বিজ্ঞাপন (Advertising) | `ad-units` |
-| পাঠক (Readers) | `comments` · `newsletter-subscribers` · `saved-deadlines` · `readers` |
+| পাঠক (Readers) | `comments` · `newsletter-subscribers` · `newsletter-campaigns` · `saved-deadlines` · `bookmarks` · `citizen-submissions` · `readers` · `poll-votes` |
 | প্রশাসন (Administration) | `users` · global `site-settings` |
+
+*(`newsletter-campaigns`, `bookmarks` and `citizen-submissions` added in S9 — 2026-09-13.)*
 
 ### Two structural decisions taken in S1
 
@@ -55,7 +57,8 @@ name_bn · slug · bio · photo · designation · email · facebook · twitter �
 name_bn · slug
 
 ### Ad Units
-name · position (enum) · ad_type (enum) · code_snippet · image · target_url · campaign_start · campaign_end · is_active · click_count
+name · position (enum) · ad_type (enum) · image · target_url · adsense_slot_id · campaign_start · campaign_end · is_active
+*(`code_snippet` and `click_count` were **removed in S7** — see below.)*
 
 ### Site Settings *(global)*
 site_name · logo · favicon · social_links · footer_text · contact_info · about_text
@@ -73,18 +76,58 @@ claim · verdict (enum: false / misleading / true) · evidence · source_urls ·
 title · organization · deadline · category (enum) · circular_image · apply_url · description
 
 ### Comments
-article (relation) · user_name · user_email · user_avatar · body · is_approved · social_provider
+article (relation) · reader (relation, optional) · user_name · user_email · user_avatar · body · is_approved · social_provider
 
 ### Live Blogs
 title · slug · is_active · entries[] (timestamp, content, is_key_event)
 
 ### Newsletter Subscribers
-email · subscribed_at · is_active
+email · subscribed_at · is_active · confirmed_at · unsubscribed_at · consent_source · confirmation_token · confirmation_expires_at · unsubscribe_token
 *(restored by the audit — required by the self-built Payload newsletter decision)*
+*(S9 added the double-opt-in fields. The confirmation and unsubscribe tokens are **deliberately different values**: the confirmation token is single-use and expires in 3 days, the unsubscribe token is long-lived and appears in every mail.)*
+
+### Newsletter Campaigns
+subject · preheader · body (richText) · status (draft / sending / sent / failed) · sent_at · recipient_count · sent_count · deferred_count · sent_through_id · last_error
+*(added S9. The counters are **stored, not computed**, because a send legitimately spans several hours under the hourly cap and cPanel offers no delivery reporting. `sent_through_id` is the sweep cursor — ids are monotonic, so it cannot skip a subscriber if one is inserted mid-send.)*
+
+### Bookmarks
+reader (relation) · kind (article / deadline) · article (relation, conditional) · deadline (relation, conditional)
+*(added S9. Kept separate from `saved-deadlines`: that one carries the N7 reminder state, this one is a plain saved-item list that also covers articles.)*
+
+### Citizen Submissions
+title · body · district · media · reporter_name · reporter_email · reporter_phone · status (new / reviewing / published / rejected) · editor_note
+*(added S9. A **queue, not a publishing surface** — nothing here reaches the site without an editor. `reporter_email` and `reporter_phone` are field-level restricted to authenticated users.)*
 
 ### Photo Galleries
-title · images[] (with caption)
+title · slug · images[] (with caption) · description
 *(restored by the audit — required by the gallery feature)*
+
+---
+
+## S9 changes to existing collections (2026-09-13)
+
+**`media` — storage moved off Cloudflare R2 onto the DianaHost disk.** The owner
+has no international card, and R2 bills on overage once a card is on file, so the
+10 GB free tier was not a zero-recurring-cost guarantee. Consequences, all
+enforced in `cms/src/collections/Media.ts`:
+
+- every upload is **converted to WebP and the original is discarded** — a
+  conversion, not an extra copy, so it does not double disk use
+- retained dimensions are **capped at 2000px** (`resizeOptions.withoutEnlargement`)
+- **EXIF is stripped** (`withMetadata: false`) — geolocation in a reader's
+  submitted photo is a privacy leak
+- a **per-day upload cap** (`MEDIA_DAILY_UPLOAD_CAP_BYTES`, default 250 MB) is
+  enforced in a `beforeValidate` hook and fails **open** if the count query errors
+
+⚠️ Media is now part of the backup problem: the off-host backup must include
+`data/media/`, not just the SQLite file (`docs/backup-and-recovery.md`).
+
+**`ad-units` — two fields removed in S7, recorded here because this document
+still listed them.** `code_snippet` was a raw-HTML field rendered verbatim, which
+is stored XSS and would let a compromised Ad Manager account poison every page;
+markup is now generated from structured fields instead. `click_count` was removed
+because a static site cannot count clicks, and beaconing to the CMS from the
+browser would break the "a CMS outage cannot take the site down" property.
 
 ### Pages
 title · slug · body

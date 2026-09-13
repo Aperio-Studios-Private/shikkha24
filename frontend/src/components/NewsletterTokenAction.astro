@@ -1,0 +1,146 @@
+---
+/**
+ * Shared shell for the two newsletter token actions — confirm and unsubscribe.
+ *
+ * Both pages do the same thing: take a token from the URL, POST it once, and
+ * report the outcome. Writing that twice would mean two places to get the
+ * error handling and the accessibility of the result wrong.
+ *
+ * ## Why the token is POSTed rather than used from the link directly
+ *
+ * A `GET` that mutates state gets the token written into server logs, referrer
+ * headers and browser history, and can be triggered by a prefetcher or an image
+ * tag. So the email link opens this page, and the page performs the mutation.
+ *
+ * ## Why it works without JavaScript
+ *
+ * The form is a real `<form>` with a submit button, and the page also POSTs
+ * automatically on load when scripting is available. With JavaScript off the
+ * reader still sees the button and can act — a confirmation link that silently
+ * does nothing is the worst possible outcome for the one flow whose entire
+ * purpose is proving the reader is present.
+ */
+interface Props {
+  /** `POST` target on the CMS, e.g. `${cmsOrigin}/api/newsletter/confirm`. */
+  endpoint: string
+  /** Shown before the action runs. */
+  heading: string
+  intro: string
+  /** Button label — the no-JavaScript path needs one. */
+  action: string
+  /** Message on success. */
+  success: string
+}
+
+const { endpoint, heading, intro, action, success } = Astro.props
+---
+
+<section
+  class="mx-auto max-w-xl py-8"
+  data-token-action
+  data-endpoint={endpoint}
+  data-success={success}
+>
+  <h1 class="font-headline text-2xl font-bold text-ink dark:text-dark-ink">{heading}</h1>
+  <p class="mt-3 text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted">{intro}</p>
+
+  <form method="post" data-token-form class="mt-6">
+    <input type="hidden" name="token" data-token-value value="" />
+    <button
+      type="submit"
+      class="min-h-12 rounded-md bg-brand-red px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+    >
+      {action}
+    </button>
+  </form>
+
+  {/* Reserved height so the outcome cannot shift the page. */}
+  <p
+    data-token-status
+    role="status"
+    aria-live="polite"
+    class="mt-4 min-h-6 text-base text-ink dark:text-dark-ink"
+  >
+  </p>
+</section>
+
+<script>
+  /**
+   * Read the token from the query string, then POST it.
+   *
+   * The automatic attempt happens on load; the button remains for the
+   * no-JavaScript case and for a retry after a network failure.
+   */
+  for (const root of document.querySelectorAll<HTMLElement>('[data-token-action]')) {
+    const endpoint = root.dataset.endpoint
+    const successMessage = root.dataset.success ?? ''
+    const form = root.querySelector<HTMLFormElement>('[data-token-form]')
+    const hidden = root.querySelector<HTMLInputElement>('[data-token-value]')
+    const status = root.querySelector<HTMLElement>('[data-token-status]')
+    const button = root.querySelector<HTMLButtonElement>('button[type="submit"]')
+
+    if (!endpoint || !form || !hidden) continue
+
+    const token = new URLSearchParams(window.location.search).get('token') ?? ''
+    hidden.value = token
+
+    const setStatus = (message: string): void => {
+      if (status) status.textContent = message
+    }
+
+    if (!token) {
+      setStatus('লিংকটি অসম্পূর্ণ — ইমেইলের লিংকটি সম্পূর্ণ কপি করে আবার চেষ্টা করুন।')
+      if (button) button.disabled = true
+      continue
+    }
+
+    const run = async (): Promise<void> => {
+      if (button) button.disabled = true
+      setStatus('একটু অপেক্ষা করুন…')
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ token }),
+        })
+
+        const payload = (await response.json().catch(() => ({}))) as {
+          ok?: boolean
+          error?: string
+        }
+
+        if (response.ok && payload.ok) {
+          setStatus(successMessage)
+          // The token is spent; leaving the button enabled invites a pointless
+          // second attempt that would fail confusingly.
+          form.hidden = true
+          return
+        }
+
+        setStatus(payload.error ?? 'কিছু একটা ভুল হয়েছে। আবার চেষ্টা করুন।')
+      } catch {
+        setStatus('সংযোগ করা যায়নি। একটু পরে আবার চেষ্টা করুন।')
+      } finally {
+        if (button) button.disabled = false
+      }
+    }
+
+    // Guard against a double POST if the reader also presses the button.
+    let done = false
+    const runOnce = (): void => {
+      if (done) return
+      done = true
+      void run()
+    }
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault()
+      done = false
+      runOnce()
+    })
+
+    // Auto-run with scripting on; the button covers the no-JS path.
+    runOnce()
+  }
+</script>

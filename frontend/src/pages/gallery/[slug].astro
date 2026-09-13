@@ -1,0 +1,183 @@
+---
+/**
+ * Photo gallery detail — `/gallery/:slug`.
+ *
+ * ## The grid is the content
+ *
+ * A gallery page's job is to show photographs. Everything else on this page —
+ * the title, the description, the breadcrumb — exists to give the grid a
+ * context, and the grid comes immediately after them.
+ *
+ * ## No JavaScript
+ *
+ * Each image links to its own full-size URL rather than opening a scripted
+ * lightbox. That is a deliberate trade: a lightbox is the nicer interaction, but
+ * it costs a script on every gallery page and a focus trap to be accessible at
+ * all, and the browser's own image viewer is a perfectly good way to look at a
+ * photograph. Tap-to-open works with scripting off, with no bundle cost.
+ *
+ * ## Structured data
+ *
+ * `docs/seo-plan.md` §3 assigns this template `ImageGallery` + `BreadcrumbList`.
+ * The images are emitted as `ImageObject`s under `associatedMedia`, with the
+ * caption preserved — a gallery whose captions are invisible to search is a
+ * gallery that cannot be found by what it depicts.
+ *
+ * ## Degradation
+ *
+ * `getGalleryBySlug` returns `null` both for an unknown slug and for an
+ * unreachable CMS; the page 404s in both cases rather than rendering an empty
+ * shell. An empty gallery is a dead end (`docs/reliability.md` §4).
+ */
+import Layout from '../../layouts/Layout.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import { resolveCmsImage } from '../../lib/media'
+import { getAllGallerySlugs, getGalleryBySlug, resolveGalleryImages } from '../../lib/engagement'
+import { isEnabled } from '../../lib/feature-flags'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../../lib/cms'
+
+export async function getStaticPaths() {
+  // The flag gates page *generation*, not just rendering. Generating 200 paths
+  // that each immediately redirect would be both wasteful and a build-time
+  // redirect, which static output does not have a runtime to perform.
+  if (!isEnabled('gallery')) return []
+  const slugs = await getAllGallerySlugs().catch(() => [])
+  // No CMS → no gallery pages. The build must still succeed.
+  return slugs.map((slug) => ({ params: { slug } }))
+}
+
+const { slug } = Astro.params
+
+const [settings, categories, footerPages] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+])
+
+const gallery = await getGalleryBySlug(slug!).catch(() => null)
+
+// Unknown slug → 404. `getStaticPaths` only emits slugs that came back from the
+// CMS and only when the flag is on, so this is defensive rather than reachable
+// at build time — the same shape the article page uses.
+if (!gallery) return Astro.redirect('/404')
+
+const images = resolveGalleryImages(gallery)
+
+const canonical = new URL(`/gallery/${gallery.slug}`, Astro.site ?? Astro.url).href
+
+/**
+ * ImageGallery JSON-LD.
+ *
+ * Only images that resolved to a real URL are included, so the markup can never
+ * advertise a photograph the page does not show.
+ */
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ImageGallery',
+  name: gallery.title,
+  description: gallery.description ?? undefined,
+  url: canonical,
+  datePublished: gallery.updatedAt ?? undefined,
+  inLanguage: 'bn-BD',
+  associatedMedia: images.map((image) => ({
+    '@type': 'ImageObject',
+    contentUrl: image.url,
+    caption: image.caption ?? undefined,
+  })),
+}
+---
+
+<Layout
+  title={`${gallery.title} — ছবির গ্যালারি`}
+  description={gallery.description ?? `${gallery.title} — শিক্ষা২৪-এর ছবির গ্যালারি।`}
+  canonical={canonical}
+  ogImage={images[0]?.url ?? undefined}
+  jsonLd={jsonLd}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <div class="container-page py-6" data-pagefind-body>
+    <Breadcrumbs
+      items={[
+        { label: 'ছবির গ্যালারি', href: '/gallery' },
+        { label: gallery.title },
+      ]}
+    />
+
+    <h1 class="font-headline text-2xl font-bold leading-tight text-ink sm:text-3xl dark:text-dark-ink">
+      {gallery.title}
+    </h1>
+
+    {
+      gallery.description && (
+        <p class="mt-2 max-w-2xl text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+          {gallery.description}
+        </p>
+      )
+    }
+
+    {
+      images.length === 0 ? (
+        <p class="mt-6 text-base text-ink-muted dark:text-dark-ink-muted">
+          এই গ্যালারিতে এখনো কোনো ছবি যোগ করা হয়নি।
+        </p>
+      ) : (
+        <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {images.map((image) => {
+            const photo = resolveCmsImage(image.media, gallery.title)
+            if (!photo) return null
+            return (
+              <li>
+                <figure class="overflow-hidden rounded-md border border-rule dark:border-dark-rule">
+                  {/* aspect-ratio reserves the box before the file arrives, so
+                      the grid does not reflow as images decode (CLS budget). */}
+                  <a
+                    href={photo.src}
+                    target="_blank"
+                    rel="noopener"
+                    class="block aspect-3/2 overflow-hidden bg-surface-raised dark:bg-dark-raised"
+                  >
+                    <img
+                      src={photo.src}
+                      srcset={photo.srcset}
+                      sizes="(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw"
+                      alt={photo.alt}
+                      width={photo.width}
+                      height={photo.height}
+                      loading="lazy"
+                      decoding="async"
+                      class="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.02]"
+                    />
+                  </a>
+                  {(image.caption || photo.credit) && (
+                    <figcaption class="px-3 py-2 text-sm leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+                      {image.caption}
+                      {photo.credit && (
+                        <span class="mt-0.5 block text-xs text-ink-subtle dark:text-dark-ink-muted">
+                          ছবি: {photo.credit}
+                        </span>
+                      )}
+                    </figcaption>
+                  )}
+                </figure>
+              </li>
+            )
+          })}
+        </ul>
+      )
+    }
+
+    <p class="mt-8">
+      <a href="/gallery" class="text-sm font-medium text-brand-red hover:underline">
+        ← সব গ্যালারি
+      </a>
+    </p>
+  </div>
+</Layout>

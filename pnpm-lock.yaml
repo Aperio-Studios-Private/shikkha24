@@ -17,6 +17,9 @@ importers:
       '@payloadcms/db-sqlite':
         specifier: 3.89.0
         version: 3.89.0(payload@3.89.0(graphql@16.14.2)(typescript@7.0.2))
+      '@payloadcms/email-nodemailer':
+        specifier: 3.89.0
+        version: 3.89.0(payload@3.89.0(graphql@16.14.2)(typescript@7.0.2))
       '@payloadcms/next':
         specifier: 3.89.0
         version: 3.89.0(@types/react@19.2.14)(graphql@16.14.2)(monaco-editor@0.56.0)(next@16.3.5(@types/node@22.20.2)(babel-plugin-macros@3.1.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.77.4))(payload@3.89.0(graphql@16.14.2)(typescript@7.0.2))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@7.0.2)
@@ -1485,6 +1488,12 @@ packages:
 
   '@payloadcms/drizzle@3.89.0':
     resolution: {integrity: sha512-/Ijf87WfIaIGDrlAQBOXcNxRZy+IDfpZQvpmJpA4BwO7PEVMqU6nHSUYVgbFHy6+4XYHvsTp31/4xo06yQwiOw==}
+    peerDependencies:
+      payload: 3.89.0
+
+  '@payloadcms/email-nodemailer@3.89.0':
+    resolution: {integrity: sha512-keCjt+wgo3qmV9uBJoBe1p1pZBSDp6kp51lJV1bpMlu5EURHuFg+X0M/VAu/d9ZfOVMjrBaier8+6GNvTtNRYA==}
+    engines: {node: ^18.20.2 || >=20.9.0}
     peerDependencies:
       payload: 3.89.0
 
@@ -3056,6 +3065,10 @@ packages:
 
   node-mock-http@1.0.5:
     resolution: {integrity: sha512-KQyt/wLjG3TAc7DOUhpqWzgd4ERxR80JOlTK5VE5R1S12IaPVN5qkj4klBce9HPG1Njuup4Sb5bljaT34lIyjw==}
+
+  nodemailer@9.1.1:
+    resolution: {integrity: sha512-izw9mVKFix6YSnC9eLgV6g1opl9DUlRio9ZNcq+Wu9Ujn2UwF+8Nl0B8nz22kEC+CTZCvinkxwJ0DeFbb6NwcQ==}
+    engines: {node: '>=6.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -5016,6 +5029,11 @@ snapshots:
       - sql.js
       - sqlite3
 
+  '@payloadcms/email-nodemailer@3.89.0(payload@3.89.0(graphql@16.14.2)(typescript@7.0.2))':
+    dependencies:
+      nodemailer: 9.1.1
+      payload: 3.89.0(graphql@16.14.2)(typescript@7.0.2)
+
   '@payloadcms/graphql@3.89.0(graphql@16.14.2)(payload@3.89.0(graphql@16.14.2)(typescript@7.0.2))(typescript@7.0.2)':
     dependencies:
       graphql: 16.14.2
@@ -6640,6 +6658,8 @@ snapshots:
       formdata-polyfill: 4.0.10
 
   node-mock-http@1.0.5: {}
+
+  nodemailer@9.1.1: {}
 
   normalize-path@3.0.0: {}
 

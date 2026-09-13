@@ -1,0 +1,110 @@
+---
+/**
+ * Photo gallery index — `/gallery`.
+ *
+ * ## Renders nothing when there is nothing
+ *
+ * `getGalleries()` returns `[]` both when there are genuinely no galleries and
+ * when the CMS is unreachable. The page treats both the same way and shows an
+ * empty-state message rather than an empty grid — an index page with no images
+ * is a dead end, and `docs/reliability.md` §4 says degrade to something honest.
+ *
+ * ## No ad slot, deliberately
+ *
+ * `AD_POSITIONS` is a contract with exactly one `AdSlot` per value, and none of
+ * the eight approved positions is a gallery slot. Adding one would be a change to
+ * the ad contract, which needs a plan amendment first (rule 13) — so the page
+ * carries no ad rather than a slot that would render the labelled placeholder on
+ * a real page.
+ */
+import Layout from '../../layouts/Layout.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import { resolveCmsImage } from '../../lib/media'
+import { getGalleries, resolveGalleryImages } from '../../lib/engagement'
+import { isEnabled } from '../../lib/feature-flags'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../../lib/cms'
+
+const [settings, categories, footerPages, galleries] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getGalleries().catch(() => []),
+])
+
+const enabled = isEnabled('gallery')
+---
+
+<Layout
+  title="ছবির গ্যালারি"
+  description="শিক্ষা২৪-এর ছবির গ্যালারি — শিক্ষা, ভর্তি, পরীক্ষা ও ক্যাম্পাসের ছবি।"
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'ছবির গ্যালারি' }]} />
+
+    <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+      ছবির গ্যালারি
+    </h1>
+
+    {
+      !enabled || galleries.length === 0 ? (
+        <p class="mt-4 text-base text-ink-muted dark:text-dark-ink-muted">
+          এখনো কোনো গ্যালারি প্রকাশিত হয়নি।
+        </p>
+      ) : (
+        <ul class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {galleries.map((gallery) => {
+            const images = resolveGalleryImages(gallery)
+            const cover = resolveCmsImage(images[0]?.media ?? null, gallery.title)
+            return (
+              <li>
+                <a href={`/gallery/${gallery.slug}`} class="group block no-underline">
+                  <div class="relative aspect-3/2 overflow-hidden rounded-md bg-surface-raised dark:bg-dark-raised">
+                    {cover ? (
+                      <img
+                        src={cover.src}
+                        srcset={cover.srcset}
+                        sizes="(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw"
+                        alt={cover.alt}
+                        width={cover.width}
+                        height={cover.height}
+                        loading="lazy"
+                        decoding="async"
+                        class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                      />
+                    ) : (
+                      <div class="flex h-full items-center justify-center text-sm text-ink-subtle">
+                        ছবি নেই
+                      </div>
+                    )}
+                    {images.length > 0 && (
+                      <span class="absolute bottom-2 right-2 rounded bg-black/70 px-2 py-0.5 text-xs font-medium text-white">
+                        {images.length} ছবি
+                      </span>
+                    )}
+                  </div>
+                  <h2 class="mt-2 font-headline text-lg font-bold text-ink group-hover:text-brand-red dark:text-dark-ink">
+                    {gallery.title}
+                  </h2>
+                  {gallery.description && (
+                    <p class="mt-1 line-clamp-2 text-sm text-ink-muted dark:text-dark-ink-muted">
+                      {gallery.description}
+                    </p>
+                  )}
+                </a>
+              </li>
+            )
+          })}
+        </ul>
+      )
+    }
+  </div>
+</Layout>

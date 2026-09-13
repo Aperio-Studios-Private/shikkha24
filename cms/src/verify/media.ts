@@ -118,7 +118,11 @@ try {
 } catch (error) {
   refused = error instanceof Error ? error.message : String(error)
 }
-check('an upload past the daily cap is refused', refused !== null, refused?.slice(0, 60) ?? 'accepted')
+check(
+  'an upload past the daily cap is refused',
+  refused !== null,
+  refused?.slice(0, 60) ?? 'accepted',
+)
 
 check(
   'the refusal message is Bengali and names the limit',
@@ -150,7 +154,11 @@ try {
 } catch (error) {
   badType = error instanceof Error ? error.message : String(error)
 }
-check('a non-image upload is rejected on MIME', badType !== null, badType?.slice(0, 50) ?? 'accepted')
+check(
+  'a non-image upload is rejected on MIME',
+  badType !== null,
+  badType?.slice(0, 50) ?? 'accepted',
+)
 
 // ── cleanup ──────────────────────────────────────────────────────────────────
 console.log('\n── cleanup ─────────────────────────────────────────────────────')
@@ -159,7 +167,11 @@ for (const id of createdIds) {
   await payload.delete({ collection: 'media', id, overrideAccess: true }).catch(() => null)
 }
 const remaining = await payload.count({ collection: 'media', overrideAccess: true })
-check('every test document was removed', remaining.totalDocs === 0, `remaining=${remaining.totalDocs}`)
+check(
+  'every test document was removed',
+  remaining.totalDocs === 0,
+  `remaining=${remaining.totalDocs}`,
+)
 
 // Files are deleted with the document, but a failed run could leave strays.
 const dir = path.resolve(process.cwd(), process.env.MEDIA_UPLOAD_DIR || './data/media')

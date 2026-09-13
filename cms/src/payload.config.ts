@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { sqliteAdapter } from '@payloadcms/db-sqlite'
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import { BlocksFeature, lexicalEditor } from '@payloadcms/richtext-lexical'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
@@ -10,8 +11,10 @@ import { ScrollytellingBlock } from './blocks/ScrollytellingBlock'
 import { AdUnits } from './collections/AdUnits'
 import { Articles } from './collections/Articles'
 import { Authors } from './collections/Authors'
+import { Bookmarks } from './collections/Bookmarks'
 import { Categories } from './collections/Categories'
 import { Circulars } from './collections/Circulars'
+import { CitizenSubmissions } from './collections/CitizenSubmissions'
 import { Comments } from './collections/Comments'
 import { Deadlines } from './collections/Deadlines'
 import { Districts } from './collections/Districts'
@@ -21,6 +24,7 @@ import { Jobs } from './collections/Jobs'
 import { Levels } from './collections/Levels'
 import { LiveBlogs } from './collections/LiveBlogs'
 import { Media } from './collections/Media'
+import { NewsletterCampaigns } from './collections/NewsletterCampaigns'
 import { NewsletterSubscribers } from './collections/NewsletterSubscribers'
 import { Pages } from './collections/Pages'
 import { PhotoGalleries } from './collections/PhotoGalleries'
@@ -34,8 +38,12 @@ import { Scholarships } from './collections/Scholarships'
 import { StudyAbroadGuides } from './collections/StudyAbroadGuides'
 import { Tags } from './collections/Tags'
 import { Users } from './collections/Users'
+import { citizenSubmitEndpoint } from './endpoints/citizen'
+import { commentSubmitEndpoint } from './endpoints/comments'
+import { newsletterEndpoints } from './endpoints/newsletter'
 import { SiteSettings } from './globals/SiteSettings'
 import { bn } from './i18n/bn'
+import { isMailConfigured } from './lib/mailer'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -44,11 +52,13 @@ const dirname = path.dirname(filename)
  * Origins allowed to call this API from a browser.
  *
  * Payload's default is to allow every origin. That was fine while nothing but
- * the admin used the API, but S8 introduces two **reader-facing** calls — the
- * live-blog refresh and the poll vote — so the allow-list is now explicit.
+ * the admin used the API, but S8 introduced **reader-facing** calls — the
+ * live-blog refresh, the poll vote — and S9 adds the comment form, the newsletter
+ * signup, the bookmark sync and the push subscription. So the allow-list is
+ * explicit.
  *
  * The public site is on Cloudflare Pages, a different origin from the CMS, so
- * without this the browser blocks both calls before they are sent.
+ * without this the browser blocks the call before it is sent.
  */
 const ALLOWED_ORIGINS = [
   process.env.PUBLIC_SITE_URL || 'https://shikkha24.com',
@@ -56,6 +66,35 @@ const ALLOWED_ORIGINS = [
   'http://localhost:4321',
   'http://localhost:3000',
 ]
+
+/**
+ * Email transport — registered **only when SMTP is configured**.
+ *
+ * The owner accepted the cPanel SMTP fallback rather than an ESP account
+ * (`.sps/plan.md` §"Scope amendment (2026-09-12)"). `lib/mailer.ts` is the thin,
+ * swappable layer on top of it.
+ *
+ * ⚠️ **`nodemailerAdapter()` must not be called without configuration.** With no
+ * arguments it provisions an **Ethereal test account** — a network round-trip at
+ * boot that would silently swallow real mail in a "successful" send. Omitting
+ * `email` entirely instead makes Payload log messages to the console, which is
+ * the honest behaviour for an unconfigured install.
+ */
+const emailConfig = isMailConfigured()
+  ? nodemailerAdapter({
+      defaultFromAddress: process.env.SMTP_FROM_EMAIL ?? '',
+      defaultFromName: process.env.SMTP_FROM_NAME || 'শিক্ষা২৪',
+      transportOptions: {
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT || 465),
+        // Implicit TLS on 465 (the default here); STARTTLS on 587.
+        secure: process.env.SMTP_SECURE !== 'false',
+        auth: process.env.SMTP_USER
+          ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD ?? '' }
+          : undefined,
+      },
+    })
+  : undefined
 
 /**
  * Payload CMS 3 configuration for Shikkha24.
@@ -87,6 +126,21 @@ export default buildConfig({
   // Reader-facing calls come from the static site on a different origin.
   cors: ALLOWED_ORIGINS,
   csrf: ALLOWED_ORIGINS,
+
+  // Undefined when SMTP is unconfigured — Payload then logs mail to the console.
+  email: emailConfig,
+
+  /**
+   * Custom endpoints. Mounted at the API root, so the newsletter routes are
+   * `/api/newsletter/subscribe|confirm|unsubscribe`.
+   *
+   * They are custom rather than generated REST because each one is a **narrow
+   * operation on a public surface**: signup must not be able to read the list,
+   * confirm must not be able to activate an arbitrary address, unsubscribe must
+   * be reachable from a link in an email with no session, and comment submission
+   * must be rate-limited and unable to set its own approval.
+   */
+  endpoints: [...newsletterEndpoints, citizenSubmitEndpoint, commentSubmitEndpoint],
 
   collections: [
     // ── Editorial ────────────────────────────────────────────────────────────
@@ -121,7 +175,10 @@ export default buildConfig({
     // ── Readers ──────────────────────────────────────────────────────────────
     Comments,
     NewsletterSubscribers,
+    NewsletterCampaigns,
     SavedDeadlines,
+    Bookmarks,
+    CitizenSubmissions,
     Readers,
     PollVotes,
 

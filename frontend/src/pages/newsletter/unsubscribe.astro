@@ -1,0 +1,62 @@
+---
+/**
+ * Newsletter unsubscribe landing page.
+ *
+ * Same shell as the confirmation page, opposite action. The unsubscribe token is
+ * long-lived and lives in the footer of every campaign mail, so this page must
+ * work for as long as the subscription exists — and must work from a plain
+ * click in an email client that has no session with the site.
+ */
+import Layout from '../../layouts/Layout.astro'
+import NewsletterTokenAction from '../../components/NewsletterTokenAction.astro'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../../lib/cms'
+import { getPublicCmsOrigin } from '../../lib/interactive'
+
+const [settings, categories, footerPages] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+])
+
+const cmsOrigin = getPublicCmsOrigin()
+---
+
+<Layout
+  title="সাবস্ক্রিপশন বাতিল করুন"
+  description="শিক্ষা২৪ নিউজলেটার সাবস্ক্রিপশন বাতিল করুন।"
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+  hideShareBar
+>
+  <Fragment slot="head">
+    <meta name="robots" content="noindex, nofollow" />
+  </Fragment>
+
+  {
+    cmsOrigin ? (
+      <NewsletterTokenAction
+        endpoint={`${cmsOrigin}/api/newsletter/unsubscribe`}
+        heading="সাবস্ক্রিপশন বাতিল করুন"
+        intro="নিচের বোতামে ক্লিক করলে আপনার ইমেইলটি নিউজলেটার তালিকা থেকে সরিয়ে নেওয়া হবে।"
+        action="বাতিল করুন"
+        success="আপনার সাবস্ক্রিপশন বাতিল করা হয়েছে। আবার কখনো সাবস্ক্রাইব করতে চাইলে ওয়েবসাইট থেকে পারবেন।"
+      />
+    ) : (
+      <section class="mx-auto max-w-xl py-8">
+        <h1 class="font-headline text-2xl font-bold text-ink dark:text-dark-ink">
+          বাতিল করা এখন সম্ভব নয়
+        </h1>
+        <p class="mt-3 text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+          এই ডিপ্লয়ে নিউজলেটার সেবা চালু নেই। ইমেইলের লিংকটি পরে আবার ব্যবহার করতে পারবেন।
+        </p>
+      </section>
+    )
+  }
+</Layout>

@@ -11,7 +11,9 @@
  * update it without a code change.
  */
 import Logo from './Logo.astro'
+import NewsletterSignup from './NewsletterSignup.astro'
 import type { CmsSiteSettings, CmsCategory, CmsPage } from '../lib/cms'
+import { getPublicCmsOrigin } from '../lib/interactive'
 
 interface Props {
   settings: CmsSiteSettings
@@ -24,6 +26,13 @@ const { settings, categories, footerPages = [] } = Astro.props
 const currentYear = new Date().getFullYear()
 
 const socialLinks = Object.entries(settings.social ?? {}).filter(([, url]) => !!url)
+
+/**
+ * The newsletter form posts to the CMS from the browser, so it needs the
+ * browser-reachable origin. `null` when unconfigured, in which case
+ * `NewsletterSignup` renders nothing at all.
+ */
+const cmsOrigin = getPublicCmsOrigin()
 ---
 
 <footer class="border-t border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-surface">
@@ -36,6 +45,12 @@ const socialLinks = Object.entries(settings.social ?? {}).filter(([, url]) => !!
         {settings.tagline && (
           <p class="mt-3 text-sm text-ink-muted dark:text-dark-ink-muted">{settings.tagline}</p>
         )}
+
+        {/* Self-hiding: renders only when there is a CMS to subscribe against.
+            Deliberately a sibling of the tagline, not a child of its conditional
+            — whether a newsletter is offered must not depend on whether the
+            owner filled in a tagline. */}
+        <NewsletterSignup cmsOrigin={cmsOrigin} />
         {/* Full contact block. The CMS stores all three; the footer must show
             all three — an address or phone the owner enters has to appear, or
             editing it looks broken. */}

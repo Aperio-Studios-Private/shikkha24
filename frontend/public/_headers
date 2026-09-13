@@ -18,11 +18,20 @@
 # header will contain a comma, AdSense will be blocked, and this must be resolved
 # by moving the CSP into a Pages Function instead.
 #
-# ⚠️ **`connect-src` includes `https://cms.shikkha24.com` — a PLACEHOLDER.** The
-# two S8 islands (live-blog refresh, poll vote) call the CMS from the browser, and
-# a CSP `connect-src` cannot be templated. This host MUST match the production
-# `PUBLIC_CMS_ORIGIN` exactly. It is currently unset because the CMS hostname is
-# still pending DNS; see `.sps/section-todos/S8.md`.
+# ⚠️ **`cms.shikkha24.com` is a PLACEHOLDER hostname.** It is the CMS origin AND
+# the media origin (media moved off R2 to the DianaHost disk on 2026-09-12 —
+# `.sps/plan.md` §"Scope amendment"). A CSP cannot be templated, so this literal
+# host MUST match the production `PUBLIC_CMS_ORIGIN` and `PUBLIC_MEDIA_BASE_URL`
+# exactly. It is currently a placeholder because the CMS hostname is still
+# pending DNS.
+#
+# S9 changes, recorded so the diff is not a mystery later:
+#   • `img-src` / `media-src` now name the CMS host, not the retired R2 host —
+#     every article image would otherwise be blocked in production
+#   • `connect-src` now names the CMS host in the STRICT profile too, because the
+#     newsletter signup sits in the footer of every page
+#   • `/article/*` gains `frame-src` for the click-to-load video embeds
+#   • `/gallery` and `/gallery/*` join the relaxed list (they carry an ad slot)
 
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
@@ -33,17 +42,22 @@
   # `style-src 'unsafe-inline'` is required by Astro's inline stylesheets
   # (`build.inlineStylesheets: 'auto'` in astro.config.mjs). It is the only
   # relaxation in this profile — scripts stay strict.
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com; font-src 'self'; connect-src 'self'; media-src 'self' https://media.shikkha24.com; frame-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  #
+  # `connect-src` names the CMS because the newsletter signup form is in the
+  # footer of every page and posts to it. The form is not rendered at all unless
+  # `PUBLIC_CMS_ORIGIN` is set, so an unconfigured deploy makes no such request —
+  # but the policy has to allow it for the configured one.
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com; font-src 'self'; connect-src 'self' https://cms.shikkha24.com; media-src 'self' https://cms.shikkha24.com; frame-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Relaxed profile — routes that carry ad slots, and the two routes whose islands
-# call the CMS.
+# Relaxed profile — routes that carry ad slots, or whose islands call the CMS.
 #
-#   /            homepage      — 4 ad slots + the poll
-#   /article/*   article       — 3 ad slots + embedded content blocks
-#   /category/*  category      — 1 ad slot
-#   /live/*      live blog     — 1 ad slot + the refresh island
+#   /               homepage   — 4 ad slots + the poll + newsletter
+#   /article/*      article    — 3 ad slots + comments + bookmarks + video embeds
+#   /category/*     category   — 1 ad slot
+#   /live/*         live blog  — 1 ad slot + the refresh island
 #   /quiz, /quiz/*  quiz       — 2 ad slots
+#   /gallery, /gallery/*       — 1 ad slot
 #
 # Every other route keeps the strict policy, which is the point of two profiles.
 #
@@ -51,31 +65,44 @@
 # the islands only call the CMS when the reader taps something — so today these
 # routes still make zero third-party requests. The relaxation costs nothing until
 # the features are actually used.
+#
+# `frame-src` on /article/* is for the video embed, which is click-to-load: the
+# iframe is created only after the reader taps play, so no third-party request is
+# made on page load. `youtube-nocookie.com` is used deliberately — it sets no
+# tracking cookie until playback.
 # ─────────────────────────────────────────────────────────────────────────────
 
 /
   ! Content-Security-Policy
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
 
 /article/*
   ! Content-Security-Policy
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
 
 /category/*
   ! Content-Security-Policy
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
 
 /live/*
   ! Content-Security-Policy
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
 
 /quiz
   ! Content-Security-Policy
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
 
 /quiz/*
   ! Content-Security-Policy
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+
+/gallery
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+
+/gallery/*
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
 
 # Hashed build assets are content-addressed — cache them forever.
 /_astro/*

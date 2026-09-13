@@ -1,0 +1,157 @@
+---
+/**
+ * Newsletter signup — the footer form.
+ *
+ * ## Self-hiding, per the S8 rule
+ *
+ * The form is rendered only when there is a CMS origin to post to. With
+ * `PUBLIC_CMS_ORIGIN` unset — an unconfigured or preview deploy — nothing is
+ * rendered at all, because a subscribe box that cannot subscribe reads to the
+ * reader as their own failure. `docs/reliability.md` §4 calls for exactly this:
+ * degrade by absence, not by a broken control.
+ *
+ * ## Double opt-in is stated, not hidden
+ *
+ * The form says a confirmation email is coming. A reader who is told to expect
+ * one and does not get it will check their spam folder; a reader who is told
+ * nothing will assume the site is broken. `docs/security.md` §7 requires double
+ * opt-in, so the UI has to describe it.
+ *
+ * ## No third-party script
+ *
+ * The form posts straight to the CMS with `fetch`. No embed, no iframe, no
+ * hosted form service — which keeps the initial payload and data-saver budgets
+ * intact and means the subscriber list never leaves the project's own database.
+ */
+import { isEnabled } from '../lib/feature-flags'
+
+interface Props {
+  /** The browser-reachable CMS origin, or `null` when unconfigured. */
+  cmsOrigin: string | null
+}
+
+const { cmsOrigin } = Astro.props
+
+/** No origin, or the feature switched off → render nothing. */
+const renderable = Boolean(cmsOrigin) && isEnabled('newsletter')
+---
+
+{
+  renderable && (
+    <form
+      class="newsletter-signup mt-4"
+      data-newsletter-signup
+      data-origin={cmsOrigin ?? ''}
+      novalidate
+    >
+      <label
+        for="newsletter-email"
+        class="block text-sm font-semibold text-ink dark:text-dark-ink"
+      >
+        নিউজলেটার — নতুন সুযোগ ও সময়সীমা সরাসরি ইমেইলে
+      </label>
+
+      <div class="mt-2 flex flex-wrap gap-2">
+        <input
+          id="newsletter-email"
+          type="email"
+          name="email"
+          required
+          autocomplete="email"
+          inputmode="email"
+          placeholder="আপনার ইমেইল"
+          class="min-h-12 min-w-0 flex-1 rounded-md border border-rule bg-white px-3 text-base text-ink placeholder:text-ink-subtle dark:border-dark-rule dark:bg-dark-base dark:text-dark-ink"
+        />
+
+        <button
+          type="submit"
+          data-newsletter-submit
+          class="min-h-12 rounded-md bg-brand-red px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+        >
+          সাবস্ক্রাইব
+        </button>
+      </div>
+
+      {/* Honeypot — off-screen, never focusable, never filled by a human. */}
+      <input
+        type="text"
+        name="company"
+        data-newsletter-honeypot
+        tabindex="-1"
+        autocomplete="off"
+        aria-hidden="true"
+        class="pointer-events-none absolute h-0 w-0 opacity-0"
+      />
+
+      <p
+        data-newsletter-status
+        role="status"
+        aria-live="polite"
+        class="mt-2 min-h-5 text-sm text-ink-muted dark:text-dark-ink-muted"
+      >
+      </p>
+
+      <p class="mt-1 text-xs leading-relaxed text-ink-subtle dark:text-dark-ink-muted">
+        সাবস্ক্রাইব করলে একটি নিশ্চিতকরণ ইমেইল যাবে — লিংকে ক্লিক করার পরই তালিকাভুক্ত হবেন।
+        যেকোনো সময় বাতিল করতে পারবেন।
+      </p>
+    </form>
+  )
+}
+
+<script>
+  /**
+   * Newsletter signup.
+   *
+   * The status line is `aria-live="polite"` and its height is reserved, so a
+   * message appearing cannot shift the footer — the same rule the poll follows.
+   */
+  for (const form of document.querySelectorAll<HTMLFormElement>('[data-newsletter-signup]')) {
+    const origin = form.dataset.origin
+    const input = form.querySelector<HTMLInputElement>('input[name="email"]')
+    const submit = form.querySelector<HTMLButtonElement>('[data-newsletter-submit]')
+    const status = form.querySelector<HTMLElement>('[data-newsletter-status]')
+    const honeypot = form.querySelector<HTMLInputElement>('[data-newsletter-honeypot]')
+
+    if (!origin || !input || !submit) continue
+
+    const setStatus = (message: string): void => {
+      if (status) status.textContent = message
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault()
+
+      const email = input.value.trim()
+      if (!email) {
+        setStatus('ইমেইল ঠিকানা লিখুন।')
+        input.focus()
+        return
+      }
+
+      submit.disabled = true
+      setStatus('পাঠানো হচ্ছে…')
+
+      try {
+        const response = await fetch(`${origin}/api/newsletter/subscribe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ email, company: honeypot?.value ?? '' }),
+        })
+
+        const payload = (await response.json().catch(() => ({}))) as { error?: string }
+
+        if (response.ok) {
+          form.reset()
+          setStatus('ধন্যবাদ — নিশ্চিতকরণ ইমেইল পাঠানো হয়েছে। ইনবক্স দেখুন।')
+        } else {
+          setStatus(payload.error ?? 'সাবস্ক্রিপশন সম্পন্ন হয়নি। আবার চেষ্টা করুন।')
+        }
+      } catch {
+        setStatus('সংযোগ করা যায়নি। একটু পরে আবার চেষ্টা করুন।')
+      } finally {
+        submit.disabled = false
+      }
+    })
+  }
+</script>

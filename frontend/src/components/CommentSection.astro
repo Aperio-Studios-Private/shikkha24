@@ -1,0 +1,252 @@
+---
+/**
+ * Reader comments on an article.
+ *
+ * ## Moderation is visible, not hidden
+ *
+ * The form says the comment appears after review. A reader who submits and sees
+ * nothing assumes it was lost; a reader who is told it is queued understands.
+ * `Comments.access.read` returns only approved rows to anonymous callers, so the
+ * list below genuinely is the published set.
+ *
+ * ## Escaped by construction
+ *
+ * Comment bodies are rendered as **text**, never as markup. `docs/security.md`
+ * §6 names comments as the primary XSS vector; Astro's `{expression}` escaping is
+ * the control, so nothing here may use `set:html`.
+ *
+ * ## Self-hiding
+ *
+ * Rendered only when there is a CMS origin to submit to and the feature flag is
+ * on. With no origin the whole section is absent — a comment box that cannot
+ * post is worse than no comment box.
+ */
+import { isEnabled } from '../lib/feature-flags'
+import type { CmsComment } from '../lib/engagement'
+
+interface Props {
+  articleId: number | string
+  comments: CmsComment[]
+  cmsOrigin: string | null
+}
+
+const { articleId, comments, cmsOrigin } = Astro.props
+
+const renderable = Boolean(cmsOrigin) && isEnabled('comments')
+
+/** Bengali date. Resolved at build time for the seeded comments. */
+function bnDate(value: string): string {
+  return new Date(value).toLocaleDateString('bn-BD', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+---
+
+{
+  renderable && (
+    <section
+      id="comments"
+      class="mt-10 border-t border-rule pt-6 dark:border-dark-rule"
+      data-comments
+      data-article-id={String(articleId)}
+      data-origin={cmsOrigin ?? ''}
+      aria-labelledby="comments-heading"
+    >
+      <h2
+        id="comments-heading"
+        class="font-headline text-xl font-bold text-ink dark:text-dark-ink"
+      >
+        মন্তব্য {comments.length > 0 && <span>({comments.length})</span>}
+      </h2>
+
+      {
+        comments.length > 0 ? (
+          <ul class="mt-4 space-y-4">
+            {comments.map((comment) => (
+              <li class="rounded-md border border-rule bg-surface-raised p-3 dark:border-dark-rule dark:bg-dark-raised">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-semibold text-ink dark:text-dark-ink">
+                    {comment.userName}
+                  </span>
+                  <time
+                    datetime={comment.createdAt}
+                    class="text-xs text-ink-subtle dark:text-dark-ink-muted"
+                  >
+                    {bnDate(comment.createdAt)}
+                  </time>
+                </div>
+                {/* Escaped text — never set:html. */}
+                <p class="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+                  {comment.body}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="mt-3 text-sm text-ink-muted dark:text-dark-ink-muted">
+            এখনো কোনো মন্তব্য নেই। প্রথম মন্তব্যটি আপনারই হোক।
+          </p>
+        )
+      }
+
+      <form class="mt-6" data-comment-form novalidate>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label
+              for="comment-name"
+              class="block text-sm font-semibold text-ink dark:text-dark-ink"
+            >
+              আপনার নাম
+            </label>
+            <input
+              id="comment-name"
+              name="userName"
+              type="text"
+              required
+              maxlength="80"
+              autocomplete="name"
+              class="mt-1 min-h-12 w-full rounded-md border border-rule bg-white px-3 text-base text-ink dark:border-dark-rule dark:bg-dark-base dark:text-dark-ink"
+            />
+          </div>
+
+          <div>
+            <label
+              for="comment-email"
+              class="block text-sm font-semibold text-ink dark:text-dark-ink"
+            >
+              ইমেইল <span class="font-normal text-ink-subtle">(প্রকাশ করা হবে না)</span>
+            </label>
+            <input
+              id="comment-email"
+              name="userEmail"
+              type="email"
+              autocomplete="email"
+              inputmode="email"
+              class="mt-1 min-h-12 w-full rounded-md border border-rule bg-white px-3 text-base text-ink dark:border-dark-rule dark:bg-dark-base dark:text-dark-ink"
+            />
+          </div>
+        </div>
+
+        <label
+          for="comment-body"
+          class="mt-3 block text-sm font-semibold text-ink dark:text-dark-ink"
+        >
+          মন্তব্য
+        </label>
+        <textarea
+          id="comment-body"
+          name="body"
+          required
+          rows="4"
+          maxlength="2000"
+          class="mt-1 w-full rounded-md border border-rule bg-white px-3 py-2 text-base leading-relaxed text-ink dark:border-dark-rule dark:bg-dark-base dark:text-dark-ink"
+        ></textarea>
+
+        {/* Honeypot — off-screen, never focusable, never filled by a human. */}
+        <input
+          type="text"
+          name="company"
+          data-comment-honeypot
+          tabindex="-1"
+          autocomplete="off"
+          aria-hidden="true"
+          class="pointer-events-none absolute h-0 w-0 opacity-0"
+        />
+
+        <div class="mt-3 flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            data-comment-submit
+            class="min-h-12 rounded-md bg-brand-red px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+          >
+            মন্তব্য পাঠান
+          </button>
+          <p
+            data-comment-status
+            role="status"
+            aria-live="polite"
+            class="min-h-5 text-sm text-ink-muted dark:text-dark-ink-muted"
+          >
+          </p>
+        </div>
+
+        <p class="mt-2 text-xs leading-relaxed text-ink-subtle dark:text-dark-ink-muted">
+          মন্তব্য সম্পাদকের অনুমোদনের পর প্রকাশিত হয়। আপনার ইমেইল কখনো প্রকাশ করা হয় না।
+        </p>
+      </form>
+    </section>
+  )
+}
+
+<script>
+  /**
+   * Comment submission.
+   *
+   * Posts to `POST /api/comments/submit`, not the generated
+   * `POST /api/comments`. The generated route cannot rate limit, cannot check
+   * that the article exists, and would let a caller name any article id; the
+   * custom endpoint runs the honeypot, a per-IP limit and field validation
+   * before it writes. The server hard-sets `isApproved: false`, so a forged
+   * approval flag in this request body would be ignored anyway.
+   */
+  for (const section of document.querySelectorAll<HTMLElement>('[data-comments]')) {
+    const origin = section.dataset.origin
+    const articleId = section.dataset.articleId
+    const form = section.querySelector<HTMLFormElement>('[data-comment-form]')
+    const status = section.querySelector<HTMLElement>('[data-comment-status]')
+    const submit = section.querySelector<HTMLButtonElement>('[data-comment-submit]')
+    const honeypot = section.querySelector<HTMLInputElement>('[data-comment-honeypot]')
+
+    if (!origin || !articleId || !form || !submit) continue
+
+    const setStatus = (message: string): void => {
+      if (status) status.textContent = message
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault()
+
+      const data = new FormData(form)
+      const userName = String(data.get('userName') ?? '').trim()
+      const body = String(data.get('body') ?? '').trim()
+      const userEmail = String(data.get('userEmail') ?? '').trim()
+
+      if (!userName || !body) {
+        setStatus('নাম ও মন্তব্য দুটোই লিখুন।')
+        return
+      }
+
+      submit.disabled = true
+      setStatus('পাঠানো হচ্ছে…')
+
+      try {
+        const response = await fetch(`${origin}/api/comments/submit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            article: Number(articleId),
+            userName,
+            body,
+            ...(userEmail ? { userEmail } : {}),
+            company: honeypot?.value ?? '',
+          }),
+        })
+
+        if (response.ok) {
+          form.reset()
+          setStatus('ধন্যবাদ — অনুমোদনের পর আপনার মন্তব্য প্রকাশিত হবে।')
+        } else if (response.status === 429) {
+          setStatus('অনেকবার মন্তব্য পাঠানো হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।')
+        } else {
+          setStatus('মন্তব্য পাঠানো যায়নি। একটু পরে আবার চেষ্টা করুন।')
+        }
+      } catch {
+        setStatus('সংযোগ করা যায়নি। একটু পরে আবার চেষ্টা করুন।')
+      } finally {
+        submit.disabled = false
+      }
+    })
+  }
+</script>

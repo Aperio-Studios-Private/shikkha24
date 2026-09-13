@@ -38,8 +38,34 @@ export const FEATURE_FLAGS = {
    * without taking the quiz with it (`docs/reliability.md` §5).
    */
   poll: flag(import.meta.env.PUBLIC_FLAG_POLL),
-  /** Newsletter signup. Default OFF until S9. */
+  /** Newsletter signup. */
   newsletter: flag(import.meta.env.PUBLIC_FLAG_NEWSLETTER),
+  /**
+   * Photo galleries (`/gallery`).
+   *
+   * Gated because a gallery page is image-heavy, and `docs/performance-budget.md`
+   * sets page-level budgets — if a gallery layout ever threatens the homepage or
+   * article budget through shared CSS, this drops it from the next build without
+   * touching the pages that matter.
+   */
+  gallery: flag(import.meta.env.PUBLIC_FLAG_GALLERY),
+  /**
+   * Reader bookmarks.
+   *
+   * The browser-local half works with no backend at all, so this flag is about
+   * removing the control from the UI — useful if the CMS is down for a long
+   * period and the sync half would fail confusingly.
+   */
+  bookmarks: flag(import.meta.env.PUBLIC_FLAG_BOOKMARKS),
+  /**
+   * Deadline reminders over Web Push.
+   *
+   * Needs a VAPID key pair; without one the control is not rendered regardless
+   * of this flag (see `lib/push.ts`).
+   */
+  push: flag(import.meta.env.PUBLIC_FLAG_PUSH),
+  /** Citizen-journalism submission form. */
+  citizen: flag(import.meta.env.PUBLIC_FLAG_CITIZEN),
   /**
    * Ad slots. Default ON — the owner has AdSense activated, so ads ship.
    *

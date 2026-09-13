@@ -29,7 +29,10 @@ import PrintStyles from '../../components/PrintStyles.astro'
 import SponsoredLabel from '../../components/SponsoredLabel.astro'
 import AdSlot from '../../components/AdSlot.astro'
 import ContentBlockScripts from '../../components/ContentBlockScripts.astro'
+import CommentSection from '../../components/CommentSection.astro'
 import { countParagraphs, lexicalToHtml, lexicalToPlainText, splitHtmlAtParagraph } from '../../lib/richtext'
+import { getPublicCmsOrigin } from '../../lib/interactive'
+import { getApprovedComments } from '../../lib/engagement'
 import {
   getSiteSettings,
   getCategories,
@@ -66,6 +69,17 @@ const [author, related] = await Promise.all([
   getAuthor(article.author).catch(() => null),
   getRelatedArticles(article).catch(() => []),
 ])
+
+/**
+ * Comments — baked in at build time, like everything else on this page.
+ *
+ * Fetched only when there is a CMS origin to submit to. With no origin the
+ * section is not rendered at all, so there is no point paying for the request:
+ * a comment list with no way to comment is a dead end. This is the same
+ * self-hiding rule the S8 islands follow.
+ */
+const cmsOrigin = getPublicCmsOrigin()
+const comments = cmsOrigin ? await getApprovedComments(article.id).catch(() => []) : []
 
 const bodyHtml = lexicalToHtml(article.body)
 const bodyText = lexicalToPlainText(article.body)
@@ -265,6 +279,11 @@ const jsonLd = {
         <div class="mt-8 flex justify-center">
           <AdSlot position="articleBottom" width={728} height={90} />
         </div>
+
+        {/* Below the ad, deliberately: a reader who has finished the story meets
+            the discussion last, and an ad between the byline and the comments
+            reads as an interruption of the conversation. */}
+        <CommentSection articleId={article.id} comments={comments} cmsOrigin={cmsOrigin} />
       </div>
 
       {/* Sidebar — related articles on desktop.

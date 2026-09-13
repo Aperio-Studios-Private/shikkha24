@@ -91,7 +91,10 @@ export interface Config {
     'ad-units': AdUnit;
     comments: Comment;
     'newsletter-subscribers': NewsletterSubscriber;
+    'newsletter-campaigns': NewsletterCampaign;
     'saved-deadlines': SavedDeadline;
+    bookmarks: Bookmark;
+    'citizen-submissions': CitizenSubmission;
     readers: Reader;
     'poll-votes': PollVote;
     users: User;
@@ -126,7 +129,10 @@ export interface Config {
     'ad-units': AdUnitsSelect<false> | AdUnitsSelect<true>;
     comments: CommentsSelect<false> | CommentsSelect<true>;
     'newsletter-subscribers': NewsletterSubscribersSelect<false> | NewsletterSubscribersSelect<true>;
+    'newsletter-campaigns': NewsletterCampaignsSelect<false> | NewsletterCampaignsSelect<true>;
     'saved-deadlines': SavedDeadlinesSelect<false> | SavedDeadlinesSelect<true>;
+    bookmarks: BookmarksSelect<false> | BookmarksSelect<true>;
+    'citizen-submissions': CitizenSubmissionsSelect<false> | CitizenSubmissionsSelect<true>;
     readers: ReadersSelect<false> | ReadersSelect<true>;
     'poll-votes': PollVotesSelect<false> | PollVotesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -305,6 +311,8 @@ export interface Article {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * ছবির লাইব্রেরি। প্রতিটি আপলোড স্বয়ংক্রিয়ভাবে WebP-তে রূপান্তরিত হয় এবং প্রতিদিনের আপলোড সীমা প্রযোজ্য।
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
@@ -1095,7 +1103,7 @@ export interface Reader {
   collection: 'readers';
 }
 /**
- * নিউজলেটার গ্রাহক তালিকা — সম্পূর্ণ নিজস্ব, তৃতীয় পক্ষের নয়।
+ * নিউজলেটার গ্রাহক তালিকা — সম্পূর্ণ নিজস্ব, তৃতীয় পক্ষের নয়। ডাবল অপ্ট-ইন নিশ্চিত হওয়ার পর সক্রিয় হয়।
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "newsletter-subscribers".
@@ -1109,11 +1117,67 @@ export interface NewsletterSubscriber {
   isActive?: boolean | null;
   subscribedAt?: string | null;
   confirmedAt?: string | null;
+  unsubscribedAt?: string | null;
   confirmationToken?: string | null;
+  /**
+   * মেয়াদ শেষ হলে লিংকটি আর কাজ করবে না — পুরোনো লিংকের অপব্যবহার ঠেকাতে।
+   */
+  confirmationExpiresAt?: string | null;
+  unsubscribeToken?: string | null;
   /**
    * কোথা থেকে সাবস্ক্রাইব করেছেন — প্রমাণের জন্য সংরক্ষিত।
    */
   consentSource?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * নিউজলেটার ক্যাম্পেইন। পাঠানোর আগে বিষয় ও বিষয়বস্তু দেখে নিন — পাঠানোর পর পরিবর্তন করা যায় না।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "newsletter-campaigns".
+ */
+export interface NewsletterCampaign {
+  id: number;
+  /**
+   * ইমেইলের বিষয় — ছোট ও স্পষ্ট রাখুন।
+   */
+  subject: string;
+  /**
+   * ইনবক্সে বিষয়ের পাশে দেখানো সংক্ষিপ্ত লাইন (ঐচ্ছিক)।
+   */
+  preheader?: string | null;
+  body: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  status: 'draft' | 'sending' | 'sent' | 'failed';
+  sentAt?: string | null;
+  recipientCount?: number | null;
+  sentCount?: number | null;
+  /**
+   * ঘণ্টায় পাঠানোর সীমার কারণে পরের ঘণ্টায় পাঠানো হবে।
+   */
+  deferredCount?: number | null;
+  /**
+   * সর্বশেষ যে সাবস্ক্রাইবারকে পাঠানো হয়েছে তার আইডি — পরের ধাপ এখান থেকে শুরু হয়।
+   */
+  sentThroughId?: number | null;
+  /**
+   * ব্যর্থ হলে কারণ এখানে দেখা যাবে।
+   */
+  lastError?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1129,6 +1193,50 @@ export interface SavedDeadline {
   deadline: number | Deadline;
   remindAt?: string | null;
   notified?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * পাঠকের সেভ করা সংবাদ ও সময়সীমা।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bookmarks".
+ */
+export interface Bookmark {
+  id: number;
+  reader: number | Reader;
+  kind: 'article' | 'deadline';
+  article?: (number | null) | Article;
+  deadline?: (number | null) | Deadline;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * পাঠকের পাঠানো সংবাদ। এখান থেকে সরাসরি প্রকাশ হয় না — সম্পাদক যাচাই করে সংবাদ লেখেন।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "citizen-submissions".
+ */
+export interface CitizenSubmission {
+  id: number;
+  title: string;
+  /**
+   * কী ঘটেছে, কোথায়, কখন — বিস্তারিত লিখুন।
+   */
+  body: string;
+  district?: (number | null) | District;
+  /**
+   * সম্পর্কিত ছবি (ঐচ্ছিক)।
+   */
+  media?: (number | null) | Media;
+  reporterName: string;
+  reporterEmail: string;
+  reporterPhone?: string | null;
+  status: 'new' | 'reviewing' | 'published' | 'rejected';
+  /**
+   * যাচাইয়ের ফলাফল বা কারণ।
+   */
+  editorNote?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1394,8 +1502,20 @@ export interface PayloadLockedDocument {
         value: number | NewsletterSubscriber;
       } | null)
     | ({
+        relationTo: 'newsletter-campaigns';
+        value: number | NewsletterCampaign;
+      } | null)
+    | ({
         relationTo: 'saved-deadlines';
         value: number | SavedDeadline;
+      } | null)
+    | ({
+        relationTo: 'bookmarks';
+        value: number | Bookmark;
+      } | null)
+    | ({
+        relationTo: 'citizen-submissions';
+        value: number | CitizenSubmission;
       } | null)
     | ({
         relationTo: 'readers';
@@ -1923,8 +2043,29 @@ export interface NewsletterSubscribersSelect<T extends boolean = true> {
   isActive?: T;
   subscribedAt?: T;
   confirmedAt?: T;
+  unsubscribedAt?: T;
   confirmationToken?: T;
+  confirmationExpiresAt?: T;
+  unsubscribeToken?: T;
   consentSource?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "newsletter-campaigns_select".
+ */
+export interface NewsletterCampaignsSelect<T extends boolean = true> {
+  subject?: T;
+  preheader?: T;
+  body?: T;
+  status?: T;
+  sentAt?: T;
+  recipientCount?: T;
+  sentCount?: T;
+  deferredCount?: T;
+  sentThroughId?: T;
+  lastError?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1937,6 +2078,35 @@ export interface SavedDeadlinesSelect<T extends boolean = true> {
   deadline?: T;
   remindAt?: T;
   notified?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bookmarks_select".
+ */
+export interface BookmarksSelect<T extends boolean = true> {
+  reader?: T;
+  kind?: T;
+  article?: T;
+  deadline?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "citizen-submissions_select".
+ */
+export interface CitizenSubmissionsSelect<T extends boolean = true> {
+  title?: T;
+  body?: T;
+  district?: T;
+  media?: T;
+  reporterName?: T;
+  reporterEmail?: T;
+  reporterPhone?: T;
+  status?: T;
+  editorNote?: T;
   updatedAt?: T;
   createdAt?: T;
 }
