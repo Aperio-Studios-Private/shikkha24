@@ -18,6 +18,7 @@
  * This also means a local `astro build` works with no CMS running at all, which
  * is what makes the frontend independently testable.
  */
+import type { CmsMedia } from './media'
 
 /** Payload origin. Set `CMS_URL` in the environment; defaults to local dev. */
 const CMS_URL = import.meta.env.CMS_URL || 'http://localhost:3000'
@@ -253,7 +254,11 @@ export interface CmsArticle {
   title: string
   slug: string
   excerpt?: string | null
-  featuredImage?: { url?: string | null; alt?: string | null } | number | null
+  /**
+   * A relation — an object when populated, an id when not. The object shape is
+   * `CmsMedia` in `lib/media.ts`, which resolves it into srcset + dimensions.
+   */
+  featuredImage?: CmsMedia | number | null
   category?: { nameBn?: string; slug?: string } | number | null
   level?: { nameBn?: string; slug?: string } | number | null
   district?: { nameBn?: string; slug?: string } | number | null

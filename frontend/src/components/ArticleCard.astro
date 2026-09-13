@@ -22,6 +22,7 @@
  */
 import type { CmsArticle } from '../lib/cms'
 import { getCategoryImage } from '../lib/images'
+import { resolveCmsImage } from '../lib/media'
 import CategoryImage from './CategoryImage.astro'
 import SponsoredLabel from './SponsoredLabel.astro'
 
@@ -42,18 +43,16 @@ const {
   headingLevel = 2,
 } = Astro.props
 
-const mediaBase = import.meta.env.PUBLIC_MEDIA_BASE_URL || ''
-
-/** `featuredImage` is a relation — an object when populated, an id when not. */
-const image =
-  article.featuredImage && typeof article.featuredImage === 'object'
-    ? article.featuredImage
-    : null
-const imageUrl = image?.url
-  ? image.url.startsWith('http')
-    ? image.url
-    : `${mediaBase}${image.url}`
-  : null
+/**
+ * The article's own photo, resolved from the CMS.
+ *
+ * `resolveCmsImage` supplies a real `srcset` from the WebP variants Payload
+ * generated, plus the **true** width/height — which is what keeps the reserved
+ * box honest. Hard-coding 1376×768 for every remote image (as this card used to)
+ * reserves the wrong box for any other aspect ratio, and a wrong box either
+ * letterboxes or shifts layout.
+ */
+const photo = resolveCmsImage(article.featuredImage, article.title)
 
 const category =
   article.category && typeof article.category === 'object' ? article.category : null
@@ -85,7 +84,7 @@ const Heading = headingLevel === 2 ? 'h2' : 'h3'
   <a href={href} class="no-underline">
     {
       /* Prefer the article's own photo; fall back to the category archetype. */
-      (imageUrl || categoryImage) &&
+      (photo || categoryImage) &&
         variant !== 'compact' && (
           <div
             class:list={[
@@ -96,12 +95,18 @@ const Heading = headingLevel === 2 ? 'h2' : 'h3'
               variant === 'lead' ? 'aspect-16/9 max-h-[26rem]' : 'aspect-3/2',
             ]}
           >
-            {imageUrl ? (
+            {photo ? (
               <img
-                src={imageUrl}
-                alt={image?.alt || article.title}
-                width="1376"
-                height="768"
+                src={photo.src}
+                srcset={photo.srcset}
+                sizes={
+                  variant === 'lead'
+                    ? '(min-width: 1024px) 800px, 100vw'
+                    : '(min-width: 1024px) 600px, 100vw'
+                }
+                alt={photo.alt}
+                width={photo.width}
+                height={photo.height}
                 loading={variant === 'lead' ? 'eager' : 'lazy'}
                 decoding="async"
                 class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
@@ -127,15 +132,17 @@ const Heading = headingLevel === 2 ? 'h2' : 'h3'
     }
 
     {
-      (imageUrl || categoryImage) &&
+      (photo || categoryImage) &&
         variant === 'compact' && (
           <div class="aspect-1 h-20 w-20 shrink-0 overflow-hidden rounded bg-surface-raised dark:bg-dark-raised">
-            {imageUrl ? (
+            {photo ? (
               <img
-                src={imageUrl}
-                alt={image?.alt || article.title}
-                width="80"
-                height="80"
+                src={photo.src}
+                srcset={photo.srcset}
+                sizes="80px"
+                alt={photo.alt}
+                width={photo.width}
+                height={photo.height}
                 loading="lazy"
                 decoding="async"
                 class="h-full w-full object-cover"
