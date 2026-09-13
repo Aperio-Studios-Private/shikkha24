@@ -88,6 +88,12 @@ export const FEATURE_FLAGS = {
   /** Article audio reader (Web Speech API). Native, zero bytes — flagged so it
    *  can be switched off if a device class misbehaves. */
   audioReader: flag(import.meta.env.PUBLIC_FLAG_AUDIO_READER),
+  /**
+   * GPA / grade calculator (SSC/HSC). Client-side, zero backend — like the
+   * quiz, it is graded in the browser and nothing is stored about the reader.
+   * Flagged so it can be dropped from a build if a device class misbehaves.
+   */
+  gpaCalculator: flag(import.meta.env.PUBLIC_FLAG_GPA_CALCULATOR),
 } as const
 
 export type FeatureFlag = keyof typeof FEATURE_FLAGS

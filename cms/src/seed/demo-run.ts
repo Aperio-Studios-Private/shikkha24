@@ -14,6 +14,7 @@ import { getPayload } from 'payload'
 import config from '../payload.config'
 import { seedDemo } from './demo'
 import { seedDemoEngagement } from './demo-engagement'
+import { seedDemoEducation } from './demo-education'
 
 const payload = await getPayload({ config })
 
@@ -22,6 +23,7 @@ try {
   // Galleries and comments depend on the media pipeline and on a demo article
   // existing, so they run after the main seed rather than beside it.
   const engagement = await seedDemoEngagement(payload)
+  const education = await seedDemoEducation(payload)
 
   console.log('')
   console.log('Demo content ready:')
@@ -35,6 +37,11 @@ try {
   console.log(`  galleries ${engagement.galleries}`)
   console.log(`  comments  ${engagement.comments}`)
   console.log(`  video     ${engagement.video}`)
+  console.log(`  scholarships ${education.scholarships}`)
+  console.log(`  results   ${education.results}`)
+  console.log(`  institutions ${education.institutions}`)
+  console.log(`  circulars ${education.circulars}`)
+  console.log(`  studyAbroad ${education.studyAbroad}`)
   console.log(`  skipped   ${report.skipped} (already present, or category unresolved)`)
   console.log('')
   console.log('These are throwaway rows — delete before launch.')
