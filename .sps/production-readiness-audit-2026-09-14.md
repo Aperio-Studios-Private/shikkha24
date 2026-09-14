@@ -105,25 +105,23 @@ LinkedIn do not resolve relative paths — the value is silently ignored and the
 
 ## 2. Open defects — reported, NOT fixed
 
-### 2.1 — The OG image format is unsupported by the platforms it targets
+### 2.1 — The OG image format is unsupported by the platforms it targets ✅ FIXED
 
-`public/og-default.svg` is an **SVG**. Facebook, X, LinkedIn and WhatsApp **do not support SVG**
+`public/og-default.svg` was an **SVG**. Facebook, X, LinkedIn and WhatsApp **do not support SVG**
 for `og:image` — they require PNG, JPG or WebP. So even with the absolute URL now correct, the
-preview image will still not render on the major platforms.
+preview image would still not render on the major platforms.
 
-**Second problem in the same file:** the Bengali text is set in
+**Second problem in the same file:** the Bengali text was set in
 `font-family="Arial, sans-serif"`. **Arial has no Bengali glyphs** — any renderer that did
 honour the SVG would draw the wordmark as tofu boxes (`□□□□`), not `শিক্ষা২৪`.
 
-**Recommended fix:** generate a real **1200×630 PNG**. The blocker is that rasterising Bengali
-text needs a TTF/OTF of SolaimanLipi, and only WOFF2 subsets are vendored (WOFF2 is not usable
-as a fontconfig input). Two viable routes:
+**Fix:** took route 2 from the original recommendation — compose the PNG without Bengali.
+The new `og-default.png` is a **1200×630 PNG** (27.5 KB) with a brand-red field, the real
+Illustrator-exported logo mark centred, and `shikkha24.com` in Latin. Universally renderable, no
+font dependency, still on-brand. `Layout.astro` now points at `/og-default.png`; the SVG is kept
+as the source asset for regeneration. `verify-build-output` updated to check for the PNG.
 
-1. Vendor a TTF/OTF of SolaimanLipi and rasterise at build time (adds ~150 KB to the repo).
-2. Compose the PNG without Bengali — brand-red field, the vector logo mark, and
-   `shikkha24.com` in Latin. Fully renderable with no font dependency, and still on-brand.
-
-This is the same open item as S11 "Auto OG images", now with a concrete cause.
+Verified in built output: `content="https://shikkha24.com/og-default.png"`.
 
 ### 2.2 — Image fallbacks exceed the documented per-image budget
 
@@ -254,7 +252,7 @@ see the false-green note in §4).
 | `pnpm audit --audit-level=high` | **0 high, 0 critical** |
 | Internal link integrity | **0 broken** across **3381** links on 84 pages (was 171 broken) |
 | `sitemap.xml` | **47 entries** (was 45) |
-| `og:image` | absolute on homepage **and** article pages |
+| `og:image` | absolute on homepage **and** article pages, now PNG (not SVG) |
 | Web app manifest | present with Bengali name, `bn-BD`, standalone, brand colors |
 | Apple touch icon | 180×180 PNG from brand logo mark |
 | `cms/.env.example` | no dead `NEXT_PUBLIC_SITE_URL` / `MEDIA_PUBLIC_BASE_URL` |
@@ -281,7 +279,7 @@ Measured in this audit, not inherited from earlier sessions.
 | Security headers | HSTS, nosniff, Referrer-Policy, Permissions-Policy, X-Frame-Options, two CSP profiles ✅ |
 | Category source images | all 8 referenced — **no unused assets** ✅ |
 | Sitemap / RSS / news-sitemap | present and populated ✅ |
-| `llms.txt`, `og-default.svg`, `favicon.ico/svg`, `404.html`, `_headers` | present ✅ |
+| `llms.txt`, `og-default.png`, `og-default.svg`, `favicon.ico/svg`, `404.html`, `_headers` | present ✅ |
 | `site.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` | present ✅ |
 
 ### Large-file scan (the checkpoint flagged in the brief)
@@ -372,17 +370,19 @@ pins. A normal `pnpm install` on a machine without the broker will complete it.
 
 | Severity | Count | Status |
 |---|---|---|
-| Blocking, fixed | 3 | dependency audit, 171 broken links, relative `og:image` |
+| Blocking, fixed | 4 | dependency audit, 171 broken links, relative `og:image`, SVG og:image unsupported |
 | Significant, fixed | 3 | dead env vars, CI byte-budget gate, CI harness wiring |
 | Minor, fixed | 2 | placeholder logo commit/rename, manifest + Apple touch icon |
-| Blocking, open | 1 | SVG og:image unsupported by social platforms |
+| Blocking, open | 0 | — |
 | Significant, open | 2 | image fallback budget, no deploy workflow |
 | Minor, open | 1 | demo content |
 | Clean | 16 checks | see §3 |
 
-**Every agent-buildable launch blocker identified by this audit is now closed except §2.1
-(needs a font decision) and §2.4 (needs the deploy/quota decision).**
+**Every agent-buildable launch blocker identified by this audit is now closed.
+The only remaining open items are §2.2 (image fallback budget — product decision),
+§2.4 (no deploy workflow — owner quota decision), and §2.8 (demo content — expected at this stage).**
 
-*Updated 2026-09-14 after the continuation session: placeholder logo committed as `docs/assets/logo.svg`,
+*Updated 2026-09-14: placeholder logo committed as `docs/assets/logo.svg`,
 dead env vars removed from `cms/.env.example`, CI byte-budget gate corrected, two dist-only
-verification harnesses wired into CI, web app manifest and Apple touch icon added.*
+verification harnesses wired into CI, web app manifest and Apple touch icon added,
+SVG og:image replaced with a 1200×630 PNG.*
