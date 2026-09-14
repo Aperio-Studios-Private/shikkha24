@@ -662,7 +662,7 @@ and confirming the R2 80% usage alert.
 - [ ] **`NEWSLETTER_SEND_TOKEN` and `PUSH_SEND_TOKEN`** (`openssl rand -hex 32`) wired into cron. **Both endpoints are disabled while their token is unset** — an endpoint that can mail the whole list or push to every subscriber must not be reachable by accident.
 - [ ] **SMTP credentials** for the bulk-sending subdomain `mail.shikkha24.com` + SPF/DKIM/DMARC (S12 gate).
 - [ ] **Host-disk usage alert** — DianaHost publishes no storage metric; needs the support ticket.
-- [ ] ⚠️ **The off-host backup must include `cms/data/media/`**, not just the SQLite file. Media moved off R2 to the host disk in S9, so the backup scope changed — `docs/backup-and-recovery.md` must be updated before launch.
+- [x] ✅ **Backup doc updated** (commit `1697caa`) — `docs/backup-and-recovery.md` now reflects host-disk media. Tier 1 includes `data/media/` alongside the SQLite file; all DR scenarios, verification checklist, and open-items updated. R2 versioning item removed (media is no longer on R2).
 
 **Owner actions for S0 (all four can be done in one sitting):**
 - [ ] **cPanel → Software → Select Node.js Version → Edit → Change Node.js version** — select 22.x or 24.x if offered. The host currently runs **20.18.2, which is end-of-life**
