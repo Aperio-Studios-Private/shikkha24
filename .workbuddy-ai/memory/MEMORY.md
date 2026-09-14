@@ -42,4 +42,4 @@ DianaHost PNR 2 GB, Node 20.18.2 (EOL) → build in CI only. Frontend: Cloudflar
 4. **Drizzle stale-index trap:** after column change or DROP, every push fails `index … already exists`. Fix: backup DB, `DROP INDEX IF EXISTS <name>`, retry. Hit 3× in S9.
 
 ## Known defects & owner gates
-`getAllArticleSlugs()` caps at 500. Pagefind: no Bengali stemming. Bookmark→CMS sync needs merge-policy decision. Backup must include `data/media/`. S11 feeds built ahead of sequence. Full owner-gate list in `.sps/task.md`.
+~~`getAllArticleSlugs()` caps at 500~~ → ✅ Fixed (paginates now). Pagefind: no Bengali stemming. Bookmark→CMS sync needs merge-policy decision. ~~Backup must include `data/media/`~~ → ✅ Done (docs updated). S11 feeds built ahead of sequence. Full owner-gate list in `.sps/task.md`.
