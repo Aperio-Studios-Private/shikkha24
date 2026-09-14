@@ -109,7 +109,7 @@ None of these is code. The project is complete pending them.
 | 3 | **Deploy the CMS to DianaHost** (Passenger) | Every reader write and the admin depend on it |
 | 4 | **Set `PUBLIC_CMS_ORIGIN`** to the real CMS hostname | Currently `http://localhost:3000`. Until set, the live-blog refresh and poll vote controls are simply not rendered (by design) |
 | 5 | **Update the CSP host** in `frontend/public/_headers` (`cms.shikkha24.com` is a literal placeholder — a CSP cannot be templated) | Article images and CMS calls would be blocked |
-| 6 | **Create the remaining E-E-A-T pages** — privacy, terms, editorial/corrections policy | `/about` and `/contact` are now built into the site and driven by Site Settings; privacy and terms are still required for Google News eligibility |
+| 6 | **Create the remaining E-E-A-T pages** — privacy, terms, editorial/corrections policy | `/about` and `/contact` are now built into the site and driven by Site Settings; privacy and terms are still required for Google News eligibility. **⚠️ Found in the 2026-09-14 audit: the footer hardcodes `/page/privacy-policy`, `/page/terms-of-use` and `/page/contact`, and the CMS `pages` collection is empty — so all three 404 on every page (171 broken links across 82 pages). Being fixed as static routes, matching `/about` and `/contact`.** |
 | 7 | ~~Upload the real logo~~ — **done**: an SVG logo is uploaded and renders in the header and footer | Just confirm it is the final artwork |
 | 8 | **Generate VAPID keys** and set them | Push reminders stay hidden until then |
 | 9 | **Generate `NEWSLETTER_SEND_TOKEN` / `PUSH_SEND_TOKEN`** | Both cron endpoints are disabled while unset |
