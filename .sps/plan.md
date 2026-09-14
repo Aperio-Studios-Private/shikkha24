@@ -43,7 +43,7 @@ Positioning (owner's words):
 | Editorial team | 5 people already in place — no hiring prerequisite | 2026-09-11 |
 | Content | Greenfield launch — no migration | 2026-09-11 |
 | Repository | Private (caps GitHub Actions at 2,000 min/month) | 2026-09-11 |
-| Logo | Placeholder SVG, CMS-editable (`docs/assets/logo-placeholder.svg`) | 2026-09-11 |
+| Logo | Real logo supplied, CMS-editable (`docs/assets/logo.svg`) | 2026-09-13 |
 | Social login | Facebook + Google — kept; both are free (app review is a process, not a cost) | 2026-09-11 |
 | Portal display name / logo | Open — Shikkha24 assumed from the domain, needs owner confirmation | — |
 | Education feature inventory | **Open — requires a discovery round** | — |

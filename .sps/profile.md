@@ -6,7 +6,7 @@
 ## Project identity
 - Name: **Shikkha24 (শিক্ষা২৪)** — ✅ **CONFIRMED 2026-09-12** by the owner, derived from the domain. **CMS-editable** via Site Settings.
 - Domain: **shikkha24.com** — ✅ **registered** (owner-confirmed 2026-09-11). DNS configuration not yet provided; the owner will supply it later. Reachability could not be verified from the auditing environment.
-- Logo: **placeholder SVG for now** (owner decision 2026-09-11) — `docs/assets/logo-placeholder.svg`. The real logo will be supplied later. The logo is a **CMS-managed field** (Site Settings global), so it can be replaced without a code change. The logo and the site name are **independent** (owner decision 2026-09-13): the logo renders as a **mark beside** the name, never in place of it, and the name is derived from `siteName` on every page.
+- Logo: **real logo supplied** (owner-supplied 2026-09-13, Illustrator-exported) — `docs/assets/logo.svg`. The logo is a **CMS-managed field** (Site Settings global), so it can be replaced without a code change. The logo and the site name are **independent** (owner decision 2026-09-13): the logo renders as a **mark beside** the name, never in place of it, and the name is derived from `siteName` on every page.
 - Goal: Bangladesh's best **education** news and opportunity portal — production-grade, Bengali-first
 - Positioning (owner's words, verbatim):
   - 🎓 Education News | Scholarship | Admission | University | Higher Study
@@ -127,7 +127,7 @@ Dynamic and admin-editable. Full detail in `docs/education-feature-inventory.md`
 - ✅ **Cloudflare account has a payment method on file** (2026-09-11) → R2 is enableable
 - ✅ **AdSense account activated** (2026-09-11) → AdSense is definitely shipping, so the two-profile Lighthouse measurement (≥95 no-ads, ≥85 with-ads) is adopted
 - ✅ **Social login (Facebook/Google): keep** (2026-09-11) — Meta Login and Google OAuth are **free**; only app review (a process, not a cost) is required. No cost → no reason to drop them
-- ✅ **Logo: placeholder SVG now, CMS-editable** (2026-09-11)
+- ✅ **Logo: real logo supplied, CMS-editable** (2026-09-13)
 - ✅ **Logo and site name are independent; a rename propagates everywhere** (2026-09-13) — the uploaded logo renders as a mark beside the name (never replacing it), a new `showNameWithLogo` toggle (default on) is the only way to hide the name, the wordmark auto-accents its trailing digit/Latin run, and no site name is hardcoded anywhere — every occurrence reads `settings.siteName`
 
 ## Explicit rejections
@@ -147,7 +147,7 @@ Dynamic and admin-editable. Full detail in `docs/education-feature-inventory.md`
 - [ ] **Raise one DianaHost support ticket** covering: inode/file-count quota, CPU/memory/process limits, hourly email send limits, and whether account-level backups exist and can be restored. **None of these are published in their knowledge base.**
 - [ ] **Verify R2 is enabled** — `wrangler login && wrangler r2 bucket list` (wrangler 4.125.0 is installed locally but not authenticated). Then set a usage alert at 80% of 10 GB, since a card is on file.
 - [ ] **DNS configuration for shikkha24.com** — owner will provide
-- [ ] **Real logo** — placeholder SVG is in place; final asset pending. **Not blocking:** the logo is a CMS-managed field, so S2 ships with the placeholder and the real asset drops in through the admin with no code change.
+- [x] **Real logo** — ✅ supplied 2026-09-13 (Illustrator-exported, `docs/assets/logo.svg`). CMS-managed field, drops in through the admin with no code change.
 - [ ] **Legal details for the E-E-A-T pages** — Trade License, TIN, Ministry of Information registration. Owner will provide **before final deploy**.
 - [x] Portal display name final confirmation (Shikkha24 / শিক্ষা২৪?) — ✅ **CONFIRMED 2026-09-12**: Shikkha24 / শিক্ষা২৪
 - [ ] Hands-on audit of the two direct competitors (Dainik Shiksha, Shiksha Sangbad)

@@ -615,7 +615,7 @@ and confirming the R2 80% usage alert.
    - **Repository is PRIVATE** → 2,000 Actions minutes/month. Owner asked the excellent question *"why do I need CI for an article to upload? The admin can't access GitHub."* Answer documented in the new **`docs/hosting-and-deployment.md`**: editors only ever use the Payload admin (a normal web CMS); CI is the invisible rebuild step that turns a publish into a static HTML file. Also documented: the escalation ladder, and the fact that **Cloudflare Pages free = 500 builds/month** (tighter than GitHub's quota) and **20,000 files/site** (reached in ~2–3 years at target volume).
    - **AdSense is activated** → AdSense definitely ships, so the **two-profile Lighthouse measurement** is adopted: **≥95 no-ads / ≥85 with-ads**.
    - **Social login kept** — Meta Login and Google OAuth are free; only app review (a process, not a cost) is needed, so the owner's "no cost" rule does not exclude them.
-   - **Logo:** placeholder SVG created at `docs/assets/logo-placeholder.svg`, and the logo is a **CMS-managed Site Settings field** so the real asset swaps in without a code change.
+   - **Logo:** real Illustrator-exported logo at `docs/assets/logo.svg` (owner-supplied 2026-09-13), and the logo is a **CMS-managed Site Settings field** so the asset swaps in without a code change.
    - Domain **registered** (DNS to follow); legal details for E-E-A-T pages promised **before final deploy**.
    - **Corrected an earlier overstatement of mine:** I had said one-build-per-publish would blow the CI quota. That is only true if builds take minutes. At ~30s incremental, 600–900 publishes/month costs ~450 minutes and fits comfortably. **The deciding number is the measured incremental build time — now an S0 gate.**
 40. ✅ **Project presentation deck created** (2026-09-12) — `docs/presentation-deck.html`. 18-slide mobile-first HTML deck for team/board approval covering: vision, market gap, audience, 8-category tree, platform features, 10 new education features, tech stack, architecture, S0–S12 roadmap, 12-week timeline, performance targets, competitive advantage, monetization, team/content model, zero-recurring-cost budget, risk register, and approval request. Smooth scroll, keyboard navigation, progress bar, navigation dots. Bengali + English mixed for BD audience.
@@ -675,7 +675,7 @@ and confirming the R2 80% usage alert.
 - [ ] Measure a real **Astro incremental build time** (S0 gate — decides the CI/batching strategy)
 - [ ] Verify **`wrangler pages deploy`** does not consume the 500/month Pages build quota
 - [ ] Hands-on audit of the two direct competitors (Dainik Shiksha, Shiksha Sangbad)
-- [ ] Real logo asset (placeholder SVG in place, CMS-editable)
+- [x] Real logo asset — ✅ supplied 2026-09-13, `docs/assets/logo.svg`
 - [ ] Legal details for the E-E-A-T pages — owner provides **before final deploy**
 - [ ] Portal display name final confirmation
 - [ ] Start the Meta app review for Facebook Login early (free, but slow)
