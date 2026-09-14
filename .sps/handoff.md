@@ -272,9 +272,9 @@ removed a non-null assertion from the news sitemap so new code adds no lint warn
 
 **Two open details:** the CMS `siteName` is currently **«শিক্ষা২৪.com»**, which flows into the
 RSS channel title and the Google News `news:name` — the Publisher Center name must match
-exactly, so this needs a deliberate value. And `getAllArticleSlugs()` caps at **500** with no
-pagination, so past ~500 published articles the article routes and the sitemap would silently
-stop growing — **flagged, not yet fixed** (it is S4/S5 code, so it needs a scope decision).
+exactly, so this needs a deliberate value. ~~`getAllArticleSlugs()` caps at 500 with no
+pagination~~ → **✅ FIXED in S11:** `getAllArticlePaths()` now paginates through the full
+result set using Payload's `page` + `limit` parameters (see `frontend/src/lib/cms.ts:549`).
 
 **Verification:** lint 0 errors (8 pre-existing `noNonNullAssertion` warnings) · typecheck
 exit 0 both workspaces · build exit 0 with the CMS live · Pagefind index rebuilt · no
