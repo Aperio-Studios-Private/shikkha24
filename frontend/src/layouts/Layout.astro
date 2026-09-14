@@ -62,7 +62,21 @@ const {
 const siteName = settings.siteName
 const pageTitle = title ? `${title} — ${siteName}` : siteName
 const metaDescription = description || settings.tagline || ''
-const ogImageUrl = ogImage || '/og-default.svg'
+/**
+ * `og:image` must be an ABSOLUTE URL.
+ *
+ * The Open Graph protocol requires it, and the scrapers at Facebook, X, WhatsApp
+ * and LinkedIn do not resolve relative paths — a relative value is silently
+ * ignored and the share renders with no preview image at all. This was emitting
+ * `/og-default.svg` verbatim, so every page shared without an image.
+ *
+ * Article pages pass a CMS media path, which is relative too, so the origin is
+ * applied to the fallback and to any relative override. An already-absolute URL
+ * (e.g. a media CDN host) is left untouched rather than double-prefixed.
+ */
+const siteOrigin = (import.meta.env.PUBLIC_SITE_URL || Astro.url.origin).replace(/\/$/, '')
+const ogImagePath = ogImage || '/og-default.svg'
+const ogImageUrl = /^https?:\/\//i.test(ogImagePath) ? ogImagePath : `${siteOrigin}${ogImagePath}`
 ---
 
 <!doctype html>
