@@ -15,7 +15,7 @@
 | **SQLite database** | Holds the entire archive | Direct file exposure via the web root |
 | **The shared host account** | Hosts the CMS; shares an IP and machine with other tenants | Account compromise, cross-tenant risk, resource exhaustion |
 | **CI/CD secrets** | Deploy credentials to the host and Cloudflare | Secret leakage via logs, forks, or a public repo |
-| **R2 bucket** | Media origin | Misconfigured public write, hotlinking |
+| **Host media directory** (`data/media/`) | Media origin (R2 descoped in S9) | Directory listing, direct file access outside Payload's upload path |
 | **Newsletter sending reputation** | Deliverability for all domain email | Spam complaints, blacklisting, open relay |
 
 **Who attacks:** opportunistic scanners (the largest volume by far), comment/SEO spammers, credential-stuffing bots, and automated dependency-based attacks. Not a targeted nation-state threat model.
@@ -32,7 +32,7 @@
 | Newsletter signup | Public | Spam/enumeration vector |
 | Social login callbacks | Public | OAuth misconfiguration risk |
 | Contact / citizen-journalism forms | Public | Spam + file-upload risk |
-| R2 bucket | Public read (intended) | Must never be public **write** |
+| Host media directory | Served via CMS origin (public read intended) | Must not allow directory listing or direct write; only Payload's upload pipeline can create files |
 | SQLite file | **Must not be web-accessible** | Verify the document root does not cover the CMS data directory |
 | cPanel + SSH | Vendor-controlled | SSH is "on demand" — keep it off when unused |
 | GitHub repo + Actions | Depends on visibility | Secrets must be Actions secrets, never in the repo |
@@ -113,7 +113,7 @@ A strict CSP will break AdSense, which needs inline scripts and dynamic script i
 ## 6. Input validation and content safety
 
 - **Comments are the primary XSS vector.** Never render reader input as raw HTML. Escape on output, store sanitised, moderate before publish.
-- **File uploads** (citizen journalism, avatars) — validate MIME type and extension server-side, cap size, store outside the web root or in R2, never execute. Never trust the client-supplied content type.
+- **File uploads** (citizen journalism, avatars) — validate MIME type and extension server-side, cap size, store via Payload's upload pipeline (which writes to `data/media/` on the host disk, not the web root), never execute. Never trust the client-supplied content type.
 - **Rich text from editors** is higher-trust but still sanitise on render — a compromised editor account should not be able to inject scripts.
 - **CSRF** — Payload handles it for the admin; any custom endpoint (comments, newsletter, contact) needs its own token or origin check.
 - **GraphQL** — disable introspection in production and enforce query depth/complexity limits if it is exposed publicly.
@@ -139,9 +139,9 @@ Document the limits chosen, and note that on a 2 GB shared host a flood can exha
 
 - **Data minimisation:** collect only what a feature needs. Comments need a display name and a provider identity — not a phone number.
 - **Retention policy:** define how long commenter accounts and newsletter subscribers are kept, and honour deletion requests.
-- **Privacy policy page** is already in scope; it must describe what is collected, why, where it is stored (SQLite on DianaHost, media on Cloudflare R2), and how to request deletion.
+- **Privacy policy page** is already in scope; it must describe what is collected, why, where it is stored (SQLite database and media files on DianaHost, off-host backups on Cloudflare R2), and how to request deletion.
 - **No selling or sharing reader data** with third parties.
-- **Third-party processors to disclose:** Cloudflare (CDN, R2, analytics), the ESP (newsletter delivery), Facebook/Google (social login).
+- **Third-party processors to disclose:** Cloudflare (CDN, analytics, off-host backups on R2), the ESP (newsletter delivery), Facebook/Google (social login).
 - **Bangladesh context:** there is no enacted comprehensive data-protection statute at the time of writing, but a privacy policy is required by Google's E-E-A-T expectations and by basic ethics. Do not treat "no law yet" as "no obligation".
 
 ---

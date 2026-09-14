@@ -85,7 +85,7 @@ deliberately generic so one image stays valid indefinitely.
 `ArticleCard` falls back to the archetype automatically:
 
 ```
-article.featuredImage  →  use it (remote, from CMS/R2)
+article.featuredImage  →  use it (remote, from CMS host disk)
 otherwise              →  category archetype (local, optimised)
 otherwise              →  no image, text-only card
 ```
@@ -144,8 +144,8 @@ One eager + `fetchpriority="high"` (the LCP lead); twelve lazy.
 ### An image from the CMS
 
 Currently rendered as a plain `<img>` with explicit `width`/`height` and lazy
-loading. Astro cannot optimise remote images until the R2 domain is declared in
-`astro.config.mjs`:
+loading. Astro cannot optimise remote images until the CMS media hostname is
+declared in `astro.config.mjs`:
 
 ```js
 image: {
@@ -153,8 +153,10 @@ image: {
 }
 ```
 
-**To do once the R2 bucket hostname is confirmed** — then CMS images get the same
-AVIF/WebP/srcset treatment automatically.
+**To do once the CMS media hostname is confirmed** (`PUBLIC_MEDIA_BASE_URL`) —
+then CMS images get the same AVIF/WebP/srcset treatment automatically. Note:
+media is served from the DianaHost CMS origin (R2 was descoped in S9), so the
+hostname is the CMS host, not an R2 bucket domain.
 
 ---
 

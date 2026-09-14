@@ -141,7 +141,7 @@ Cloudflare Pages allows **20,000 files per site** on the free plan. Every articl
 At 15–20 articles/day, that is roughly **5,500–7,300 articles per year**, plus listing and archive pages. **The ceiling is reached in roughly 2–3 years.**
 
 Mitigations to plan for:
-- Keep all images on R2 (already the plan) so they do not consume the file budget
+- Media is on the host disk (not Pages or R2) so it does not consume the Pages file budget
 - Avoid generating one static file per tag permutation
 - At scale, consider Workers Static Assets (higher limits on paid plans) or the DianaHost `public_html` fallback
 

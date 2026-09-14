@@ -85,7 +85,7 @@ The stack-research estimates are: Hind Siliguri 25–40 KB/weight, Noto Sans Ben
 | Concern | Approach |
 |---|---|
 | JavaScript | Astro islands. `client:visible` / `client:idle` for everything non-critical. No framework JS in the initial payload for static content. |
-| Images | R2 + Cloudflare. AVIF with WebP fallback, explicit `width`/`height` on every `<img>` (zero CLS), `fetchpriority="high"` on the hero only, `loading="lazy"` below the fold. |
+| Images | Host disk + Cloudflare CDN. WebP (no originals retained), explicit `width`/`height` on every `<img>` (zero CLS), `fetchpriority="high"` on the hero only, `loading="lazy"` below the fold. Media served from the CMS origin, cached at the edge. |
 | Fonts | See §3. |
 | Ads | Reserved containers with fixed dimensions. Ad scripts load **after** LCP via `requestIdleCallback`. Never block render. |
 | Widgets | Weather + prayer times are fetched **server-side at build time** and rendered statically. Never client-fetched. |

@@ -10,7 +10,7 @@
 | Component | Runs where | Failure impact on readers |
 |---|---|---|
 | Astro static site | **Cloudflare Pages** | Site down |
-| Media | **Cloudflare R2** | Images broken |
+| Media | **DianaHost disk** (`data/media/`) | Images broken — and if the host is down, the CMS is down too |
 | Payload CMS + admin | **DianaHost 2 GB shared host** | **Readers unaffected** — only publishing stops |
 | Build pipeline | **GitHub Actions** | New content cannot be published |
 | Newsletter delivery | Free-tier ESP | Newsletter fails |
@@ -28,12 +28,12 @@ Ranked by realistic likelihood × impact.
 | 1 | **Passenger kills the idle Node process** (common on shared hosting) | CMS offline; publishing stops | **High** | Uptime monitor on `/admin` | Auto-restart via cPanel; accept a cold-start delay; document the manual restart step |
 | 2 | **CI minutes exhausted** (2,000/month, private repo) | No new content published | **Medium** — depends on measured build time | Actions quota warning | Adaptive batching; or public repo for unlimited minutes. See `docs/hosting-and-deployment.md` |
 | 2b | **Cloudflare Pages 500 builds/month exhausted** | No new deployments | **Medium–High** if Pages builds are Git-triggered | Pages build log | Verify whether `wrangler` direct upload bypasses the quota; else batch harder, or fall back to DianaHost `public_html` |
-| 2c | **Cloudflare Pages 20,000-file ceiling reached** | Cannot deploy new pages | **Low** now, certain in ~2–3 years | Deploy failure | Keep images on R2; plan the Workers Static Assets or `public_html` migration |
+| 2c | **Cloudflare Pages 20,000-file ceiling reached** | Cannot deploy new pages | **Low** now, certain in ~2–3 years | Deploy failure | Images are on host disk (not Pages); plan the Workers Static Assets or `public_html` migration |
 | 2d | **Node.js 20 end-of-life on the host** | Unpatched vulnerabilities in the CMS runtime | **Standing** | Not detectable by monitoring | Select Node 22/24 in the cPanel Node.js Selector; otherwise compensate with admin hardening (`docs/security.md` §3) |
-| 3 | **2 GB storage full** | Uploads fail; account may be suspended | **High** over months | Storage alert at 80% | Media on R2, not the host; storage monitor |
+| 3 | **2 GB storage full** | Uploads fail; account may be suspended | **High** over months | Storage alert at 80% | Media is on host disk now (R2 descoped in S9) — monitor disk usage; media cleanup keeps only WebP |
 | 4 | **Payload 3.89.0 regression** (pinned one day after release) | Varies | Medium | Smoke test after deploy | S0 hold-vs-pin decision; pin and upgrade deliberately |
 | 5 | **SQLite lock contention** during simultaneous publishes | Individual publish failures | Medium | Editor reports; logs | WAL mode (validated at S0); serialise heavy writes |
-| 6 | **R2 unavailable** | Broken images | Low | Image 404 rate | Cloudflare cache holds previously-fetched media |
+| 6 | **Host disk I/O degraded or media directory lost** | Broken images; new uploads fail | Low | Image 404 rate; upload errors | Daily off-host backup includes `data/media/` (see `docs/backup-and-recovery.md`); Cloudflare cache holds previously-fetched media |
 | 7 | **Free-tier ESP down or rate-limited** | Newsletter fails; transactional email fails | Medium | Bounce/failure logs | cPanel SMTP as documented fallback |
 | 8 | **Viral traffic spike** | None for readers (static on Pages) | Medium | Traffic analytics | See §5 — the frontend is already the mitigation |
 | 9 | **Cloudflare misconfiguration** | Site-wide outage | Low | Immediate | Instant rollback (Pages keeps every deployment) |
@@ -80,7 +80,7 @@ Ranked by realistic likelihood × impact.
 - **Reader traffic: effectively unbounded.** Cloudflare Pages serves static assets from the edge with unlimited bandwidth on the free tier. A viral spike is a non-event for readers.
 - **The real bottlenecks are editorial, not reader-facing:**
   1. **Publishing throughput** — bounded by **two** quotas, not by server capacity: GitHub Actions (2,000 min/month) and Cloudflare Pages (**500 builds/month**). Full detail in `docs/hosting-and-deployment.md`.
-  2. **Storage** — 2 GB on the host (media is offloaded to R2, so this is mostly the app + DB). R2 itself is capped at 10 GB, and a payment method is on file, so overage is **billable** — set an 80% alert.
+  2. **Storage** — 2 GB on the host, shared by the app, the SQLite database, **and the media library** (media moved to host disk in S9 — R2 was descoped due to card-on-file overage risk). This is the tightest constraint: WebP conversion keeps image sizes small, but the directory grows with every article. A daily off-host backup of `data/media/` (see `docs/backup-and-recovery.md`) is the safety net; a host-disk usage alert (via DianaHost support) is the early warning.
   3. **Simultaneous editors** — SQLite WAL, validated at S0 for 5+ concurrent writers.
   4. **Deployed file count** — Cloudflare Pages allows 20,000 files/site; reached in roughly 2–3 years at the target publishing rate.
   5. **Runtime patch level** — Node 20 is end-of-life on the host.
@@ -110,9 +110,9 @@ On a viral day (a result publication, an admission circular):
 | CMS up | Uptime monitor on `/admin` | Any failure |
 | Build failures | GitHub Actions notifications | Any failed run |
 | CI minutes | GitHub Actions quota | 80% of monthly quota |
-| Host storage | cPanel / manual check | 80% of 2 GB |
+| Host storage (incl. media) | cPanel / manual check | 80% of 2 GB |
 | Origin bandwidth | DianaHost cPanel | 80% of 200 GB |
-| R2 usage | Cloudflare dashboard | 80% of 10 GB |
+| ~~R2 usage~~ | ~~Cloudflare dashboard~~ | R2 descoped for media in S9 — R2 used only for off-host backups now |
 | Error rate | Cloudflare analytics | Spike over baseline |
 | Domain/cert expiry | Calendar reminder + Cloudflare SSL alerts | 30 days before |
 
