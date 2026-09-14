@@ -87,6 +87,18 @@ jobs:
             exit 1
           fi
 
+      - name: Verify CSP routes
+        # Asserts that the CSP rules in _headers match the actual route patterns
+        # in the built output. Catches the S11 regression where a URL architecture
+        # change left a CSP rule pointing at a stale prefix.
+        run: pnpm run verify:csp
+
+      - name: Verify build output
+        # Asserts the dist directory is well-formed: sitemaps present and populated,
+        # no inline scripts, no stale URL prefixes, correct page count. Catches
+        # a thin build (dead CMS → green exit code but missing pages).
+        run: pnpm run verify:build-output
+
       - name: Upload frontend build output
         uses: actions/upload-artifact@v4
         with:
@@ -142,7 +154,14 @@ jobs:
         # Policy: docs/security.md §9 — high and critical block the build.
         run: pnpm audit --audit-level=high
 
-      # ── Deliberately not yet wired ──────────────────────────────────────────
-      # Lighthouse CI, broken-link check and JSON-LD validation need real page
-      # templates. They are wired at S3+ per docs/testing-and-qa.md §1. Running
-      # them against the S0 placeholder would assert nothing.
+      # ── Not yet wired ─────────────────────────────────────────────────────
+      # The following need additional infrastructure and are deferred:
+      #
+      # CMS-based harnesses (verify:sync, verify:endpoints, verify:media,
+      # verify:newsletter, verify:engagement, verify:push, verify:oauth,
+      # verify:rebuild): need a running Payload instance with a seeded SQLite
+      # database. Adding a CMS startup + seed step to CI is possible but adds
+      # ~60s to every run — deferred until the CI minutes budget has headroom.
+      #
+      # Lighthouse CI, broken-link check and JSON-LD validation: need real page
+      # templates served over HTTP. Wired at S3+ per docs/testing-and-qa.md §1.
