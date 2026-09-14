@@ -145,7 +145,7 @@
 - [ ] **OWNER:** generate `NEWSLETTER_SEND_TOKEN` and `PUSH_SEND_TOKEN` (`openssl rand -hex 32`) and wire them into the cron. **Both endpoints are disabled while their token is unset** — an endpoint that can mail the whole list or push to every subscriber must not be reachable by accident.
 - [ ] **OWNER:** SMTP credentials for the bulk-sending subdomain (`mail.shikkha24.com`) + SPF/DKIM/DMARC (S12 gate)
 - [ ] **OWNER:** host-disk usage alert — DianaHost publishes no storage metric; this comes from the support ticket already requested
-- [ ] **Deferred, recorded:** media is now part of the backup problem (`docs/backup-and-recovery.md`) — the off-host backup must include `data/media/`, not just the SQLite file
+- [x] **✅ Done:** `docs/backup-and-recovery.md` updated (commit `1697caa`) — the off-host backup now includes `data/media/` alongside the SQLite file
 
 ## S10 — Education Features & Specialized Sections
 - [x] **N1** Scholarship tracker (deadline-sorted, filterable by level / country / funding) — `/scholarships`
