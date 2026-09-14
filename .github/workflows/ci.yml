@@ -71,17 +71,19 @@ jobs:
       - name: Build (frontend)
         run: pnpm run build:frontend
 
-      - name: Byte budget — build output
-        # Coarse guard for docs/performance-budget.md §3. The real 1.2 MB target is
-        # a per-page measurement and belongs to Lighthouse CI (wired at S3+, when
-        # real page templates exist — asserting it against the S0 placeholder
-        # would prove nothing).
+      - name: Build output size ceiling
+        # Regression guard on total dist size — NOT the per-page 1.2 MB payload
+        # budget (that belongs to Lighthouse CI, wired at S3+). This catches a
+        # catastrophic size regression (e.g. a source asset committed un-optimised,
+        # or a bundling config change that bloats every page). At 84 pages the
+        # build output is ~8.8 MB; 15 MB gives headroom for content growth.
+        # Adjust if page count or asset strategy changes materially.
         run: |
           set -euo pipefail
           kb=$(du -sk frontend/dist | cut -f1)
           echo "frontend/dist = ${kb} KB"
-          if [ "$kb" -gt 12288 ]; then
-            echo "::error::frontend/dist exceeds the 1.2 MB budget"
+          if [ "$kb" -gt 15360 ]; then
+            echo "::error::frontend/dist exceeds the 15 MB build-output ceiling (regression guard; per-page payload budget is enforced by Lighthouse CI)"
             exit 1
           fi
 
