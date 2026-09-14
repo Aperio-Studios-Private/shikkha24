@@ -248,7 +248,7 @@ see the false-green note in §4).
 | `pnpm run typecheck:cms` | **exit 0** |
 | `pnpm run build:frontend` | **84 pages** (was 82; +2 legal pages), pagefind generated |
 | `pnpm run verify:build-output` | **all PASS** — "Build output is deployable" |
-| `pnpm run verify:csp` | **all PASS** — placeholder matches, stale `/article/*` rejected |
+| `pnpm run verify:csp` | **all PASS** — `<LocationMatch>` regex matches, stale `/article/*` rejected |
 | `pnpm audit --audit-level=high` | **0 high, 0 critical** |
 | Internal link integrity | **0 broken** across **3381** links on 84 pages (was 171 broken) |
 | `sitemap.xml` | **47 entries** (was 45) |
@@ -279,7 +279,7 @@ Measured in this audit, not inherited from earlier sessions.
 | Security headers | HSTS, nosniff, Referrer-Policy, Permissions-Policy, X-Frame-Options, two CSP profiles ✅ |
 | Category source images | all 8 referenced — **no unused assets** ✅ |
 | Sitemap / RSS / news-sitemap | present and populated ✅ |
-| `llms.txt`, `og-default.png`, `og-default.svg`, `favicon.ico/svg`, `404.html`, `_headers` | present ✅ |
+| `llms.txt`, `og-default.png`, `og-default.svg`, `favicon.ico/svg`, `404.html`, `.htaccess` | present ✅ |
 | `site.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` | present ✅ |
 
 ### Large-file scan (the checkpoint flagged in the brief)
@@ -311,11 +311,11 @@ reach 226 KB in `dist` (§2.2). Repo size is cosmetic; shipped size is not.
 
 | # | Item | Blocks |
 |---|---|---|
-| 1 | DNS for `shikkha24.com` → Cloudflare | everything |
-| 2 | Cloudflare Pages project + deploy `frontend/dist` | frontend hosting |
+| 1 | DNS for `shikkha24.com` → DianaHost nameservers | everything |
+| 2 | Deploy `frontend/dist` to DianaHost `public_html` (rsync from CI) | frontend hosting |
 | 3 | Deploy CMS to DianaHost (Passenger) | admin, all reader writes |
 | 4 | Set `PUBLIC_CMS_ORIGIN` to the real hostname | live-blog, poll, comments, newsletter, bookmark sync all stay hidden |
-| 5 | Update the CSP host in `frontend/public/_headers` (`cms.shikkha24.com` is a literal placeholder — a CSP cannot be templated) | article images + CMS calls |
+| 5 | Update the CSP host in `frontend/public/.htaccess` (`cms.shikkha24.com` is a literal placeholder — a CSP cannot be templated) | article images + CMS calls |
 | 6 | Deploy workflow (§2.4) + `DEPLOY_WEBHOOK_URL` | **publishing does nothing without this** |
 | 7 | VAPID keys | push reminders |
 | 8 | `NEWSLETTER_SEND_TOKEN` / `PUSH_SEND_TOKEN` | both cron endpoints are disabled while unset |
@@ -329,9 +329,9 @@ reach 226 KB in `dist` (§2.2). Repo size is cosmetic; shipped size is not.
 
 | Check | Why |
 |---|---|
-| Exactly **one** `Content-Security-Policy` header on an ad-bearing page | Cloudflare **joins** duplicate CSP headers with a comma; a comma-joined policy still blocks AdSense |
-| The `/:category/:id/:slug` placeholder actually matches | a placeholder that fails to match fails **silently** — page still returns 200, just under the strict policy |
-| Lighthouse ≥95 / a11y ≥90, LCP, INP, CLS, TTFB | needs a deployed origin; TTFB is a CDN property |
+| Exactly **one** `Content-Security-Policy` header on an ad-bearing page | Apache `Header set` replaces cleanly — no comma-join problem (Cloudflare removed 2026-09-14) |
+| The `^/[^/]+/[^/]+/[^/]+$` regex actually matches | a `<LocationMatch>` that fails to match fails **silently** — page still returns 200, just under the strict policy |
+| Lighthouse ≥95 / a11y ≥90, LCP, INP, CLS, TTFB | needs a deployed origin; TTFB is a hosting property (no CDN) |
 | Restore drill, timed | needs the production backup |
 | WCAG manual keyboard + screen-reader pass | needs a human |
 | Device matrix incl. Opera Mini / UC Browser / low-end Android | needs real hardware |
@@ -385,4 +385,5 @@ The only remaining open items are §2.2 (image fallback budget — product decis
 *Updated 2026-09-14: placeholder logo committed as `docs/assets/logo.svg`,
 dead env vars removed from `cms/.env.example`, CI byte-budget gate corrected, two dist-only
 verification harnesses wired into CI, web app manifest and Apple touch icon added,
-SVG og:image replaced with a 1200×630 PNG.*
+SVG og:image replaced with a 1200×630 PNG. Cloudflare fully removed — all hosting, storage,
+DNS, security headers, and analytics now on DianaHost only (`_headers` → `.htaccess`).*

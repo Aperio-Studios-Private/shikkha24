@@ -92,7 +92,7 @@ otherwise              →  no image, text-only card
 
 ### Cache headers
 
-`public/_headers` already ships:
+`public/.htaccess` already ships (Apache `Cache-Control`):
 
 ```
 /_astro/*

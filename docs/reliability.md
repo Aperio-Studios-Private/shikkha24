@@ -156,7 +156,7 @@ Researched 2026-09-13 against the three leading free uptime monitors:
 
 ### 7.1 CMS restart procedure (DianaHost cPanel + Phusion Passenger)
 
-DianaHost runs the CMS as a Node.js application behind Phusion Passenger via cPanel. Passenger kills idle processes — the most common cause of CMS unavailability. The reader-facing site is unaffected (it is static on Cloudflare Pages); only the admin and publishing are down.
+DianaHost runs the CMS as a Node.js application behind Phusion Passenger via cPanel. Passenger kills idle processes — the most common cause of CMS unavailability. The reader-facing site is unaffected (it is static HTML served by Apache from `public_html`); only the admin and publishing are down.
 
 **When to restart:**
 - UptimeRobot reports `/admin` is down (2 consecutive failures = 10 min)

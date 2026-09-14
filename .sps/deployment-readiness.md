@@ -129,11 +129,9 @@ until configured:
 | **Create the GitHub Actions workflow** that rebuilds and deploys (rsync to `public_html`) | The webhook has nothing to call otherwise. Not yet in the repo — it needs the deploy target decided first |
 | **Tune `REBUILD_MIN_INTERVAL_MS`** (default 300000 = 5 min) | Quota guard: GitHub Actions allows 2,000 min/month; at 15–20 articles/day, per-save triggering would be wasteful. Debouncing collapses a burst into one build |
 
-Note the quota tension is documented but **unresolved**: `docs/hosting-and-deployment.md`
-§4 asks whether `wrangler pages deploy` (direct upload) bypasses the 500 build
-limit. If it does not, per-publish builds are impossible and the fallback is to
-serve the static output from DianaHost instead (§4 option 4). **Owner decision
-before the pipeline is finalised.**
+Note: the `wrangler pages deploy` quota question is now moot — Cloudflare was removed
+entirely (2026-09-14). The deploy pipeline uses rsync to DianaHost `public_html` from CI.
+The only quota that applies is GitHub Actions 2,000 min/month.
 
 ### Verification that can only happen in production
 

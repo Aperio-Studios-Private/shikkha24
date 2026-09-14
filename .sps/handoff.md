@@ -131,7 +131,7 @@ gallery plates. Both now count only what they are responsible for. The rule:
 ## S8 — Live Blog & Interactive (complete) — 2026-09-12
 
 **⚠️ The most important thing this section produced was not a feature — it was a site-wide bug.**
-`public/_headers` sets `script-src 'self'` with no `'unsafe-inline'`, and **Astro inlines any
+`public/.htaccess` sets `script-src 'self'` with no `'unsafe-inline'`, and **Astro inlines any
 component `<script>` that is "small enough"** into the HTML. Every inlined script was therefore
 blocked by the browser: the theme toggle, mobile menu, text resizer, demo-ad rotation, copy-link
 button and the `/search` Pagefind bootstrap had been **silently dead since S2**. Nothing local
@@ -197,7 +197,7 @@ eight slots that exist; the collection held no data, so the change was free.
   reader's browser would give up the property that a CMS outage cannot take the site down. A field
   that always reads 0 is worse than no field.
 
-**⚠️ CSP finding — this would have broken AdSense silently.** ~~Cloudflare Pages **joins** a duplicated header with a comma rather than overriding it, and a comma-joined CSP is enforced as two policies — so the strict `script-src 'self'` would still have blocked AdSense no matter what the more specific rule said. A more specific rule must **`!`-detach** the inherited policy before setting its own.~~ **Removed 2026-09-14:** Cloudflare is gone. Apache `.htaccess` replaces `_headers`. Apache's `Header set` replaces the value cleanly (no comma-join). The two-profile CSP (strict + relaxed) is now expressed via `<LocationMatch>` blocks. Applied to `/`, `/:category/:id/:slug`, `/category/*`. **S12 must verify production returns exactly one CSP header.**
+**⚠️ CSP finding — this would have broken AdSense silently.** ~~Cloudflare Pages **joins** a duplicated header with a comma rather than overriding it, and a comma-joined CSP is enforced as two policies — so the strict `script-src 'self'` would still have blocked AdSense no matter what the more specific rule said. A more specific rule must **`!`-detach** the inherited policy before setting its own.~~ **Removed 2026-09-14:** Cloudflare is gone. Apache `.htaccess` replaces `_headers`. Apache's `Header set` replaces the value cleanly (no comma-join). The two-profile CSP (strict + relaxed) is now expressed via `<LocationMatch>` blocks. Applied to `/`, `^/[^/]+/[^/]+/[^/]+$` (article), `/category/.+`, `/live/.+`, `/quiz(/.+)?$`. **S12 must verify production returns exactly one CSP header.**
 
 **Zero CLS:** every slot reserves its box before any ad loads; the AdSense library is injected on
 `window.load` → `requestIdleCallback`, never the copy-paste `<head>` script; in-article ads sit

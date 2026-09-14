@@ -18,8 +18,8 @@ import type { Block } from 'payload'
  * ## Why this block is offered only on the article body
  *
  * The click-to-load player needs `frame-src` for `youtube-nocookie.com`, and
- * only the article route in `frontend/public/_headers` allows it. That rule is
- * the placeholder pattern `/:category/:id/:slug` — it was `/article/*` before
+ * only the article route in `frontend/public/.htaccess` allows it. That rule is
+ * the regex `^/[^/]+/[^/]+/[^/]+$` — it was `/article/*` before
  * the S11 URL change, so do not restore the old prefix. The
  * article body therefore gets its own editor instance (see `blocks/editors.ts`)
  * that includes this block, while static pages and live-blog updates keep the
