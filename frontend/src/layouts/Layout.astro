@@ -68,14 +68,18 @@ const metaDescription = description || settings.tagline || ''
  * The Open Graph protocol requires it, and the scrapers at Facebook, X, WhatsApp
  * and LinkedIn do not resolve relative paths — a relative value is silently
  * ignored and the share renders with no preview image at all. This was emitting
- * `/og-default.svg` verbatim, so every page shared without an image.
+ * `/og-default.png` verbatim, so every page shared without an image.
  *
  * Article pages pass a CMS media path, which is relative too, so the origin is
  * applied to the fallback and to any relative override. An already-absolute URL
  * (e.g. a media CDN host) is left untouched rather than double-prefixed.
+ *
+ * The fallback image is a PNG, not SVG — social platforms (Facebook, X,
+ * WhatsApp, LinkedIn) do not support SVG for og:image and silently ignore it.
+ * See audit §2.1.
  */
 const siteOrigin = (import.meta.env.PUBLIC_SITE_URL || Astro.url.origin).replace(/\/$/, '')
-const ogImagePath = ogImage || '/og-default.svg'
+const ogImagePath = ogImage || '/og-default.png'
 const ogImageUrl = /^https?:\/\//i.test(ogImagePath) ? ogImagePath : `${siteOrigin}${ogImagePath}`
 ---
 

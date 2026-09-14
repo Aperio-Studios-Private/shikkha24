@@ -71,7 +71,7 @@ const rootFiles = [
   'news-sitemap.xml',
   'rss.xml',
   'llms.txt',
-  'og-default.svg',
+  'og-default.png',
   '404.html',
   'favicon.svg',
 ]
