@@ -2,7 +2,7 @@
 
 ## Current Phase
 - **Status:** **S11 build complete. S12 local verification complete — owner-only items remaining.** All buildable work across S0–S12 is done. Remaining items require production deployment, DNS access, or real hardware.
-- **Last Activity:** 2026-09-13T19:30+06:00 — S12 local verification complete (payload, typography, touch targets, ad slots, 404, key files, pre-launch checklist).
+- **Last Activity:** 2026-09-13T21:50+06:00 — branding fix (logo/siteName independence, auto-accent), backup doc updated for host-disk media, stale R2 references fixed across 5 docs, 500-cap handoff corrected.
 - **Next Action:** owner deploys to Cloudflare Pages, configures DNS/SMTP, runs Lighthouse/restore/device tests, then LAUNCH.
 - **⚠️ S11 summary:** JSON-LD on all page types, URL architecture `/:category/:id/:slug` + shortlink + 500-cap fix, `llms.txt`, `og-default.svg`, all feeds updated. Commits: `5c8c3af`, `a20f0df`.
 - **⚠️ S12 summary:** all agent-buildable items verified locally. Initial payload 149–242 KB (well within 1.2MB). Bengali typography (17px/1.65), touch targets (48px), ad slots reserved, 404 page Bengali with nav. 79 pages, 0 inline scripts. Pre-launch QA checklist written. Most S12 items are owner-only (Lighthouse in production, DNS, monitoring, restore drill, WCAG manual test, device matrix). Evidence: `.sps/section-todos/S12.md`.
