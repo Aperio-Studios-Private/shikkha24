@@ -142,7 +142,7 @@ before the pipeline is finalised.**
 | 11 | Confirm an ad-bearing page returns **exactly ONE** `Content-Security-Policy` header | `_headers` is applied by Cloudflare; a comma-joined CSP would silently block AdSense |
 | 12 | Confirm the `/:category/:id/:slug` **placeholder actually matches** | A placeholder that fails to match fails **silently** — the page still returns 200, just under the strict policy |
 | 13 | Lighthouse ≥95 / a11y ≥90, LCP, INP, CLS, TTFB | Needs a deployed origin; TTFB is a CDN property |
-| 14 | Monitoring + alerting live | Card-free tool not yet selected |
+| 14 | Monitoring + alerting live | UptimeRobot selected (card-free, 50 monitors, no card required); owner needs to sign up and create 2 monitors. Steps in `docs/reliability.md` §6 |
 | 15 | Full restore drill, timed | Needs the production backup |
 | 16 | WCAG manual keyboard + screen-reader pass | Needs a human |
 | 17 | Browser/device matrix (UC Browser, Opera Mini, low-end Android) | Needs real hardware |
