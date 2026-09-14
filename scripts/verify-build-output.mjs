@@ -115,7 +115,8 @@ check('pagefind index was generated (post-build step ran)', existsSync(pagefindE
 check('no dist/.prerender left behind', !existsSync(join(DIST, '.prerender')))
 
 // ── 6. Feeds are non-empty and use the new URL scheme ────────────────────────
-for (const feed of ['sitemap.xml', 'news-sitemap.xml', 'rss.xml']) {
+// `news-sitemap.xml` is deliberately NOT in this loop — see below.
+for (const feed of ['sitemap.xml', 'rss.xml']) {
   const p = join(DIST, feed)
   if (!existsSync(p)) continue
   const body = readFileSync(p, 'utf8')
@@ -123,6 +124,37 @@ for (const feed of ['sitemap.xml', 'news-sitemap.xml', 'rss.xml']) {
   const stalePrefix = body.includes('/article/')
   check(`${feed} is populated`, urlCount > 0, `${urlCount} entries`)
   check(`${feed} uses the new URL scheme`, !stalePrefix, stalePrefix ? 'contains /article/' : '')
+}
+
+// ── 6b. news-sitemap.xml is TIME-WINDOWED, so emptiness is not a failure ─────
+// Google News ignores entries older than 48 hours, and `news-sitemap.xml.ts`
+// filters on exactly that. An empty file is therefore the CORRECT output whenever
+// no article was published inside the window — which is the normal state of the
+// demo dataset (seeded 2026-09-12; by 2026-09-14 every article is ~60h old).
+//
+// Asserting "populated" here failed for the wrong reason and would train a reader
+// to ignore the harness. What IS checkable from `dist/` alone: the file is
+// well-formed, declares the news namespace, and carries no stale URL prefix.
+// Entry count is reported, not asserted — verifying the 48h filter itself needs
+// the CMS publish dates, which this harness deliberately does not read.
+{
+  const p = join(DIST, 'news-sitemap.xml')
+  if (existsSync(p)) {
+    const body = readFileSync(p, 'utf8')
+    const urlCount = (body.match(/<loc>/g) ?? []).length
+    const wellFormed = body.includes('<urlset') && body.includes('</urlset>')
+    check('news-sitemap.xml is well-formed', wellFormed, wellFormed ? '' : 'missing urlset element')
+    check('news-sitemap.xml declares the news namespace', body.includes('sitemap-news'))
+    check(
+      'news-sitemap.xml uses the new URL scheme',
+      !body.includes('/article/'),
+      body.includes('/article/') ? 'contains /article/' : '',
+    )
+    console.log(
+      `      note: news-sitemap.xml holds ${urlCount} entr${urlCount === 1 ? 'y' : 'ies'} — ` +
+        'legitimately 0 when no article falls inside the 48h window',
+    )
+  }
 }
 
 // ── 7. The CSP relaxed rule targets the new article path ─────────────────────
