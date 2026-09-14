@@ -153,7 +153,41 @@ Researched 2026-09-13 against the three leading free uptime monitors:
 6. **Record** — write it into `.sps/mistakes.md` with the root cause and the prevention
 7. **Fix forward** — then restore the feature
 
-**Pre-requisites to establish at S0:** know the rollback path, have the CMS restart step written down, keep credentials recoverable offline.
+**Pre-requisites to establish at S0:** know the rollback path, have the CMS restart step written down (see §7.1), keep credentials recoverable offline.
+
+### 7.1 CMS restart procedure (DianaHost cPanel + Phusion Passenger)
+
+DianaHost runs the CMS as a Node.js application behind Phusion Passenger via cPanel. Passenger kills idle processes — the most common cause of CMS unavailability. The reader-facing site is unaffected (it is static on Cloudflare Pages); only the admin and publishing are down.
+
+**When to restart:**
+- UptimeRobot reports `/admin` is down (2 consecutive failures = 10 min)
+- An editor reports they cannot log in or the admin is very slow
+- After deploying a new CMS bundle (Passenger may need a restart to pick it up)
+
+**Restart steps:**
+1. Log into cPanel (`https://<diana-host>:2083` — bookmark this URL)
+2. Navigate to **Software → Setup Node.js App** (or **Application Manager** — the exact label varies by cPanel version)
+3. Find the Shikkha24 CMS application in the list
+4. Click **Restart** (not "Stop" — a stop leaves it down until you start it again)
+5. Wait 10–30 seconds for Passenger to spin up the Node process
+6. Verify: open `https://cms.shikkha24.com/admin` in a browser — the Payload login page should load
+7. If it does not load within 60 seconds, check the application logs (cPanel → **Terminal** or **Logs** section)
+
+**If the restart button is not visible:**
+- The application may be managed via **Passenger App** under the **Software** section instead
+- Or via **Terminal/SSH**: find the Passenger process (`ps aux | grep node`) and send `SIGUSR2` to restart without downtime (`kill -USR2 <pid>`); if that fails, `kill -TERM <pid>` and Passenger will respawn it
+
+**Cold start note:** the first request after a restart takes 5–15 seconds while Node initializes and Payload boots. This is normal — do not restart again thinking it failed.
+
+**After a code deploy:**
+1. SSH in (or use cPanel Terminal)
+2. Navigate to the CMS application directory
+3. `pnpm install --frozen-lockfile` (if dependencies changed)
+4. Copy the new standalone build: `cp -r ../../.next/standalone/cms/* .` (adjust paths)
+5. Copy static assets: `cp -r ../../.next/static ./.next/static`
+6. Restart via cPanel (steps 1–6 above)
+
+**Keep written down offline:** the cPanel URL, username, the CMS application name, and the SSH path to the app directory. An operator under pressure should not be searching for these.
 
 ---
 
@@ -171,7 +205,7 @@ Researched 2026-09-13 against the three leading free uptime monitors:
 - [x] **Select a card-free uptime monitor** — ✅ **UptimeRobot** (free, 50 monitors, no card, 5-min checks, email + Telegram alerts). Researched 2026-09-13. Setup steps in §6.
 - [x] **Decide the alerting channel** — ✅ Email (primary), Telegram (optional). Documented in §6.
 - [ ] **Error-tracking tool** — still open; Sentry's free tier requires a card. Fallback: Cloudflare analytics + manual log review. Revisit if a card-free Sentry alternative emerges.
-- [ ] Build the feature-flag mechanism (§5)
-- [ ] Write the CMS restart procedure for DianaHost
+- [x] Build the feature-flag mechanism (§5) — ✅ `frontend/src/lib/feature-flags.ts` (14 flags, default-ON, env-gated) + `cms/src/lib/feature-flags.ts`. Used across 18 files.
+- [x] Write the CMS restart procedure for DianaHost — ✅ Written in §7.1 (cPanel + Passenger restart, SSH fallback, cold-start note, post-deploy steps)
 - [ ] Confirm Cloudflare Pages retains failed builds without replacing the live deployment
 - [ ] Decide whether any reader-facing rendering ever moves off Cloudflare Pages — **recommendation: never**
