@@ -49,7 +49,7 @@ Production-grade, Bengali-first **education** news portal. Domain: **shikkha24.c
 - **The old Strapi-based root plan document was deleted (owner-approved 2026-09-11).** `.sps/plan.md` is the only plan. The original is preserved in git history at commit `acfb128`.
 - **All four planning artifacts are present** in `docs/`: master plan (87 features), competitive analysis, stack research, original checklist.
 - **Independent third-party audit completed 2026-09-11** — see `docs/audit-third-party.md`. Findings were remediated the same day.
-- **Hosting/storage:** DianaHost PNR **2 GB** SSD NVMe (purchased) + Cloudflare Pages (frontend) + Cloudflare R2 (media). See the Hosting & Storage Architecture section of `.sps/plan.md`.
+- **Hosting/storage:** DianaHost PNR **2 GB** SSD NVMe (purchased). Frontend on `public_html`, media on host disk, CMS standalone. No Cloudflare (removed 2026-09-14). See the Hosting & Storage Architecture section of `.sps/plan.md`.
 
 ## Blocking gates before/during build
 
@@ -64,7 +64,7 @@ Production-grade, Bengali-first **education** news portal. Domain: **shikkha24.c
 | `wrangler` direct upload vs the 500/month Pages quota (S0 exit) | ⏳ Pending |
 | DianaHost Node.js 22/24 available via cPanel selector (S0 exit) | ⏳ Host runs **20.18.2, which is EOL** |
 | DianaHost inode quota + other limits confirmed (S0 exit) | ⏳ Not published — needs a support ticket |
-| Cloudflare R2 enabled + usage alert set (S0 exit) | ⏳ Payment method on file, so enableable |
+| ~~Cloudflare R2 enabled + usage alert set~~ | ✅ **REMOVED 2026-09-14.** No Cloudflare. |
 | SQLite WAL 5-writer concurrency proven (S0 exit) | ⏳ Pending — moved from S12 |
 | CI quality gates + backup automation + feature flags (S0 exit) | ⏳ Pending |
 

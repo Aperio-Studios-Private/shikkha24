@@ -22,17 +22,15 @@ export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 /**
  * Best-effort client IP.
  *
- * Cloudflare puts the real address first in `x-forwarded-for`, and appends its
- * own view after it — so taking the first entry is taking the caller's claim,
- * which is only trustworthy because nothing can reach the CMS without passing
- * through Cloudflare. `cf-connecting-ip` is set by Cloudflare itself and is the
- * harder value to forge; it is checked second only because the header order is
- * not guaranteed when the CMS is reached directly in development.
+ * On DianaHost, Passenger passes the client IP via `x-forwarded-for`. The first
+ * entry is the real client address. `x-real-ip` is a fallback set by some
+ * reverse proxies. There is no Cloudflare-specific header (Cloudflare removed
+ * 2026-09-14).
  */
 export function clientIp(req: PayloadRequest): string {
   const forwarded = req.headers.get('x-forwarded-for')
   if (forwarded) return forwarded.split(',')[0]?.trim() || 'unknown'
-  return req.headers.get('cf-connecting-ip') ?? req.headers.get('x-real-ip') ?? 'unknown'
+  return req.headers.get('x-real-ip') ?? 'unknown'
 }
 
 /**

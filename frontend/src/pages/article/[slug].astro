@@ -11,9 +11,9 @@
  * the safety net for the URLs that were already published under the old
  * scheme before S11.
  *
- * On a static site (Cloudflare Pages) the 301 is baked at build time —
+ * On a static site (DianaHost `public_html`) the 301 is baked at build time —
  * each old URL generates a tiny HTML page with a `<meta http-equiv="refresh">`
- * and a `<link rel="canonical">`. Cloudflare's edge also honours the redirect.
+ * and a `<link rel="canonical">`. Apache also honours the redirect.
  */
 import { getAllArticlePaths } from '../../lib/cms'
 import { articleUrl } from '../../lib/url'

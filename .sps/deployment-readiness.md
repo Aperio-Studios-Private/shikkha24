@@ -53,7 +53,7 @@ Every check below was run in this pass, in this order, against a clean tree.
 | Legacy `/article/:slug` redirect stubs | ✅ 12 (meta refresh + canonical) |
 | Shortlinks `/a/:id` | ✅ 12 |
 | `sitemap.xml` / `news-sitemap.xml` / `rss.xml` populated + new URL scheme | ✅ 43 / 12 / 13 entries |
-| `robots.txt`, `llms.txt`, `og-default.svg`, `404.html`, `_headers` | ✅ all present |
+| `robots.txt`, `llms.txt`, `og-default.png`, `404.html`, `.htaccess` | ✅ all present |
 | CSP relaxed rule targets `/:category/:id/:slug` | ✅ |
 | Stale `/article/*` CSP rule removed | ✅ |
 
@@ -104,11 +104,11 @@ None of these is code. The project is complete pending them.
 
 | # | Action | Why it blocks |
 |---|---|---|
-| 1 | **DNS for `shikkha24.com`** → Cloudflare | Nothing is reachable without it |
-| 2 | **Create the Cloudflare Pages project** and deploy `frontend/dist` | The frontend has nowhere to live |
+| 1 | **DNS for `shikkha24.com`** → DianaHost nameservers | Nothing is reachable without it |
+| 2 | **Deploy `frontend/dist` to DianaHost `public_html`** via rsync from CI | The frontend has nowhere to live |
 | 3 | **Deploy the CMS to DianaHost** (Passenger) | Every reader write and the admin depend on it |
 | 4 | **Set `PUBLIC_CMS_ORIGIN`** to the real CMS hostname | Currently `http://localhost:3000`. Until set, the live-blog refresh and poll vote controls are simply not rendered (by design) |
-| 5 | **Update the CSP host** in `frontend/public/_headers` (`cms.shikkha24.com` is a literal placeholder — a CSP cannot be templated) | Article images and CMS calls would be blocked |
+| 5 | **Update the CSP host** in `frontend/public/.htaccess` (`cms.shikkha24.com` is a literal placeholder — a CSP cannot be templated) | Article images and CMS calls would be blocked |
 | 6 | **Create the remaining E-E-A-T pages** — privacy, terms, editorial/corrections policy | `/about` and `/contact` are now built into the site and driven by Site Settings; privacy and terms are still required for Google News eligibility. **⚠️ Found in the 2026-09-14 audit: the footer hardcodes `/page/privacy-policy`, `/page/terms-of-use` and `/page/contact`, and the CMS `pages` collection is empty — so all three 404 on every page (171 broken links across 82 pages). Being fixed as static routes, matching `/about` and `/contact`.** |
 | 7 | ~~Upload the real logo~~ — **done**: an SVG logo is uploaded and renders in the header and footer | Just confirm it is the final artwork |
 | 8 | **Generate VAPID keys** and set them | Push reminders stay hidden until then |
@@ -124,10 +124,10 @@ until configured:
 
 | Action | Why |
 |---|---|
-| **Set `DEPLOY_WEBHOOK_URL`** on the CMS host to the CI endpoint that starts a rebuild (GitHub Actions `repository_dispatch` / `workflow_dispatch`, or a Cloudflare Pages deploy hook) | Unset means a **no-op** — edits will save correctly and still never appear |
+| **Set `DEPLOY_WEBHOOK_URL`** on the CMS host to the CI endpoint that starts a rebuild (GitHub Actions `repository_dispatch` / `workflow_dispatch`) | Unset means a **no-op** — edits will save correctly and still never appear |
 | **Set `DEPLOY_WEBHOOK_TOKEN`** if the endpoint requires auth | Optional |
-| **Create the GitHub Actions workflow** that rebuilds and deploys | The webhook has nothing to call otherwise. Not yet in the repo — it needs the Pages project and deploy method decided first |
-| **Tune `REBUILD_MIN_INTERVAL_MS`** (default 300000 = 5 min) | Quota guard: Cloudflare Pages allows **500 builds/month**; at 15–20 articles/day, per-save triggering would exceed it. Debouncing collapses a burst into one build |
+| **Create the GitHub Actions workflow** that rebuilds and deploys (rsync to `public_html`) | The webhook has nothing to call otherwise. Not yet in the repo — it needs the deploy target decided first |
+| **Tune `REBUILD_MIN_INTERVAL_MS`** (default 300000 = 5 min) | Quota guard: GitHub Actions allows 2,000 min/month; at 15–20 articles/day, per-save triggering would be wasteful. Debouncing collapses a burst into one build |
 
 Note the quota tension is documented but **unresolved**: `docs/hosting-and-deployment.md`
 §4 asks whether `wrangler pages deploy` (direct upload) bypasses the 500 build
@@ -139,7 +139,7 @@ before the pipeline is finalised.**
 
 | # | Check | Why it cannot be done locally |
 |---|---|---|
-| 11 | Confirm an ad-bearing page returns **exactly ONE** `Content-Security-Policy` header | `_headers` is applied by Cloudflare; a comma-joined CSP would silently block AdSense |
+| 11 | Confirm an ad-bearing page returns **exactly ONE** `Content-Security-Policy` header | `.htaccess` is applied by Apache; verify the `<LocationMatch>` pattern matches and the relaxed CSP is served |
 | 12 | Confirm the `/:category/:id/:slug` **placeholder actually matches** | A placeholder that fails to match fails **silently** — the page still returns 200, just under the strict policy |
 | 13 | Lighthouse ≥95 / a11y ≥90, LCP, INP, CLS, TTFB | Needs a deployed origin; TTFB is a CDN property |
 | 14 | Monitoring + alerting live | UptimeRobot selected (card-free, 50 monitors, no card required); owner needs to sign up and create 2 monitors. Steps in `docs/reliability.md` §6 |
@@ -148,9 +148,9 @@ before the pipeline is finalised.**
 | 17 | Browser/device matrix (UC Browser, Opera Mini, low-end Android) | Needs real hardware |
 | 18 | Bengali conjunct rendering on a real device | Needs real hardware |
 
-Items 11 and 12 are written into the `_headers` comment as explicit production
-checks. If the placeholder does not match, the documented fallback is a Cloudflare
-Pages Function that sets the CSP per request.
+Items 11 and 12 are written into the `.htaccess` comment as explicit production
+checks. If a `<LocationMatch>` pattern does not match, the page returns 200
+under the strict policy and AdSense is silently blocked.
 
 ---
 

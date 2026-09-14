@@ -1,0 +1,151 @@
+# Apache .htaccess — Shikkha24
+#
+# Replaces the former Cloudflare Pages _headers file (removed 2026-09-14).
+# Source: docs/security.md §5 (security headers + CSP).
+#
+# TWO CSP PROFILES (docs/security.md §5): a strict one for static / editorial
+# pages, and a relaxed one for ad-bearing and interactive pages, because AdSense
+# needs inline scripts and dynamic script injection.
+#
+# ⚠️ Apache does NOT have the Cloudflare comma-join problem. Apache's `Header
+# set` replaces the value cleanly — no `!`-detach trick is needed. The former
+# Cloudflare `_headers` `! Content-Security-Policy` syntax is gone.
+#
+# ⚠️ **S12 check:** confirm in production that an ad-bearing page returns exactly
+# ONE Content-Security-Policy header with the relaxed policy. If a
+# <LocationMatch> pattern does not match, the page returns 200 under the strict
+# policy and AdSense is silently blocked with no error anywhere.
+#
+# ⚠️ **S12 check (from the S11 URL change):** confirm the article rule's
+# <LocationMatch> pattern actually matches in production. Request a real article
+# URL and assert the response carries the RELAXED policy (it must name
+# `pagead2.googlesyndication.com`). A pattern that fails to match fails
+# **silently** — the page still returns 200, just under the strict policy, and
+# AdSense is blocked on every article with no error anywhere.
+#
+# ⚠️ **`cms.shikkha24.com` is a PLACEHOLDER hostname.** It is the CMS origin AND
+# the media origin (media on DianaHost disk since 2026-09-12). A CSP cannot be
+# templated, so this literal host MUST match the production `PUBLIC_CMS_ORIGIN`
+# and `PUBLIC_MEDIA_BASE_URL` exactly. It is currently a placeholder because the
+# CMS hostname is still pending DNS.
+#
+# S9 changes, recorded so the diff is not a mystery later:
+#   • `img-src` / `media-src` now name the CMS host, not the retired R2 host —
+#     every article image would otherwise be blocked in production
+#   • `connect-src` now names the CMS host in the STRICT profile too, because the
+#     newsletter signup sits in the footer of every page and the comment,
+#     citizen and bookmark surfaces post to the CMS from editorial pages
+#   • `/article/*` gains `frame-src` for the click-to-load video embeds
+#   • `/gallery` and `/gallery/*` were REMOVED from the relaxed list: the gallery
+#     carries no ad slot (none of the eight approved `AD_POSITIONS` is a gallery
+#     slot) and no inline script, so the strict profile is sufficient and
+#     tighter. If a gallery ad slot is ever approved, add both rules back.
+#
+# S11 change (2026-09-13), recorded for the same reason:
+#   • The article rule moved from `/article/*` to `/:category/:id/:slug`, following
+#     the URL architecture change (`docs/seo-plan.md` §2). This is NOT cosmetic —
+#     `/article/*` would have stopped matching every article page, silently
+#     dropping them to the strict profile and blocking AdSense site-wide.
+#   • `/article/:slug` is now a redirect stub and deliberately keeps the strict
+#     profile (no script, no ad slot).
+
+<IfModule mod_headers.c>
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Strict profile — default for all routes
+# ─────────────────────────────────────────────────────────────────────────────
+
+# `style-src 'unsafe-inline'` is required by Astro's inline stylesheets
+# (`build.inlineStylesheets: 'auto'` in astro.config.mjs). It is the only
+# relaxation in this profile — scripts stay strict.
+#
+# `connect-src` names the CMS because the newsletter signup form is in the
+# footer of every page and posts to it. The form is not rendered at all unless
+# `PUBLIC_CMS_ORIGIN` is set, so an unconfigured deploy makes no such request —
+# but the policy has to allow it for the configured one.
+
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), camera=(), microphone=(), payment=()"
+  Header always set X-Frame-Options "DENY"
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com; font-src 'self'; connect-src 'self' https://cms.shikkha24.com; media-src 'self' https://cms.shikkha24.com; frame-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Relaxed profile — routes that carry ad slots, or whose islands need a
+# third-party frame.
+#
+#   /                     homepage — 4 ad slots + the poll + newsletter
+#   /:category/:id/:slug  article  — 3 ad slots + comments + bookmarks + video embeds
+#   /category/*            category — 1 ad slot
+#   /live/*                live blog — 1 ad slot + the refresh island
+#   /quiz, /quiz/*        quiz     — 2 ad slots
+#
+# ⚠️ The article rule uses a REGEX matching exactly 3 path segments, not a
+# wildcard — and this is load-bearing. A broad match would relax the CSP for the
+# entire site — silently re-opening the AdSense-blocking bug that S8 fixed.
+#
+# Every other route keeps the strict policy, which is the point of two profiles.
+# That now includes `/article/:slug` — since S11 those are 200-OK redirect stubs
+# with no script and no ad slot, so the strict profile is correct and tighter.
+# It also includes `/gallery` (no ad slot, no inline script), `/bookmarks` (no
+# CMS call at all — the list is browser-local) and `/citizen` (posts to the CMS,
+# which the strict `connect-src` already allows).
+#
+# The AdSense loader only injects the library when a real AdSense unit exists, and
+# the islands only call the CMS when the reader taps something — so today these
+# routes still make zero third-party requests. The relaxation costs nothing until
+# the features are actually used.
+#
+# `frame-src` on the article rule is for the video embed, which is click-to-load:
+# the iframe is created only after the reader taps play, so no third-party request
+# is made on page load. `youtube-nocookie.com` is used deliberately — it sets no
+# tracking cookie until playback.
+# ─────────────────────────────────────────────────────────────────────────────
+
+  # Homepage — 4 ad slots + poll + newsletter
+  <LocationMatch "^/$">
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+  </LocationMatch>
+
+  # Article — 3 ad slots + comments + bookmarks + video embeds
+  # Matches exactly 3 path segments: /:category/:id/:slug
+  <LocationMatch "^/[^/]+/[^/]+/[^/]+$">
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+  </LocationMatch>
+
+  # Category listing — 1 ad slot
+  <LocationMatch "^/category/.+$">
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+  </LocationMatch>
+
+  # Live blog — 1 ad slot + the refresh island
+  <LocationMatch "^/live/.+$">
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+  </LocationMatch>
+
+  # Quiz — 2 ad slots
+  <LocationMatch "^/quiz(/.+)?$">
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+  </LocationMatch>
+
+</IfModule>
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Cache rules
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Hashed build assets are content-addressed — cache them forever.
+<FilesMatch "\._astro/">
+  Header set Cache-Control "public, max-age=31536000, immutable"
+</FilesMatch>
+
+# Self-hosted fonts are content-stable; re-fetching them is pure waste.
+<FilesMatch "^/fonts/">
+  Header set Cache-Control "public, max-age=31536000, immutable"
+</FilesMatch>
+
+# HTML must revalidate so a publish is visible as soon as the batch window closes.
+<FilesMatch "\.html$">
+  Header set Cache-Control "public, max-age=0, must-revalidate"
+</FilesMatch>

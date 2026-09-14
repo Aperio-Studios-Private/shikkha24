@@ -19,20 +19,22 @@
 - Zero recurring software/platform fees
 - **No international credit/debit card available.** This is a hard constraint: every paid third-party service is unusable, including Oracle Cloud (requires a card at signup), paid SMTP relays, paid TTS APIs, paid data APIs, and paid object storage.
 - Payable infrastructure is limited to what can be bought locally (bKash / bank transfer) — currently DianaHost only
-- Cloudflare account is active and available (free tier needs no card)
 - Hosting purchased: **DianaHost PNR 2 GB SSD NVMe** — 2 GB storage, 200 GB/month bandwidth, 3 addon domains, 30 sub-domains, 30 FTP accounts, 50 databases, unlimited email accounts, cPanel, SSH on demand, Python/Ruby/Node.js support (~$47.04/year)
 
-## Hosting & storage architecture (decided 2026-09-11)
-- **Frontend (Astro static) → Cloudflare Pages** — free, unlimited bandwidth. Removes the 200 GB/month origin bandwidth cap.
-- **Media → Cloudflare R2** — 10 GB free tier, zero egress fees. **The owner has a payment method on the Cloudflare account** (confirmed 2026-09-11), so R2 can be enabled. ⚠️ Because a card is on file, exceeding 10 GB would incur real charges — **set a usage alert at 80%**. Verification command: `wrangler login && wrangler r2 bucket list`.
+## Hosting & storage architecture (decided 2026-09-11; amended 2026-09-14)
+- **Frontend (Astro static) → DianaHost `public_html`** — Apache serves the static HTML directly. No CDN, no edge caching. The 200 GB/month bandwidth cap applies to all traffic including media. SSL via DianaHost AutoSSL (Let's Encrypt via cPanel).
+- **Media → DianaHost disk** (`data/media/`) — moved off Cloudflare R2 in S9 (2026-09-12). Aggressive WebP conversion, originals discarded, per-day upload cap.
 - **Payload CMS → DianaHost PNR 2 GB**, built in CI with Next.js `output: 'standalone'` so only dependency-traced modules ship (≈300–600 MB) instead of a full `node_modules` (0.7–1.2 GB).
-- Rationale: a full `node_modules` plus media cannot fit in 2 GB. Offloading the frontend and media, and building slim in CI, brings the host footprint to roughly 400–700 MB.
-- **Deployment model:** both builds run in GitHub Actions on **Node 24**; only artifacts ship. Full detail, quotas and escalation ladder in **`docs/hosting-and-deployment.md`**.
+- **Backups → GitHub Actions artifacts** (7-day retention) + owner local download. No Cloudflare R2. See `docs/backup-and-recovery.md`.
+- **Security headers → Apache `.htaccess`** — replaces the Cloudflare Pages `_headers` format. Same CSP two-profile design, different delivery mechanism. Apache does NOT have the Cloudflare comma-join CSP bug.
+- **No Cloudflare services at all** (owner decision 2026-09-14). All data, databases, media, and hosting reside on DianaHost infrastructure only. See `.sps/cloudflare-removal-plan.md` for the full removal plan and accepted limitations.
+- Rationale: the owner wants zero dependency on third-party services for storage or data management, to maintain security and avoid payment-related issues.
+- **Deployment model:** both builds run in GitHub Actions on **Node 24**; frontend `dist/` deploys to DianaHost `public_html` via rsync/SSH; CMS standalone bundle deploys via SSH. Full detail in **`docs/hosting-and-deployment.md`**.
 - **Repository: PRIVATE** (owner decision). This caps GitHub Actions at 2,000 minutes/month and makes the rebuild strategy load-bearing.
 
 ## Node.js version on DianaHost — open risk
 - DianaHost runs **Node.js 20.18.2** (owner-confirmed 2026-09-11).
-- `astro@7.3.2` needs `>=22.12.0` and `vite@8.3.0` needs `^20.19.0 || >=22.12.0` → **both fail on 20.18.2**. They therefore build in CI only, never on the host. This independently justifies the Cloudflare Pages split: had the frontend been built on the host, Astro 7 would have been impossible.
+- `astro@7.3.2` needs `>=22.12.0` and `vite@8.3.0` needs `^20.19.0 || >=22.12.0` → **both fail on 20.18.2**. They therefore build in CI only, never on the host.
 - `next@16.3.4` (`>=20.9.0`) and `@payloadcms/next@3.89.0` (`^18.20.2 || >=20.9.0`) **do** accept 20.18.2, so Payload can run there.
 - ⚠️ **But Node 20 reached end-of-life on 2026-04-30** — no security patches, on a public-facing CMS admin handling editor credentials and reader PII.
 - **Owner action:** cPanel → Software → *Select Node.js Version* → Edit → **Change Node.js version** → select 22.x or 24.x if offered. If only 20.x is available, this becomes a documented accepted risk.
@@ -54,9 +56,9 @@
 - Stack: Astro 7.3 (frontend) + Payload CMS 3 (backend) + SQLite → PostgreSQL
 - CMS: Payload CMS 3 (headless, free, MIT, built-in versioning + workflows)
 - Design Reference: Prothom Alo (layout), Bangla Tribune (typography/whitespace), BBC (dark mode), Guardian (live blog)
-- CDN: Cloudflare Free Tier
-- Deploy Target: Cloudflare Pages (frontend) + DianaHost PNR 2 GB (Payload CMS)
-- CI/CD: GitHub Actions (automated build + deploy). **Repository is private** → 2,000 Actions minutes/month, plus **Cloudflare Pages 500 builds/month**. Rebuilds are **adaptively batched** (15–30 min quiet, 5 min peak, on-demand for breaking news). Whether the quota is comfortable depends on the measured incremental build time — an S0 gate. Full detail: `docs/hosting-and-deployment.md`.
+- CDN: None — DianaHost direct (no CDN, owner decision 2026-09-14)
+- Deploy Target: DianaHost `public_html` (frontend) + DianaHost PNR 2 GB (Payload CMS)
+- CI/CD: GitHub Actions (automated build + deploy). **Repository is private** → 2,000 Actions minutes/month. Rebuilds are **adaptively batched** (15–30 min quiet, 5 min peak, on-demand for breaking news). Whether the quota is comfortable depends on the measured incremental build time — an S0 gate. Full detail: `docs/hosting-and-deployment.md`.
 - Newsletter: **self-built subscriber list and campaign module inside Payload** (owner's data stays self-hosted) with delivery via a free-tier ESP API (e.g. Brevo, 300/day, no card required). Documented fallback: DianaHost cPanel SMTP at low volume.
   - Why not Listmonk: it needs its own PostgreSQL and a VPS. There is no free VPS without a card, and **Oracle Cloud Always Free is not usable** (requires a card at signup).
   - Why not bulk-send from cPanel SMTP: cPanel enforces per-domain hourly send caps, and bulk sending from a shared IP risks blacklisting the domain — which would also break password resets and contact forms. This is why the ESP is primary and cPanel SMTP is only a fallback.
@@ -113,7 +115,7 @@ Dynamic and admin-editable. Full detail in `docs/education-feature-inventory.md`
 - ✅ Stack versions verified against live registries (2026-09-11)
 - ✅ **Portal domain: shikkha24.com** (2026-09-11)
 - ✅ **Portal is an EDUCATION portal, not a general news portal** (2026-09-11) — owner's positioning statement recorded above
-- ✅ **Hosting/storage architecture: Cloudflare Pages + Cloudflare R2 + slim Payload on DianaHost 2 GB** (2026-09-11)
+- ✅ **Hosting/storage architecture: DianaHost-only (frontend on `public_html`, media on host disk, CMS standalone on DianaHost)** (2026-09-11; amended 2026-09-14 to remove all Cloudflare services)
 - ✅ **Newsletter: self-built Payload list + free-tier ESP delivery; cPanel SMTP as fallback** (2026-09-11) — supersedes the Listmonk decision
 - ✅ **Audio reader: Browser Web Speech API; audio bulletin descoped** (2026-09-11)
 - ✅ **Utility widgets: free public APIs only; descope anything with no free source** (2026-09-11)
@@ -124,8 +126,8 @@ Dynamic and admin-editable. Full detail in `docs/education-feature-inventory.md`
 - ✅ **Editorial team: 5 people already in place** (2026-09-11) — no hiring prerequisite
 - ✅ **Content: greenfield launch** (2026-09-11) — no migration
 - ✅ **Repository: private** (2026-09-11)
-- ✅ **Cloudflare account has a payment method on file** (2026-09-11) → R2 is enableable
 - ✅ **AdSense account activated** (2026-09-11) → AdSense is definitely shipping, so the two-profile Lighthouse measurement (≥95 no-ads, ≥85 with-ads) is adopted
+- ✅ **All Cloudflare services removed** (2026-09-14) — owner decision: everything on DianaHost only, no third-party services for storage or data management. See `.sps/cloudflare-removal-plan.md`.
 - ✅ **Social login (Facebook/Google): keep** (2026-09-11) — Meta Login and Google OAuth are **free**; only app review (a process, not a cost) is required. No cost → no reason to drop them
 - ✅ **Logo: real logo supplied, CMS-editable** (2026-09-13)
 - ✅ **Logo and site name are independent; a rename propagates everywhere** (2026-09-13) — the uploaded logo renders as a mark beside the name (never replacing it), a new `showNameWithLogo` toggle (default on) is the only way to hide the name, the wordmark auto-accents its trailing digit/Latin run, and no site name is hardcoded anywhere — every occurrence reads `settings.siteName`
@@ -145,8 +147,8 @@ Dynamic and admin-editable. Full detail in `docs/education-feature-inventory.md`
 ## Open decisions (require the owner)
 - [ ] **Check the cPanel Node.js Selector for Node 22/24** — DianaHost currently runs **Node 20.18.2, which is end-of-life since 2026-04-30**. Payload/Next work on it, but it is a security risk. Select 22/24 if offered.
 - [ ] **Raise one DianaHost support ticket** covering: inode/file-count quota, CPU/memory/process limits, hourly email send limits, and whether account-level backups exist and can be restored. **None of these are published in their knowledge base.**
-- [ ] **Verify R2 is enabled** — `wrangler login && wrangler r2 bucket list` (wrangler 4.125.0 is installed locally but not authenticated). Then set a usage alert at 80% of 10 GB, since a card is on file.
-- [ ] **DNS configuration for shikkha24.com** — owner will provide
+- [ ] **Verify R2 is enabled** — ~~`wrangler login && wrangler r2 bucket list`~~ **REMOVED 2026-09-14**: Cloudflare R2 is no longer used. Backups go to GitHub Actions artifacts + owner local download.
+- [ ] **DNS configuration for shikkha24.com** — owner will provide (DianaHost nameservers or registrar DNS, not Cloudflare)
 - [x] **Real logo** — ✅ supplied 2026-09-13 (Illustrator-exported, `docs/assets/logo.svg`). CMS-managed field, drops in through the admin with no code change.
 - [ ] **Legal details for the E-E-A-T pages** — Trade License, TIN, Ministry of Information registration. Owner will provide **before final deploy**.
 - [x] Portal display name final confirmation (Shikkha24 / শিক্ষা২৪?) — ✅ **CONFIRMED 2026-09-12**: Shikkha24 / শিক্ষা২৪

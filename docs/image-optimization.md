@@ -118,7 +118,7 @@ After the pipeline (example, `education-news`):
 | AVIF equivalents | smaller again |
 
 **8 archetypes → 104 optimised files** (8 categories × 3 formats × ~4 widths).
-Well within Cloudflare Pages' 20,000-file ceiling.
+Well within DianaHost's inode quota (confirm with support).
 
 Homepage: 13 `<picture>` elements, all with `sizes`, `width` and `height`.
 One eager + `fetchpriority="high"` (the LCP lead); twelve lazy.

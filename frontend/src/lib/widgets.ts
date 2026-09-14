@@ -3,7 +3,7 @@
  *
  * ## Why these run at BUILD time, not in the reader's browser
  *
- * The site is pre-built static HTML on Cloudflare Pages. Fetching in the reader's
+ * The site is pre-built static HTML on DianaHost. Fetching in the reader's
  * browser would add a third-party connection to the critical path, leak quota,
  * and fail in data-saver mode. Fetching at build time bakes the value into the
  * HTML — the "cache" is the page itself, refreshed on every publish.

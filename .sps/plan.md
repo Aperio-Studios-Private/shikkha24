@@ -34,7 +34,7 @@ Positioning (owner's words):
 | Language | Bengali-only UI (no English toggle) | 2026-09-11 |
 | Agent rules | Codified in AGENTS.md / GEMINI.md / CLAUDE.md (synced mirrors) | 2026-09-11 |
 | Git workflow | Commit immediately after every finished task | 2026-09-11 |
-| Hosting | Cloudflare Pages (frontend) + Cloudflare R2 (media) + DianaHost PNR 2 GB (Payload) | 2026-09-11 |
+| Hosting | DianaHost `public_html` (frontend) + DianaHost disk (media) + DianaHost PNR 2 GB (Payload) — no Cloudflare (amended 2026-09-14) | 2026-09-11 |
 | Domain | shikkha24.com | 2026-09-11 |
 | Portal type | Education portal | 2026-09-11 |
 | Audio reader | Browser Web Speech API; audio bulletin descoped | 2026-09-11 |
@@ -64,11 +64,11 @@ Positioning (owner's words):
 | Types | TypeScript | 7.0.2 |
 | Build | Vite | 8.3.0 |
 | Search | Pagefind | 1.5.2 |
-| CDN / Frontend host | Cloudflare Pages | free tier |
-| Media storage | Cloudflare R2 | 10 GB free tier |
+| CDN / Frontend host | DianaHost `public_html` (Apache, no CDN) | — |
+| Media storage | DianaHost disk (`data/media/`) | 2 GB shared |
 | Newsletter | Self-built Payload module + free-tier ESP API | — |
 | Push | Web Push API | — |
-| Analytics | Cloudflare Web Analytics | — |
+| Analytics | None (Apache access logs via cPanel) | — |
 | Bengali Fonts | Hind Siliguri + Noto Sans Bengali | Google Fonts WOFF2 |
 | English Font | Inter | v4 variable |
 | CI/CD | GitHub Actions | — |
@@ -83,20 +83,22 @@ Positioning (owner's words):
 
 ---
 
-## Hosting & Storage Architecture (decided 2026-09-11)
+## Hosting & Storage Architecture (decided 2026-09-11; amended 2026-09-14)
 
 The purchased DianaHost plan is **2 GB storage / 200 GB monthly bandwidth**. A full `node_modules` for Next.js 16 + Payload 3 is 0.7–1.2 GB, so the app cannot be deployed conventionally alongside media.
 
+**Owner decision (2026-09-14): all Cloudflare services removed.** Everything resides on DianaHost only. See `.sps/cloudflare-removal-plan.md` for the full removal plan.
+
 | Component | Where it runs | Why |
 |-----------|---------------|-----|
-| Astro static site | **Cloudflare Pages** (free, unlimited bandwidth) | Removes the 200 GB origin bandwidth cap entirely |
-| Media / uploads | **Cloudflare R2** (10 GB free, zero egress fees) | Keeps media off the 2 GB host; free egress means viral traffic costs nothing |
+| Astro static site | **DianaHost `public_html`** (Apache serves static HTML) | No CDN; the 200 GB/month bandwidth cap applies to all traffic. SSL via DianaHost AutoSSL. |
+| Media / uploads | **DianaHost disk** (`data/media/`) | Moved off R2 in S9. Aggressive WebP conversion, originals discarded, per-day upload cap. |
 | Payload CMS + admin | **DianaHost PNR 2 GB** | Built in CI with Next.js `output: 'standalone'` so only dependency-traced modules ship (≈300–600 MB) |
-| CDN / DNS / SSL | **Cloudflare** | Free tier |
+| CDN / DNS / SSL | **None (DianaHost direct)** | No CDN. DNS via DianaHost or registrar. SSL via DianaHost AutoSSL (Let's Encrypt via cPanel). |
 
-Expected DianaHost footprint after this split: **≈400–700 MB**, leaving headroom for the SQLite database and backups.
+Expected DianaHost footprint: **≈400–700 MB** (CMS standalone), plus media (grows with content), plus SQLite DB.
 
-**Fallback if R2 cannot be enabled without a payment method:** media stays on DianaHost under a strict upload quota (aggressive WebP/AVIF, originals discarded, per-day upload cap). This is workable but constrains publishing volume.
+**No Cloudflare fallback:** media stays on DianaHost under a strict upload quota (aggressive WebP/AVIF, originals discarded, per-day upload cap). This is the active architecture (owner decision 2026-09-14).
 
 ---
 
@@ -128,14 +130,13 @@ constraint on publishing volume and it must be watched, not assumed.
    wins) and the original is **not retained**. A 900 KB JPEG becomes a ~90 KB WebP.
 2. **A per-day upload cap**, so one burst day cannot silently consume the month's headroom.
 
-**One mitigation that recovers most of the lost bandwidth:** serve media through the **Cloudflare
-proxy** (proxied DNS record) with long-lived `Cache-Control`. Cloudflare's free tier has unlimited
-bandwidth for proxied traffic, so cached image views cost the origin nothing — only cache misses
-hit the host. It does **not** recover the storage benefit, and cache misses during a result-day
-spike still land on the origin.
+**One mitigation that is no longer available:** ~~serve media through the Cloudflare proxy~~ —
+Cloudflare is removed entirely (owner decision 2026-09-14). Media bandwidth counts against the
+200 GB/month origin cap. Browser caching (`Cache-Control` via `.htaccess`) is the only mitigation.
+Apache `mod_cache` may provide limited origin-level caching if available on the shared host.
 
-**Consequences:** `PUBLIC_MEDIA_BASE_URL` points at the CMS host rather than R2. The **S0 R2 gate is
-descoped** — R2 is no longer required for launch. The R2 80% usage alert is replaced by a host-disk
+**Consequences:** `PUBLIC_MEDIA_BASE_URL` points at the CMS host. The **S0 R2 gate is
+descoped** — R2 is no longer used at all. The R2 80% usage alert is replaced by a host-disk
 alert, which DianaHost does not publish and must come from the support ticket already requested.
 
 ### 2. Newsletter transport — cPanel SMTP, explicitly accepted
@@ -169,13 +170,11 @@ stays — the same pattern as `PUBLIC_CMS_ORIGIN` in S8: **no control is rendere
 
 **CI minutes constraint:** GitHub Actions gives 2,000 minutes/month on private repos. At the **chosen baseline of 15–20 articles/day plus bursts** (≈600–900 publishes/month), a per-publish build costs ~450 minutes if an incremental build is ~30s (comfortable) but ~4,500 minutes if it is a 5-minute full rebuild (over budget). **The deciding number is the measured incremental build time — an S0 gate.** Rebuilds are **adaptively batched** (15–30 min in quiet hours, 5 min at peak, on-demand for `is_breaking`).
 
-⚠️ **Two additional hard limits found 2026-09-11** (see `docs/hosting-and-deployment.md`):
-- **Cloudflare Pages free = 500 builds/month** — tighter than the GitHub quota if Pages builds are Git-triggered
-- **Cloudflare Pages free = 20,000 files/site** — reached in roughly 2–3 years at the target publishing rate
+⚠️ **One quota remains:** GitHub Actions at 2,000 minutes/month on a private repo. The Cloudflare Pages 500 builds/month and 20,000 files/site quotas are **removed** — the frontend deploys to DianaHost `public_html` via rsync, not Pages.
 
 ### Node.js version on DianaHost — an open security risk
 
-DianaHost runs **Node.js 20.18.2**. `astro@7.3.2` requires `>=22.12.0` and `vite@8.3.0` requires `^20.19.0 || >=22.12.0`, so **neither can run on the host** — they build in CI only. This independently justifies the Cloudflare Pages split: had the frontend been built on the host, Astro 7 would have been impossible.
+DianaHost runs **Node.js 20.18.2**. `astro@7.3.2` requires `>=22.12.0` and `vite@8.3.0` requires `^20.19.0 || >=22.12.0`, so **neither can run on the host** — they build in CI only.
 
 `next@16.3.4` (`>=20.9.0`) and `@payloadcms/next@3.89.0` (`^18.20.2 || >=20.9.0`) **do** accept 20.18.2, so Payload can run there. **But Node 20 reached end-of-life on 2026-04-30** — no security patches, on a public-facing admin handling editor credentials and reader PII. DianaHost's cPanel exposes a **Node.js Selector with a version drop-down**; selecting 22.x or 24.x resolves this if offered.
 
@@ -187,7 +186,7 @@ DianaHost runs **Node.js 20.18.2**. `astro@7.3.2` requires `>=22.12.0` and `vite
 
 | # | Section | Key Deliverables |
 |---|---------|-----------------|
-| S0 | Foundation & Toolchain | Monorepo, Astro 7 init, Payload CMS 3 init, Tailwind 4.3, TS7, Node 24, SQLite, env, GitHub Actions CI, Cloudflare Pages + R2 wiring |
+| S0 | Foundation & Toolchain | Monorepo, Astro 7 init, Payload CMS 3 init, Tailwind 4.3, TS7, Node 24, SQLite, env, GitHub Actions CI, Apache `.htaccess` wiring |
 | S1 | CMS Content Models & RBAC | Education collections, 5 RBAC roles, Bengali admin labels |
 | S2 | Design System & Base Layout | Typography, colors, dark mode, 12-col grid, Header, Mega menu, Footer, sticky mobile share bar, text resizer. **Font: SolaimanLipi only — one Bengali family for headline and body; Hind Siliguri and Noto Sans Bengali both removed, owner-approved 2026-09-12** (see the font budget note below) |
 | S3 | Homepage | Breaking ticker, lead story, academic deadline strip (N1/N2), level + district filters, category grids, trending, latest feed, ad slots, weather + prayer header utilities |
@@ -199,7 +198,7 @@ DianaHost runs **Node.js 20.18.2**. `astro@7.3.2` requires `>=22.12.0` and `vite
 | S9 | Media, Newsletter & Engagement | Gallery, video, Listmonk-free newsletter module, push notifications, bookmarks, social login, citizen journalism |
 | S10 | Utility Widgets & Sections | Education utility widgets (see `docs/data-sources.md`) — exam calendar, result links, scholarship tracker, admission deadlines |
 | S11 | SEO, Feeds & AI Optimization | News sitemap, sitemap, RSS, OG/Twitter, auto OG images, canonical, `llms.txt`, robots.txt, E-E-A-T pages |
-| S12 | Deployment, QA & Launch | Cloudflare Pages + R2 setup, GitHub Actions pipeline, DianaHost Passenger config, Lighthouse ≥95, mobile test, Bengali font audit, load test, accessibility |
+| S12 | Deployment, QA & Launch | DianaHost `public_html` + Passenger setup, GitHub Actions pipeline (rsync deploy), Lighthouse ≥95, mobile test, Bengali font audit, load test, accessibility |
 
 ---
 
@@ -210,10 +209,10 @@ DianaHost runs **Node.js 20.18.2**. `astro@7.3.2` requires `>=22.12.0` and `vite
 | **S0 exit** | Payload CMS 3 on cPanel Passenger smoke test passes |
 | **S0 exit** | TypeScript 7 toolchain validated with Astro 7 + Payload 3 |
 | **S0 exit** | **Next.js `output: 'standalone'` deploy size measured** — must land ≈300–600 MB to fit the 2 GB host |
-| **S0 exit** | Cloudflare R2 — ✅ **SATISFIED 2026-09-11.** R2 is enabled on the owner's account (`wrangler r2 bucket list` succeeded; an existing bucket `erpbyshahid-assets` is present). A separate bucket will be created for shikkha24. Set an 80% usage alert (a card is on file, so overage is billable) |
+| **S0 exit** | ~~Cloudflare R2~~ — **REMOVED 2026-09-14.** All Cloudflare services removed per owner decision. No R2, no Pages, no CDN. See `.sps/cloudflare-removal-plan.md`. |
 | **S0 exit** | DianaHost Node.js — ⚠️ **RESOLVED AS AN ACCEPTED RISK.** The cPanel Node.js Selector offers **no version above 20.18.2** (drop-down max confirmed from the owner's screenshot), so an upgrade is not possible through the panel. The stack **functions** on it (`next@16.3.4` ≥20.9, `@payloadcmss/next@3.89.0` ≥20.9, `typescript@7.0.2` ≥16.20), while `astro@7.3.2` (≥22.12) and `vite@8.3.0` (^20.19) cannot run there and build in CI. Node 20 is **EOL since 2026-04-30**, so the CMS admin runs unpatched — mitigated by admin hardening (`docs/security.md` §3). **Not a blocker; ask DianaHost to add a newer runtime when convenient** |
 | **S0 exit** | **Astro incremental build time measured** — decides the entire batching strategy and whether the CI quota is comfortable (~30s) or critical (minutes) |
-| **S0 exit** | **`wrangler pages deploy` verified not to consume the 500/month Pages build quota** (direct upload vs Git-triggered build) |
+| **S0 exit** | ~~`wrangler pages deploy` quota~~ — **REMOVED 2026-09-14.** No Cloudflare Pages. Frontend deploys to DianaHost `public_html` via rsync. |
 | **S0 exit** | **DianaHost limits confirmed via support** — inode/file-count quota, CPU/memory/process limits, hourly email send limits, and whether account-level backups exist. **None are published in their knowledge base** |
 | **S0 exit** | **SQLite WAL concurrency proven with 5+ concurrent writers** (moved from S12 — a foundational decision must not be validated at the finish line) |
 | **S0 exit** | CI rebuild strategy settled (debounce/batch, or public repo for unlimited minutes) |
@@ -246,7 +245,7 @@ DianaHost runs **Node.js 20.18.2**. `astro@7.3.2` requires `>=22.12.0` and `vite
 | LCP | < 1.5s |
 | INP | < 100ms |
 | CLS | < 0.02 |
-| TTFB | < 200ms — **measured at S12 only, in production through Cloudflare.** TTFB is a hosting/CDN property and cannot be enforced from S2–S11 |
+| TTFB | < 200ms — **measured at S12 only, in production on DianaHost (no CDN).** TTFB is a hosting property and cannot be enforced from S2–S11 |
 | Initial page payload | < 1.2 MB |
 | Data-saver payload | < 30 KB |
 | TypeScript | Zero errors |
@@ -276,8 +275,8 @@ Pages under measurement: homepage, article page, category listing, search result
 
 | Item | Confidence |
 |------|-----------|
-| Astro 7 static on Cloudflare Pages | Known — static HTML on Pages is a documented, first-class use case |
-| Cloudflare R2 as media origin | Known — but **whether R2 can be enabled without a payment method is UNVERIFIED**. S0 exit gate |
+| Astro 7 static on DianaHost `public_html` | Known — Apache serving static HTML is standard |
+| ~~Cloudflare R2 as media origin~~ | **Removed 2026-09-14.** Media on DianaHost disk. |
 | Payload CMS 3 on cPanel Passenger | **Assumed — needs testing.** S0 exit gate: smoke test required; if it fails, STOP and ask the user (any fallback is a budget decision, not an agent decision) |
 | Next.js standalone output fitting in ≈300–600 MB | Assumed — must be measured in S0 |
 | TypeScript 7 (Go-based) + Astro 7/Payload 3 toolchain | Assumed — validate in S0. Note TS 7 ships 20 platform-specific native binaries, and Astro 7 / Tailwind 4.3 / Vite 8 / Pagefind are also native (Rust/Go) toolchains — builds should therefore run in CI, not on the shared host |
@@ -304,10 +303,10 @@ Six domains had no coverage. They are now documented, and each is a build input 
 
 | Document | Covers | Drives |
 |---|---|---|
-| `docs/hosting-and-deployment.md` | **Why CI exists at all** (the editor never touches GitHub), the deploy pipeline, both rebuild quotas (GitHub 2,000 min · Cloudflare Pages 500 builds), the 20,000-file ceiling, the Node.js version finding, and the escalation ladder | S0, S12 |
+| `docs/hosting-and-deployment.md` | **Why CI exists at all** (the editor never touches GitHub), the deploy pipeline (rsync to DianaHost `public_html`), the rebuild quota (GitHub 2,000 min), the Node.js version finding, and the escalation ladder | S0, S12 |
 | `docs/performance-budget.md` | Lighthouse/Web Vitals budgets, per-asset byte budgets, measurement method, the CI gate, the AdSense-vs-≥95 trade-off | S0 (CI gate), S2 (fonts), all UI sections, S12 |
 | `docs/seo-plan.md` | Per-template metadata + schema matrix, education-specific schema, sitemaps/feeds, keyword clusters, redirect policy, slug-language decision | S4, S5, S11 |
-| `docs/security.md` | Threat model, attack surface, auth/2FA, security headers + CSP, input validation, rate limiting (incl. the Cloudflare-free-tier limitation), PII, supply-chain scanning, SPF/DKIM/DMARC | S0, S1, S4 (comments), S9 |
+| `docs/security.md` | Threat model, attack surface, auth/2FA, security headers + CSP (Apache `.htaccess`), input validation, rate limiting (no CDN rate limiting), PII, supply-chain scanning, SPF/DKIM/DMARC | S0, S1, S4 (comments), S9 |
 | `docs/reliability.md` | Failure-mode analysis, error pages, graceful degradation, capacity model, traffic-spike playbook, monitoring/alerting, incident playbook, feature flags | S0, S8, S12 |
 | `docs/backup-and-recovery.md` | Backup tiers, RPO 24h / RTO 4h, restore runbook, four DR scenarios, verification drills | S0 (automation), S12 (drill) |
 | `docs/testing-and-qa.md` | Quality gates, test strategy, **WCAG 2.2 AA** accessibility, browser/device matrix (incl. UC Browser / Opera Mini), Bengali rendering audit, pre-launch checklist | S0 (CI gates), S2, S12 |
@@ -336,12 +335,12 @@ Plan informed by analysis of:
 
 ## Open decisions
 
-**Resolved 2026-09-11:** education feature inventory ✅ · category tree ✅ · competitor set ✅ · weather + prayer utilities retained ✅ · BCS/job circulars in scope ✅ · **publishing velocity: baseline 15–20/day + burst ✅** · editorial team of 5 in place ✅ · greenfield launch ✅ · repository private ✅ · R2 enableable (card on file) ✅ · AdSense activated ✅ · social login kept (free) ✅ · logo placeholder in place, CMS-editable ✅
+**Resolved 2026-09-11:** education feature inventory ✅ · category tree ✅ · competitor set ✅ · weather + prayer utilities retained ✅ · BCS/job circulars in scope ✅ · **publishing velocity: baseline 15–20/day + burst ✅** · editorial team of 5 in place ✅ · greenfield launch ✅ · repository private ✅ · AdSense activated ✅ · social login kept (free) ✅ · logo placeholder in place, CMS-editable ✅ · **all Cloudflare removed (2026-09-14) ✅**
 
 **Still open:**
 - [ ] **Check the cPanel Node.js Selector for Node 22/24** — the host runs 20.18.2, which is **end-of-life**
 - [ ] **One DianaHost support ticket** — inode quota, CPU/memory/process limits, hourly email limits, backup policy
-- [ ] **Verify R2 is enabled** (`wrangler login && wrangler r2 bucket list`) and set an 80% usage alert
+- [ ] ~~**Verify R2 is enabled**~~ — **REMOVED 2026-09-14.** No Cloudflare R2. Backups to GitHub Actions artifacts + owner local download.
 - [ ] **DNS configuration for shikkha24.com** — owner will provide
 - [ ] **Real logo** — placeholder SVG stands in for now
 - [ ] **Legal details for the E-E-A-T pages** — Trade License, TIN, Ministry of Information registration; owner provides **before final deploy**

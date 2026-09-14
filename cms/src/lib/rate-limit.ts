@@ -15,8 +15,8 @@
  * **not** sufficient for anything that protects money or credentials. If the CMS
  * ever runs more than one instance this must move to a shared store.
  *
- * `docs/security.md` §5 notes Cloudflare's free tier has **no configurable
- * rate-limiting rules**, so this is the only line of defence at the application
+ * `docs/security.md` §5 notes there is **no CDN rate limiting** (no CDN),
+ * so this is the only line of defence at the application
  * layer.
  */
 

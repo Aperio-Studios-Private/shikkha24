@@ -14,7 +14,7 @@
 | **Content integrity** | A defaced news site is a business-ending event | Compromised admin, unpatched dependency |
 | **SQLite database** | Holds the entire archive | Direct file exposure via the web root |
 | **The shared host account** | Hosts the CMS; shares an IP and machine with other tenants | Account compromise, cross-tenant risk, resource exhaustion |
-| **CI/CD secrets** | Deploy credentials to the host and Cloudflare | Secret leakage via logs, forks, or a public repo |
+| **CI/CD secrets** | Deploy credentials to the host | Secret leakage via logs, forks, or a public repo |
 | **Host media directory** (`data/media/`) | Media origin (R2 descoped in S9) | Directory listing, direct file access outside Payload's upload path |
 | **Newsletter sending reputation** | Deliverability for all domain email | Spam complaints, blacklisting, open relay |
 
@@ -74,7 +74,7 @@ DianaHost runs **Node.js 20.18.2**. Node 20 reached **end of life on 2026-04-30*
 
 ## 5. Security headers
 
-Set at Cloudflare (or the origin if Cloudflare cannot):
+Set at the origin via Apache `.htaccess`:
 
 | Header | Value |
 |---|---|
@@ -92,7 +92,7 @@ A strict CSP will break AdSense, which needs inline scripts and dynamic script i
 - **Static/editorial pages (no ads):** strict CSP — `default-src 'self'`, no `unsafe-inline` for scripts, explicit `img-src` naming the CMS/media host, `frame-ancestors 'none'`.
 - **Ad-bearing pages:** a relaxed CSP that allowlists Google's ad domains and the minimum inline allowance AdSense requires.
 
-**Which routes get the relaxed profile** (the authoritative list is the comment block in `frontend/public/_headers`):
+**Which routes get the relaxed profile** (the authoritative list is the comment block in `frontend/public/.htaccess`):
 
 | Route pattern | Why |
 |---|---|
@@ -102,11 +102,11 @@ A strict CSP will break AdSense, which needs inline scripts and dynamic script i
 | `/live/*` | Live blog — 1 ad slot + refresh island |
 | `/quiz`, `/quiz/*` | Quiz — 2 ad slots |
 
-⚠️ **The article rule uses `_headers` placeholders, not a splat, and this is load-bearing.** A splat greedily matches `/` and only one splat is allowed per rule; an article URL (`/:category/:id/:slug`) shares no literal prefix with its category listing (`/category/:slug`), so a prefix rule cannot express it. A placeholder matches exactly one path segment. **Do not "simplify" it to `/*` — that would relax the CSP for the whole site.**
+⚠️ **The article rule uses `<LocationMatch>` regex, not a wildcard, and this is load-bearing.** Apache's `<LocationMatch>` matches against the URL path with regex. The article URL (`/:category/:id/:slug`) has three segments, so the regex matches exactly that pattern. **Do not "simplify" it to a broad match** — that would relax the CSP for the whole site.
 
-⚠️ **Media host:** the `img-src` / `media-src` host is the DianaHost CMS origin (`cms.shikkha24.com`), **not** an R2 domain — R2 was descoped on 2026-09-12 and media now lives on the host disk. The literal host in `_headers` must match `PUBLIC_CMS_ORIGIN` / `PUBLIC_MEDIA_BASE_URL` exactly; a CSP cannot be templated.
+⚠️ **Media host:** the `img-src` / `media-src` host is the DianaHost CMS origin (`cms.shikkha24.com`), **not** an R2 domain — R2 was removed on 2026-09-14. The literal host in `.htaccess` must match `PUBLIC_CMS_ORIGIN` / `PUBLIC_MEDIA_BASE_URL` exactly; a CSP cannot be templated.
 
-⚠️ A CSP that allows `unsafe-inline` and `unsafe-eval` globally provides little XSS protection. Document the relaxation explicitly rather than shipping a permissive policy everywhere.
+⚠️ **Apache does NOT have the Cloudflare comma-join problem.** Apache's `Header set` replaces the value cleanly. The `!`-detach trick was Cloudflare-Pages-specific and is not needed with Apache.
 
 ---
 
@@ -123,7 +123,7 @@ A strict CSP will break AdSense, which needs inline scripts and dynamic script i
 
 ## 7. Rate limiting
 
-⚠️ **Honest constraint:** Cloudflare's free tier does **not** include configurable rate-limiting rules (those are a paid feature). Cloudflare free gives DDoS protection and basic bot mitigation only. Therefore application-level limits are required:
+⚠️ **Honest constraint:** there is no CDN and therefore **no CDN-level rate limiting**. All rate limiting must be application-level (in-process on the CMS):
 
 - Comment submission: per-IP and per-account throttle
 - Newsletter signup: per-IP throttle + double opt-in
@@ -131,7 +131,7 @@ A strict CSP will break AdSense, which needs inline scripts and dynamic script i
 - Admin login: attempt counting with lockout
 - Public API: per-IP cap
 
-Document the limits chosen, and note that on a 2 GB shared host a flood can exhaust the process before any application limit applies — which is why the frontend is static on Cloudflare Pages (see `docs/reliability.md`).
+Document the limits chosen, and note that on a 2 GB shared host a flood can exhaust the process before any application limit applies — which is why the frontend is static HTML on disk (see `docs/reliability.md`).
 
 ---
 
@@ -139,9 +139,9 @@ Document the limits chosen, and note that on a 2 GB shared host a flood can exha
 
 - **Data minimisation:** collect only what a feature needs. Comments need a display name and a provider identity — not a phone number.
 - **Retention policy:** define how long commenter accounts and newsletter subscribers are kept, and honour deletion requests.
-- **Privacy policy page** is already in scope; it must describe what is collected, why, where it is stored (SQLite database and media files on DianaHost, off-host backups on Cloudflare R2), and how to request deletion.
+- **Privacy policy page** is already in scope; it must describe what is collected, why, where it is stored (SQLite database and media files on DianaHost), and how to request deletion.
 - **No selling or sharing reader data** with third parties.
-- **Third-party processors to disclose:** Cloudflare (CDN, analytics, off-host backups on R2), the ESP (newsletter delivery), Facebook/Google (social login).
+- **Third-party processors to disclose:** the ESP (newsletter delivery, if configured), Facebook/Google (social login). No CDN or analytics processor — all data stays on DianaHost.
 - **Bangladesh context:** there is no enacted comprehensive data-protection statute at the time of writing, but a privacy policy is required by Google's E-E-A-T expectations and by basic ethics. Do not treat "no law yet" as "no obligation".
 
 ---

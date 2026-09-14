@@ -14,7 +14,7 @@
 | LCP | **< 1.5s** | CI (lab) + field once traffic exists | Mobile, throttled |
 | INP | **< 100ms** | Field | Lab proxy: TBT |
 | CLS | **< 0.02** | CI (lab) + field | All ad slots reserved |
-| TTFB | **< 200ms** | **S12 only, production** | Hosting/CDN property — cannot be measured meaningfully before Cloudflare is live |
+| TTFB | **< 200ms** | **S12 only, production** | Hosting property — cannot be measured meaningfully before DianaHost is live |
 | Initial page payload | **< 1.2 MB** | CI | Per page template |
 | Data-saver payload | **< 30 KB** | CI | Ultra-lite mode |
 
@@ -49,7 +49,7 @@ Derived from the 1.2 MB initial-payload target. Validate each in S0 — these ar
 | Fonts (total, all families) | **< 200 KB** | See §4 — the hardest budget to hit |
 | Hero image | < 150 KB | AVIF/WebP, responsive `srcset` |
 | All other images | < 80 KB each | Lazy, below fold |
-| Third-party scripts (analytics) | < 10 KB | Cloudflare Web Analytics is tiny |
+| Third-party scripts (analytics) | < 10 KB | No analytics tool (removed 2026-09-14). Apache logs via cPanel. |
 | **Data-saver mode** | **< 30 KB total** | Strips ads, defers images behind a tap placeholder |
 
 ### The font problem
@@ -85,11 +85,11 @@ The stack-research estimates are: Hind Siliguri 25–40 KB/weight, Noto Sans Ben
 | Concern | Approach |
 |---|---|
 | JavaScript | Astro islands. `client:visible` / `client:idle` for everything non-critical. No framework JS in the initial payload for static content. |
-| Images | Host disk + Cloudflare CDN. WebP (no originals retained), explicit `width`/`height` on every `<img>` (zero CLS), `fetchpriority="high"` on the hero only, `loading="lazy"` below the fold. Media served from the CMS origin, cached at the edge. |
+| Images | Host disk (DianaHost). WebP (no originals retained), explicit `width`/`height` on every `<img>` (zero CLS), `fetchpriority="high"` on the hero only, `loading="lazy"` below the fold. Media served from the CMS origin. Browser caching via `Cache-Control` in `.htaccess`. |
 | Fonts | See §3. |
 | Ads | Reserved containers with fixed dimensions. Ad scripts load **after** LCP via `requestIdleCallback`. Never block render. |
 | Widgets | Weather + prayer times are fetched **server-side at build time** and rendered statically. Never client-fetched. |
-| Analytics | Cloudflare Web Analytics (cookieless, tiny) or none. No GA4 — it is ~50 KB+ and would blow the JS budget. |
+| Analytics | None (Apache access logs via cPanel). No GA4 — it is ~50 KB+ and would blow the JS budget. No Cloudflare Web Analytics (removed 2026-09-14). |
 | Comments | Load on interaction only. Never in the initial payload. |
 | Third-party embeds (YouTube/Facebook) | Facade pattern — a static thumbnail that swaps to the real iframe on click. |
 
@@ -119,7 +119,7 @@ Fail the build if any measured page misses its budget. Implementation is an S0/S
 
 - [x] ~~Decide the AdSense-vs-≥95 trade-off~~ — ✅ resolved 2026-09-11: two profiles, ≥95 no-ads / ≥85 with-ads
 - [ ] **Measure a real Astro incremental build time** — this is also the deciding input for the CI quota (`docs/hosting-and-deployment.md`)
-- [ ] Confirm the Cloudflare Pages **20,000-file ceiling** against projected article volume
+- [ ] ~~Confirm the Cloudflare Pages 20,000-file ceiling~~ — **Removed 2026-09-14.** No Cloudflare Pages. DianaHost inode quota is the ceiling (ask support).
 - [ ] Validate every byte budget in §3 against a real build
 - [x] Decide whether Inter is needed at all, or a system UI stack suffices — ✅ **DECIDED 2026-09-12: Inter dropped**, system UI stack used. Measured 179.7 KB / 200 KB
 - [ ] Choose the free uptime/monitoring tool — must not require a card (see `docs/reliability.md`)

@@ -93,7 +93,7 @@ At the **approved velocity of 15–20 articles/day**:
 
 A category page holding a handful of stories is a **thin page**. Google's helpful-content
 system discounts them, they dilute internal linking, and they multiply the
-**Cloudflare Pages 20,000-file ceiling** faster (`docs/hosting-and-deployment.md`). The
+**DianaHost inode quota** (`docs/hosting-and-deployment.md`). The
 approved competitor analysis says the winnable opening is *high-intent queries with fast
 pages* — thin category pages work against exactly that.
 

@@ -197,18 +197,9 @@
 
 ---
 
-## 11. Cloudflare (Free Tier)
+## 11. ~~Cloudflare (Free Tier)~~ — REMOVED 2026-09-14
 
-**Checked:** cloudflare.com pricing
-**Used for:** CDN, SSL, DDoS protection, Web Analytics
-
-### Key findings
-- **Free plan includes:** SSL, CDN edge caching, DDoS protection, Web Analytics (cookie-less), Page Rules (3 free), DNS management.
-- **Edge caching** — Static HTML cached at Cloudflare's edge nodes. Readers in Bangladesh hit Singapore/Mumbai PoPs.
-- **TTFB reduction** — From 500ms+ (DianaHost origin) to <200ms via edge cache.
-
-### Caveats
-- Free plan limited to 3 Page Rules. Enough for: cache static, bypass `/admin`, security headers.
+**Owner decision (2026-09-14): all Cloudflare services removed.** Everything on DianaHost only. No CDN, no edge caching, no DDoS protection, no Web Analytics. SSL via DianaHost AutoSSL. Security headers via Apache `.htaccess`. TTFB depends on origin performance only (no edge cache). See `.sps/cloudflare-removal-plan.md`.
 
 ---
 
@@ -256,7 +247,7 @@
 
 ### Key findings
 - **Free tier:** 2,000 minutes/month for private repos, unlimited for public repos.
-- **Workflow (updated 2026-09-11 for the Cloudflare architecture):** Payload publish → webhook → GitHub Actions → Astro build (+ Pagefind index) → deploy to **Cloudflare Pages**; Payload itself built with Next.js `output: 'standalone'` → deploy to DianaHost via SSH.
+- **Workflow (updated 2026-09-14 — Cloudflare removed):** Payload publish → webhook → GitHub Actions → Astro build (+ Pagefind index) → deploy to **DianaHost `public_html`** (rsync); Payload itself built with Next.js `output: 'standalone'` → deploy to DianaHost via SSH.
 - **Estimated build time:** Astro incremental rebuild = 10-30 seconds (only changed pages). Full rebuild = 2-5 minutes for 10,000 pages.
 - ⚠️ **CI minutes constraint — CORRECTED 2026-09-11.** An earlier version of this note claimed one-build-per-publish would blow the quota. **That was overstated** — it is only true if a build takes minutes. Corrected position: at the owner's chosen **baseline of 15–20 articles/day plus bursts (≈600–900 publishes/month)**, a ~30-second Astro incremental build costs ~450 minutes and fits the 2,000-minute private-repo quota comfortably; a 5-minute full rebuild costs ~4,500 minutes and does not. **The deciding number is the measured incremental build time — an S0 gate.** Rebuilds are adaptively batched regardless. Also note **Cloudflare Pages free allows only 500 builds/month**, which is tighter than the GitHub quota if Pages builds are Git-triggered. Full detail: `docs/hosting-and-deployment.md`.
 

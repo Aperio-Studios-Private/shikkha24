@@ -1,6 +1,6 @@
 # Backup & Disaster Recovery Plan — Shikkha24
 
-**Created:** 2026-09-11 · **Status:** S0/S12 input. **This domain had no coverage before this document.**
+**Created:** 2026-09-11 · **Status:** S0/S12 input. **Updated 2026-09-14** — all Cloudflare services removed per owner decision. No R2. Backups to GitHub Actions artifacts + owner local download.
 **Why this exists:** the entire editorial archive — every article, every education record, every reader account — lives in **one SQLite file on a shared hosting account**. Losing it ends the business. There was no backup plan at all.
 
 ---
@@ -13,7 +13,7 @@
 | **Media library** | DianaHost (CMS data directory: `data/media/`) | All images lost — no article or gallery has a picture |
 | **Code, config, schema** | GitHub | Recoverable — already versioned |
 | **Secrets** (`.env`, API keys, OAuth secrets) | Local + GitHub Actions secrets | Recoverable only if documented separately |
-| **DNS / Cloudflare config** | Cloudflare account | Painful to rebuild by hand |
+| **DNS config** | DianaHost / registrar | Painful to rebuild by hand |
 | **Domain registration** | Registrar | Business-ending if it lapses |
 | **Newsletter subscriber list** | Payload (self-hosted) | Legal and commercial problem |
 
@@ -31,14 +31,15 @@ A 2 GB shared hosting account with a single SQLite file **and the entire media l
 
 | Tier | What | Where | Frequency | Retention |
 |---|---|---|---|---|
-| **1. Database + media dump** | SQLite `.dump` / file copy **+ `data/media/` directory** | **Cloudflare R2** (separate bucket) — off-host by construction | **Daily** | 30 daily + 12 monthly |
-| **2. ~~Media on R2~~** | ~~R2 objects~~ | Media moved to host disk in S9 (R2 descoped — card-on-file overage risk was worse than host storage ceiling). Media is now part of **Tier 1** — the daily dump must `tar` the `data/media/` directory alongside the SQLite file | — | — |
-| **3. Code & config** | Git repository | GitHub | Every commit | Indefinite |
-| **4. Secrets** | Encrypted export of `.env` and service credentials | Encrypted archive, stored offline by the owner (password manager or encrypted USB) | On change | Current + 1 previous |
-| **5. Vendor backup** | cPanel's own backup tool | Vendor infrastructure | Weekly, if available | Confirm with DianaHost |
-| **6. Newsletter list** | Periodic subscriber export (CSV) | R2, alongside the DB dump | Weekly | 12 weeks |
+| **1. Database + media dump** | SQLite `.dump` / file copy **+ `data/media/` directory** | **GitHub Actions artifact** (7-day retention) + owner local download | **Daily** | 7 daily (artifact) + owner-managed longer retention |
+| **2. Code & config** | Git repository | GitHub | Every commit | Indefinite |
+| **3. Secrets** | Encrypted export of `.env` and service credentials | Encrypted archive, stored offline by the owner (password manager or encrypted USB) | On change | Current + 1 previous |
+| **4. Vendor backup** | cPanel's own backup tool | Vendor infrastructure | Weekly, if available | Confirm with DianaHost |
+| **5. Newsletter list** | Periodic subscriber export (CSV) | GitHub Actions artifact, alongside the DB dump | Weekly | 12 weeks |
 
 ⚠️ **Open question:** does DianaHost provide account-level backups, and can they be restored on request? The vendor's PNR page does not say. **Ask them** — this is the cheapest possible safety net.
+
+⚠️ **Limitation of GitHub Actions artifacts:** free-tier artifacts have a 500 MB limit and 7-day retention. The SQLite DB + media tar must stay under 500 MB. If media grows past ~400 MB, the tar must split or exclude media (DB-only backup). The owner must download artifacts to local storage for longer retention.
 
 ---
 
@@ -58,7 +59,7 @@ These are proposals — confirm they are acceptable before building.
 Written to be followed under pressure, by one person, possibly years from now.
 
 **Scenario A — database corrupt or lost, host intact**
-1. Download the most recent backup archive from R2 (contains both the SQLite file and `data/media/`)
+1. Download the most recent backup artifact from GitHub Actions (contains both the SQLite file and `data/media/`)
 2. Stop the CMS (cPanel → stop the Node app) so nothing writes mid-restore
 3. Replace the SQLite file (and delete stale `-wal` / `-shm` files)
 4. If the media directory was also lost, restore `data/media/` from the archive
@@ -67,15 +68,15 @@ Written to be followed under pressure, by one person, possibly years from now.
 
 **Scenario B — host account lost entirely**
 1. Provision a new DianaHost account (or equivalent) and note the new paths
-2. Restore the SQLite DB from R2 (Scenario A, steps 1–4)
-3. Restore the `data/media/` directory from R2 (part of the same off-host backup — not a separate step)
+2. Restore the SQLite DB from the backup artifact (Scenario A, steps 1–4)
+3. Restore the `data/media/` directory from the backup artifact
 4. Redeploy the CMS build from GitHub Actions
-5. Update DNS in Cloudflare to the new origin
-6. Verify media files resolve correctly (they are now on the new host, not off-host — this is the weakest link)
-7. Rebuild and redeploy the frontend to Cloudflare Pages
+5. Update DNS to point at the new origin
+6. Verify media files resolve correctly
+7. Rebuild and redeploy the frontend to the new `public_html`
 
 **Scenario C — media directory lost (host intact)**
-1. Restore `data/media/` from the daily R2 backup (it is part of Tier 1)
+1. Restore `data/media/` from the daily backup artifact
 2. If the most recent backup is stale, any editorial copies on local machines fill gaps — **this is the weakest link**; verify the daily dump actually includes the media directory, not just the SQLite file
 
 **Scenario D — domain lost**
@@ -88,13 +89,13 @@ Written to be followed under pressure, by one person, possibly years from now.
 
 The daily DB dump must not depend on someone remembering. Options, in order of preference:
 
-1. **A scheduled GitHub Actions workflow** that connects over SSH and pulls a dump to R2 — reuses existing infrastructure and CI credentials, no new service, no card
+1. **A scheduled GitHub Actions workflow** that connects over SSH and pulls a dump, storing it as a workflow artifact — reuses existing infrastructure and CI credentials, no new service, no card
 2. **A cPanel cron job** that dumps to a directory, plus a sync step
 3. Manual download — **only as a stopgap**
 
-⚠️ Whatever is chosen, the dump must land **off the host**. A backup stored on the same account as the database protects against corruption but not against account loss.
+⚠️ Whatever is chosen, the dump must land **off the host**. A backup stored on the same account as the database protects against corruption but not against account loss. GitHub Actions artifacts qualify as off-host (they live on GitHub's infrastructure).
 
-⚠️ **The backup must include `data/media/`, not just the SQLite file.** Media moved off R2 to the host disk in S9 — the media directory is now as critical as the database. A dump that only grabs the SQLite file leaves every article and gallery image behind if the host is lost. The daily backup should `tar` both `data/db/` and `data/media/` into one archive, or sync them as two streams to the same R2 bucket.
+⚠️ **The backup must include `data/media/`, not just the SQLite file.** Media moved to the host disk in S9 — the media directory is now as critical as the database. A dump that only grabs the SQLite file leaves every article and gallery image behind if the host is lost. The daily backup should `tar` both `data/db/` and `data/media/` into one archive.
 
 ⚠️ Also note: the daily dump runs through the same CI minutes budget that is already tight (see `docs/reliability.md`). Budget for it, or run it on the host via cron instead.
 
@@ -115,6 +116,6 @@ The daily DB dump must not depend on someone remembering. Options, in order of p
 - [ ] Confirm the RPO/RTO targets in §4 are acceptable
 - [ ] Choose the dump automation approach (§6) and confirm it fits the CI-minutes budget
 - [ ] **Ensure the daily backup includes `data/media/` alongside the SQLite file** — the dump script must `tar` or `rsync` both, not just the database
-- [ ] Set up the secrets export (§3, tier 4) and store it offline
-- [ ] Record registrar and Cloudflare renewal dates with auto-renew enabled
+- [ ] Set up the secrets export (§3, tier 3) and store it offline
+- [ ] Record registrar renewal dates with auto-renew enabled
 - [ ] Schedule the first restore test

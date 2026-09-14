@@ -1,31 +1,32 @@
 /**
- * Verify the `_headers` CSP route rules cover the pages that need the relaxed
+ * Verify the `.htaccess` CSP route rules cover the pages that need the relaxed
  * profile — and nothing else.
  *
  * ## Why this exists
  *
  * The S11 URL change moved articles from `/article/:slug` to
- * `/:category/:id/:slug`. The `_headers` rule for articles was still
- * `/article/*`, which no longer matched a single article page. A CSP rule that
- * fails to match fails **silently**: the page returns 200 under the stricter
- * policy and AdSense is blocked with no error anywhere. Nothing local shows it
- * — the policy is applied by Cloudflare, not by the build.
+ * `/:category/:id/:slug`. The CSP rule for articles was still at the old
+ * `/article/*` pattern, which no longer matched a single article page. A CSP
+ * rule that fails to match fails **silently**: the page returns 200 under the
+ * stricter policy and AdSense is blocked with no error anywhere. Nothing local
+ * shows it — the policy is applied by Apache, not by the build.
  *
- * So this harness reimplements the documented `_headers` matching semantics and
- * asserts the rule set against the real paths the build emits.
+ * So this harness reimplements the `.htaccess` `<LocationMatch>` regex matching
+ * semantics and asserts the rule set against the real paths the build emits.
  *
- * ## Matching semantics (Cloudflare Pages docs, verified 2026-09-13)
+ * ## Matching semantics (Apache mod_location LocationMatch, verified 2026-09-14)
  *
- *   - `*` (splat) matches greedily and MAY CROSS `/`. Only ONE splat per rule.
- *   - `:name` (placeholder) matches all characters EXCEPT `/` — i.e. exactly
- *     one path segment.
+ *   - `<LocationMatch "^/pattern$">` matches the URL path against the regex.
+ *   - `[^/]+` matches one path segment (no crossing `/`).
+ *   - `.+` matches one or more characters (crosses `/`).
+ *   - The regex must match the WHOLE path (anchored with ^ and $).
  *
  * Run: node scripts/verify-csp-routes.mjs
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
-const HEADERS = 'frontend/public/_headers'
+const HTACCESS = 'frontend/public/.htaccess'
 const DIST = 'frontend/dist'
 
 let failures = 0
@@ -35,66 +36,50 @@ const check = (label, ok, detail = '') => {
 }
 
 /**
- * Compile a `_headers` path pattern into a RegExp.
+ * Parse `<LocationMatch>` blocks out of `.htaccess`.
  *
- * Splat → `.*` (crosses `/`). Placeholder → `[^/]+` (one segment).
- * A rule must match the WHOLE path, so it is anchored.
+ * Returns an array of { pattern: RegExp, raw: string, csp: string }.
  */
-function compile(pattern) {
-  const source = pattern
-    .split('/')
-    .map((segment) => {
-      if (segment === '*') return '.*'
-      if (segment.startsWith(':')) return '[^/]+'
-      // Escape regex metacharacters in literal segments.
-      return segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    })
-    .join('/')
-  return new RegExp(`^${source}$`)
-}
-
-/** Parse the rule blocks (path line + indented header lines) out of `_headers`. */
-function parseRules(text) {
+function parseLocationMatchBlocks(text) {
   const rules = []
-  let current = null
-  for (const raw of text.split('\n')) {
-    const line = raw.trimEnd()
-    if (line.startsWith('#') || line.trim() === '') continue
-    if (!line.startsWith(' ') && !line.startsWith('\t')) {
-      current = { pattern: line.trim(), headers: [] }
-      rules.push(current)
-      continue
+  const blockRe = /<LocationMatch\s+"([^"]+)">\s*([\s\S]*?)<\/LocationMatch>/g
+  let match
+  while ((match = blockRe.exec(text)) !== null) {
+    const regexStr = match[1]
+    const body = match[2]
+    // Extract the Content-Security-Policy header value if present.
+    const cspMatch = body.match(/Content-Security-Policy\s+"([^"]+)"/)
+    const csp = cspMatch ? cspMatch[1] : null
+    // Compile the LocationMatch regex.
+    let pattern
+    try {
+      pattern = new RegExp(regexStr)
+    } catch {
+      pattern = null
     }
-    if (current) current.headers.push(line.trim())
+    rules.push({ regexStr, pattern, csp, raw: regexStr })
   }
   return rules
 }
 
-const text = readFileSync(HEADERS, 'utf8')
-const rules = parseRules(text)
+const text = readFileSync(HTACCESS, 'utf8')
+const rules = parseLocationMatchBlocks(text)
 
-/** Does any rule matching `path` set a relaxed (AdSense-bearing) CSP? */
+/** Does any <LocationMatch> rule matching `path` set a relaxed (AdSense-bearing) CSP? */
 function relaxedFor(path) {
   for (const rule of rules) {
-    if (!compile(rule.pattern).test(path)) continue
-    for (const h of rule.headers) {
-      if (!h.startsWith('Content-Security-Policy:')) continue
-      if (h.includes('pagead2.googlesyndication.com')) return rule.pattern
-    }
+    if (!rule.pattern || !rule.pattern.test(path)) continue
+    if (rule.csp && rule.csp.includes('pagead2.googlesyndication.com')) return rule.raw
   }
   return null
 }
 
 // ── 1. The rule set is what we expect ────────────────────────────────────────
-const articleRule = rules.find((r) => r.pattern === '/:category/:id/:slug')
-check('article rule uses the placeholder pattern', Boolean(articleRule))
+const articleRule = rules.find((r) => r.raw === '^/[^/]+/[^/]+/[^/]+$')
+check('article rule uses the 3-segment pattern', Boolean(articleRule))
 check(
-  'the stale /article/* rule is gone from the relaxed set',
-  !rules.some((r) => r.pattern === '/article/*'),
-)
-check(
-  'no rule uses more than one splat (invalid in _headers)',
-  rules.every((r) => (r.pattern.match(/\*/g) ?? []).length <= 1),
+  'the stale /article/* pattern is gone',
+  !rules.some((r) => r.raw.includes('/article/')),
 )
 
 // ── 2. Every real article path resolves to the relaxed profile ───────────────
@@ -122,7 +107,6 @@ check(
 
 // ── 3. Pages that must NOT be relaxed are not ────────────────────────────────
 const strictOnly = [
-  '/',
   '/latest',
   '/search',
   '/bookmarks',
@@ -135,13 +119,11 @@ const strictOnly = [
 ]
 for (const path of strictOnly) {
   const matched = relaxedFor(path)
-  // `/` is deliberately relaxed (homepage carries 4 ad slots).
-  if (path === '/') continue
   check(`strict profile kept for ${path}`, matched === null, matched ? `matched ${matched}` : '')
 }
 
-// ── 4. The placeholder does not over-match ───────────────────────────────────
-const articleRe = compile('/:category/:id/:slug')
+// ── 4. The article regex does not over-match ─────────────────────────────────
+const articleRe = new RegExp('^/[^/]+/[^/]+/[^/]+$')
 check('matches /admission/10/some-slug', articleRe.test('/admission/10/some-slug'))
 check('rejects /admission (one segment)', !articleRe.test('/admission'))
 check('rejects /category/admission (two segments)', !articleRe.test('/category/admission'))

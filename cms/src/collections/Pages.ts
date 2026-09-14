@@ -10,7 +10,7 @@ import { anyone, isSuperAdminOrEditorInChief } from '../access/roles'
  * /fact-checking-policy, /editorial-team, /privacy-policy, /terms.
  *
  * `docs/security.md` §8 requires the privacy policy to state what is collected,
- * why, where it is stored (SQLite on DianaHost, media on Cloudflare R2) and how to
+ * why, where it is stored (SQLite and media on DianaHost) and how to
  * request deletion — which is why these must be editor-managed rather than
  * hardcoded in the template.
  */

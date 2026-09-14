@@ -15,8 +15,8 @@
  *    (`thumbnail` 400, `card` 768, `hero` 1600 — see `cms/src/collections/Media.ts`),
  *    so the browser can be offered real choices instead of one full-size file.
  *    Serving the hero to a 80px sidebar slot wastes ~95% of the bytes.
- * 3. **The right base URL.** Media now lives on the DianaHost host
- *    (`PUBLIC_MEDIA_BASE_URL`), not on R2. Payload stores a *relative* url, so it
+ * 3. **The right base URL.** Media lives on the DianaHost host
+ *    (`PUBLIC_MEDIA_BASE_URL`). Payload stores a *relative* url, so it
  *    must be prefixed — and an already-absolute url must not be double-prefixed.
  *
  * ## Why the CMS variants and not Astro's remote-image pipeline

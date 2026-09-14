@@ -45,14 +45,14 @@ Commands: `/sps` · `/sps audit` · `/sps sync` · `/sps doctor`
 7. **Budget guard**
    - Zero recurring software/platform fees beyond the approved DianaHost plan (2 GB PNR, ~$47/year) and the domain.
    - No paid third-party services; no limited free-tier SaaS for core infrastructure. Self-hosted/self-built preferred.
-   - **Hard constraint: the owner has no international credit or debit card.** Every service requiring a card at signup is unusable — this includes Oracle Cloud, paid SMTP relays, paid TTS APIs, paid data APIs and paid object storage. Never propose, plan or assume one. Cloudflare's free tier and free public APIs are available.
+   - **Hard constraint: the owner has no international credit or debit card.** Every service requiring a card at signup is unusable — this includes Oracle Cloud, paid SMTP relays, paid TTS APIs, paid data APIs and paid object storage. Never propose, plan or assume one. Free public APIs are available. No Cloudflare services (removed 2026-09-14 per owner decision — all data and hosting on DianaHost only).
    - Anything with a cost requires explicit user approval first.
 8. **Dependency hygiene**
    - Every new package: one-line justification, exact version pinned, license confirmed, recorded in `.sps/handoff.md`.
 9. **Performance gates are part of DoD**
    - Every UI section must meet the `.sps/plan.md` targets before approval is requested: Lighthouse mobile ≥95, Lighthouse accessibility ≥90, LCP <1.5s, INP <100ms, CLS <0.02, initial payload <1.2MB, data-saver <30KB, ≥48×48px touch targets, Bengali typography ≥17px / line-height ≥1.65.
    - Lighthouse, initial payload and data-saver are **page-level** measurements. Enforce them on the page templates listed in `.sps/plan.md`; never describe them as "per feature".
-   - TTFB <200ms is a hosting/CDN property. Measure it once at S12, in production, behind Cloudflare — not from S2–S11.
+   - TTFB <200ms is a hosting property. Measure it once at S12, in production, on DianaHost (no CDN) — not from S2–S11.
 10. **Bengali-first**
     - All user-facing strings are Bengali (Bengali-only UI). English only in code, identifiers, and internal notes.
 11. **Secrets safety**

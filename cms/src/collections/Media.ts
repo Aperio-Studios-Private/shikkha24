@@ -5,17 +5,16 @@ import { checkUploadQuota } from '../lib/media-quota'
 /**
  * Media library.
  *
- * ## Storage — the DianaHost disk, not R2
+ * ## Storage — the DianaHost disk
+
  *
- * The owner moved media off Cloudflare R2 on 2026-09-12 (`.sps/plan.md`
- * §"Scope amendment (2026-09-12)" — the documented R2 fallback became the active
- * architecture). Uploads therefore land on the **2 GB host disk**, shared with
+ * Media is on the DianaHost disk (moved there 2026-09-12; Cloudflare R2 removed
+ * entirely 2026-09-14). Uploads land on the **2 GB host disk**, shared with
  * the app, the database and the backups.
  *
- * The frontend's `PUBLIC_MEDIA_BASE_URL` points at this host, and the host must
- * be served through the Cloudflare proxy with a long-lived `Cache-Control`: the
- * free tier has unlimited bandwidth for proxied traffic, so a cached image view
- * costs the origin nothing and only a cache miss touches the 200 GB allowance.
+ * The frontend's `PUBLIC_MEDIA_BASE_URL` points at this host. There is no CDN —
+ * browser caching via `Cache-Control` in `.htaccess` is the only mitigation for
+ * repeat-visit bandwidth. The 200 GB/month cap applies to all media traffic.
  *
  * ## Three storage controls, all enforced here rather than left to discipline
  *

@@ -9,8 +9,8 @@
  *      production. Astro inlines small scripts by default; `assetsInlineLimit: 0`
  *      is what prevents it. A regression here kills every interactive control
  *      silently.
- *   2. **The deploy-critical root files exist.** Cloudflare Pages reads
- *      `_headers`; crawlers read the feeds; AI crawlers read `llms.txt`. A
+ *   2. **The deploy-critical root files exist.** Apache reads
+ *      `.htaccess`; crawlers read the feeds; AI crawlers read `llms.txt`. A
  *      missing one is a silent production failure, not a build error.
  *   3. **The article URL architecture is the one we decided.** Articles live at
  *      `/:category/:id/:slug`, with `/article/:slug` as a redirect stub.
@@ -64,7 +64,7 @@ check(
 
 // ── 2. Deploy-critical root files ────────────────────────────────────────────
 const rootFiles = [
-  '_headers',
+  '.htaccess',
   '_redirects',
   'robots.txt',
   'sitemap.xml',
@@ -158,9 +158,9 @@ for (const feed of ['sitemap.xml', 'rss.xml']) {
 }
 
 // ── 7. The CSP relaxed rule targets the new article path ─────────────────────
-const headers = readFileSync(join(DIST, '_headers'), 'utf8')
-check('_headers relaxes the CSP for /:category/:id/:slug', headers.includes('/:category/:id/:slug'))
-check('_headers no longer relaxes the stale /article/* prefix', !/^\/article\/\*/m.test(headers))
+const htaccess = readFileSync(join(DIST, '.htaccess'), 'utf8')
+check('.htaccess relaxes the CSP for article paths (3-segment regex)', htaccess.includes('^/[^/]+/[^/]+/[^/]+$'))
+check('.htaccess no longer has a stale /article/* rule', !/\/article\/\*/.test(htaccess))
 
 console.log(
   failures === 0

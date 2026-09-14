@@ -165,7 +165,7 @@ Map each cluster to a template and a hub. **Keyword research is a follow-up task
 ## 10. Measurement
 
 - Google Search Console (verify the domain) + Bing Webmaster Tools
-- Cloudflare Web Analytics for traffic
+- Apache access logs (cPanel) for traffic analysis
 - Manual rank checks on the §8 clusters until traffic supports better tooling
 
 ---

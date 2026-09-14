@@ -6,7 +6,7 @@
 #
 # CI-MINUTES BUDGET (agent rule 7 + docs/hosting-and-deployment.md §2):
 # the repository is private, so GitHub Actions is capped at 2,000 minutes/month.
-# Cloudflare Pages is capped at 500 builds/month — the tighter of the two. So:
+# There is no Cloudflare Pages quota (Cloudflare removed 2026-09-14). So:
 #   - this runs on pull requests and on `main`, NEVER per publish
 #   - everything runs in ONE job so the install happens once, not three times
 #   - publish-triggered rebuilds are adaptively batched (separate deploy workflow)

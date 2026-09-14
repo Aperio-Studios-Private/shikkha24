@@ -13,8 +13,8 @@
  *
  * ## Debounced, not immediate
  *
- * Two quotas constrain rebuilds (§2): Cloudflare Pages allows **500 builds/month**
- * and GitHub Actions **2,000 minutes/month** on a private repo. A newsroom
+ * One quota constrains rebuilds (§2): GitHub Actions **2,000 minutes/month**
+ * on a private repo. A newsroom
  * publishing 15–20 articles a day plus bursts would exhaust a per-save trigger.
  * So saves are **debounced**: every change inside the window collapses into a
  * single rebuild fired when the newsroom goes quiet.

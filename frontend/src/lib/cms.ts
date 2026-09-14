@@ -3,7 +3,7 @@
  *
  * ## Why a build-time fetch, not a runtime one
  *
- * The public site is pre-built static HTML on Cloudflare Pages. Nothing is
+ * The public site is pre-built static HTML on DianaHost. Nothing is
  * fetched in the reader's browser: that would leak quota, add third-party latency
  * to LCP, and break data-saver mode (`docs/data-sources.md` §1). Content is read
  * once per build and baked in.

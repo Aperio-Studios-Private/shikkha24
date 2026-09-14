@@ -20,17 +20,17 @@
 - [x] **GATE: Next.js `output: 'standalone'` deploy size measured** — **114 MB** (target 300–600 MB)
 - [~] **GATE: DianaHost Node.js version resolved** — accepted risk (host max is 20.18.2, EOL); **OWNER-ONLY** escalation
 - [x] **GATE: Astro incremental build time measured** — **~1s** ⚠️ measured on a 1-page site; re-measure at content volume
-- [~] **GATE: `wrangler pages deploy` quota verified** — **OWNER-ONLY**, needs Cloudflare auth
+- [x] **GATE: ~~`wrangler pages deploy` quota~~** — **REMOVED 2026-09-14.** No Cloudflare Pages. Frontend deploys to DianaHost `public_html` via rsync.
 - [~] **GATE: DianaHost limits confirmed via support ticket** — **OWNER-ONLY**
 - [x] **GATE: SQLite WAL concurrency proven with 5+ concurrent writers** — 6/6 writers, 240/240 rows, integrity ok
-- [~] **GATE: Cloudflare R2 enabled and verified** — R2 confirmed enabled; the 80% usage alert is an **OWNER** action
+- [x] **GATE: ~~Cloudflare R2~~** — **REMOVED 2026-09-14.** No Cloudflare R2. Backups to GitHub Actions artifacts.
 - [x] **GATE: CI rebuild strategy settled** — adaptive batching; build time ~1s makes the 2,000 min/month quota comfortable
 - [~] **GATE: CI quality gates live** — lint/typecheck/build/audit/standalone-size wired and passing locally; **Lighthouse + link-check + JSON-LD deferred to S3+** (need real page templates)
 - [~] **GATE: backup automated off-host AND a restore performed** — workflow written; **restore drill is an S12 gate**
 - [x] **GATE: feature-flag mechanism designed** — build-time (frontend) + runtime (cms), default-on contract
 - [x] **GATE: monitoring/alerting tool selected** — ✅ **UptimeRobot** (free, 50 monitors, no card required, 5-min checks, email + Telegram). Researched 2026-09-13. See `docs/reliability.md` §6.
 - [x] Security baseline applied: `.env` + SQLite outside the web root, security headers, strict CSP profile, `pnpm audit` policy, Dependabot enabled
-- [~] Cloudflare Pages project wired for the Astro frontend — `_headers` shipped and verified in `dist/`; project creation is an **OWNER** action
+- [~] Apache `.htaccess` wired for the Astro frontend — `.htaccess` shipped and verified in `dist/`; rsync deploy to DianaHost `public_html` is an **OWNER** action
 - [x] Env skeleton (`.env.example` ×2 — no secrets committed)
 - [x] Bengali fonts pipeline — 179.7 KB / 200 KB budget
 - [x] GitHub Actions CI (build + typecheck + lint + gates) — pnpm + Node 24
@@ -112,7 +112,7 @@
 - [x] **Sponsor banners** — `adType: sponsorBanner | direct` renders image + targetUrl with `rel="sponsored nofollow"` and a mandatory «বিজ্ঞাপন» label.
 - [x] **Payload ad management** — ⚠️ **the S1 position vocabulary did not match a single real slot**, so no ad unit could ever render. Reconciled to the 8 slots that exist; the collection held no data. Also removed the `codeSnippet` raw-HTML field (script-injection vector) and `clickCount` (a static site cannot increment it).
 - [x] **Sponsored content template** — `isSponsored` + `sponsorName` on Articles; banner above the headline, badge in byline and on cards; excluded from the masthead and breaking ticker, kept in category sections and the latest feed.
-- [x] **Relaxed CSP profile** for `/`, `/article/*`, `/category/*` — ⚠️ Cloudflare **joins** duplicate headers with a comma rather than overriding, so the more specific rule must `!`-detach the inherited policy first. **S12 check:** confirm production returns exactly one CSP header.
+- [x] **Relaxed CSP profile** for `/`, `/:category/:id/:slug`, `/category/*` — delivered via Apache `.htaccess` `<LocationMatch>`. **S12 check:** confirm production returns exactly one CSP header with the relaxed policy on ad-bearing pages.
 - [x] S7 DoD evidence → **user approval pending** (`.sps/section-todos/S7.md`)
 
 ## S8 — Live Blog & Interactive ✅ APPROVED 2026-09-13
@@ -171,20 +171,20 @@
   - Category: `CollectionPage` + `BreadcrumbList` + `ItemList`
   - Layout `jsonLd` prop now accepts array of objects
 - [x] **`llms.txt`** — created at `/llms.txt`, describes portal structure for AI search crawlers
-- [ ] **Auto OG images** — dynamic per-article OG image generation (deferred; needs a build-time image library or Cloudflare Worker)
+- [ ] **Auto OG images** — dynamic per-article OG image generation (deferred; needs a build-time image library like `satori` + `sharp`)
 - [ ] **Google Publisher Center registration** — owner action
 - [ ] E-E-A-T pages — **blocked on the owner** supplying Trade Licence, TIN, Ministry of Information registration
 - [x] **URL architecture implemented:** `/:category/:id/:slug` + shortlink `/a/:id` for social sharing. Legacy `/article/:slug` → 301 redirect. Shared `articleUrl()` helper in `lib/url.ts`. 500-cap pagination fix in `getAllArticlePaths()`. Commit `a20f0df`.
 - [ ] S11 DoD evidence → **user approval**
 
 ## S12 — Deployment, QA & Launch
-- [ ] Cloudflare Pages + R2 setup; GitHub Actions pipeline; DianaHost Passenger config — **OWNER-ONLY**
+- [ ] DianaHost `public_html` setup; GitHub Actions pipeline (rsync deploy); DianaHost Passenger config — **OWNER-ONLY**
 - [x] **Initial payload measured:** all 5 key templates within 1.2MB budget (149–242 KB). See `.sps/section-todos/S12.md`.
 - [x] **Bengali typography verified:** 17px base, 1.65 line-height, 154 KB font total (within 200 KB budget).
 - [x] **Touch targets verified:** 48px pattern present in CSS.
 - [x] **Ad slots reserved:** inline `max-width` + `height` on every AdSlot.
 - [x] **404 page verified:** exists, Bengali, has header+footer.
-- [x] **Key files verified:** robots.txt, sitemap.xml, news-sitemap.xml, rss.xml, llms.txt, og-default.svg, _headers all present in dist/.
+- [x] **Key files verified:** robots.txt, sitemap.xml, news-sitemap.xml, rss.xml, llms.txt, og-default.png, .htaccess all present in dist/.
 - [x] **Inline script scan:** 79 pages, 0 executable inline scripts (S8 invariant holds).
 - [x] **⚠️ CSP route coverage fixed + verified:** the S11 URL change left the article CSP rule at `/article/*`, which matched no article page — every article would have fallen to the strict profile and lost AdSense silently. Fixed to the placeholder pattern `/:category/:id/:slug` (a splat cannot express it: only one splat per rule, and a splat crosses `/`). Verified by `scripts/verify-csp-routes.mjs`, wired into `pnpm verify`. Docs synced (`docs/security.md` §5 + three CMS comments).
 - [x] **Pre-launch QA checklist written:** `.sps/section-todos/S12.md`.

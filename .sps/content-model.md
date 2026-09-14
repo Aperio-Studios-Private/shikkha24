@@ -110,9 +110,9 @@ title · slug · images[] (with caption) · description
 
 ## S9 changes to existing collections (2026-09-13)
 
-**`media` — storage moved off Cloudflare R2 onto the DianaHost disk.** The owner
-has no international card, and R2 bills on overage once a card is on file, so the
-10 GB free tier was not a zero-recurring-cost guarantee. Consequences, all
+**`media` — storage on the DianaHost disk.** Media was moved off Cloudflare
+R2 onto the DianaHost disk (2026-09-12), and all Cloudflare services were
+removed entirely (2026-09-14). Consequences, all
 enforced in `cms/src/collections/Media.ts`:
 
 - every upload is **converted to WebP and the original is discarded** — a

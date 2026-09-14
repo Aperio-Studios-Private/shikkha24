@@ -2,19 +2,19 @@
 
 ## Current Phase
 - **Status:** **S11 build complete. S12 local verification complete — owner-only items remaining.** All buildable work across S0–S12 is done. Remaining items require production deployment, DNS access, or real hardware.
-- **Last Activity:** 2026-09-13T21:50+06:00 — branding fix (logo/siteName independence, auto-accent), backup doc updated for host-disk media, stale R2 references fixed across 5 docs, 500-cap handoff corrected.
-- **Next Action:** owner deploys to Cloudflare Pages, configures DNS/SMTP, runs Lighthouse/restore/device tests, then LAUNCH.
+- **Last Activity:** 2026-09-14T20:40+06:00 — Cloudflare fully removed from the project per owner decision. All Cloudflare services (Pages, CDN, R2, Web Analytics) replaced with DianaHost-only infrastructure. `_headers` → `.htaccess`, IP forwarding simplified, docs updated. See `.sps/cloudflare-removal-plan.md`.
+- **Next Action:** owner deploys to DianaHost `public_html` (rsync from CI), configures DNS/SMTP, runs Lighthouse/restore/device tests, then LAUNCH.
 - **⚠️ S11 summary:** JSON-LD on all page types, URL architecture `/:category/:id/:slug` + shortlink + 500-cap fix, `llms.txt`, `og-default.svg`, all feeds updated. Commits: `5c8c3af`, `a20f0df`.
 - **⚠️ S12 summary:** all agent-buildable items verified locally. Initial payload 149–242 KB (well within 1.2MB). Bengali typography (17px/1.65), touch targets (48px), ad slots reserved, 404 page Bengali with nav. 79 pages, 0 inline scripts. Pre-launch QA checklist written. Most S12 items are owner-only (Lighthouse in production, DNS, monitoring, restore drill, WCAG manual test, device matrix). Evidence: `.sps/section-todos/S12.md`.
 - **⚠️ CSP route regression found + fixed (commit `be8310d`):** the S11 URL change left the relaxed-CSP rule at `/article/*`, which matched no article page — every article would have silently fallen to the strict profile and lost AdSense. Fixed to the placeholder pattern `/:category/:id/:slug` (a splat cannot express it — one splat per rule, and a splat crosses `/`). Verified by `scripts/verify-csp-routes.mjs`, wired into `pnpm verify`. **Lesson: a URL architecture change is cross-cutting — grep for the old prefix in CSP rules, sitemaps, feeds and canonicals after any URL change.**
-- **⚠️ Production verification still required for the CSP:** `_headers` is applied by Cloudflare, so the placeholder match and the header detach can only be confirmed live. Two checks are written into the `_headers` comment. If the placeholder does not match, the fallback is a Pages Function.
+- **⚠️ Production verification still required for the CSP:** `.htaccess` is applied by Apache, so the `<LocationMatch>` patterns and header values can only be confirmed live. If a pattern does not match, the page returns 200 under the strict policy and AdSense is silently blocked. **S12 check:** confirm in production that an ad-bearing page returns exactly ONE `Content-Security-Policy` header with the relaxed policy.
 - **⚠️ CMS sync investigation (2026-09-13) — one real bug found and fixed.** A report of "CMS data is not syncing" was traced end to end. The **read** path (build-time CMS → static pages) was already correct: every record in every listed collection appears on its page. The **write** path had a genuine failure: `POST /api/comments/submit` returned **404** because the endpoint was registered at the API root with `path: '/comments/submit'`, and `comments` is a collection slug — so Payload's collection router claimed `/api/comments/*` first and parsed `submit` as a document ID. **Every reader comment submission was failing.** Fixed by mounting the endpoint on the Comments collection with a collection-relative path (`/submit`), which resolves to the same public URL and is matched before the collection's generated routes. Verified by `cms/src/verify/endpoints.ts` (real writes over HTTP, read back through the local API, then cleaned up). Commit `3c1e274`.
 - **⚠️ Second gap fixed: the newsletter form rendered a control that could not work.** `NewsletterSignup` gated only on a CMS origin, but the subscribe endpoint refuses with **503** when no mail transport is configured (deliberate — accepting an address that can never be mailed is a lie). The footer therefore showed a subscribe box that always errored. Now gated on `/api/newsletter/status` too, resolved once per build and passed down as a prop. Verified in both directions: absent with no SMTP, present with SMTP. This is the S8 self-hiding rule applied to a precondition the frontend could not previously see.
 - **⚠️ Two harnesses added, and why they did not exist before.** `scripts/verify-cms-sync.mjs` (read path) and `cms/src/verify/endpoints.ts` (write path). The existing S9 harnesses all call the Payload **local API** and never exercise the HTTP routing layer — which is exactly where the collision lived. The write harness deliberately goes over HTTP, performs a real write, reads the row back to prove it landed, and deletes it.
 - **⚠️ Probe method matters.** An early probe sent `GET` to every endpoint and concluded five were missing. That was wrong: a POST-only route answers `GET` with 404, so "missing" and "wrong method" are indistinguishable. Always probe with the method the client actually uses.
 - **⚠️ One S9 build item is deliberately NOT built:** bookmark → CMS sync. The browser-local half is complete and works with no account. The sync half is unblocked but needs a **policy decision** first — a naive union-merge resurrects a bookmark deleted on another device. Raised for the owner rather than guessed at.
 - **User instruction (latest):** "read all docs and everything then continue to work" — taken, per this project's recorded convention, as approval of the previous section plus instruction to build the next one.
-- **⚠️ Open owner question (raised 2026-09-12):** the owner plans to **upgrade DianaHost to a 5 GB plan** and asked whether Cloudflare is still needed. Answer given: **yes** — 5 GB eases storage (and maybe bandwidth) but does not address uptime isolation, the performance gates, or deploy mechanics. **Two figures still needed: the 5 GB plan's monthly bandwidth and its price.** No plan change has been made pending that answer.
+- **⚠️ Open owner question (raised 2026-09-12, resolved 2026-09-14):** the owner planned to upgrade DianaHost to a 5 GB plan and asked whether Cloudflare is still needed. **Owner decision: remove Cloudflare entirely.** Everything on DianaHost only. The 5 GB plan question is separate — still pending bandwidth/price figures.
 - **⚠️ Sequencing note:** S11's **sitemap / news-sitemap / RSS / robots** were built **ahead of the S0→S12 order** on 2026-09-12. They are verified and committed; the remaining S11 work (OG/Twitter, auto OG images, canonical, `llms.txt`, Publisher Center, E-E-A-T pages) is **not** started.
 - **⚠️ Owner action needed:** the E-E-A-T pages (privacy policy, terms of use, contact) must be **created in the CMS**. The `/page/:slug` route is built, but with no Pages in the CMS the footer links still 404.
 - **⚠️ Owner action needed:** `PUBLIC_CMS_ORIGIN` and the CSP `connect-src` host must be set to the real CMS hostname. Both are currently a placeholder (`https://cms.shikkha24.com`), blocked on DNS. Until then the live-blog refresh and the poll vote control are simply not rendered.
@@ -135,7 +135,7 @@ gallery plates. Both now count only what they are responsible for. The rule:
 component `<script>` that is "small enough"** into the HTML. Every inlined script was therefore
 blocked by the browser: the theme toggle, mobile menu, text resizer, demo-ad rotation, copy-link
 button and the `/search` Pagefind bootstrap had been **silently dead since S2**. Nothing local
-ever showed it — the CSP is applied by Cloudflare Pages and the site is not deployed yet. It was
+ever showed it — the CSP is applied by Apache `.htaccess` and the site is not deployed yet. It was
 caught by asserting the built HTML, not by looking at a page.
 
 **Three fixes:** `vite.build.assetsInlineLimit: 0` (Vite's default is 4096 bytes) forces every
@@ -153,7 +153,7 @@ strict CSP profile can stay strict.
   result-day spike the architecture exists to keep off it — and taking the CMS down would also
   remove the newsroom's ability to publish.
 - **Poll votes: persisted to the CMS, with guards.** Honeypot (silent success, no write), per-IP
-  rate limit (20/min, in-process — Cloudflare's free tier has no rate-limiting rules), and a salted
+  rate limit (20/min, in-process — no CDN rate limiting available), and a salted
   `HMAC-SHA256(ip+UA)` duplicate guard unique per poll. The guard row stores **no raw IP, no user
   agent, no timestamp, and not which option was chosen** — only a poll reference and a one-way
   hash. Disclosed on the widget itself.
@@ -197,12 +197,7 @@ eight slots that exist; the collection held no data, so the change was free.
   reader's browser would give up the property that a CMS outage cannot take the site down. A field
   that always reads 0 is worse than no field.
 
-**⚠️ CSP finding — this would have broken AdSense silently.** Cloudflare Pages **joins** a
-duplicated header with a comma rather than overriding it, and a comma-joined CSP is enforced as
-two policies — so the strict `script-src 'self'` would still have blocked AdSense no matter what
-the more specific rule said. A more specific rule must **`!`-detach** the inherited policy before
-setting its own. Applied to `/`, `/article/*`, `/category/*`. **S12 must verify production returns
-exactly one CSP header.**
+**⚠️ CSP finding — this would have broken AdSense silently.** ~~Cloudflare Pages **joins** a duplicated header with a comma rather than overriding it, and a comma-joined CSP is enforced as two policies — so the strict `script-src 'self'` would still have blocked AdSense no matter what the more specific rule said. A more specific rule must **`!`-detach** the inherited policy before setting its own.~~ **Removed 2026-09-14:** Cloudflare is gone. Apache `.htaccess` replaces `_headers`. Apache's `Header set` replaces the value cleanly (no comma-join). The two-profile CSP (strict + relaxed) is now expressed via `<LocationMatch>` blocks. Applied to `/`, `/:category/:id/:slug`, `/category/*`. **S12 must verify production returns exactly one CSP header.**
 
 **Zero CLS:** every slot reserves its box before any ad loads; the AdSense library is injected on
 `window.load` → `requestIdleCallback`, never the copy-paste `<head>` script; in-article ads sit
@@ -400,8 +395,8 @@ the widget and never fails the build.
 
 **Two things the owner must know:**
 1. **Trending is provisional.** A static site cannot accumulate view counts, so
-   the trending list is fed recent articles. Real trending needs Cloudflare Web
-   Analytics feeding a build-time ranking, or an editorial "trending" flag.
+   the trending list is fed recent articles. Real trending needs server-side
+   view counts (Apache access logs or an editorial "trending" flag).
 2. **Demo content exists and must be deleted before launch.** `pnpm seed:demo`
    added 12 articles, 5 deadlines and 1 author so the homepage could be reviewed.
    The production seed (`pnpm seed`) stays **taxonomies-only** per the S1
@@ -553,8 +548,8 @@ rediscovered:
   set). Environment-specific, not a project issue.
 
 **Owner-only gates (cannot be done by an agent):** Payload-on-cPanel-Passenger
-smoke test, `wrangler pages deploy` quota check, DianaHost support ticket, DNS,
-and confirming the R2 80% usage alert.
+smoke test, DNS configuration, DianaHost support ticket, and confirming
+the host-disk usage alert.
 
 ## Completed
 1. ✅ Discovery round 1 (project identity, language, type, team, features, monetization, design, hosting, timeline)
@@ -588,7 +583,7 @@ and confirming the R2 80% usage alert.
 29. ✅ `/sps` v4.0.0 + `/sps-cms` v2.3.0 skills installed into **WorkBuddy AI** (`~/.workbuddy-ai/skills/`) from source `~/.sps/src/Shahid-Personal-SkillSet/skills/` — 60 + 56 files, byte-identical to source (`diff -rq` clean), scripts executable; security audit passed. WorkBuddy was not in the upstream installer's `SYNC_PATHS`, so this was a manual faithful copy; re-sync command recorded below.
 30. ✅ **Independent third-party audit executed** (2026-09-11) — full read-only adversarial review of all 15 documents, live-registry re-verification of every pinned version, and `git log --stat` reconciliation against this handoff. Result: **`not-ready`**, 3 Critical / 5 High / 17 Medium / 8 Low findings. Report at `docs/audit-third-party.md` (commit `46040a8`). Notable: all ten pinned versions matched the live registries exactly, but three documents contained a false claim (item 19), the storage plan could not hold the stack, and the newsletter fallback was non-functional.
 31. ✅ **Scope amended to an education portal** (owner, 2026-09-11) — domain `shikkha24.com` confirmed; owner's positioning: "🎓 Education News | Scholarship | Admission | University | Higher Study / 🌍 দেশ-বিদেশের শিক্ষার সর্বশেষ খবর ও সুযোগ / 📚 শিক্ষার খবর, সুযোগ ও সম্ভাবনা—এক ঠিকানায়।" `docs/master-plan.md` and `docs/competitive-analysis.md` are now **reference-only**; a new education feature inventory, category tree and competitor set are required and cannot be produced without a discovery round.
-32. ✅ **Audit remediation applied** (2026-09-11) — hosting/storage architecture rewritten for the purchased **DianaHost PNR 2 GB** plan (Cloudflare Pages frontend + Cloudflare R2 media + slim CI-built Payload); newsletter path replaced (Oracle rejected); Node 24 LTS claim corrected; SQLite WAL gate moved S12 → S0; four missing CMS collections restored; accessibility and initial-payload targets added; URL architecture decided; data sources documented; CI-minutes constraint documented.
+32. ✅ **Audit remediation applied** (2026-09-11) — hosting/storage architecture rewritten for the purchased **DianaHost PNR 2 GB** plan (DianaHost `public_html` frontend + host-disk media + slim CI-built Payload; **Cloudflare removed 2026-09-14**); newsletter path replaced (Oracle rejected); Node 24 LTS claim corrected; SQLite WAL gate moved S12 → S0; four missing CMS collections restored; accessibility and initial-payload targets added; URL architecture decided; data sources documented; CI-minutes constraint documented.
 33. ✅ **Agent rules amended and a third mirror added** — `CLAUDE.md` created; rules 1–13 verified byte-identical across all three files (4,283 bytes each); rule 4 gained a read-only/audit carve-out; rule 7 gained the no-international-card hard constraint; rule 9 gained page-level wording, an accessibility target and the S12-only TTFB gate; GEMINI.md hardening renumbered H1–H14.
 34. ✅ New documents created: `docs/data-sources.md` (per-widget provider, free-tier terms, rate limit, fallback), `.sps/content-model.md`, `.sps/mistakes.md`, `.sps/lock.json` — ⚠️ correction: `.sps/lock.json` was **deliberately NOT created**; the `sps` skill references removing it but defines no schema (see `.sps/mistakes.md`).
 35. ✅ **Education competitor landscape researched** (2026-09-11) — `docs/education-competitors.md`. Five groups mapped with URLs: dedicated education portals (Dainik Shiksha, Shiksha Sangbad — the direct competitors), education sections of general portals, official government portals (educationboardresults.gov.bd, xiclassadmission.gov.bd), third-party SEO aggregators (xiadmission.bd, xiclass.bd, eduboardresults.bd, sscresult.govt.bd), and exam-prep platforms (bcsstudy.com, xam.bd, bdjobprep.com). Key finding: the aggregators rank on the highest-intent queries with slow, ad-heavy pages — the same "faster, cleaner, zero-CLS" wedge the original research identified against Prothom Alo, applied to a market with much weaker incumbents.
@@ -603,16 +598,16 @@ and confirming the R2 80% usage alert.
 38. ✅ **Six missing operational documents created** (2026-09-11) — owner asked whether all documentation types existed (Lighthouse, SEO, security, crash handling, overload, etc.). A coverage scan found real gaps: **security, crash handling, overload management, monitoring/alerting, backup/DR, accessibility and testing had no coverage at all**, and performance/SEO existed only as scattered targets. Created:
    - `docs/performance-budget.md` — per-asset byte budgets, per-page targets, measurement method, CI gate, and the honest **AdSense-vs-Lighthouse-≥95 trade-off** (AdSense will rarely hold ≥95; two measurement profiles proposed)
    - `docs/seo-plan.md` — per-template metadata + schema matrix (incl. education-specific `CollegeOrUniversity`, `JobPosting`, `Course`), sitemaps/feeds, keyword clusters, redirect policy, and the **Bengali-vs-ASCII slug decision** (recommendation: ASCII slugs, Bengali in title/h1/schema)
-   - `docs/security.md` — threat model, attack surface, auth/2FA, headers + CSP (two profiles because AdSense forces a relaxation), input validation, rate limiting (noting Cloudflare's free tier has **no** configurable rate-limiting rules), PII handling, supply-chain scanning, and SPF/DKIM/DMARC
-   - `docs/reliability.md` — ranked failure-mode table, error pages, per-feature graceful degradation, capacity model, traffic-spike playbook, monitoring/alerting, single-operator incident playbook. Key structural finding: **the CMS can go down without the site going down**, because the frontend is static on Cloudflare Pages — that property must never be given up
+   - `docs/security.md` — threat model, attack surface, auth/2FA, headers + CSP (two profiles because AdSense forces a relaxation, delivered via Apache `.htaccess`), input validation, rate limiting (no CDN rate limiting), PII handling, supply-chain scanning, and SPF/DKIM/DMARC
+   - `docs/reliability.md` — ranked failure-mode table, error pages, per-feature graceful degradation, capacity model, traffic-spike playbook, monitoring/alerting, single-operator incident playbook. Key structural finding: **the CMS can go down without the site going down**, because the frontend is static HTML on disk (Apache serves it without Node.js) — that property must never be given up
    - `docs/backup-and-recovery.md` — the entire archive is one SQLite file on a shared host; backup tiers, RPO 24h / RTO 4h, four DR scenarios, restore runbook, and the rule that **an untested backup is not a backup**
    - `docs/testing-and-qa.md` — quality gates, honest test scope, **WCAG 2.2 AA** (correcting the old "AAA" claim), browser/device matrix including **UC Browser and Opera Mini** (significant in Bangladesh), and the Bengali conjunct/rendering audit
    - Wired into `.sps/plan.md` (new Operational plans section + 5 new S0/S12 gates), `.sps/task.md` (S0 and S12 expanded), and the README doc map. Two cross-cutting requirements surfaced that did not previously exist: a **feature-flag mechanism** and a **verified card-free monitoring tool**.
 39. ✅ **All 12 outstanding questions answered by the owner; decisions applied** (2026-09-11/12):
    - **Publishing velocity = baseline 15–20/day + burst to 40+ on event days.** The flat 45–70/day target is retired. 5-person editorial team already in place; greenfield launch; no migration.
-   - **DianaHost runs Node.js 20.18.2 — a significant finding.** `astro@7.3.2` (`>=22.12.0`) and `vite@8.3.0` (`^20.19.0 || >=22.12.0`) **cannot run on it**, so they build in CI only. This independently validates the Cloudflare Pages split — had the frontend been built on the host, Astro 7 would have been impossible. `next@16.3.4` and `@payloadcms/next@3.89.0` do accept `>=20.9.0`, so Payload runs there. **But Node 20 reached end-of-life 2026-04-30** — an unpatched runtime hosting the CMS admin. DianaHost's cPanel has a **Node.js Selector version drop-down**; the owner should select 22/24 if offered.
-   - **Cloudflare has a payment method on file** → R2 is enableable. Could not be verified from here: `wrangler` 4.125.0 is installed but **not authenticated**, and no API token is present. Owner command: `wrangler login && wrangler r2 bucket list`. Because a card is on file, **overage is now billable** — an 80% usage alert is required.
-   - **Repository is PRIVATE** → 2,000 Actions minutes/month. Owner asked the excellent question *"why do I need CI for an article to upload? The admin can't access GitHub."* Answer documented in the new **`docs/hosting-and-deployment.md`**: editors only ever use the Payload admin (a normal web CMS); CI is the invisible rebuild step that turns a publish into a static HTML file. Also documented: the escalation ladder, and the fact that **Cloudflare Pages free = 500 builds/month** (tighter than GitHub's quota) and **20,000 files/site** (reached in ~2–3 years at target volume).
+   - **DianaHost runs Node.js 20.18.2 — a significant finding.** `astro@7.3.2` (`>=22.12.0`) and `vite@8.3.0` (`^20.19.0 || >=22.12.0`) **cannot run on it**, so they build in CI only. `next@16.3.4` and `@payloadcms/next@3.89.0` do accept `>=20.9.0`, so Payload runs there. **But Node 20 reached end-of-life 2026-04-30** — an unpatched runtime hosting the CMS admin. DianaHost's cPanel has a **Node.js Selector version drop-down**; the owner should select 22/24 if offered.
+   - **All Cloudflare services removed (2026-09-14)** — owner decision. No Pages, no R2, no CDN, no Web Analytics. Everything on DianaHost only. Frontend deploys to `public_html` via rsync. Backups to GitHub Actions artifacts. Security headers via Apache `.htaccess`. See `.sps/cloudflare-removal-plan.md`.
+   - **Repository is PRIVATE** → 2,000 Actions minutes/month. Owner asked the excellent question *"why do I need CI for an article to upload? The admin can't access GitHub."* Answer documented in the new **`docs/hosting-and-deployment.md`**: editors only ever use the Payload admin (a normal web CMS); CI is the invisible rebuild step that turns a publish into a static HTML file. Also documented: the escalation ladder and the single CI quota (GitHub 2,000 min/month; Cloudflare Pages quota removed 2026-09-14).
    - **AdSense is activated** → AdSense definitely ships, so the **two-profile Lighthouse measurement** is adopted: **≥95 no-ads / ≥85 with-ads**.
    - **Social login kept** — Meta Login and Google OAuth are free; only app review (a process, not a cost) is needed, so the owner's "no cost" rule does not exclude them.
    - **Logo:** real Illustrator-exported logo at `docs/assets/logo.svg` (owner-supplied 2026-09-13), and the logo is a **CMS-managed Site Settings field** so the asset swaps in without a code change.
@@ -639,13 +634,13 @@ and confirming the R2 80% usage alert.
 - **Newsletter: self-built Payload subscriber list + campaign module; delivery via free-tier ESP API; cPanel SMTP as low-volume fallback** (Listmonk and Oracle both rejected)
 - **Third-party policy: no paid services at all — the owner has no international card.** Any service requiring a card at signup is unusable
 - CI/CD: GitHub Actions, with **rebuilds debounced/batched** to stay inside the 2,000 min/month private-repo quota
-- **Hosting: DianaHost PNR 2 GB SSD NVMe (purchased, ~$47/year) + Cloudflare Pages (frontend) + Cloudflare R2 (media)**
-- CDN: Cloudflare free tier
+- **Hosting: DianaHost PNR 2 GB SSD NVMe (purchased, ~$47/year) — frontend on `public_html`, media on host disk, CMS standalone. No Cloudflare (removed 2026-09-14).**
+- CDN: None — DianaHost direct (no CDN, owner decision 2026-09-14)
 - Typography: Hind Siliguri (headlines) + Noto Sans Bengali (body) + Inter (English)
 - **Audio reader: Browser Web Speech API; the twice-daily audio bulletin is descoped**
 - **Utility widgets: free public APIs only; descope anything with no free source**
 - **Content velocity: ✅ DECIDED — baseline 15–20/day + burst to 40+ on result/admission days.** Replaces the flat 45–70/day target (which implied 15–23 staff). 5-person team already in place; greenfield launch.
-- **Deployment: private repo + GitHub Actions (Node 24) → Cloudflare Pages (`wrangler` direct upload) + DianaHost.** Two rebuild quotas to manage: GitHub 2,000 min/month and Cloudflare Pages 500 builds/month. See `docs/hosting-and-deployment.md`
+- **Deployment: private repo + GitHub Actions (Node 24) → DianaHost `public_html` (rsync) + DianaHost CMS (SSH).** One rebuild quota: GitHub 2,000 min/month. See `docs/hosting-and-deployment.md`
 - **DianaHost runs Node.js 20.18.2 (EOL 2026-04-30)** — Astro/Vite cannot run there (CI only); Payload/Next can. cPanel has a Node.js Selector to upgrade
 - Features: ALL features on Day 1 (no phasing) — performance budget enforced **per page template**, not "per feature"
 - Workflow: section-by-section approval gates; zero assumptions; immediate commits; docs consistency (docs updated first when scope changes)
@@ -662,18 +657,16 @@ and confirming the R2 80% usage alert.
 - [ ] **`NEWSLETTER_SEND_TOKEN` and `PUSH_SEND_TOKEN`** (`openssl rand -hex 32`) wired into cron. **Both endpoints are disabled while their token is unset** — an endpoint that can mail the whole list or push to every subscriber must not be reachable by accident.
 - [ ] **SMTP credentials** for the bulk-sending subdomain `mail.shikkha24.com` + SPF/DKIM/DMARC (S12 gate).
 - [ ] **Host-disk usage alert** — DianaHost publishes no storage metric; needs the support ticket.
-- [x] ✅ **Backup doc updated** (commit `1697caa`) — `docs/backup-and-recovery.md` now reflects host-disk media. Tier 1 includes `data/media/` alongside the SQLite file; all DR scenarios, verification checklist, and open-items updated. R2 versioning item removed (media is no longer on R2).
+- [x] ✅ **Backup doc updated** (commit `1697caa`, updated 2026-09-14) — `docs/backup-and-recovery.md` now reflects host-disk media and no Cloudflare R2. Tier 1 includes `data/media/` alongside the SQLite file; backups go to GitHub Actions artifacts. All DR scenarios, verification checklist, and open-items updated.
 
-**Owner actions for S0 (all four can be done in one sitting):**
+**Owner actions for S0 (all can be done in one sitting):**
 - [ ] **cPanel → Software → Select Node.js Version → Edit → Change Node.js version** — select 22.x or 24.x if offered. The host currently runs **20.18.2, which is end-of-life**
 - [ ] **One DianaHost support ticket** — inode/file-count quota, CPU/memory/process limits, hourly email send limits, and whether account-level backups exist. **None are published in their knowledge base**
-- [ ] **Verify R2:** `wrangler login && wrangler r2 bucket list` — then set an 80% usage alert (a card is on file, so overage is billable)
-- [ ] **DNS configuration for shikkha24.com** — the domain is registered; the owner will supply the DNS details
+- [ ] **DNS configuration for shikkha24.com** — the domain is registered; point at DianaHost nameservers (not Cloudflare). The owner will supply the DNS details.
 
 **Then:**
 - [ ] Start **S0** on the owner's "go"
 - [ ] Measure a real **Astro incremental build time** (S0 gate — decides the CI/batching strategy)
-- [ ] Verify **`wrangler pages deploy`** does not consume the 500/month Pages build quota
 - [ ] Hands-on audit of the two direct competitors (Dainik Shiksha, Shiksha Sangbad)
 - [x] Real logo asset — ✅ supplied 2026-09-13, `docs/assets/logo.svg`
 - [ ] Legal details for the E-E-A-T pages — owner provides **before final deploy**
@@ -685,7 +678,7 @@ and confirming the R2 80% usage alert.
 - [x] Domain purchase — ✅ `shikkha24.com` (reachability not verified from the audit environment)
 - [x] DianaHost plan purchase — ✅ PNR 2 GB SSD NVMe
 - [ ] Confirm with DianaHost: Node.js version availability (≥22.12 required) and the inode/file-count quota
-- [ ] Confirm Cloudflare R2 can be enabled without a payment method (S0 exit gate)
+- [x] ~~Confirm Cloudflare R2 can be enabled without a payment method~~ — **REMOVED 2026-09-14.** No Cloudflare R2.
 - [ ] Decide the CI rebuild strategy (debounce/batch vs public repo)
 - [ ] Reconcile the desk allocation with whatever velocity is chosen — the general-news desk split (which sums to 42–56/day) must be redrawn around education desks
 - [ ] Build S0 → S12 (one section at a time, approval-gated)

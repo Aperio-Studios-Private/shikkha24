@@ -123,7 +123,7 @@ export const SiteSettings: GlobalConfig = {
       label: { en: 'Tracking scripts', bn: 'ট্র্যাকিং স্ক্রিপ্ট' },
       admin: {
         description:
-          'ঐচ্ছিক। AdSense ও Cloudflare Web Analytics ব্যবহৃত হবে; GA4 ইচ্ছাকৃতভাবে বাদ (docs/performance-budget.md §4)।',
+          'ঐচ্ছিক। AdSense ব্যবহৃত হবে; GA4 ইচ্ছাকৃতভাবে বাদ (docs/performance-budget.md §4)।',
       },
       fields: [
         {

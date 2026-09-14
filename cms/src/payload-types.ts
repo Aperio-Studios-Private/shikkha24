@@ -2355,7 +2355,7 @@ export interface SiteSetting {
     ministryRegistration?: string | null;
   };
   /**
-   * ঐচ্ছিক। AdSense ও Cloudflare Web Analytics ব্যবহৃত হবে; GA4 ইচ্ছাকৃতভাবে বাদ (docs/performance-budget.md §4)।
+   * ঐচ্ছিক। AdSense ব্যবহৃত হবে; GA4 ইচ্ছাকৃতভাবে বাদ (docs/performance-budget.md §4)।
    */
   tracking?: {
     adsenseClientId?: string | null;

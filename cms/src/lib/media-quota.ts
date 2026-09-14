@@ -3,8 +3,7 @@
  *
  * ## Why this exists
  *
- * The owner moved media off Cloudflare R2 onto the DianaHost disk on
- * 2026-09-12 (`.sps/plan.md` §"Scope amendment (2026-09-12)"). That disk is
+ * Media is on the DianaHost disk (moved there 2026-09-12). That disk is
  * **2 GB, shared with the app, the database and the backups**, and at the
  * approved velocity of 15–20 articles/day the library grows 150–270 MB/month —
  * 7–13 months to full.

@@ -23,14 +23,14 @@ astro dev stop
 
 ## What this workspace is
 
-Astro 7 static output, deployed to Cloudflare Pages. It is **built in CI only** —
+Astro 7 static output, deployed to DianaHost `public_html`. It is **built in CI only** —
 Astro 7 and Vite 8 cannot run on DianaHost's Node 20.18.2
 (`docs/hosting-and-deployment.md` §5).
 
 - `src/styles/global.css` — design tokens + Bengali typography floor
 - `src/styles/fonts.css` — auto-generated; regenerate with `node scripts/fetch-fonts.mjs`
 - `src/lib/feature-flags.ts` — build-time feature flags
-- `public/_headers` — Cloudflare security headers and the strict CSP profile
+- `public/.htaccess` — Apache security headers and the strict CSP profile
 
 ## Astro documentation
 

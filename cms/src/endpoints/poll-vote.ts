@@ -161,11 +161,11 @@ export const pollVoteEndpoint: Endpoint = {
   },
 }
 
-/** Best-effort client IP. Cloudflare puts the real address first in the list. */
+/** Best-effort client IP. Passenger passes it via x-forwarded-for (first entry). */
 function clientIp(req: PayloadRequest): string {
   const forwarded = req.headers.get('x-forwarded-for')
   if (forwarded) return forwarded.split(',')[0]?.trim() || 'unknown'
-  return req.headers.get('cf-connecting-ip') ?? req.headers.get('x-real-ip') ?? 'unknown'
+  return req.headers.get('x-real-ip') ?? 'unknown'
 }
 
 /**

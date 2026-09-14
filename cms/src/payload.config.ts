@@ -59,8 +59,8 @@ const dirname = path.dirname(filename)
  * signup, the bookmark sync and the push subscription. So the allow-list is
  * explicit.
  *
- * The public site is on Cloudflare Pages, a different origin from the CMS, so
- * without this the browser blocks the call before it is sent.
+ * The public site is on DianaHost `public_html`, a different origin from the
+ * CMS, so without this the browser blocks the call before it is sent.
  */
 const ALLOWED_ORIGINS = [
   process.env.PUBLIC_SITE_URL || 'https://shikkha24.com',
