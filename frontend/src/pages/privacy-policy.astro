@@ -1,0 +1,200 @@
+---
+/**
+ * Privacy policy — `/privacy-policy`.
+ *
+ * Required for launch: Google News / E-E-A-T eligibility expects a reachable
+ * privacy policy, and the footer links to it from every page.
+ *
+ * ⚠️ **Why this is a static route, not a `/page/[slug]` CMS page.** The footer
+ * originally linked to `/page/privacy-policy`, but the CMS `pages` collection is
+ * empty, so that URL 404'd on every page (171 broken links across 82 pages,
+ * found in the 2026-09-14 audit). `/about` and `/contact` had already moved to
+ * static routes for the same reason, so this follows that pattern.
+ *
+ * The content describes what the site **actually** does, read from the code:
+ * comments and newsletter store data in the CMS; bookmarks and reading
+ * preferences stay in the browser; AdSense sets advertising cookies; `ipwho.is`
+ * receives the reader's IP for approximate location; prayer/weather data is
+ * fetched server-side at build time and sends nothing about the reader.
+ * If a feature's data handling changes, this page must change with it.
+ */
+import Layout from '../layouts/Layout.astro'
+import Breadcrumbs from '../components/Breadcrumbs.astro'
+import { getSiteSettings, getCategories, getFooterPages, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../lib/cms'
+
+const [settings, categories, footerPages] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+])
+
+/** Contact details, so the policy names a real address a reader can write to. */
+const contactEmail = settings.contact?.email
+const contactAddress = settings.contact?.address
+
+const sections = [
+  {
+    id: 'collect',
+    heading: 'আমরা কী তথ্য সংগ্রহ করি',
+    body: [
+      'আমরা শুধু সেই তথ্যই নিই যা একটি সেবা চালানোর জন্য প্রয়োজন। কোনো অতিরিক্ত তথ্য চাই না।',
+    ],
+    list: [
+      'মন্তব্য: আপনার দেওয়া নাম, এবং সোশ্যাল লগইন ব্যবহার করলে প্রোভাইডারের পরিচয়। ইমেইল দেওয়া বাধ্যতামূলক নয়।',
+      'নিউজলেটার: আপনার ইমেইল ঠিকানা। সাবস্ক্রিপশন নিশ্চিত করার জন্য একটি যাচাইকরণ লিংক পাঠানো হয়।',
+      'খবর পাঠান (সিটিজেন জার্নালিজম): আপনি যে তথ্য, ছবি বা যোগাযোগের বিবরণ জমা দেন।',
+      'শেষ সময়সীমার রিমাইন্ডার: আপনি সম্মতি দিলে ব্রাউজারের পুশ সাবস্ক্রিপশন ঠিকানা।',
+    ],
+  },
+  {
+    id: 'browser',
+    heading: 'ব্রাউজারেই যা থাকে',
+    body: [
+      'নিচের তথ্য আপনার ডিভাইসেই সংরক্ষিত হয় এবং আমাদের সার্ভারে যায় না — সাইন ইন না করলে:',
+    ],
+    list: [
+      'সংরক্ষিত খবরের তালিকা (বুকমার্ক)',
+      'পঠন পছন্দ: থিম (হালকা/গাঢ়), লেখার আকার',
+      'অ্যাপ ইনস্টল বা পুশ সংক্রান্ত ব্রাউজার সেটিং',
+    ],
+  },
+  {
+    id: 'third-party',
+    heading: 'তৃতীয় পক্ষের সেবা',
+    body: [
+      'কিছু সেবা চালাতে আমরা বাইরের প্রতিষ্ঠানের উপর নির্ভর করি। তারা কী দেখতে পায়, তা নিচে বলা হলো:',
+    ],
+    list: [
+      'Google AdSense — বিজ্ঞাপন দেখানোর জন্য। এটি কুকি ব্যবহার করে এবং আপনার ব্রাউজিং আচরণের ভিত্তিতে বিজ্ঞাপন দেখাতে পারে।',
+      'ipwho.is — আপনার আইপি ঠিকানা থেকে শুধু আনুমানিক এলাকা (শহর/দেশ) জানতে। এটি কুকি ব্যবহার করে না এবং কোনো অনুমতি চায় না। নামাজের সময় ও আবহাওয়া দেখাতে এটি লাগে।',
+      'Aladhan ও Open-Meteo — নামাজের সময় ও আবহাওয়ার তথ্য। এগুলো সাইট তৈরির সময়েই আনা হয়, তাই আপনার কোনো তথ্য এদের কাছে যায় না।',
+      'YouTube — ভিডিও প্লে না করলে কোনো অনুরোধ যায় না। আমরা youtube-nocookie ডোমেইন ব্যবহার করি, যা প্লে করার আগে ট্র্যাকিং কুকি বসায় না।',
+      'Google ও Facebook — শুধু আপনি নিজে সাইন ইন করার সিদ্ধান্ত নিলে।',
+    ],
+  },
+  {
+    id: 'use',
+    heading: 'তথ্য কীভাবে ব্যবহার করি',
+    body: [
+      'সংগৃহীত তথ্য শুধু সংশ্লিষ্ট সেবা দিতেই ব্যবহার করা হয় — মন্তব্য প্রকাশ করা, নিউজলেটার পাঠানো, সময়সীমার রিমাইন্ডার দেওয়া।',
+      'আমরা কোনো পাঠকের তথ্য বিক্রি করি না, ভাড়া দিই না, এবং বিজ্ঞাপনদাতার কাছে হস্তান্তর করি না।',
+    ],
+  },
+  {
+    id: 'retention',
+    heading: 'কতদিন রাখি ও কীভাবে মুছবেন',
+    body: [
+      'যতদিন সেবাটি সক্রিয় থাকে, ততদিন তথ্য রাখা হয়। আপনি যেকোনো সময় আপনার তথ্য মুছে ফেলার অনুরোধ করতে পারেন।',
+    ],
+    contact: true,
+  },
+]
+
+const legal = settings.legal ?? {}
+const legalRows = [
+  { label: 'ট্রেড লাইসেন্স', value: legal.tradeLicense },
+  { label: 'টিআইএন (TIN)', value: legal.tin },
+  { label: 'তথ্য মন্ত্রণালয় নিবন্ধন', value: legal.ministryRegistration },
+].filter((row) => Boolean(row.value))
+---
+
+<Layout
+  title="গোপনীয়তা নীতি"
+  description={`${settings.siteName} — গোপনীয়তা নীতি। আমরা কী তথ্য সংগ্রহ করি, কেন করি এবং কীভাবে মুছে ফেলতে পারেন।`}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'গোপনীয়তা নীতি' }]} />
+
+    <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+      গোপনীয়তা নীতি
+    </h1>
+
+    <p class="mt-3 max-w-3xl text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+      এই নীতিতে বলা হয়েছে <strong class="font-semibold text-ink dark:text-dark-ink">{settings.siteName}</strong>
+      আপনার সম্পর্কে কী তথ্য নেয়, কেন নেয় এবং আপনি কীভাবে তা মুছে ফেলতে পারেন।
+    </p>
+
+    <div class="mt-8 max-w-3xl space-y-8">
+      {
+        sections.map((section) => (
+          <section id={section.id} aria-labelledby={`h-${section.id}`}>
+            <h2
+              id={`h-${section.id}`}
+              class="font-headline text-lg font-bold text-ink dark:text-dark-ink"
+            >
+              {section.heading}
+            </h2>
+            {section.body.map((paragraph) => (
+              <p class="mt-3 text-base leading-relaxed text-ink dark:text-dark-ink">{paragraph}</p>
+            ))}
+            {section.list && (
+              <ul class="mt-3 space-y-2 pl-5 text-base leading-relaxed text-ink dark:text-dark-ink">
+                {section.list.map((item) => (
+                  <li class="list-disc">{item}</li>
+                ))}
+              </ul>
+            )}
+            {section.contact && (
+              <p class="mt-3 text-base leading-relaxed text-ink dark:text-dark-ink">
+                অনুরোধ করতে ইমেইল করুন
+                {contactEmail ? (
+                  <>
+                    {' '}
+                    <a href={`mailto:${contactEmail}`} class="text-brand-red hover:underline">
+                      {contactEmail}
+                    </a>
+                  </>
+                ) : (
+                  <> আমাদের <a href="/contact" class="text-brand-red hover:underline">যোগাযোগ</a> পাতার ঠিকানায়</>
+                )}
+                {contactAddress ? ` অথবা লিখুন: ${contactAddress}।` : '।'}
+              </p>
+            )}
+          </section>
+        ))
+      }
+
+      <section id="ads" aria-labelledby="h-ads">
+        <h2 id="h-ads" class="font-headline text-lg font-bold text-ink dark:text-dark-ink">
+          বিজ্ঞাপন ও কুকি
+        </h2>
+        <p class="mt-3 text-base leading-relaxed text-ink dark:text-dark-ink">
+          এই সাইটে Google AdSense-এর বিজ্ঞাপন থাকতে পারে। Google ও তার অংশীদাররা বিজ্ঞাপন দেখাতে
+          কুকি ব্যবহার করে। আপনি চাইলে আপনার ব্রাউজারের সেটিংস থেকে কুকি বন্ধ বা মুছে ফেলতে পারেন —
+          সাইটটি তবুও পড়া যাবে।
+        </p>
+      </section>
+
+      {
+        legalRows.length > 0 && (
+          <section
+            id="ownership"
+            aria-labelledby="h-ownership"
+            class="border-t border-rule pt-6 dark:border-dark-rule"
+          >
+            <h2 id="h-ownership" class="font-headline text-lg font-bold text-ink dark:text-dark-ink">
+              প্রকাশক
+            </h2>
+            <dl class="mt-3 grid gap-3 sm:grid-cols-2">
+              {legalRows.map((row) => (
+                <div class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
+                  <dt class="text-sm font-medium text-ink-muted dark:text-dark-ink-muted">
+                    {row.label}
+                  </dt>
+                  <dd class="mt-1 text-base text-ink dark:text-dark-ink">{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )
+      }
+
+      <p class="border-t border-rule pt-6 text-sm text-ink-muted dark:border-dark-rule dark:text-dark-ink-muted">
+        শেষ হালনাগাদ: {new Date().toLocaleDateString('bn-BD', { year: 'numeric', month: 'long' })}
+      </p>
+    </div>
+  </div>
+</Layout>

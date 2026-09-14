@@ -1,0 +1,178 @@
+---
+/**
+ * Terms of use — `/terms-of-use`.
+ *
+ * Required for launch: Google News / E-E-A-T eligibility expects reachable
+ * terms, and the footer links here from every page.
+ *
+ * ⚠️ **Why this is a static route, not a `/page/[slug]` CMS page.** Same reason
+ * as `/privacy-policy` — the footer linked to `/page/terms-of-use`, but the CMS
+ * `pages` collection is empty, so it 404'd everywhere (171 broken links, found
+ * in the 2026-09-14 audit). `/about` and `/contact` already use static routes.
+ *
+ * The terms describe the site's actual editorial and comment behaviour, read
+ * from the code: comments are moderated before publication, sponsored content is
+ * labelled «বিজ্ঞাপন», and reader submissions are reviewed before use. If those
+ * behaviours change, this page must change with them.
+ */
+import Layout from '../layouts/Layout.astro'
+import Breadcrumbs from '../components/Breadcrumbs.astro'
+import { getSiteSettings, getCategories, getFooterPages, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../lib/cms'
+
+const [settings, categories, footerPages] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+])
+
+const contactEmail = settings.contact?.email
+
+const sections = [
+  {
+    id: 'acceptance',
+    heading: 'শর্তাবলীর স্বীকৃতি',
+    paragraphs: [
+      `এই সাইট ব্যবহার করার অর্থ আপনি নিচের শর্তাবলী মেনে নিচ্ছেন। আপনি যদি এগুলোতে সম্মত না হন, তাহলে সাইটটি ব্যবহার করা থেকে বিরত থাকুন।`,
+    ],
+  },
+  {
+    id: 'content',
+    heading: 'সংবাদের ব্যবহার',
+    paragraphs: [
+      'এই সাইটের সংবাদ, ছবি ও অন্যান্য উপাদান আমাদের বা সংশ্লিষ্ট সূত্রের সম্পত্তি। ব্যক্তিগত পড়া, শেয়ার করা বা শিক্ষামূলক ব্যবহারের জন্য আপনি লিংক দিতে পারেন।',
+      'তবে সংবাদের পুরো লেখা কপি করে অন্য কোথাও নিজের নামে প্রকাশ করা যাবে না। উদ্ধৃতি দিলে সূত্র হিসেবে এই সাইটের নাম ও লিংক দিতে হবে।',
+    ],
+  },
+  {
+    id: 'comments',
+    heading: 'মন্তব্য ও পাঠকের অবদান',
+    paragraphs: [
+      'মন্তব্য প্রকাশের আগে পর্যালোচনা করা হয়। তাই মন্তব্য পাঠানোর সঙ্গে সঙ্গে তা দৃশ্যমান হয় না।',
+      'আমরা অপমানজনক, উসকানিমূলক, বর্ণবাদী, সাম্প্রদায়িক বা বিভ্রান্তিকর মন্তব্য প্রকাশ করি না। এমন মন্তব্য মুছে ফেলার এবং প্রয়োজনে সংশ্লিষ্ট অ্যাকাউন্ট বন্ধ করার অধিকার আমাদের আছে।',
+      'আপনি যে মন্তব্য বা খবর জমা দেন, তা প্রকাশ, সম্পাদনা ও প্রচারের অনুমতি আমাদের দিচ্ছেন।',
+    ],
+  },
+  {
+    id: 'accuracy',
+    heading: 'তথ্যের নির্ভুলতা ও সংশোধন',
+    paragraphs: [
+      'আমরা প্রতিটি খবর যাচাই করে প্রকাশ করার চেষ্টা করি। তবে শিক্ষা সংক্রান্ত নিয়ম, সময়সীমা ও বিজ্ঞপ্তি প্রায়ই পরিবর্তিত হয়।',
+      'তাই কোনো সিদ্ধান্ত নেওয়ার আগে সর্বশেষ সরকারি বা প্রাতিষ্ঠানিক ঘোষণা যাচাই করে নিন। এই সাইটের তথ্যের ভিত্তিতে নেওয়া কোনো সিদ্ধান্তের দায় আমাদের নয়।',
+      'কোনো ভুল চোখে পড়লে জানাবেন — আমরা দ্রুত সংশোধন করি।',
+    ],
+  },
+  {
+    id: 'sponsored',
+    heading: 'বিজ্ঞাপন ও স্পনসর্ড কনটেন্ট',
+    paragraphs: [
+      'স্পনসর্ড বা বিজ্ঞাপনী কনটেন্ট স্পষ্টভাবে «বিজ্ঞাপন» লেবেল দিয়ে প্রকাশ করা হয়, যাতে পাঠক সহজেই আলাদা করতে পারেন।',
+      'বিজ্ঞাপনদাতার বিষয়বস্তুর উপর সম্পাদকীয় সিদ্ধান্তের কোনো প্রভাব নেই।',
+    ],
+  },
+  {
+    id: 'liability',
+    heading: 'দায়সীমা',
+    paragraphs: [
+      'সাইটটি "যেমন আছে" সেই অবস্থায় দেওয়া হয়। সাইট বন্ধ থাকা, কোনো তথ্য অনুপস্থিত থাকা বা বাইরের লিংকের বিষয়বস্তুর জন্য আমরা দায়ী নই।',
+      'এই শর্তাবলী যেকোনো সময় পরিবর্তন করা হতে পারে। পরিবর্তনের পর সাইট ব্যবহার চালিয়ে গেলে আপনি নতুন শর্তাবলীতেও সম্মত হচ্ছেন।',
+    ],
+  },
+]
+
+const legal = settings.legal ?? {}
+const legalRows = [
+  { label: 'ট্রেড লাইসেন্স', value: legal.tradeLicense },
+  { label: 'টিআইএন (TIN)', value: legal.tin },
+  { label: 'তথ্য মন্ত্রণালয় নিবন্ধন', value: legal.ministryRegistration },
+].filter((row) => Boolean(row.value))
+---
+
+<Layout
+  title="ব্যবহারের শর্তাবলী"
+  description={`${settings.siteName} — ব্যবহারের শর্তাবলী। সংবাদের ব্যবহার, মন্তব্যের নিয়ম ও দায়সীমা।`}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'ব্যবহারের শর্তাবলী' }]} />
+
+    <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+      ব্যবহারের শর্তাবলী
+    </h1>
+
+    <p class="mt-3 max-w-3xl text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+      এই পাতায় বলা হয়েছে <strong class="font-semibold text-ink dark:text-dark-ink">{settings.siteName}</strong>
+      ব্যবহারের নিয়ম, মন্তব্যের শর্ত এবং আমাদের দায়সীমা।
+    </p>
+
+    <div class="mt-8 max-w-3xl space-y-8">
+      {
+        sections.map((section) => (
+          <section id={section.id} aria-labelledby={`h-${section.id}`}>
+            <h2
+              id={`h-${section.id}`}
+              class="font-headline text-lg font-bold text-ink dark:text-dark-ink"
+            >
+              {section.heading}
+            </h2>
+            {section.paragraphs.map((paragraph) => (
+              <p class="mt-3 text-base leading-relaxed text-ink dark:text-dark-ink">{paragraph}</p>
+            ))}
+          </section>
+        ))
+      }
+
+      <section
+        id="contact"
+        aria-labelledby="h-contact"
+        class="border-t border-rule pt-6 dark:border-dark-rule"
+      >
+        <h2 id="h-contact" class="font-headline text-lg font-bold text-ink dark:text-dark-ink">
+          যোগাযোগ
+        </h2>
+        <p class="mt-3 text-base leading-relaxed text-ink dark:text-dark-ink">
+          শর্তাবলী নিয়ে কোনো প্রশ্ন থাকলে
+          {contactEmail ? (
+            <>
+              {' '}
+              <a href={`mailto:${contactEmail}`} class="text-brand-red hover:underline">
+                {contactEmail}
+              </a>
+              {' '}ঠিকানায় ইমেইল করুন, অথবা
+            </>
+          ) : null}
+          {' '}আমাদের <a href="/contact" class="text-brand-red hover:underline">যোগাযোগ</a> পাতা দেখুন।
+        </p>
+      </section>
+
+      {
+        legalRows.length > 0 && (
+          <section
+            id="publisher"
+            aria-labelledby="h-publisher"
+            class="border-t border-rule pt-6 dark:border-dark-rule"
+          >
+            <h2 id="h-publisher" class="font-headline text-lg font-bold text-ink dark:text-dark-ink">
+              প্রকাশক
+            </h2>
+            <dl class="mt-3 grid gap-3 sm:grid-cols-2">
+              {legalRows.map((row) => (
+                <div class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
+                  <dt class="text-sm font-medium text-ink-muted dark:text-dark-ink-muted">
+                    {row.label}
+                  </dt>
+                  <dd class="mt-1 text-base text-ink dark:text-dark-ink">{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )
+      }
+
+      <p class="border-t border-rule pt-6 text-sm text-ink-muted dark:border-dark-rule dark:text-dark-ink-muted">
+        শেষ হালনাগাদ: {new Date().toLocaleDateString('bn-BD', { year: 'numeric', month: 'long' })}
+      </p>
+    </div>
+  </div>
+</Layout>

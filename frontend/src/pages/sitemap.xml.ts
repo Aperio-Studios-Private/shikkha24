@@ -89,15 +89,21 @@ export const GET: APIRoute = async () => {
   ]
 
   /**
-   * E-E-A-T pages (privacy, terms, contact). Empty until they exist in the CMS.
+   * E-E-A-T pages (about, contact, privacy, terms).
    *
-   * `/about` and `/contact` are built into the site rather than authored, so
-   * they are listed here directly. `/about-us` is deliberately absent: it is a
-   * redirect stub, and a redirect in a sitemap is a soft 404 to a crawler.
+   * These are built into the site rather than authored in the CMS, so they are
+   * listed here directly. The `pages` collection is currently empty, so the
+   * `/page/:slug` mapping below contributes nothing — but it stays because it is
+   * the correct behaviour once an editor adds a CMS page.
+   *
+   * `/about-us` is deliberately absent: it is a redirect stub, and a redirect in
+   * a sitemap is a soft 404 to a crawler.
    */
   const pages: SitemapEntry[] = [
     { loc: '/about', priority: '0.4', changefreq: 'yearly' },
     { loc: '/contact', priority: '0.4', changefreq: 'yearly' },
+    { loc: '/privacy-policy', priority: '0.3', changefreq: 'yearly' },
+    { loc: '/terms-of-use', priority: '0.3', changefreq: 'yearly' },
     ...pageSlugs.map((slug) => ({
       loc: `/page/${slug}`,
       priority: '0.4',
