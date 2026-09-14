@@ -104,21 +104,42 @@ On a viral day (a result publication, an admission circular):
 
 **Nothing existed here.** Free options only — the owner has no card, so **every tool must be verified as card-free before adoption.**
 
+### Recommended: UptimeRobot (free, no card required)
+
+Researched 2026-09-13 against the three leading free uptime monitors:
+
+| Service | Free monitors | Check interval | Card required? | Alert channels |
+|---|---|---|---|---|
+| **UptimeRobot** | **50** | 5 min | **No** — explicitly stated on homepage | Email, SMS, Voice, Push, Telegram, Slack, Discord, Webhooks |
+| Better Stack | 10 | 3 min | Not explicitly stated | Email, SMS, Slack, Teams, Push |
+| HetrixTools | 15 | 1 min | Not explicitly stated | Email, SMS, Phone, Telegram, Slack, Discord, Webhooks |
+
+**UptimeRobot is the recommendation.** It explicitly states "No credit card required" on the signup page, offers 50 free monitors (the project needs 2), 5-minute checks are adequate for a news portal where the CMS going down for 5 minutes is not reader-visible (the frontend is static on Cloudflare Pages), and email alerts are the primary channel the owner will actually check. The 20+ integrations include Telegram and webhooks for future expansion.
+
+**Setup (owner action, ~5 minutes):**
+1. Sign up at `dashboard.uptimerobot.com/sign-up/` (email only, no card)
+2. Create monitor 1: HTTP(S) → `https://shikkha24.com` — homepage up
+3. Create monitor 2: HTTP(S) → `https://cms.shikkha24.com/admin` — CMS up
+4. Configure alert contact: email (primary); Telegram (if the owner uses it)
+5. Set 2-consecutive-failure threshold (UptimeRobot confirms before alerting)
+
+**What this covers and what it does not:**
+
 | What to watch | How | Alert threshold |
 |---|---|---|
-| Site up (frontend) | Uptime monitor on the homepage | Any failure, 2 consecutive checks |
-| CMS up | Uptime monitor on `/admin` | Any failure |
+| Site up (frontend) | UptimeRobot monitor on the homepage | 2 consecutive failures (10 min) |
+| CMS up | UptimeRobot monitor on `/admin` | 2 consecutive failures (10 min) |
 | Build failures | GitHub Actions notifications | Any failed run |
 | CI minutes | GitHub Actions quota | 80% of monthly quota |
 | Host storage (incl. media) | cPanel / manual check | 80% of 2 GB |
 | Origin bandwidth | DianaHost cPanel | 80% of 200 GB |
 | ~~R2 usage~~ | ~~Cloudflare dashboard~~ | R2 descoped for media in S9 — R2 used only for off-host backups now |
 | Error rate | Cloudflare analytics | Spike over baseline |
-| Domain/cert expiry | Calendar reminder + Cloudflare SSL alerts | 30 days before |
+| Domain/cert expiry | UptimeRobot (domain + SSL monitoring, free tier) | 30 days before |
 
-**Honest gap:** there is no error-tracking tool selected. Sentry-style services are the norm but must be checked for card-free free tiers. If none qualifies, the fallback is Cloudflare analytics plus manual log review — document that as an accepted limitation rather than pretending monitoring is complete.
+**Honest gap:** there is no error-tracking tool (Sentry-style) selected. UptimeRobot covers uptime and domain/SSL expiry. Cloudflare Web Analytics (free, cookieless) covers traffic anomalies. For application error tracking, the fallback is manual CMS log review — document this as an accepted limitation rather than pretending monitoring is complete. If a card-free Sentry alternative emerges (Sentry's free tier requires a card), revisit.
 
-**Owner note:** with a single operator, alerting must be to a channel that is actually checked. A dashboard nobody opens is not monitoring.
+**Owner note:** with a single operator, alerting must be to a channel that is actually checked. An email inbox that is read daily is better than a Slack channel that is not. A dashboard nobody opens is not monitoring.
 
 ---
 
@@ -147,8 +168,9 @@ On a viral day (a result publication, an admission circular):
 
 ## 9. Open items
 
-- [ ] Select a card-free uptime monitor and error-tracking option (§6) — **must be verified, not assumed**
-- [ ] Decide the alerting channel (email? a messaging app?) — it must be one the owner actually reads
+- [x] **Select a card-free uptime monitor** — ✅ **UptimeRobot** (free, 50 monitors, no card, 5-min checks, email + Telegram alerts). Researched 2026-09-13. Setup steps in §6.
+- [x] **Decide the alerting channel** — ✅ Email (primary), Telegram (optional). Documented in §6.
+- [ ] **Error-tracking tool** — still open; Sentry's free tier requires a card. Fallback: Cloudflare analytics + manual log review. Revisit if a card-free Sentry alternative emerges.
 - [ ] Build the feature-flag mechanism (§5)
 - [ ] Write the CMS restart procedure for DianaHost
 - [ ] Confirm Cloudflare Pages retains failed builds without replacing the live deployment

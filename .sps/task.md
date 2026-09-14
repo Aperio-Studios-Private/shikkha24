@@ -28,7 +28,7 @@
 - [~] **GATE: CI quality gates live** — lint/typecheck/build/audit/standalone-size wired and passing locally; **Lighthouse + link-check + JSON-LD deferred to S3+** (need real page templates)
 - [~] **GATE: backup automated off-host AND a restore performed** — workflow written; **restore drill is an S12 gate**
 - [x] **GATE: feature-flag mechanism designed** — build-time (frontend) + runtime (cms), default-on contract
-- [ ] **GATE: monitoring/alerting tool selected** — **still open**; must be verified card-free
+- [x] **GATE: monitoring/alerting tool selected** — ✅ **UptimeRobot** (free, 50 monitors, no card required, 5-min checks, email + Telegram). Researched 2026-09-13. See `docs/reliability.md` §6.
 - [x] Security baseline applied: `.env` + SQLite outside the web root, security headers, strict CSP profile, `pnpm audit` policy, Dependabot enabled
 - [~] Cloudflare Pages project wired for the Astro frontend — `_headers` shipped and verified in `dist/`; project creation is an **OWNER** action
 - [x] Env skeleton (`.env.example` ×2 — no secrets committed)
@@ -190,7 +190,7 @@
 - [x] **Pre-launch QA checklist written:** `.sps/section-todos/S12.md`.
 - [ ] Lighthouse ≥95 **and accessibility ≥90**; LCP <1.5s; INP <100ms; CLS <0.02; TTFB <200ms — **needs production deployment**
 - [ ] **AdSense-vs-≥95 trade-off resolved** — two measurement profiles documented (`docs/performance-budget.md` + `.sps/section-todos/S12.md`)
-- [ ] **GATE: monitoring + alerting live** — **OWNER-ONLY** (card-free tool not yet selected)
+- [ ] **GATE: monitoring + alerting live** — UptimeRobot selected (card-free); **OWNER** needs to sign up and create 2 monitors (homepage + /admin). Steps in `docs/reliability.md` §6.
 - [ ] **GATE: full restore drill completed and timed** — **OWNER-ONLY**
 - [ ] **SPF / DKIM / DMARC configured** — **OWNER-ONLY** (needs DNS access)
 - [ ] **WCAG 2.2 AA**: automated pass + **manual keyboard and screen-reader pass** — **needs human + lab**
