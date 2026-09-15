@@ -23,7 +23,7 @@
  *
  * Requires the CMS running AND the frontend built. Run: node scripts/verify-cms-sync.mjs
  */
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 
 const BASE = process.env.CMS_URL ?? 'http://localhost:3000'
 const DIST = 'frontend/dist'
@@ -47,68 +47,118 @@ const page = (path) => {
   return html
 }
 
+/**
+ * Every built page of a listing, concatenated.
+ *
+ * A listing is not one page. `/latest` paginates at `PAGE_SIZE`, so its first
+ * page holds only the newest slice — checking `/latest/index.html` alone reports
+ * every older record as missing the moment the corpus exceeds one page. That is
+ * precisely what happened when the demo corpus grew past `PAGE_SIZE` (M17): the
+ * harness had assumed a single page, and the assumption had never been tested
+ * because the corpus was exactly `PAGE_SIZE`.
+ *
+ * Returns the base page plus every `/page/:n` subpage, so the check is against
+ * the whole listing however many pages it takes.
+ */
+function listing(basePath) {
+  const dir = `${DIST}${basePath}`
+  const files = [`${dir}/index.html`]
+  try {
+    for (const name of readdirSync(`${dir}/page`)) files.push(`${dir}/page/${name}/index.html`)
+  } catch {
+    // No `page/` directory — the listing fits on a single page.
+  }
+  return files
+    .map((file) => {
+      try {
+        return readFileSync(file, 'utf8')
+      } catch {
+        return ''
+      }
+    })
+    .join('\n')
+}
+
 let failures = 0
 
 /**
- * @param label   collection name, for the report
- * @param items   records fetched from the CMS
- * @param pick    the identifying string to look for
- * @param target  the built page that should contain them
+ * @param label     collection name, for the report
+ * @param endpoint  CMS endpoint to fetch the records from
+ * @param pick      the identifying string to look for
+ * @param html      the built page (or concatenated listing) that should contain them
+ * @param describe  what that page is, for the failure message
  */
-const verify = async (label, endpoint, pick, target) => {
+const verify = async (label, endpoint, pick, html, describe) => {
   const data = await get(endpoint)
   const docs = data.docs ?? []
-  const html = page(target)
   const missing = docs.filter((d) => !html.includes(pick(d)))
 
   const ok = docs.length > 0 && missing.length === 0 && html !== ''
   if (!ok) failures += 1
 
   const detail =
-    html === '' ? `PAGE MISSING ${target}` : `${docs.length - missing.length}/${docs.length}`
+    html === '' ? `PAGE MISSING ${describe}` : `${docs.length - missing.length}/${docs.length}`
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${label.padEnd(20)} ${detail}`)
   if (missing.length) {
     console.log(`        missing: ${missing.slice(0, 4).map(pick).join(' | ')}`)
   }
 }
 
-await verify('articles', '/api/articles?limit=100&depth=0', (d) => d.title, '/latest/index.html')
-await verify('categories', '/api/categories?limit=100&depth=0', (d) => d.nameBn, '/index.html')
+await verify(
+  'articles',
+  '/api/articles?limit=100&depth=0',
+  (d) => d.title,
+  listing('/latest'),
+  '/latest',
+)
+await verify(
+  'categories',
+  '/api/categories?limit=100&depth=0',
+  (d) => d.nameBn,
+  page('/index.html'),
+  '/index.html',
+)
 await verify(
   'scholarships',
   '/api/scholarships?limit=100&depth=0',
   (d) => d.title,
-  '/scholarships/index.html',
+  listing('/scholarships'),
+  '/scholarships',
 )
 await verify(
   'result-links',
   '/api/result-links?limit=100&depth=0',
   (d) => d.examName,
-  '/results/index.html',
+  listing('/results'),
+  '/results',
 )
 await verify(
   'study-abroad',
   '/api/study-abroad-guides?limit=100&depth=0',
   (d) => d.country,
-  '/study-abroad/index.html',
+  listing('/study-abroad'),
+  '/study-abroad',
 )
 await verify(
   'institutions',
   '/api/institutions?limit=100&depth=0',
   (d) => d.nameBn,
-  '/institutions/index.html',
+  listing('/institutions'),
+  '/institutions',
 )
 await verify(
   'circulars',
   '/api/circulars?limit=100&depth=0',
   (d) => d.title,
-  '/circulars/index.html',
+  listing('/circulars'),
+  '/circulars',
 )
 await verify(
   'deadlines',
   '/api/deadlines?limit=100&depth=0',
   (d) => d.title,
-  '/deadlines/index.html',
+  listing('/deadlines'),
+  '/deadlines',
 )
 
 console.log(
