@@ -84,6 +84,9 @@ importers:
       astro:
         specifier: 7.3.2
         version: 7.3.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@22.20.2)(jiti@2.7.0)(sass@1.77.4)(tsx@4.22.4)
+      sharp:
+        specifier: 0.35.4
+        version: 0.35.4(@types/node@22.20.2)
     devDependencies:
       '@biomejs/biome':
         specifier: 2.5.13

@@ -577,6 +577,39 @@ Lighthouse, a broken-link crawl and JSON-LD validation (all need real page templ
 HTTP), and the production-only measurements — TTFB is a hosting property, measured once at S12 on
 DianaHost with no CDN.
 
+### 6.8 — Three defects only a real runner could reveal (found 2026-09-15)
+
+The project had **no git remote at all** — the entire architecture (GitHub Actions, `deploy.yml`,
+the `repository_dispatch` webhook, backup artifacts) requires one, so none of it had ever run.
+Created `SHAHID8142/shikkha24` (private, per the S0 decision) and pushed.
+
+The first three CI runs each failed, and **every failure was invisible locally.** All three share
+one cause: **a working tree is not a fresh checkout.**
+
+| # | Failure | Root cause |
+|---|---|---|
+| 1 | `Lint` — `.wrangler/cache/wrangler-account.json format` | Removing the `.gitignore` entry made the directory *tracked* by the next `git add -A` **and** made Biome scan it. The local verification run predated the edit, so it passed on a tree that no longer matched. |
+| 2 | `Seed the CMS database` — `ConnectionFailed("... ./data/ci.db: 14")` | `cms/data/` is gitignored, so a fresh checkout has none — and SQLite will not create a file inside a directory that does not exist. Locally the directory always exists. |
+| 3 | `Build (frontend)` — `MissingSharp: Could not find Sharp` | The frontend never declared `sharp`; `frontend/node_modules/sharp` was a stale real directory from a manual install on 2026-09-12. Locally the build resolved it; CI had nothing. |
+
+**Fixes:** rewrite the bad commit out of history and keep the ignore entry under an honest
+heading; `mkdir -p cms/data/media` before the seed; declare `sharp@0.35.4` in `frontend/package.json`
+(a dedupe — no new package).
+
+**The uncomfortable conclusion, and the point of recording it:** §6.6 reported the pipeline
+"verified after the fixes" with every gate green. That was **true locally and false in reality.**
+Local verification cannot catch a missing gitignored directory, because locally it is not missing.
+The earlier report said "verified by local simulation, not on GitHub's runners" — that caveat was
+the most important sentence in it, and it turned out to be exactly where the defects were.
+
+**Rule going forward: a green local run is a hypothesis, not evidence. Push, then
+`gh run view --log-failed`.**
+
+Also: `.wrangler/cache/wrangler-account.json` leaked a Cloudflare account id and the owner's email
+into the first push. **No credential** — and the email is already in every commit's author field —
+but it was rewritten out of history rather than left, since the repo was private with one
+collaborator and minutes old.
+
 **The conclusion in §5 is unchanged** — there is still no agent-buildable blocker left. What this
 addendum corrects is that the *pipeline* was not in the state §2b described. The site was
 deployable; the machinery that deploys it was not.
