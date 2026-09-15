@@ -90,7 +90,7 @@
 - [x] **Breadcrumbs** — `Breadcrumbs.astro` with **BreadcrumbList JSON-LD** generated from the same array as the visible trail, so they cannot drift.
 - [x] **Subcategory filters** — rendered when a category has children (`categories.parent` self-relation). Empty under the approved flat tree, which is correct.
 - [x] **Static pages + 404** — `/page/:slug` (E-E-A-T pages) and a real Bengali 404. ⚠️ **`/page/*` routes are empty until Pages exist in the CMS** — the footer links (privacy/terms/contact) need those created.
-- [ ] **Author profiles + tag + date archive** — ⏳ **deferred**: CMS layer is ready (`getAuthorBySlug`, `getTagBySlug`, `getArchiveBuckets`, `getArticlesByMonth`) and there are no tags or multiple authors in the demo content yet. Routes are ~30 lines each once content exists.
+- [ ] **Author profiles + tag + date archive** — ⏳ **content blocker removed 2026-09-15**, routes still not built. The CMS layer was already ready (`getAuthorBySlug`, `getTagBySlug`, `getArchiveBuckets`, `getArticlesByMonth`); the reason given for deferring was that the demo had no tags and only one author. The demo corpus now has 14 tags, three authors and dates spread across ~3 months, so each ~30-line route is buildable and judgeable on request.
 - [x] S5 DoD evidence → **user approval pending**
 
 ## S6 — Search ✅ COMPLETE 2026-09-12
@@ -102,7 +102,7 @@
 - [x] S6 DoD evidence → **user approval pending**
 
 ⚠️ **Known limitation (not a bug):** Pagefind has **no Bengali stemming** — it prints this at build time. Search matches exact word forms only, so "শিক্ষা" will not match "শিক্ষার্থী". Options later: a synonym list, or lean on the category taxonomy for discovery.
-- [ ] **GATE: Bengali search quality tested on a real Bengali corpus** — blocking; there is no real corpus yet
+- [ ] **GATE: Bengali search quality tested on a real Bengali corpus** — blocking; **partially unblocked 2026-09-15**: the demo corpus grew from 12 to 24 Bengali articles, so Pagefind's behaviour can now be judged on more than a handful of documents. It still does **not** satisfy this gate as written — "real" means the owner's actual editorial content, and synthetic demo articles are not that. The stemming limitation is unchanged.
 - [ ] Date/section filters
 - [ ] S6 DoD evidence → **user approval** *(committed as `01f84e1`; lint/typecheck/build all green)*
 

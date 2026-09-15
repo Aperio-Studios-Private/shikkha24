@@ -80,6 +80,10 @@ Each entry is a mistake that was actually made in this repository, with the rule
 **Why it matters:** The corpus was chosen to look representative, not to exercise the code. A fixture whose size happens to equal a boundary constant tests the boundary case never — and both defects sat exactly on that boundary. Both were found only by reading the code against the corpus size, not by running anything.
 **Rule:** When a feature is parameterised by a limit (page size, batch size, retry count, window), the fixture must exceed it at least once, or the boundary path is untested no matter how green the suite is. Assert the **count of generated artefacts** (pages, batches), not just the exit code — a green build over a corpus that cannot reach the branch proves nothing about the branch.
 
+**Fixed 2026-09-15.** The demo corpus now holds 24 articles against a `PAGE_SIZE` of 12, so `/latest` emits two pages and `verify:links` checks the `/page/2` links that were previously never generated. It also carries tags, three authors instead of one, and publish dates spread across roughly three months — the three things that had left the tag, author and date-archive routes deferred for lack of content to show.
+
+**A third defect surfaced the moment the corpus grew — in a harness, not the product.** `verify-cms-sync` asserted that **every** CMS article's title appears in `/latest/index.html`. That is only true while the corpus fits on one page: once `/latest` paginates, page 1 holds just the newest slice and the harness reported the other twelve as "missing" — a false failure against a correct build. The assumption had been accidentally true since it was written and had never been tested, for exactly the reason this entry describes. It now concatenates the base page **and every `/page/:n` subpage** before checking. **The lesson generalises: a fixture pinned to a boundary does not only hide product defects, it lets wrong test assumptions harden into apparent coverage.**
+
 ---
 
 ## Deliberately not done (and why)

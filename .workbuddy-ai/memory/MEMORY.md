@@ -11,7 +11,7 @@ Durable truths only. Detail → `.sps/handoff.md` + `.sps/section-todos/S*.md`. 
 4. **One section at a time** (S0→S12), approval-gated, docs before code (rule 13). 5. "Please continue" = approve last + build next.
 
 ## Infrastructure
-DianaHost PNR 2 GB, Node 20.18.2 (EOL) → build in CI only. Frontend: Cloudflare Pages (free, 500 builds/mo). Media: **host disk** (R2 descoped). Payload as Next `output: 'standalone'`. 15–20 articles/day, burst 40+, team of 5.
+DianaHost PNR 2 GB, Node 20.18.2 (EOL) → build in CI only. Frontend: **DianaHost `public_html` via rsync** (Cloudflare removed 2026-09-14 — nothing on Cloudflare). Media: **host disk** (R2 descoped). Payload as Next `output: 'standalone'`. 15–20 articles/day, burst 40+, team of 5.
 
 ## Verified facts (don't re-research)
 - Next.js `>=16.2.6 <17.0.0`, `react` 19.2.x, `graphql` 16.x. TS 7 → `tsc --noEmit` + Biome (ESLint/`@astrojs/check` reject TS 7).
@@ -28,13 +28,13 @@ DianaHost PNR 2 GB, Node 20.18.2 (EOL) → build in CI only. Frontend: Cloudflar
 
 ## Top contracts (easy to break unknowingly)
 - **`AD_POSITIONS` = contract.** No raw-HTML ad field, no `clickCount`. AdSense on `requestIdleCallback`, zero requests when unconfigured.
-- **Two-profile CSP in `.htaccess` via `SetEnvIf Request_URI` + `Header ... env=`.** ⚠️ **`<LocationMatch>` is ILLEGAL in `.htaccess`** — it returns HTTP 500 sitewide. ⚠️ `<FilesMatch>` matches the **basename, not the path**. ⚠️ `Request_URI` **includes the query string** (patterns need `(\?.*)?$`). Verified by `pnpm verify:apache` — a **real Apache** over the real `dist/`; never by reimplementing the matching.
+- **Two-profile CSP in `.htaccess` via `SetEnvIf Request_URI` + `Header ... env=`.** ⚠️ **`<LocationMatch>` is ILLEGAL in `.htaccess`** — it returns HTTP 500 sitewide. ⚠️ `<FilesMatch>` matches the **basename, not the path**. ⚠️ `Request_URI` **includes the query string** (patterns need `(\?.*)?$`). **A route is relaxed because it RENDERS AN AD SLOT** (`data-ad-slot`) — not because of its JSON-LD type or its listing-ness; `/latest` is a listing and is correctly strict. Article rule = 3 segments **minus** a middle `page` (`(?!page/)`), because `/latest/page/:n` is also 3 segments. Verified by `pnpm verify:apache` — a **real Apache** over the real `dist/`; never by reimplementing the matching, and never by asserting a proxy.
 - **Self-hiding islands:** `getPublicCmsOrigin()` null → control not rendered (live-blog, poll, bookmark, reminder, social login).
 - **⚠️ `overrideAccess: true` bypasses field-level access** on public handlers — protection is the key-by-key whitelist.
 - **Newsletter = resumable batch** (`sentThroughId`). Cron triggers disabled while token unset. Readers: no password, email optional. Account linking deliberately not implemented.
 - **`vite.build.assetsInlineLimit: 0`** — Astro inlines small scripts; strict CSP blocks them. Assert 0 inline scripts.
 - **Mid-article ads need ≥6 paragraphs.** Sponsored: excluded from masthead/ticker, kept in feed with «বিজ্ঞাপন». Feed excludes masthead story by **slug**.
-- **⚠️ Two CMS origins — do not confuse.** `CMS_URL` = read at **build** time, all content is fetched from it. `PUBLIC_CMS_ORIGIN` = **browser-facing** origin for interactive islands (empty ⇒ self-hide). Setting only the latter gives a **green 32-page thin build** instead of 84. A green build ≠ a full build: always assert the **page count**, never the exit code.
+- **⚠️ THREE CMS-host values — do not confuse.** `CMS_URL` = read at **build** time, all content is fetched from it. `PUBLIC_CMS_ORIGIN` = **browser-facing** origin for interactive islands (empty ⇒ self-hide). `PUBLIC_MEDIA_BASE_URL` = **browser-facing** origin for media; `mediaUrl()` prefixes the CMS's relative `/api/media/file/…` with it, and **unset it emits that path as-is so every article image 404s** (the static host serves no `/api/`). Setting only `PUBLIC_CMS_ORIGIN` gives a **green 32-page thin build** instead of 84. A green build ≠ a full build: always assert the **page count**, never the exit code.
 - **IP forwarding:** `clientIp()` reads `x-forwarded-for` → `x-real-ip` → `unknown` (no `cf-connecting-ip` — Cloudflare removed).
 
 ## Environment traps (top 4; rest in `sandbox-build-traps` skill)
