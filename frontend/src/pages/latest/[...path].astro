@@ -1,0 +1,153 @@
+---
+/**
+ * Latest articles — `/latest` and `/latest/page/:n`.
+ *
+ * The full chronological feed. The homepage shows the head of this list; this is
+ * the rest of it, and the target of the homepage's "আরও →" link.
+ *
+ * ## Why this is a catch-all and not `latest.astro`
+ *
+ * It used to be a single `latest.astro` that read `?page=N` from the URL. On a
+ * static site that cannot work: `Astro.url.searchParams` is evaluated **at build
+ * time**, where there is no query string, so `page` was always 1 and every page
+ * rendered the same twelve articles.
+ *
+ * Worse, `Pagination` builds its links as `${basePath}/page/${n}` — path
+ * segments, not a query string — and no route emitted `/latest/page/2`. So the
+ * moment a thirteenth article was published, `/latest` would render a "পরের →"
+ * link pointing at a 404.
+ *
+ * The bug was invisible because the demo corpus holds exactly twelve articles
+ * and `PAGE_SIZE` is 12, so `totalPages` was always 1 and the control never
+ * rendered. `scripts/verify-links.mjs` now checks every internal link in the
+ * built output against the built files, so this class cannot come back quietly.
+ *
+ * One file handles the first page and every subsequent page, matching
+ * `category/[...path].astro`, so listing behaviour lives in one place.
+ *
+ * Path shapes:
+ *   ``          → page 1
+ *   `page/2`    → page 2
+ */
+import Layout from '../../layouts/Layout.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import ArticleGrid from '../../components/ArticleGrid.astro'
+import Pagination from '../../components/Pagination.astro'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  getArticlesPage,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+  PAGE_SIZE,
+} from '../../lib/cms'
+
+const BASE_PATH = '/latest'
+
+/** Parse a catch-all path into a page number. */
+function parsePath(path: string): number {
+  const parts = path.split('/').filter(Boolean)
+  // `page/N`
+  if (parts.length >= 2 && parts[0] === 'page') {
+    const page = Number.parseInt(parts[1] ?? '1', 10)
+    return Number.isFinite(page) && page > 0 ? page : 1
+  }
+  return 1
+}
+
+export async function getStaticPaths() {
+  // Fetch page 1 to learn how many pages exist, then emit one path per page —
+  // the same shape the category listing uses, so a long feed scales without a
+  // second count query.
+  const first = await getArticlesPage({ page: 1, limit: PAGE_SIZE }).catch(() => ({
+    totalPages: 1,
+  }))
+  const totalPages = 'totalPages' in first ? (first.totalPages ?? 1) : 1
+
+  return Array.from({ length: Math.max(1, totalPages) }, (_, i) => {
+    const page = i + 1
+    return {
+      // `undefined` on a trailing rest param is how Astro expresses the base
+      // route, so page 1 is `/latest` rather than `/latest/page/1`.
+      params: { path: page === 1 ? undefined : `page/${page}` },
+      props: { page },
+    }
+  })
+}
+
+const { page } = Astro.props as { page: number }
+
+const [settings, categories, footerPages, result] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getArticlesPage({ page, limit: PAGE_SIZE }).catch(() => ({
+    docs: [],
+    page,
+    totalPages: 1,
+    totalDocs: 0,
+    hasPrev: false,
+    hasNext: false,
+  })),
+])
+
+const canonical = new URL(
+  `${BASE_PATH}${page > 1 ? `/page/${page}` : ''}`,
+  Astro.site ?? Astro.url,
+).href
+
+const breadcrumbTrail = [
+  { name: 'হোম', url: new URL('/', Astro.site ?? Astro.url).href },
+  { name: 'সর্বশেষ', url: canonical },
+]
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'সর্বশেষ খবর',
+  url: canonical,
+  inLanguage: 'bn-BD',
+  isPartOf: {
+    '@type': 'WebSite',
+    name: settings.siteName,
+    url: Astro.site?.href ?? Astro.url.origin,
+  },
+  breadcrumb: {
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbTrail.map((item, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  },
+}
+---
+
+<Layout
+  title={page > 1 ? `সর্বশেষ খবর — পেজ ${page}` : 'সর্বশেষ খবর'}
+  description={`${settings.siteName}-এ প্রকাশিত সর্বশেষ সংবাদ।`}
+  canonical={canonical}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+  jsonLd={jsonLd}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'সর্বশেষ', href: BASE_PATH }]} />
+
+    <header class="mb-6 border-b-2 border-brand-red pb-3">
+      <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+        সর্বশেষ খবর
+      </h1>
+      <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
+        {result.totalDocs} টি খবর
+      </p>
+    </header>
+
+    <ArticleGrid articles={result.docs} emptyMessage="এখনো কোনো খবর প্রকাশিত হয়নি।" />
+
+    <Pagination page={result.page} totalPages={result.totalPages} basePath={BASE_PATH} />
+  </div>
+</Layout>
