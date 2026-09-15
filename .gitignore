@@ -52,6 +52,14 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# ─── Harness scratch files ───────────────────────────────────────────────────
+# This environment's file broker writes zero-byte `_tmp_<pid>_<hash>` files into
+# the repository root during long operations. They are never project data, but
+# one was swept into a commit by `git add -A` (added in `01f84e1`, unnoticed for
+# three days) — and a stray file in the root is exactly what a launch check
+# mistakes for real content. Keep the pattern out of the index.
+_tmp_*
+
 # ─── OS / editor ─────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
