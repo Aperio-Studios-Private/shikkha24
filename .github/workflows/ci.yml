@@ -130,6 +130,12 @@ jobs:
           PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
           DATABASE_URI: file:./data/ci.db
           CMS_URL: http://localhost:3000
+          # Browser-facing media origin. `mediaUrl()` prefixes the CMS's relative
+          # `/api/media/file/...` path with this; unset, it emits that path as-is,
+          # and the static host has no `/api/` — so every article image 404s.
+          # Deliberately the production value, so this build rehearses the deploy
+          # build. `verify:links` is what caught this being missing.
+          PUBLIC_MEDIA_BASE_URL: ${{ vars.PUBLIC_MEDIA_BASE_URL || 'https://cms.shikkha24.com' }}
         run: scripts/with-cms.sh bash -c "pnpm run build:frontend"
 
       - name: Build output size ceiling

@@ -107,6 +107,13 @@ jobs:
           CMS_URL: ${{ secrets.CMS_URL }}
           PUBLIC_CMS_ORIGIN: ${{ secrets.PUBLIC_CMS_ORIGIN }}
           PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL || 'https://shikkha24.com' }}
+          # Browser-facing media origin — the third of the three CMS-host values.
+          # `mediaUrl()` prefixes the CMS's relative `/api/media/file/...` path
+          # with this. **Unset, it emits that path as-is and every article image
+          # 404s** — the static host serves no `/api/`. Set it here or the deploy
+          # ships a site with no pictures. `verify:links` fails the run if it is
+          # missing, which is how this was found.
+          PUBLIC_MEDIA_BASE_URL: ${{ vars.PUBLIC_MEDIA_BASE_URL || 'https://cms.shikkha24.com' }}
         run: pnpm run build:frontend
 
       # ── Verify ─────────────────────────────────────────────────────────────
