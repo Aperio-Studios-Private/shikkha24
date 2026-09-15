@@ -90,7 +90,7 @@
 - [x] **Breadcrumbs** — `Breadcrumbs.astro` with **BreadcrumbList JSON-LD** generated from the same array as the visible trail, so they cannot drift.
 - [x] **Subcategory filters** — rendered when a category has children (`categories.parent` self-relation). Empty under the approved flat tree, which is correct.
 - [x] **Static pages + 404** — `/page/:slug` (E-E-A-T pages) and a real Bengali 404. ⚠️ **`/page/*` routes are empty until Pages exist in the CMS** — the footer links (privacy/terms/contact) need those created.
-- [ ] **Author profiles + tag + date archive** — ⏳ **content blocker removed 2026-09-15**, routes still not built. The CMS layer was already ready (`getAuthorBySlug`, `getTagBySlug`, `getArchiveBuckets`, `getArticlesByMonth`); the reason given for deferring was that the demo had no tags and only one author. The demo corpus now has 14 tags, three authors and dates spread across ~3 months, so each ~30-line route is buildable and judgeable on request.
+- [x] **Author profiles + tag + date archive** — ✅ **BUILT 2026-09-15.** `/tag/:slug`, `/author/:slug`, `/archive` + `/archive/:year-month`, all with pagination. Was deferred for lack of demo content; the corpus was enlarged the same day (14 tags, three authors, dates across ~3 months). Also fixed a dead `/author/:slug` URL in the article JSON-LD (which additionally had a double slash). Evidence: `.sps/section-todos/S5.md`.
 - [x] S5 DoD evidence → **user approval pending**
 
 ## S6 — Search ✅ COMPLETE 2026-09-12
