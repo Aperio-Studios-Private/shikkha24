@@ -102,11 +102,19 @@ A strict CSP will break AdSense, which needs inline scripts and dynamic script i
 | `/live/*` | Live blog — 1 ad slot + refresh island |
 | `/quiz`, `/quiz/*` | Quiz — 2 ad slots |
 
-⚠️ **The article rule uses `<LocationMatch>` regex, not a wildcard, and this is load-bearing.** Apache's `<LocationMatch>` matches against the URL path with regex. The article URL (`/:category/:id/:slug`) has three segments, so the regex matches exactly that pattern. **Do not "simplify" it to a broad match** — that would relax the CSP for the whole site.
+⚠️ **Route dispatch is `SetEnvIf Request_URI` + `Header ... env=`, NOT `<LocationMatch>`.** Apache permits `<Location>`/`<LocationMatch>` in server and virtual-host context only. In `.htaccess` it is a core parser error — Apache answers **HTTP 500 to every request**, taking the entire site down. The dispatch therefore tags ad-bearing routes with `SetEnvIf Request_URI` and the two relaxed headers consume the tag. `SetEnvIf` and `Header` are both `FileInfo`-level overrides, which is what a cPanel host grants; `<If>` would need `AllowOverride All` and is deliberately avoided.
+
+⚠️ **The article rule matches exactly three path segments and nothing else.** `/category/:slug/page/:n` is four segments, so it cannot collide. **Do not "simplify" it to a broad match** — that would relax the CSP for the whole site. Equally, **do not add a list of "reserved" first segments**: an earlier revision excluded `study-abroad`, which is both a two-segment listing *and* the first segment of real article URLs, so every study-abroad article silently fell to the strict profile and lost AdSense.
+
+⚠️ **`Request_URI` includes the query string**, so every pattern tolerates a trailing `?…`. Without that, a reader arriving from a share link (`/?utm_source=whatsapp`) would get the strict profile and lose AdSense on that page view, with no error anywhere.
+
+⚠️ **Verified by running Apache, not by parsing the file.** `pnpm verify:apache` serves the real `dist/` through the real `.htaccess` on a real Apache and asserts the status code, the CSP header count and each page's profile — deriving the expectation from the page's own JSON-LD so it does not share the rule's blind spots. The harness it replaced reimplemented the regex matching in JavaScript and passed while the file returned 500 sitewide; a reimplementation is not evidence.
 
 ⚠️ **Media host:** the `img-src` / `media-src` host is the DianaHost CMS origin (`cms.shikkha24.com`), **not** an R2 domain — R2 was removed on 2026-09-14. The literal host in `.htaccess` must match `PUBLIC_CMS_ORIGIN` / `PUBLIC_MEDIA_BASE_URL` exactly; a CSP cannot be templated.
 
 ⚠️ **Apache does NOT have the Cloudflare comma-join problem.** Apache's `Header set` replaces the value cleanly. The `!`-detach trick was Cloudflare-Pages-specific and is not needed with Apache.
+
+⚠️ **Cache rules use the same mechanism, for the same reason.** `<FilesMatch>` matches the **basename**, not the path, so `<FilesMatch "\._astro/">` and `<FilesMatch "^/fonts/">` never matched a single file — both rules were dead and hashed assets were served with no long-lived cache. They are `SetEnvIf Request_URI` now. `<FilesMatch "\.html$">` genuinely is a basename rule and stays. Cache headers use `Header set` (not `always`) so a 404 is never cached for a year.
 
 ---
 

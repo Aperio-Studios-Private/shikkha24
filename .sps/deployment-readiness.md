@@ -10,6 +10,13 @@ Launch is blocked only by **owner-only actions** (§3) — none of which is code
 > harnesses failed), a deploy workflow that would have shipped that thin site, and one vacuous
 > harness check. All are fixed and re-verified. **Full detail: `.sps/production-readiness-audit-2026-09-14.md` §6.**
 > The verification table in §1 below was taken on 2026-09-13 and is valid for that revision only.
+>
+> ⚠️ **Updated again 2026-09-15 (later) — the `.htaccess` was unrunnable, and would have
+> taken the whole site down.** It used `<LocationMatch>`, which Apache forbids in `.htaccess`
+> context, so Apache answered **HTTP 500 to every request**. Two cache rules were dead for the
+> same class of reason. Nothing local caught it because the harness of the day reimplemented
+> Apache's matching in JavaScript instead of running Apache. Both fixed, and the harness now
+> runs a real Apache over the real build. **§2 "2026-09-15" table.**
 
 ---
 
@@ -44,7 +51,7 @@ Every check below was run in this pass, in this order, against a clean tree.
 | `cms:verify-oauth` | provider flow, reader identity | ✅ |
 | `cms:verify-endpoints` | **every custom endpoint over real HTTP** | ✅ 27/27 |
 | `verify-build-output` | inline scripts, root files, URL shape, feeds | ✅ 24/24 |
-| `verify-csp-routes` | CSP relaxed-profile coverage | ✅ 18/18 |
+| `verify-apache` | `.htaccess` served by a real Apache: status, header count, CSP profile per page | ✅ 16/16 (2026-09-15) |
 | `verify-cms-sync` | read path — CMS record → page | ✅ 8/8 collections |
 | `verify-s8` | live blog, poll, quiz, static fallback | ✅ |
 | `verify-ads-s7` | sponsored template, mid-article ad split | ✅ 10/10 |
@@ -90,6 +97,25 @@ code change.
 | 8 | **Level/district filters did nothing** — every pill inert | `level` and `district` are `hasMany`, so Payload returns an **array**; `typeof [] === 'object'` is true, so `article.level.slug` was `undefined` and Astro dropped the attribute. **Zero cards carried `data-level`**, so FilterBar hit `if (items.length === 0) return`. `lib/cms.ts` typed `level` as object-or-number, never an array — the bug was in the *type* | Added `relationSlugs()` / `relationName()` (array, object or bare id) and corrected the types. Built output went 0 → 9 cards with `data-level`. Same wrong `relSlug` in `deadlines.astro` meant its level dropdown had **no options at all** |
 | 9 | **`/about` and `/contact` did not exist** | Required by `docs/master-plan.md` item 87 and `docs/seo-plan.md` (E-E-A-T) but never built. The footer block that would have linked them was gated on `footerPages.length > 0`, and the `pages` collection is empty — so it had never rendered | Added both, driven by Site Settings with Bengali placeholders while fields are empty. `/about-us` redirects to `/about` (no duplicate body content) and is excluded from the sitemap. Footer block is now unconditional. Sitemap 43 → 45 |
 | 10 | **Editing Site Settings changed nothing on the site** | Not a defect in the data — the edits were saved correctly. The static site simply had **no trigger to rebuild**, so nothing propagated until someone ran a build by hand | Added `cms/src/lib/rebuild-trigger.ts`: a debounced webhook fired from `afterChange` on published content (and Site Settings). No-op until `DEPLOY_WEBHOOK_URL` is set. Reader writes (comments, poll votes) are deliberately excluded so an anonymous commenter cannot spend a build |
+
+### 2026-09-15 — the `.htaccess` was unrunnable (found while re-verifying, not in a sweep)
+
+| # | Defect | Root cause | Fix |
+|---|---|---|---|
+| 11 | **`frontend/public/.htaccess` returned HTTP 500 on every request.** Deploying it would have taken the whole site down, not just AdSense | The CSP route dispatch used `<LocationMatch>`, which Apache permits in server/virtual-host context only. In `.htaccess` it is a core parser error (`<LocationMatch not allowed here`) | Rewrote the dispatch as `SetEnvIf Request_URI` + `Header ... env=`. Same two policies, same routes, same CSP strings byte-for-byte |
+| 12 | **Two of the three cache rules were dead.** `/_astro/*` (hashed, content-addressed) and `/fonts/*` were served with **no `Cache-Control`** | `<FilesMatch>` matches the **basename**, not the path, so `<FilesMatch "\._astro/">` and `<FilesMatch "^/fonts/">` could never match a file | Both are `SetEnvIf Request_URI` now. `<FilesMatch "\.html$">` is a genuine basename rule and was left alone |
+| 13 | **`verify-csp-routes.mjs` could not detect either defect** — it passed while the file was unrunnable | It parsed the `<LocationMatch>` blocks and **reimplemented** Apache's regex matching in JavaScript. It validated the intent of the rules and never asked Apache whether the file was legal | Deleted. Replaced by `verify-apache.mjs`, which runs a real Apache over the real `dist/` and asserts status codes, header counts and per-page profiles derived from each page's own JSON-LD |
+| 14 | **`study-abroad` articles silently fell to the strict profile** — caught by the new harness on its first green-ish run | The first version of the rewritten article rule excluded a list of "reserved" first segments, and `study-abroad` is both a 2-segment listing **and** the first segment of real article URLs | Dropped the exclusion list. The article rule is exactly "three path segments", which is the only 3-segment route in the tree. The harness now turns any future non-article 3-segment route into a red check instead of a silent CSP widening |
+
+**The pattern, stated plainly:** three of these four defects come from **path-matching
+directives used in a context that does not match paths** (`<LocationMatch>` in
+`.htaccess`; `<FilesMatch>` against a path) or from **an enumeration that drifted**
+(a reserved-root list that contradicted the real route tree). All three failed
+**silently or catastrophically** and none was visible to a green build.
+
+**And the harness was the problem, not the safety net.** A test that reimplements
+the mechanism it is testing can only confirm that two implementations agree — it
+cannot discover that both are wrong about the platform. Run the real thing.
 
 **Pattern worth noting:** defects 1, 3 and the earlier CSP regression all share one
 cause — **a URL or mounting change has consequences far beyond the route itself.**
@@ -144,8 +170,8 @@ The only quota that applies is GitHub Actions 2,000 min/month.
 
 | # | Check | Why it cannot be done locally |
 |---|---|---|
-| 11 | Confirm an ad-bearing page returns **exactly ONE** `Content-Security-Policy` header | `.htaccess` is applied by Apache; verify the `<LocationMatch>` pattern matches and the relaxed CSP is served |
-| 12 | Confirm the `/:category/:id/:slug` **placeholder actually matches** | A placeholder that fails to match fails **silently** — the page still returns 200, just under the strict policy |
+| 11 | ~~Confirm an ad-bearing page returns **exactly ONE** `Content-Security-Policy` header~~ — ✅ **CLOSED LOCALLY 2026-09-15.** `pnpm verify:apache` serves the real `dist/` through the real `.htaccess` on a real Apache and asserts exactly one CSP header per page, on all 83 built routes plus the query-string and pagination cases. **Still worth a spot-check in production** to confirm the host's Apache behaves the same. | — |
+| 12 | ~~Confirm the `/:category/:id/:slug` pattern **actually matches**~~ — ✅ **CLOSED LOCALLY 2026-09-15**, same harness: it derives each page's expected profile from that page's own JSON-LD (`NewsArticle` / `CollectionPage` / `LiveBlogPosting`) and compares it against the header Apache actually sent, so a rule that fails to match cannot pass. | — |
 | 13 | Lighthouse ≥95 / a11y ≥90, LCP, INP, CLS, TTFB | Needs a deployed origin; TTFB is a CDN property |
 | 14 | Monitoring + alerting live | UptimeRobot selected (card-free, 50 monitors, no card required); owner needs to sign up and create 2 monitors. Steps in `docs/reliability.md` §6 |
 | 15 | Full restore drill, timed | Needs the production backup |
@@ -153,9 +179,15 @@ The only quota that applies is GitHub Actions 2,000 min/month.
 | 17 | Browser/device matrix (UC Browser, Opera Mini, low-end Android) | Needs real hardware |
 | 18 | Bengali conjunct rendering on a real device | Needs real hardware |
 
-Items 11 and 12 are written into the `.htaccess` comment as explicit production
-checks. If a `<LocationMatch>` pattern does not match, the page returns 200
-under the strict policy and AdSense is silently blocked.
+**⚠️ Items 11 and 12 were previously listed here as production-only, and that was
+wrong — and expensive.** Local verification of the `.htaccess` was assumed to be
+impossible, so a harness reimplemented Apache's regex matching in JavaScript
+instead. That harness passed while the file was **unrunnable**: it used
+`<LocationMatch>`, which Apache forbids in `.htaccess` context, so the file
+returned **HTTP 500 on every request**. Had it shipped, the site would have been
+down completely, not merely ad-less. Running a real Apache locally was always
+possible. **Lesson: "this can only be verified in production" deserves the same
+scepticism as any other assumption.**
 
 ---
 
@@ -171,8 +203,10 @@ cd cms && pnpm dev &          # wait for :3000
 CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm run build:frontend
 
 # Build-output + route invariants
-pnpm run verify:csp
 pnpm run verify:build-output
+
+# The .htaccess, served by a real Apache over the real dist/
+pnpm run verify:apache
 
 # Read path (needs CMS + a fresh build)
 pnpm run verify:sync

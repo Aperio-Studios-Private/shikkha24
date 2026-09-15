@@ -28,7 +28,7 @@ DianaHost PNR 2 GB, Node 20.18.2 (EOL) → build in CI only. Frontend: Cloudflar
 
 ## Top contracts (easy to break unknowingly)
 - **`AD_POSITIONS` = contract.** No raw-HTML ad field, no `clickCount`. AdSense on `requestIdleCallback`, zero requests when unconfigured.
-- **~~Cloudflare JOINS duplicate CSP headers with a comma~~** → **REMOVED 2026-09-14.** Apache `.htaccess` `Header set` replaces cleanly — no comma-join. Two-profile CSP via `<LocationMatch>` regex. S12: verify ONE CSP header.
+- **Two-profile CSP in `.htaccess` via `SetEnvIf Request_URI` + `Header ... env=`.** ⚠️ **`<LocationMatch>` is ILLEGAL in `.htaccess`** — it returns HTTP 500 sitewide. ⚠️ `<FilesMatch>` matches the **basename, not the path**. ⚠️ `Request_URI` **includes the query string** (patterns need `(\?.*)?$`). Verified by `pnpm verify:apache` — a **real Apache** over the real `dist/`; never by reimplementing the matching.
 - **Self-hiding islands:** `getPublicCmsOrigin()` null → control not rendered (live-blog, poll, bookmark, reminder, social login).
 - **⚠️ `overrideAccess: true` bypasses field-level access** on public handlers — protection is the key-by-key whitelist.
 - **Newsletter = resumable batch** (`sentThroughId`). Cron triggers disabled while token unset. Readers: no password, email optional. Account linking deliberately not implemented.
