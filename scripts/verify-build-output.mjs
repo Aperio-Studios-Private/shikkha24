@@ -189,9 +189,19 @@ check(
   '.htaccess has no CSP rule targeting the retired /article/ prefix',
   routePatterns.length > 0 && !routePatterns.some((p) => p.includes('/article/')),
 )
+// The article rule is the three-segment shape *minus* the one other
+// three-segment path in the tree, `/latest/page/:n`. Both halves are asserted:
+// the shape alone tagged paginated listing pages with the article profile.
+const articleRule = routePatterns.find((pattern) => pattern.startsWith('^/[^/?#]+/'))
 check(
   '.htaccess relaxes the CSP for article paths (exactly 3 segments)',
-  routePatterns.some((p) => p.includes('/[^/?#]+/[^/?#]+/[^/?#]+')),
+  Boolean(articleRule) && (articleRule.match(/\[\^\/\?#\]\+/g) ?? []).length === 3,
+  articleRule ?? 'no three-segment article rule found',
+)
+check(
+  '.htaccess excludes /:base/page/:n from the article rule',
+  Boolean(articleRule) && articleRule.includes('(?!page/)'),
+  articleRule ?? 'no three-segment article rule found',
 )
 
 console.log(

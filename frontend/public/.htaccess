@@ -76,17 +76,21 @@
 
   # Article — 3 ad slots + comments + bookmarks + video embeds.
   #
-  # Exactly three path segments. This is the article route and *only* the article
-  # route: `/:category/:id/:slug`. Every other route in the tree is 1, 2 or 4
-  # segments (`/category/:slug/page/:n` is 4). Do NOT add an exclusion list of
-  # reserved roots here — an earlier revision excluded `study-abroad`, which is
-  # both a 2-segment listing and the first segment of real article URLs, so every
-  # study-abroad article silently fell to the strict profile.
+  # Exactly three path segments, and the middle one is not `page`. This is the
+  # article route (`/:category/:id/:slug`) and *only* the article route:
+  # `/latest/page/:n` is the one other three-segment path in the tree, it is a
+  # paginated listing with no ad slot, and it must stay strict.
+  #
+  # Do NOT add an exclusion list of reserved roots here — an earlier revision
+  # excluded `study-abroad`, which is both a 2-segment listing and the first
+  # segment of real article URLs, so every study-abroad article silently fell to
+  # the strict profile. The `page` test above is structural (a pagination URL is
+  # never an article), not an enumeration, so it cannot rot the same way.
   #
   # If a future route introduces a non-article 3-segment path, `pnpm verify:apache`
-  # turns red: it reads each page's own JSON-LD to decide the expected profile, so
-  # it does not share this rule's blind spots.
-  SetEnvIf Request_URI "^/[^/?#]+/[^/?#]+/[^/?#]+/?(\?.*)?$" SHIKKHA24_CSP_ARTICLE=1
+  # turns red: it decides the expected profile from whether the page renders an
+  # `AdSlot`, so it does not share this rule's blind spots.
+  SetEnvIf Request_URI "^/[^/?#]+/(?!page/)[^/?#]+/[^/?#]+/?(\?.*)?$" SHIKKHA24_CSP_ARTICLE=1
 </IfModule>
 
 <IfModule mod_headers.c>

@@ -149,16 +149,31 @@ function profileOf(csp) {
 }
 
 /**
- * The profile a route *should* get, derived from the page's own structured data.
- * Article, category and live-blog pages are identified by the JSON-LD they emit,
- * so this expectation is independent of the `.htaccess` regexes.
+ * The profile a route *should* get, derived from the page's own markup.
+ *
+ * A route is relaxed **because it renders an ad slot**. That is what `.htaccess`
+ * says in as many words ("Category listing — 1 ad slot"), and it is the whole
+ * reason the relaxed profile exists: it is what lets AdSense load. So the marker
+ * read here is `data-ad-slot` — the attribute `AdSlot.astro` emits — and not the
+ * page's JSON-LD.
+ *
+ * JSON-LD was the wrong key, and it produced a false failure the first time a
+ * listing page without ads was built. `CollectionPage` describes a *listing*,
+ * which correlates with being ad-bearing but does not cause it: `/latest` is a
+ * listing and is correctly **strict**, because no `AdSlot` renders on it. Keying
+ * the expectation on the schema type made this harness fail on a correct page —
+ * the same "proxy for the real invariant" mistake as M14.
+ *
+ * The *flavour* of relaxed is a separate question. The article profile adds
+ * `frame-src` for third-party video embeds; the article page is the only
+ * ad-bearing route that embeds video, and it declares itself with `NewsArticle`
+ * JSON-LD. That is the page's own statement of its type, not a restatement of
+ * the `.htaccess` path regex, so it stays independent of the rule under test.
  */
-function expectedProfile(route, html) {
-  if (/"@type":\s*"NewsArticle"/.test(html)) return 'relaxed-article'
-  if (/"@type":\s*"(?:CollectionPage|LiveBlogPosting)"/.test(html)) return 'relaxed-generic'
-  if (route === '/') return 'relaxed-generic'
-  if (route === '/quiz' || route.startsWith('/quiz/')) return 'relaxed-generic'
-  return 'strict'
+function expectedProfile(html) {
+  const adBearing = /data-ad-slot="/.test(html)
+  if (!adBearing) return 'strict'
+  return /"@type":\s*"NewsArticle"/.test(html) ? 'relaxed-article' : 'relaxed-generic'
 }
 
 // ── Preconditions ────────────────────────────────────────────────────────────
@@ -343,6 +358,15 @@ try {
 
   const problems = []
   let relaxed = 0
+  let adBearing = 0
+  // Relaxed pages that render no ad slot. `.htaccess` dispatches by route
+  // *family*, so a relaxed family may legitimately contain one — `/quiz` is
+  // relaxed because `/quiz/:id` carries ads. Over-relaxing is harmless (the
+  // page simply gets a wider policy than it needs), so it is reported, not
+  // failed. A page that *needs* relaxation and does not get it is the failure
+  // that matters, and that is what `problems` catches.
+  const overRelaxed = []
+
   for (const route of routes) {
     const res = await httpGet(port, route === '/' ? '/' : `${route}/`)
     if (res.status >= 500) {
@@ -354,10 +378,23 @@ try {
       problems.push(`${route} → HTTP ${res.status}, ${csps.length} CSP headers, expected exactly 1`)
       continue
     }
-    const want = expectedProfile(route, res.body)
+    const hasAd = /data-ad-slot="/.test(res.body)
+    if (hasAd) adBearing += 1
+
+    const want = expectedProfile(res.body)
     const got = profileOf(csps[0])
-    if (got !== want) problems.push(`${route} → ${got}, expected ${want}`)
-    else if (want !== 'strict') relaxed += 1
+    if (hasAd && got === 'strict') {
+      // The failure that matters: this page loads AdSense and the policy blocks it.
+      problems.push(`${route} → strict, but the page renders an ad slot`)
+    } else if (!hasAd && got !== 'strict') {
+      // Reported, not failed — see `overRelaxed` above.
+      overRelaxed.push(`${route} → ${got}`)
+    } else if (got !== want) {
+      // Relaxed, ad-bearing, but the wrong flavour (article vs generic).
+      problems.push(`${route} → ${got}, expected ${want}`)
+    } else if (want !== 'strict') {
+      relaxed += 1
+    }
   }
   check(
     'every built page: no 5xx, one CSP header, correct profile',
@@ -366,6 +403,24 @@ try {
       (problems.length > 5 ? ` (+${problems.length - 5} more)` : ''),
   )
   check('some pages actually got a relaxed profile', relaxed > 0, `${relaxed} relaxed`)
+
+  // Non-vacuity for the assertion above: with no ad-bearing page in the build
+  // the profile check has nothing to prove. Say so loudly rather than passing
+  // quietly — an unstated vacuous pass is how a gate rots.
+  check(
+    'the build rendered ad slots, so the profile check is not vacuous',
+    adBearing > 0,
+    adBearing > 0
+      ? `${adBearing} ad-bearing page(s)`
+      : 'no page rendered `data-ad-slot` — PUBLIC_FLAG_ADS is off, so the relaxed profile is untested',
+  )
+  if (overRelaxed.length > 0) {
+    console.log(
+      `      note: ${overRelaxed.length} relaxed page(s) render no ad slot (route-family dispatch): ${overRelaxed
+        .slice(0, 3)
+        .join(', ')}${overRelaxed.length > 3 ? ` (+${overRelaxed.length - 3} more)` : ''}`,
+    )
+  }
 
   // ── 4. A query string must not change the profile ─────────────────────────
   for (const [path, want] of [
@@ -389,6 +444,18 @@ try {
     '/category/:slug/page/:n (4 segments) keeps the relaxed profile',
     pagedCsps.length === 1 && profileOf(pagedCsps[0]) === 'relaxed-generic',
     `HTTP ${paged.status}, ${pagedCsps.length} header(s)`,
+  )
+
+  // `/latest/page/:n` is the one *three*-segment path in the tree that is not an
+  // article, and the article rule matches any three-segment path. It carries no
+  // ad slot, so it must stay strict — whatever its status code, since a page
+  // that does not exist yet still gets a header from the same rule.
+  const latestPaged = await httpGet(port, '/latest/page/2/')
+  const latestPagedCsps = headerValues(latestPaged.rawHeaders, 'content-security-policy')
+  check(
+    '/latest/page/:n (3 segments, not an article) stays strict',
+    latestPagedCsps.length === 1 && profileOf(latestPagedCsps[0]) === 'strict',
+    `HTTP ${latestPaged.status}, got ${latestPagedCsps[0] ? profileOf(latestPagedCsps[0]) : 'none'}`,
   )
 
   // ── 5. Routes that must stay strict ───────────────────────────────────────
