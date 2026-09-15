@@ -1,0 +1,192 @@
+---
+/**
+ * Author profile — `/author/:slug` and `/author/:slug/page/:n`.
+ *
+ * The E-E-A-T page. `docs/seo-plan.md` requires an editorial team page with real
+ * credentials, and a reader deciding whether to trust an admission guide deserves
+ * to know who wrote it. Every article's JSON-LD already points here
+ * (`Person.url`), so until this route existed the structured data advertised a
+ * URL that 404'd.
+ *
+ * Authors are public content — `Authors.ts` sets `read: anyone` — so this is a
+ * reader-facing page, not a staff directory. The `email` field is field-level
+ * restricted in the CMS and is never fetched here.
+ *
+ * Path shapes:
+ *   `demo-reporter`          → author, page 1
+ *   `demo-reporter/page/2`   → author, page 2
+ *
+ * No ad slot — `AD_POSITIONS` has no author position, so `.htaccess` correctly
+ * leaves `/author/*` on the strict CSP profile.
+ */
+import Layout from '../../layouts/Layout.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import ArticleGrid from '../../components/ArticleGrid.astro'
+import Pagination from '../../components/Pagination.astro'
+import { articleUrl } from '../../lib/url'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  getArticlesPage,
+  getAuthorBySlug,
+  getAuthors,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+  PAGE_SIZE,
+} from '../../lib/cms'
+
+export async function getStaticPaths() {
+  const authors = await getAuthors().catch(() => [])
+  const paths: Array<{ params: { path: string }; props: { slug: string; page: number } }> = []
+
+  for (const author of authors) {
+    if (!author.slug) continue
+    const first = await getArticlesPage({ authorSlug: author.slug, page: 1, limit: PAGE_SIZE }).catch(
+      () => ({ totalPages: 1 }),
+    )
+    const totalPages = 'totalPages' in first ? (first.totalPages ?? 1) : 1
+
+    for (let page = 1; page <= totalPages; page++) {
+      paths.push({
+        params: { path: page === 1 ? author.slug : `${author.slug}/page/${page}` },
+        props: { slug: author.slug, page },
+      })
+    }
+  }
+
+  return paths
+}
+
+const { slug, page } = Astro.props as { slug: string; page: number }
+
+const [settings, categories, footerPages, author, result] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getAuthorBySlug(slug).catch(() => null),
+  getArticlesPage({ authorSlug: slug, page, limit: PAGE_SIZE }).catch(() => ({
+    docs: [],
+    page,
+    totalPages: 1,
+    totalDocs: 0,
+    hasPrev: false,
+    hasNext: false,
+  })),
+])
+
+const basePath = `/author/${slug}`
+const displayName = author?.nameBn ?? slug
+
+/** Same absolute-URL rule as `AuthorCard.astro` — Payload stores a relative path. */
+const mediaBase = (import.meta.env.PUBLIC_MEDIA_BASE_URL || '').replace(/\/$/, '')
+const photo = author?.photo && typeof author.photo === 'object' ? author.photo : null
+const photoUrl = photo?.url
+  ? photo.url.startsWith('http')
+    ? photo.url
+    : `${mediaBase}${photo.url}`
+  : null
+
+const canonical = new URL(
+  `${basePath}${page > 1 ? `/page/${page}` : ''}`,
+  Astro.site ?? Astro.url,
+).href
+
+const breadcrumbTrail = [
+  { name: 'হোম', url: new URL('/', Astro.site ?? Astro.url).href },
+  { name: displayName, url: canonical },
+]
+
+/**
+ * `ProfilePage` wrapping a `Person`, which is what this page actually is.
+ *
+ * `sameAs` is omitted rather than guessed — the CMS has no social-profile field
+ * for authors, and inventing URLs would be worse than leaving it out.
+ */
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ProfilePage',
+  url: canonical,
+  inLanguage: 'bn-BD',
+  isPartOf: {
+    '@type': 'WebSite',
+    name: settings.siteName,
+    url: Astro.site?.href ?? Astro.url.origin,
+  },
+  breadcrumb: {
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbTrail.map((item, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  },
+  mainEntity: {
+    '@type': 'Person',
+    name: displayName,
+    alternateName: author?.nameEn ?? undefined,
+    jobTitle: author?.designation ?? undefined,
+    description: author?.bio ?? undefined,
+    url: canonical,
+  },
+}
+---
+
+<Layout
+  title={page > 1 ? `${displayName} — পেজ ${page}` : displayName}
+  description={author?.bio ?? `${displayName}-এর লেখা — ${settings.siteName}।`}
+  canonical={canonical}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+  jsonLd={jsonLd}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs
+      items={[
+        { label: 'হোম', href: '/' },
+        { label: displayName, href: basePath },
+      ]}
+    />
+
+    <header class="mb-8 flex gap-5 border-b-2 border-brand-red pb-4">
+      {
+        photoUrl && (
+          <img
+            src={photoUrl}
+            alt={photo?.alt || displayName}
+            width="96"
+            height="96"
+            loading="lazy"
+            decoding="async"
+            class="h-24 w-24 shrink-0 rounded-full object-cover"
+          />
+        )
+      }
+      <div class="min-w-0">
+        <p class="text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
+          লেখক
+        </p>
+        <h1 class="font-headline mt-0.5 text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+          {displayName}
+        </h1>
+        {
+          author?.designation && <p class="text-sm text-brand-red">{author.designation}</p>
+        }
+        {
+          author?.bio && (
+            <p class="mt-2 max-w-2xl text-sm text-ink-muted dark:text-dark-ink-muted">{author.bio}</p>
+          )
+        }
+        <p class="mt-2 text-xs text-ink-subtle dark:text-dark-ink-muted">
+          {result.totalDocs} টি প্রতিবেদন
+        </p>
+      </div>
+    </header>
+
+    <ArticleGrid articles={result.docs} emptyMessage="এই লেখকের এখনো কোনো প্রতিবেদন নেই।" />
+
+    <Pagination page={result.page} totalPages={result.totalPages} basePath={basePath} />
+  </div>
+</Layout>

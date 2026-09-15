@@ -3,11 +3,14 @@ import {
   FALLBACK_CATEGORIES,
   getAllArticlePaths,
   getAllPageSlugs,
+  getArchiveBuckets,
   getArticles,
+  getAuthors,
   getCategories,
+  getTags,
 } from '../lib/cms'
 import { getAllInstitutionSlugs, getAllStudyAbroadSlugs } from '../lib/education'
-import { articleUrl } from '../lib/url'
+import { archiveMonthSegment, articleUrl } from '../lib/url'
 
 /**
  * sitemap.xml
@@ -53,16 +56,28 @@ export const GET: APIRoute = async () => {
   const site = (import.meta.env.PUBLIC_SITE_URL || 'https://shikkha24.com').replace(/\/$/, '')
   const today = new Date().toISOString().slice(0, 10)
 
-  const [articlePaths, pageSlugs, articles, categories, institutionSlugs, studyAbroadSlugs] =
-    await Promise.all([
-      getAllArticlePaths().catch(() => []),
-      getAllPageSlugs().catch(() => []),
-      // Fetched only for the publish dates; the path list above stays canonical.
-      getArticles({ limit: 500 }).catch(() => []),
-      getCategories().catch(() => FALLBACK_CATEGORIES),
-      getAllInstitutionSlugs().catch(() => []),
-      getAllStudyAbroadSlugs().catch(() => []),
-    ])
+  const [
+    articlePaths,
+    pageSlugs,
+    articles,
+    categories,
+    institutionSlugs,
+    studyAbroadSlugs,
+    tags,
+    authors,
+    archiveBuckets,
+  ] = await Promise.all([
+    getAllArticlePaths().catch(() => []),
+    getAllPageSlugs().catch(() => []),
+    // Fetched only for the publish dates; the path list above stays canonical.
+    getArticles({ limit: 500 }).catch(() => []),
+    getCategories().catch(() => FALLBACK_CATEGORIES),
+    getAllInstitutionSlugs().catch(() => []),
+    getAllStudyAbroadSlugs().catch(() => []),
+    getTags().catch(() => []),
+    getAuthors().catch(() => []),
+    getArchiveBuckets().catch(() => []),
+  ])
 
   /** slug → publish date, so each article carries its own accurate `lastmod`. */
   const publishedOn = new Map(
@@ -85,6 +100,7 @@ export const GET: APIRoute = async () => {
     { loc: '/circulars', priority: '0.7', changefreq: 'daily' },
     { loc: '/study-abroad', priority: '0.6', changefreq: 'weekly' },
     { loc: '/exams', priority: '0.7', changefreq: 'daily' },
+    { loc: '/archive', priority: '0.4', changefreq: 'weekly' },
     { loc: '/gpa', priority: '0.3', changefreq: 'yearly' },
   ]
 
@@ -118,6 +134,28 @@ export const GET: APIRoute = async () => {
       loc: `/category/${category.slug}`,
       priority: '0.7',
       changefreq: 'hourly',
+    })),
+    // Tag and author profiles, and one entry per month that actually has
+    // articles. Derived from the CMS like everything else here, so the sitemap
+    // can never list a tag or month page that was not built.
+    ...tags
+      .filter((tag) => tag.slug)
+      .map((tag) => ({
+        loc: `/tag/${tag.slug}`,
+        priority: '0.5',
+        changefreq: 'daily',
+      })),
+    ...authors
+      .filter((author) => author.slug)
+      .map((author) => ({
+        loc: `/author/${author.slug}`,
+        priority: '0.5',
+        changefreq: 'weekly',
+      })),
+    ...archiveBuckets.map((bucket) => ({
+      loc: `/archive/${archiveMonthSegment(bucket.year, bucket.month)}`,
+      priority: '0.4',
+      changefreq: 'monthly',
     })),
     ...articlePaths.map((p) => ({
       loc: articleUrl({

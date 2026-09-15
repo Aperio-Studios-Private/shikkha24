@@ -26,17 +26,6 @@ import {
   PAGE_SIZE,
 } from '../../lib/cms'
 
-/** Parse a catch-all path into a category slug and a page number. */
-function parsePath(path: string): { slug: string; page: number } {
-  const parts = path.split('/').filter(Boolean)
-  // [slug] or [slug, 'page', n]
-  if (parts.length >= 3 && parts[1] === 'page') {
-    const page = Number.parseInt(parts[2] ?? '1', 10)
-    return { slug: parts[0] ?? '', page: Number.isFinite(page) && page > 0 ? page : 1 }
-  }
-  return { slug: parts[0] ?? '', page: 1 }
-}
-
 export async function getStaticPaths() {
   const categories = await getCategories().catch(() => FALLBACK_CATEGORIES)
   const paths: Array<{ params: { path: string }; props: Record<string, unknown> }> = []

@@ -53,3 +53,23 @@ export function articleUrl(article: ArticleRef): string {
 export function shortLink(articleId: number | string): string {
   return `/a/${articleId}`
 }
+
+/**
+ * The archive month as a single path segment: `YYYY-MM`.
+ *
+ * The month is **one** segment, not two. `/archive/2026/09` would be a
+ * three-segment path, and the `.htaccess` article rule matches any
+ * three-segment path (minus a middle `page`) — so it would be served the
+ * *article* CSP profile despite carrying no ad slot. One segment avoids that
+ * collision structurally rather than adding another exclusion to the rule.
+ *
+ * Lives here rather than in the page's frontmatter because `getStaticPaths` is
+ * hoisted to module scope and **cannot see a frontmatter `const`** — it can only
+ * use imports. That mistake is a build failure, not a warning:
+ * `monthSegment is not defined`.
+ *
+ * Callers build `/archive/${archiveMonthSegment(y, m)}`.
+ */
+export function archiveMonthSegment(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, '0')}`
+}

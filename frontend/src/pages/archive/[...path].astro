@@ -1,0 +1,214 @@
+---
+/**
+ * Date archive — `/archive`, `/archive/:year-month` and `/archive/:year-month/page/:n`.
+ *
+ * ## Why the month is one path segment and not two
+ *
+ * `/archive/2026/09` would be a **three-segment** path, and the `.htaccess`
+ * article rule matches any three-segment path (minus a middle `page`). It would
+ * therefore have been served the *article* CSP profile — relaxed, with
+ * `frame-src` open for video embeds — despite carrying no ad slot. Keeping the
+ * month as a single `YYYY-MM` segment avoids the collision structurally instead
+ * of adding another exclusion to the rule, which is the enumeration trap M15
+ * describes. `pnpm verify:apache` would catch it either way, because it decides
+ * the expected profile from whether the page renders an ad slot.
+ *
+ * ## Buckets are derived, never stored
+ *
+ * `getArchiveBuckets()` counts the published articles themselves, so the archive
+ * cannot disagree with what is actually live. A month with no articles simply
+ * has no bucket and no route.
+ *
+ * Path shapes:
+ *   ``                → the index of months
+ *   `2026-09`         → September 2026, page 1
+ *   `2026-09/page/2`  → September 2026, page 2
+ *
+ * No ad slot — `AD_POSITIONS` has no archive position, so `.htaccess` correctly
+ * leaves `/archive/*` on the strict CSP profile.
+ */
+import Layout from '../../layouts/Layout.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import ArticleGrid from '../../components/ArticleGrid.astro'
+import Pagination from '../../components/Pagination.astro'
+import { archiveMonthSegment, articleUrl } from '../../lib/url'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  getArticlesByMonth,
+  getArchiveBuckets,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+  PAGE_SIZE,
+} from '../../lib/cms'
+
+export async function getStaticPaths() {
+  const buckets = await getArchiveBuckets().catch(() => [])
+  const paths: Array<{
+    params: { path: string | undefined }
+    props: { year: number | null; month: number | null; page: number }
+  }> = [
+    // `undefined` on a trailing rest param is how Astro expresses the base route.
+    { params: { path: undefined }, props: { year: null, month: null, page: 1 } },
+  ]
+
+  for (const bucket of buckets) {
+    const segment = archiveMonthSegment(bucket.year, bucket.month)
+    const totalPages = Math.max(1, Math.ceil(bucket.count / PAGE_SIZE))
+    for (let page = 1; page <= totalPages; page++) {
+      paths.push({
+        params: { path: page === 1 ? segment : `${segment}/page/${page}` },
+        props: { year: bucket.year, month: bucket.month, page },
+      })
+    }
+  }
+
+  return paths
+}
+
+const { year, month, page } = Astro.props as {
+  year: number | null
+  month: number | null
+  page: number
+}
+
+const isIndex = year === null || month === null
+
+const [settings, categories, footerPages, buckets, result] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getArchiveBuckets().catch(() => []),
+  isIndex
+    ? Promise.resolve({ docs: [], page: 1, totalPages: 1, totalDocs: 0, hasPrev: false, hasNext: false })
+    : getArticlesByMonth(year, month, page, PAGE_SIZE).catch(() => ({
+        docs: [],
+        page,
+        totalPages: 1,
+        totalDocs: 0,
+        hasPrev: false,
+        hasNext: false,
+      })),
+])
+
+const segment = isIndex ? null : archiveMonthSegment(year, month)
+const basePath = segment ? `/archive/${segment}` : '/archive'
+const displayName = isIndex
+  ? 'সংগ্রহশালা'
+  : (buckets.find((b) => b.year === year && b.month === month)?.label ?? segment)
+
+const canonical = new URL(
+  `${basePath}${page > 1 ? `/page/${page}` : ''}`,
+  Astro.site ?? Astro.url,
+).href
+
+const breadcrumbTrail = isIndex
+  ? [
+      { name: 'হোম', url: new URL('/', Astro.site ?? Astro.url).href },
+      { name: displayName, url: canonical },
+    ]
+  : [
+      { name: 'হোম', url: new URL('/', Astro.site ?? Astro.url).href },
+      { name: 'সংগ্রহশালা', url: new URL('/archive', Astro.site ?? Astro.url).href },
+      { name: displayName, url: canonical },
+    ]
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: displayName,
+  url: canonical,
+  inLanguage: 'bn-BD',
+  isPartOf: {
+    '@type': 'WebSite',
+    name: settings.siteName,
+    url: Astro.site?.href ?? Astro.url.origin,
+  },
+  breadcrumb: {
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbTrail.map((item, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  },
+  ...(isIndex
+    ? {}
+    : {
+        mainEntity: {
+          '@type': 'ItemList',
+          numberOfItems: result.totalDocs,
+          itemListElement: result.docs.slice(0, 10).map((article, idx) => ({
+            '@type': 'ListItem',
+            position: idx + 1,
+            url: new URL(articleUrl(article), Astro.site ?? Astro.url).href,
+            name: article.title,
+          })),
+        },
+      }),
+}
+---
+
+<Layout
+  title={isIndex ? displayName : page > 1 ? `${displayName} — পেজ ${page}` : displayName}
+  description={`${settings.siteName}-এ প্রকাশিত সংবাদের মাসভিত্তিক সংগ্রহ।`}
+  canonical={canonical}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+  jsonLd={jsonLd}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs
+      items={
+        isIndex
+          ? [{ label: displayName, href: basePath }]
+          : [{ label: 'সংগ্রহশালা', href: '/archive' }, { label: displayName, href: basePath }]
+      }
+    />
+
+    <header class="mb-6 border-b-2 border-brand-red pb-3">
+      {
+        !isIndex && (
+          <p class="text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
+            সংগ্রহশালা
+          </p>
+        )
+      }
+      <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+        {displayName}
+      </h1>
+      {!isIndex && <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">{result.totalDocs} টি খবর</p>}
+    </header>
+
+    {
+      isIndex && (
+        <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {buckets.map((bucket) => (
+            <li>
+              <a
+                href={`/archive/${archiveMonthSegment(bucket.year, bucket.month)}`}
+                class="flex items-baseline justify-between rounded-lg border border-rule px-4 py-3 text-ink hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
+              >
+                <span class="font-medium">{bucket.label}</span>
+                <span class="text-xs text-ink-subtle dark:text-dark-ink-muted">{bucket.count}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    {
+      isIndex && buckets.length === 0 && (
+        <p class="text-sm text-ink-muted dark:text-dark-ink-muted">এখনো কোনো সংবাদ প্রকাশিত হয়নি।</p>
+      )
+    }
+
+    {!isIndex && <ArticleGrid articles={result.docs} emptyMessage="এই মাসে কোনো খবর নেই।" />}
+
+    {!isIndex && <Pagination page={result.page} totalPages={result.totalPages} basePath={basePath} />}
+  </div>
+</Layout>

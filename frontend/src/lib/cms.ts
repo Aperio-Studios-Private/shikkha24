@@ -306,6 +306,28 @@ export function relationName(value: CmsRelation | CmsRelation[] | undefined): st
   return ''
 }
 
+/**
+ * Populated relationship entries as `{ name, slug }`, for callers that need
+ * both halves — a tag chip has to *show* a Bengali label and *link* to a slug.
+ *
+ * `relationSlugs` returns only the slug and `relationName` only the first label,
+ * so neither can build a labelled link. Bare ids (a `depth=0` read) are dropped
+ * rather than rendered as a chip pointing at `/tag/12`.
+ */
+export function relationEntries(
+  value: CmsRelation | CmsRelation[] | undefined,
+): Array<{ name: string; slug: string }> {
+  if (!value) return []
+  const entries = Array.isArray(value) ? value : [value]
+  const out: Array<{ name: string; slug: string }> = []
+  for (const entry of entries) {
+    if (entry && typeof entry === 'object' && entry.slug) {
+      out.push({ name: entry.nameBn ?? entry.slug, slug: entry.slug })
+    }
+  }
+  return out
+}
+
 export interface CmsArticle {
   id: number | string
   title: string
@@ -737,6 +759,35 @@ export async function getAuthorBySlug(slug: string): Promise<CmsAuthor | null> {
     null,
   )
   return data?.docs?.[0] ?? null
+}
+
+/**
+ * Every tag, so `getStaticPaths` can emit one route per tag.
+ *
+ * Distinct from `getTagBySlug`: this is the *listing* side, and a static build
+ * has to know every slug up front. Sorted by name so the archive index reads in
+ * a stable order rather than whatever the database returns.
+ */
+export async function getTags(): Promise<CmsTag[]> {
+  const data = await cmsFetch<{ docs?: CmsTag[] } | null>(
+    `/api/tags${qs({ limit: 200, sort: 'nameBn' })}`,
+    null,
+  )
+  return data?.docs ?? []
+}
+
+/**
+ * Every author, so `getStaticPaths` can emit one route per author.
+ *
+ * Same reason as `getTags`. Authors are public content (`read: anyone`), not
+ * internal staff records, which is what makes a public profile page possible.
+ */
+export async function getAuthors(): Promise<CmsAuthor[]> {
+  const data = await cmsFetch<{ docs?: CmsAuthor[] } | null>(
+    `/api/authors${qs({ limit: 200, sort: 'nameBn' })}`,
+    null,
+  )
+  return data?.docs ?? []
 }
 
 /** One entry per year/month that actually has articles. */

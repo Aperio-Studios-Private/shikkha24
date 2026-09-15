@@ -45,17 +45,6 @@ import {
 
 const BASE_PATH = '/latest'
 
-/** Parse a catch-all path into a page number. */
-function parsePath(path: string): number {
-  const parts = path.split('/').filter(Boolean)
-  // `page/N`
-  if (parts.length >= 2 && parts[0] === 'page') {
-    const page = Number.parseInt(parts[1] ?? '1', 10)
-    return Number.isFinite(page) && page > 0 ? page : 1
-  }
-  return 1
-}
-
 export async function getStaticPaths() {
   // Fetch page 1 to learn how many pages exist, then emit one path per page —
   // the same shape the category listing uses, so a long feed scales without a
@@ -141,9 +130,15 @@ const jsonLd = {
       <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
         সর্বশেষ খবর
       </h1>
-      <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
-        {result.totalDocs} টি খবর
-      </p>
+      <div class="mt-1 flex flex-wrap items-center justify-between gap-2">
+        <p class="text-xs text-ink-subtle dark:text-dark-ink-muted">{result.totalDocs} টি খবর</p>
+        {/* The feed is chronological and unbounded; the archive is the same
+            content browsable by month. Linking it here is what keeps
+            `/archive` from being a page nothing points at. */}
+        <a href="/archive" class="text-xs text-brand-red hover:underline">
+          মাসভিত্তিক সংগ্রহশালা →
+        </a>
+      </div>
     </header>
 
     <ArticleGrid articles={result.docs} emptyMessage="এখনো কোনো খবর প্রকাশিত হয়নি।" />

@@ -1,0 +1,167 @@
+---
+/**
+ * Tag listing — `/tag/:slug` and `/tag/:slug/page/:n`.
+ *
+ * Tags are cross-cutting editorial labels (an exam name, a scholarship name)
+ * that sit beside the category tree rather than inside it, so a story about
+ * HSC results can be reachable from both `exams-results` and `hsc`.
+ *
+ * ## Why one catch-all rather than two routes
+ *
+ * Same shape as `category/[...path].astro` and `latest/[...path].astro`: one
+ * file handles the first page and every subsequent page, so listing behaviour
+ * lives in one place and the three listings cannot drift apart.
+ *
+ * ## No ad slot, so the strict CSP applies
+ *
+ * `AD_POSITIONS` has no tag position, and it is a contract with exactly one
+ * `AdSlot` per value — so this route carries no ad and `.htaccess` correctly
+ * leaves it on the strict profile. Do not relax the CSP for `/tag/*`.
+ *
+ * Path shapes:
+ *   `demo-hsc`          → tag "demo-hsc", page 1
+ *   `demo-hsc/page/2`   → tag "demo-hsc", page 2
+ */
+import Layout from '../../layouts/Layout.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import ArticleGrid from '../../components/ArticleGrid.astro'
+import Pagination from '../../components/Pagination.astro'
+import { articleUrl } from '../../lib/url'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  getArticlesPage,
+  getTagBySlug,
+  getTags,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+  PAGE_SIZE,
+} from '../../lib/cms'
+
+export async function getStaticPaths() {
+  // A static build has to know every slug up front, so this is the one place
+  // that needs the full tag list — the page itself resolves a single tag.
+  const tags = await getTags().catch(() => [])
+  const paths: Array<{ params: { path: string }; props: { slug: string; page: number } }> = []
+
+  for (const tag of tags) {
+    if (!tag.slug) continue
+    const first = await getArticlesPage({ tagSlug: tag.slug, page: 1, limit: PAGE_SIZE }).catch(
+      () => ({ totalPages: 1 }),
+    )
+    const totalPages = 'totalPages' in first ? (first.totalPages ?? 1) : 1
+
+    for (let page = 1; page <= totalPages; page++) {
+      paths.push({
+        params: { path: page === 1 ? tag.slug : `${tag.slug}/page/${page}` },
+        props: { slug: tag.slug, page },
+      })
+    }
+  }
+
+  return paths
+}
+
+const { slug, page } = Astro.props as { slug: string; page: number }
+
+const [settings, categories, footerPages, tag, result] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getTagBySlug(slug).catch(() => null),
+  getArticlesPage({ tagSlug: slug, page, limit: PAGE_SIZE }).catch(() => ({
+    docs: [],
+    page,
+    totalPages: 1,
+    totalDocs: 0,
+    hasPrev: false,
+    hasNext: false,
+  })),
+])
+
+const basePath = `/tag/${slug}`
+const displayName = tag?.nameBn ?? slug
+
+const canonical = new URL(
+  `${basePath}${page > 1 ? `/page/${page}` : ''}`,
+  Astro.site ?? Astro.url,
+).href
+
+/**
+ * CollectionPage + BreadcrumbList + ItemList, matching the visible trail.
+ *
+ * `keywords` is deliberately absent: a tag page's whole subject *is* the tag,
+ * so repeating it as a keyword adds nothing a crawler cannot already read from
+ * the URL and the heading.
+ */
+const breadcrumbTrail = [
+  { name: 'হোম', url: new URL('/', Astro.site ?? Astro.url).href },
+  { name: displayName, url: canonical },
+]
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: displayName,
+  url: canonical,
+  inLanguage: 'bn-BD',
+  isPartOf: {
+    '@type': 'WebSite',
+    name: settings.siteName,
+    url: Astro.site?.href ?? Astro.url.origin,
+  },
+  breadcrumb: {
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbTrail.map((item, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  },
+  mainEntity: {
+    '@type': 'ItemList',
+    numberOfItems: result.totalDocs,
+    itemListElement: result.docs.slice(0, 10).map((article, idx) => ({
+      '@type': 'ListItem',
+      position: idx + 1,
+      url: new URL(articleUrl(article), Astro.site ?? Astro.url).href,
+      name: article.title,
+    })),
+  },
+}
+---
+
+<Layout
+  title={page > 1 ? `${displayName} — পেজ ${page}` : displayName}
+  description={`${displayName} ট্যাগে প্রকাশিত সংবাদ — ${settings.siteName}।`}
+  canonical={canonical}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+  jsonLd={jsonLd}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs
+      items={[
+        { label: 'হোম', href: '/' },
+        { label: displayName, href: basePath },
+      ]}
+    />
+
+    <header class="mb-6 border-b-2 border-brand-red pb-3">
+      <p class="text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
+        ট্যাগ
+      </p>
+      <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+        {displayName}
+      </h1>
+      <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">{result.totalDocs} টি খবর</p>
+    </header>
+
+    <ArticleGrid articles={result.docs} emptyMessage="এই ট্যাগে এখনো কোনো খবর নেই।" />
+
+    <Pagination page={result.page} totalPages={result.totalPages} basePath={basePath} />
+  </div>
+</Layout>

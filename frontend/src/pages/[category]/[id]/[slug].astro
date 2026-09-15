@@ -48,6 +48,7 @@ import {
   getArticleBySlug,
   getRelatedArticles,
   getAuthor,
+  relationEntries,
   FALLBACK_SETTINGS,
   FALLBACK_CATEGORIES,
 } from '../../../lib/cms'
@@ -88,6 +89,15 @@ const [author, related] = await Promise.all([
   getAuthor(article.author).catch(() => null),
   getRelatedArticles(article).catch(() => []),
 ])
+
+/**
+ * Tags for the footer row.
+ *
+ * `article.tags` is a `hasMany` relationship, so Payload returns an array — and
+ * at `depth=0` it would be bare ids. `relationEntries` normalises both and drops
+ * anything without a slug, so a chip never links to `/tag/12`.
+ */
+const tagEntries = relationEntries(article.tags)
 
 /**
  * Comments — baked in at build time, like everything else on this page.
@@ -178,7 +188,12 @@ const jsonLd = {
         '@type': 'Person',
         name: author.nameBn,
         alternateName: author.nameEn ?? undefined,
-        url: author.slug ? `${siteUrl}/author/${author.slug}` : undefined,
+        // `new URL` rather than `${siteUrl}/author/…`: `Astro.site.href` already
+        // ends in a slash, so interpolation produced `…com//author/…` — a dead
+        // URL in the structured data that no `href` check would ever see.
+        url: author.slug
+          ? new URL(`/author/${author.slug}`, Astro.site ?? Astro.url).href
+          : undefined,
       }
     : { '@type': 'Person', name: settings.siteName },
   publisher: {
@@ -259,7 +274,19 @@ const jsonLd = {
 
         {/* Byline */}
         <div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-subtle dark:text-dark-ink-muted">
-          {author && <span class="font-medium text-ink dark:text-dark-ink">{author.nameBn}</span>}
+          {
+            author && (
+              <span class="font-medium text-ink dark:text-dark-ink">
+                {author.slug ? (
+                  <a href={`/author/${author.slug}`} class="hover:text-brand-red hover:underline">
+                    {author.nameBn}
+                  </a>
+                ) : (
+                  author.nameBn
+                )}
+              </span>
+            )
+          }
           {published && (
             <time datetime={article.publishedAt ?? undefined}>{published}</time>
           )}
@@ -351,6 +378,23 @@ const jsonLd = {
         {showMiddleAd && (
           <div class="prose-bn text-ink dark:text-dark-ink" set:html={bodyAfterAd} />
         )}
+
+        {/* Tags sit between the story and the share row: a reader who has just
+            finished reading is the one who wants to browse the subject. */}
+        {
+          tagEntries.length > 0 && (
+            <nav class="mt-6 flex flex-wrap items-center gap-2" aria-label="ট্যাগ">
+              {tagEntries.map((tag) => (
+                <a
+                  href={`/tag/${tag.slug}`}
+                  class="rounded-full border border-rule px-3 py-1.5 text-sm text-ink hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
+                >
+                  {tag.name}
+                </a>
+              ))}
+            </nav>
+          )
+        }
 
         {/* Share and save sit together — both are "keep this" actions, and a
             reader looking for one will look where the other is. The bookmark
