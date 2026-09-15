@@ -76,6 +76,13 @@ Every check below was run in this pass, in this order, against a clean tree.
 **130 records** across 22 public collections. All populated except the
 intentionally-empty ones: `tags`, `pages`, `jobs`, `fact-checks`, `ad-units`.
 
+> ⚠️ **As of 2026-09-15 the demo corpus is larger, and `tags` is no longer empty.**
+> It holds 24 articles (was 12), 14 demo tags, three authors (was one), and publish
+> dates spanning ~3 months — added so pagination is actually generated and so the
+> deferred author / tag / date-archive routes have content to show. Counts above are
+> the 2026-09-13 state. The production seed still creates no tags; the demo ones are
+> `demo-` prefixed and `seed:demo:purge` removes them.
+
 `SiteSettings` global: siteName / siteNameEn / tagline / contact / social all set.
 **`logo` is unset** — the frontend falls back to a built-in brand wordmark, which
 is the designed behaviour. The owner drops the real logo into the admin with no
