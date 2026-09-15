@@ -24,6 +24,9 @@
  *      with no `sizes` to disambiguate them lets the browser keep showing the
  *      stale one. And the managed URL must carry a cache-buster, because
  *      browsers cache favicons far more stubbornly than other assets.
+ *   7. **`search-init.js` still has the markup it sorts.** It reorders the date
+ *      filter in the DOM, so it depends on Pagefind's *internal* class names —
+ *      and if those are renamed the sort dies silently.
  *
  * Run after `pnpm build`: node scripts/verify-build-output.mjs
  */
@@ -307,6 +310,37 @@ check(
   unversionedIconPages.length === 0
     ? 'no unversioned managed icons'
     : unversionedIconPages.slice(0, 3).join(', '),
+)
+
+// ── 7. The date-filter sort still has the markup it depends on ───────────────
+/**
+ * `public/search-init.js` reorders the date filter's values in the DOM, so it has
+ * to select Pagefind's filter markup — which is **internal**, not a public API.
+ * If a Pagefind update renames those classes the sort stops working silently: no
+ * error, no failing check, just months back in index order.
+ *
+ * This asserts the hooks are still present. It is deliberately a check on someone
+ * else's internals — the coupling is real, and a build-time failure beats finding
+ * out from a reader.
+ */
+const PAGEFIND_UI = join(DIST, 'pagefind/pagefind-ui.js')
+const REQUIRED_FILTER_HOOKS = [
+  'pagefind-ui__filter-block',
+  'pagefind-ui__filter-name',
+  'pagefind-ui__filter-value',
+  'pagefind-ui__filter-checkbox',
+]
+let missingHooks = REQUIRED_FILTER_HOOKS
+if (existsSync(PAGEFIND_UI)) {
+  const ui = readFileSync(PAGEFIND_UI, 'utf8')
+  missingHooks = REQUIRED_FILTER_HOOKS.filter((hook) => !ui.includes(hook))
+}
+check(
+  'pagefind-ui.js still exposes the filter markup search-init.js sorts',
+  missingHooks.length === 0,
+  missingHooks.length === 0
+    ? `${REQUIRED_FILTER_HOOKS.length} hooks present`
+    : `missing: ${missingHooks.join(', ')}`,
 )
 
 console.log(
