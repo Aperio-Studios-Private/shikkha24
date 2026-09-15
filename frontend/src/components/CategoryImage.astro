@@ -5,9 +5,23 @@
  * Wraps Astro's `<Picture>` so every call site gets the same correct treatment
  * instead of re-deriving it. What this buys:
  *
- * - **AVIF first, WebP fallback.** AVIF reached Baseline-widely-available in
- *   July 2026 and is meaningfully smaller than WebP; the fallback costs one
- *   `<source>` line, so there is no reason not to ship both.
+ * - **AVIF first, WebP second, WebP as the `<img>` fallback too.** AVIF reached
+ *   Baseline-widely-available in July 2026 and is meaningfully smaller than WebP;
+ *   the fallback costs one `<source>` line, so there is no reason not to ship both.
+ *
+ *   `fallbackFormat="webp"` is deliberate, not decoration. Left unset, `<Picture>`
+ *   emits the **source JPEG** as the `<img>` element — and at 1200w that reached
+ *   **226 KB** against a documented 150 KB hero budget, six files over. It was the
+ *   largest asset the site shipped, on the path taken by exactly the devices
+ *   (budget Android, Opera Mini) the budget exists to protect.
+ *
+ *   WebP is supported by every browser in current use: Opera Mini's proxy
+ *   transcodes to WebP, and UC Browser and Android WebView have handled it since
+ *   2011. The JPEG fallback was buying compatibility with clients a decade older
+ *   than that. Dropping it removes the breach rather than documenting it away.
+ *
+ *   If an ancient client ever matters more than the budget, this is the one line
+ *   to change — but re-measure before doing so (`docs/performance-budget.md` §3).
  * - **Responsive `srcset`.** Several widths, so a 375px phone never downloads
  *   the 1200px desktop asset.
  * - **Zero CLS.** `<Picture>` writes intrinsic `width`/`height`, so the browser
@@ -55,6 +69,7 @@ const {
 <Picture
   src={image}
   formats={['avif', 'webp']}
+  fallbackFormat="webp"
   {widths}
   {sizes}
   {alt}

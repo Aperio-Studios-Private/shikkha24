@@ -52,6 +52,38 @@ Derived from the 1.2 MB initial-payload target. Validate each in S0 — these ar
 | Third-party scripts (analytics) | < 10 KB | No analytics tool (removed 2026-09-14). Apache logs via cPanel. |
 | **Data-saver mode** | **< 30 KB total** | Strips ads, defers images behind a tap placeholder |
 
+### The image budget — resolved 2026-09-15
+
+Measured against the built output for the 8 category archetypes, which are the hero on every
+article page:
+
+| Format | Files | Largest | Over 80 KB | Over 150 KB |
+|---|---|---|---|---|
+| AVIF (modern browsers) | 46 | **71.2 KB** | 0 | 0 |
+| WebP (fallback) | 46 | **137.9 KB** | 4 | **0** |
+| JPEG | — | **removed** | — | — |
+
+The four WebP files over 80 KB are all **1200 px wide** — the hero tier, governed by the 150 KB
+row above rather than the 80 KB one. **Every image is within budget.**
+
+Two defects got it there; neither was tuning.
+
+1. **`fallbackFormat="webp"` on the `<Picture>` in `CategoryImage.astro`.** Left unset, Astro
+   emits the **source JPEG** as the `<img>` element. At 1200 px that reached **226.5 KB** — the
+   single largest asset the site shipped, on the path taken by exactly the devices the budget
+   exists to protect. WebP is supported by every browser in current use (Opera Mini's proxy
+   transcodes it; UC Browser and Android WebView have handled it since 2011), so the JPEG
+   fallback was buying compatibility with clients a decade older than that.
+
+2. **The sources were 1376 px wide while the largest declared width was 1200.** Astro generates
+   the fallback `<img>` at the **source** width, so it produced a 1376 px file that no `srcset`
+   entry could ever match — 13% more pixels than the site ever serves. The 8 category sources
+   are now 1200×670, which also cut repo weight from 6.2 MB to 1.2 MB.
+
+⚠️ **The invariant this exposes: never ship a source wider than the largest width you declare.**
+A source wider than `widths` yields a fallback that is dead weight, and it is silently the
+heaviest file in the build — the one a naive "largest file" check flags and nobody can explain.
+
 ### The font problem
 
 The stack-research estimates are: Hind Siliguri 25–40 KB/weight, Noto Sans Bengali 30–45 KB/weight, Inter ~100 KB as a variable font. Naively that is **240 KB+** — over the entire font budget before a single image.
@@ -85,7 +117,7 @@ The stack-research estimates are: Hind Siliguri 25–40 KB/weight, Noto Sans Ben
 | Concern | Approach |
 |---|---|
 | JavaScript | Astro islands. `client:visible` / `client:idle` for everything non-critical. No framework JS in the initial payload for static content. |
-| Images | Host disk (DianaHost). WebP (no originals retained), explicit `width`/`height` on every `<img>` (zero CLS), `fetchpriority="high"` on the hero only, `loading="lazy"` below the fold. Media served from the CMS origin. Browser caching via `Cache-Control` in `.htaccess`. |
+| Images | Host disk (DianaHost). AVIF first, WebP second, **WebP as the `<img>` fallback** (see §2) — no JPEG ships. Explicit `width`/`height` on every `<img>` (zero CLS), `fetchpriority="high"` on the hero only, `loading="lazy"` below the fold. Sources are never wider than the largest declared width. Media served from the CMS origin. Browser caching via `Cache-Control` in `.htaccess`. |
 | Fonts | See §3. |
 | Ads | Reserved containers with fixed dimensions. Ad scripts load **after** LCP via `requestIdleCallback`. Never block render. |
 | Widgets | Weather + prayer times are fetched **server-side at build time** and rendered statically. Never client-fetched. |

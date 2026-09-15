@@ -123,7 +123,7 @@ as the source asset for regeneration. `verify-build-output` updated to check for
 
 Verified in built output: `content="https://shikkha24.com/og-default.png"`.
 
-### 2.2 — Image fallbacks exceed the documented per-image budget
+### 2.2 — Image fallbacks exceed the documented per-image budget ✅ FIXED
 
 `docs/performance-budget.md` §3 sets **hero < 150 KB** and **all other images < 80 KB each**.
 Measured against the built output for the 8 category archetype images (which are the hero on
@@ -136,12 +136,37 @@ every article page, since 0 of 12 demo articles have a `featuredImage`):
 | JPG (legacy fallback) | **226.5 KB** | 11 | 8 | ❌ 8 over |
 
 **The honest reading:** readers on a modern browser get AVIF and are **within budget**. The
-breach is on the **fallback path** — and that path matters more than usual here, because the
+breach was on the **fallback path** — and that path matters more than usual here, because the
 target audience includes Opera Mini and older budget Android, exactly the devices that skip
-AVIF. Worst realistic case is ~146 KB (WebP at 1200w on a DPR≥2 desktop).
+AVIF. Worst realistic case was ~146 KB (WebP at 1200w on a DPR≥2 desktop).
 
-Not fixed because the correct remedy is a product decision: either lower the archetype source
-resolution, or accept the fallback size and revise the documented budget for the legacy path.
+**Fixed 2026-09-15.** Two defects, neither of them tuning:
+
+1. **`<Picture>` was emitting the source JPEG as its `<img>` element.** Unset, `fallbackFormat`
+   defaults to the source format — so the fallback was a 226.5 KB JPEG, the heaviest asset on
+   the site. Set to `webp` in `CategoryImage.astro`. WebP is supported by every browser in
+   current use, so the JPEG fallback was buying compatibility with clients a decade older than
+   the ones it was supposedly protecting.
+
+2. **The sources were 1376 px wide while the largest declared width was 1200.** Astro generates
+   the fallback `<img>` at the **source** width, so it produced a 1376 px file that no `srcset`
+   entry could match — 13% more pixels than the site ever serves. The 8 category sources are now
+   1200×670, which also cut repo weight from 6.2 MB to 1.2 MB.
+
+**Measured after:**
+
+| Format | Files | Largest | Over 80 KB | Over 150 KB |
+|---|---|---|---|---|
+| AVIF | 46 | **71.2 KB** | 0 | 0 |
+| WebP | 46 | **137.9 KB** | 4 | **0** |
+| JPEG | — | **removed** | — | — |
+
+The four WebP files over 80 KB are all **1200 px wide** — the hero tier, governed by the 150 KB
+row. **Every image is now within budget**, and the total shipped image files fell from 146 to 92.
+
+⚠️ **Invariant recorded in `docs/image-optimization.md`:** never ship a source wider than the
+largest width you declare. A source wider than `widths` produces a fallback that is dead weight
+and silently the heaviest file in the build.
 
 ### 2.3 — The CI byte-budget gate measured the wrong thing and was 10× too loose ✅ FIXED
 
@@ -390,17 +415,16 @@ pins. A normal `pnpm install` on a machine without the broker will complete it.
 | Severity | Count | Status |
 |---|---|---|
 | Blocking, fixed | 7 | dependency audit, 171 broken links, relative `og:image`, SVG og:image unsupported, **red lint gate**, **CI could never pass (no CMS)**, **deploy would ship a thin site** |
-| Significant, fixed | 4 | dead env vars, CI byte-budget gate, CI harness wiring, no deploy workflow |
+| Significant, fixed | 5 | dead env vars, CI byte-budget gate, CI harness wiring, no deploy workflow, **image fallback budget** |
 | Minor, fixed | 5 | placeholder logo commit/rename, manifest + Apple touch icon, demo-purge tooling, **vacuous harness check**, **stale Cloudflare refs** |
 | Blocking, open | 0 | — |
-| Significant, open | 1 | image fallback budget |
+| Significant, open | 0 | — |
 | Minor, open | 1 | demo content (editorial — the purge tool exists, the real content does not) |
 | Clean | 16 checks | see §3 |
 
-**Every agent-buildable launch blocker identified by this audit is now closed.
-The only remaining open items are §2.2 (image fallback budget — product decision),
-and §2.8 (demo content — the purge tool now exists; replacing it with real content
-is editorial work).**
+**Every agent-buildable launch blocker identified by this audit is now closed, and every
+agent-buildable defect it reported is fixed. The only remaining open item is §2.8 — replacing
+the demo content with real editorial content, which is the team's work, not the agent's.**
 
 *Updated 2026-09-14: placeholder logo committed as `docs/assets/logo.svg`,
 dead env vars removed from `cms/.env.example`, CI byte-budget gate corrected, two dist-only

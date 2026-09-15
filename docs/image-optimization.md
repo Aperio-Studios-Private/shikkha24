@@ -11,7 +11,9 @@ implemented through Astro's asset pipeline.
 
 | Rule | Why |
 |---|---|
-| **AVIF first, WebP fallback, JPEG last** | AVIF and WebP beat JPEG by 25–50% at equivalent quality. AVIF reached Baseline *widely available* in July 2026. The fallback costs one `<source>` line. |
+| **AVIF first, WebP second, WebP as the `<img>` fallback** | AVIF and WebP beat JPEG by 25–50% at equivalent quality. AVIF reached Baseline *widely available* in July 2026. The fallback costs one `<source>` line. |
+| **No JPEG ships** | `<Picture>` emits the *source* format as its `<img>` element unless told otherwise. At 1200 px that was a 226 KB JPEG against a 150 KB hero budget — the heaviest file on the site, on the path taken by the devices the budget protects. `fallbackFormat="webp"` removes it; every browser in current use renders WebP. |
+| **Never ship a source wider than the largest declared width** | `<Picture>` generates the fallback `<img>` at the **source** width. A 1376 px source with a 1200 px max `widths` produced a file 13% wider than anything served — dead weight, and silently the largest asset in the build. |
 | **Always `width` + `height`** | Lets the browser compute aspect ratio and reserve the box → **zero CLS**. |
 | **Responsive `srcset` + `sizes`** | A 4000px file in a 400px slot wastes ~99% of bytes. |
 | **`sizes` must mirror real CSS** | `srcset` says what exists; `sizes` says how wide it renders. Wrong `sizes` = browser picks a 1200px file for a 300px slot. The most-often-omitted attribute, and the one that decides whether responsive images save anything. |
