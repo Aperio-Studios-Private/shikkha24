@@ -15,6 +15,10 @@
  *   3. **The article URL architecture is the one we decided.** Articles live at
  *      `/:category/:id/:slug`, with `/article/:slug` as a redirect stub.
  *   4. **No leftover build scratch.** `dist/.prerender/` gets deployed as junk.
+ *   5. **No page nests `.container-page` inside another.** A component that
+ *      renders its own container — because it is also used standalone — insets
+ *      its whole subtree by another 24px when nested inside a page that already
+ *      has one. Nothing fails; the page just does not line up.
  *
  * Run after `pnpm build`: node scripts/verify-build-output.mjs
  */
@@ -202,6 +206,54 @@ check(
   '.htaccess excludes /:base/page/:n from the article rule',
   Boolean(articleRule) && articleRule.includes('(?!page/)'),
   articleRule ?? 'no three-segment article rule found',
+)
+
+// ── 5. No component nests a page container inside another ────────────────────
+/**
+ * `.container-page` carries `padding-inline` and a `max-width`. It belongs once
+ * per page, at the top. A component that renders its own — because it is also
+ * used standalone — insets its whole subtree by another 24px when it is nested
+ * inside a page that already has one.
+ *
+ * That happened: `CategorySection` wrapped itself in `container-page` while
+ * `index.astro` had already wrapped the sections in one, so all eight homepage
+ * sections sat 24px inside the masthead, the sidebar and the neighbouring block
+ * in the same grid. Nothing failed; the page just did not line up.
+ *
+ * `<script>` and comments are stripped first. A `<div>` inside either is not an
+ * element, and counting it skews the depth — a naive version of this check
+ * reported 95 false positives before that was accounted for.
+ */
+const stripNonMarkup = (html) =>
+  html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<!--[\s\S]*?-->/g, '')
+
+const nestedContainerPages = []
+for (const file of htmlFiles) {
+  const html = stripNonMarkup(readFileSync(file, 'utf8'))
+  const stack = []
+  let containerDepth = null
+
+  for (const match of html.matchAll(/<div\b[^>]*>|<\/div>/g)) {
+    if (match[0] === '</div>') {
+      stack.pop()
+      if (containerDepth !== null && stack.length <= containerDepth) containerDepth = null
+      continue
+    }
+    const isContainer = /class="container-page/.test(match[0])
+    if (isContainer && containerDepth !== null) {
+      nestedContainerPages.push(file.replace(`${DIST}/`, ''))
+      break
+    }
+    if (isContainer) containerDepth = stack.length
+    stack.push(1)
+  }
+}
+check(
+  'no page nests .container-page inside another',
+  nestedContainerPages.length === 0,
+  nestedContainerPages.length === 0
+    ? `${htmlFiles.length} pages checked`
+    : nestedContainerPages.slice(0, 3).join(', '),
 )
 
 console.log(
