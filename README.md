@@ -19,7 +19,7 @@ Production-grade, Bengali-first **education** news portal. Domain: **shikkha24.c
 | `.sps/agent.md` | SPS agent identity |
 | `.sps/content-model.md` | CMS collection inventory (populated in S1) |
 | `.sps/mistakes.md` | Project mistake log — do-not-repeat list |
-| `.sps/lock.json` | `/sps` lock metadata |
+| ~~`.sps/lock.json`~~ | ❌ **deliberately not created** — the `/sps` skill references removing it but defines no schema, so inventing one would violate rule 3. The lock is asserted through the three rule mirrors (`AGENTS.md` / `GEMINI.md` / `CLAUDE.md`). See `.sps/mistakes.md`. |
 | `.sps/antigravity-export-prompt.md` | Prompt to recover planning artifacts from the prior Antigravity session |
 | `.sps/third-party-audit-prompt.md` | Prompt for an independent adversarial audit (read-only, no building) |
 | `AGENTS.md` / `GEMINI.md` / `CLAUDE.md` | **Mandatory agent rules** — three synced mirrors, rules 1–13 identical in all three |

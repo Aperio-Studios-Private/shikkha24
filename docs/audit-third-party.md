@@ -118,6 +118,17 @@ Read all fifteen documents end to end. Cross-checked every version, date, featur
 
 **Referenced-path existence check:** all fourteen documentation paths referenced by the docs exist. Missing: `.sps/lock.json`, `.sps/design-system.md`, `.sps/content-model.md`, `.sps/mistakes.md`, `CLAUDE.md`. `.env.example` is also absent, but that is correctly deferred to S0 and is not a finding.
 
+> ⚠️ **Resolution status (updated 2026-09-15).** This finding was raised 2026-09-11 and has been
+> remediated — do not act on the list above as current:
+>
+> | Path | Status |
+> |---|---|
+> | `.sps/content-model.md` | ✅ **created** |
+> | `.sps/mistakes.md` | ✅ **created** |
+> | `CLAUDE.md` | ✅ **created** — rules 1–13 verified byte-identical across all three mirrors |
+> | `.sps/lock.json` | ❌ **deliberately not created.** The `/sps` skill references removing it but defines no schema anywhere, so inventing one would violate rule 3. The lock is asserted through the three rule mirrors, which is how it actually operates here. See `.sps/mistakes.md`. |
+> | `.sps/design-system.md` | ⚠️ **never created, and not needed.** The design system was built in S2 and lives in the code (`frontend/src/styles/`, the component library and `.sps/section-todos/S2.md`). No document is expected. |
+
 ### Dimension 2 — Factual verification (live registries)
 
 | Claim | Source | Result |
