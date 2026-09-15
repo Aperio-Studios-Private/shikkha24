@@ -74,7 +74,7 @@ jobs:
         #
         # Without this the build still **exits 0** but emits ~32 pages instead of
         # ~84 — the "thin build" false green (`sandbox-build-traps` Trap 2). The
-        # two harness steps below then fail on missing articles, which is how this
+        # harness steps below then fail on missing articles, which is how this
         # was caught: the gate was red, not the build.
         env:
           PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
@@ -82,6 +82,29 @@ jobs:
         run: |
           pnpm --filter @shikkha24/cms seed
           pnpm --filter @shikkha24/cms seed:demo
+
+      - name: CMS harnesses (local API)
+        # These boot Payload directly rather than going over HTTP, so they need
+        # the seeded database but not a running server. Each creates and cleans up
+        # its own rows — none leaves state behind, and none touches the demo
+        # content the frontend build depends on.
+        #
+        # 145 checks across the six. They ran only by hand until now; they were
+        # the last harnesses outside CI.
+        #
+        # `verify:rebuild` asserts the trigger wiring structurally. Its behavioural
+        # half needs a listener at DEPLOY_WEBHOOK_URL, so it is skipped rather than
+        # failed when that is unset — correct here, where there is nothing to call.
+        #
+        # The loop stops at the first failure (`bash -e`), and the echo names it.
+        env:
+          PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
+          DATABASE_URI: file:./data/ci.db
+        run: |
+          for h in media newsletter engagement push oauth rebuild; do
+            echo "── verify:$h ──"
+            pnpm --filter @shikkha24/cms verify:$h
+          done
 
       - name: Build (frontend) against the seeded CMS
         # `CMS_URL` is the **build-time** content origin. `PUBLIC_CMS_ORIGIN` is a
@@ -124,6 +147,25 @@ jobs:
         # no inline scripts, no stale URL prefixes, correct page count. Catches
         # a thin build (dead CMS → green exit code but missing pages).
         run: pnpm run verify:build-output
+
+      - name: Verify CMS read and write paths
+        # The two harnesses that need a LIVE CMS, so they share one `with-cms.sh`
+        # invocation (a background process does not survive between steps).
+        #
+        #   verify:sync      — the READ path: every CMS record appears on the page
+        #                      it is rendered by. Needs the CMS *and* the build, so
+        #                      it must run after the build step above.
+        #   verify:endpoints — the WRITE path: reader submissions over real HTTP,
+        #                      written then read back then cleaned up.
+        #
+        # Both are the kind of check that fails silently in production: a broken
+        # read path yields a green build missing rows, and a broken write path
+        # yields a 404 the reader hits. Neither is visible to an exit code.
+        env:
+          PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
+          DATABASE_URI: file:./data/ci.db
+          CMS_URL: http://localhost:3000
+        run: scripts/with-cms.sh bash -c "pnpm run verify:sync && pnpm run verify:endpoints"
 
       - name: Upload frontend build output
         uses: actions/upload-artifact@v4
@@ -181,14 +223,12 @@ jobs:
         run: pnpm audit --audit-level=high
 
       # ── Not yet wired ─────────────────────────────────────────────────────
-      # The following need additional infrastructure and are deferred:
-      #
-      # CMS-based harnesses (verify:sync, verify:endpoints, verify:media,
-      # verify:newsletter, verify:engagement, verify:push, verify:oauth,
-      # verify:rebuild): need a running Payload instance. CI now starts a seeded
-      # CMS for the frontend build, so the expensive part already happens — these
-      # can be wired inside the same `with-cms.sh` invocation for the cost of
-      # their own runtime. Not done yet; each boots its own Payload process.
+      # All 14 harnesses now run here. What remains needs infrastructure CI does
+      # not have:
       #
       # Lighthouse CI, broken-link check and JSON-LD validation: need real page
       # templates served over HTTP. Wired at S3+ per docs/testing-and-qa.md §1.
+      #
+      # The measured page-level budgets (Lighthouse ≥95, LCP, INP, CLS, TTFB) are
+      # production-only — TTFB in particular is a hosting property, measured once
+      # at S12 on DianaHost with no CDN. See .sps/plan.md.

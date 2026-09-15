@@ -203,16 +203,24 @@ The project had 14 harnesses and **not one was wired into CI**. Three defects fo
 session were *harness* faults, and the S11 URL change silently broke the CSP rule — both classes of
 bug that a CI-wired harness would have caught.
 
-**Fix:** the two harnesses that run against the built `dist/` alone are now CI steps right after
-the frontend build:
+**Fix (2026-09-14):** the two harnesses that run against the built `dist/` alone became CI steps
+right after the frontend build:
 - `verify:csp` — asserts `.htaccess` `<LocationMatch>` route patterns match actual built routes.
 - `verify:build-output` — asserts dist is well-formed (page count, sitemaps, no inline scripts,
   no stale URL prefixes, etc.).
 
-The CMS-based harnesses (`verify:sync`, `verify:endpoints`, `verify:media`, `verify:newsletter`,
+~~The CMS-based harnesses (`verify:sync`, `verify:endpoints`, `verify:media`, `verify:newsletter`,
 `verify:engagement`, `verify:push`, `verify:oauth`, `verify:rebuild`) still need a running Payload
 instance with a seeded database; adding a CMS startup + seed step to CI is planned but deferred
-until the GitHub Actions minutes budget has headroom.
+until the GitHub Actions minutes budget has headroom.~~
+
+**Completed (2026-09-15):** all 14 harnesses now run in CI. §6.2 established that CI must start a
+seeded CMS for the frontend build anyway — so the expensive part already happens, and the
+remaining eight harnesses cost only their own runtime. Six of them (`media`, `newsletter`,
+`engagement`, `push`, `oauth`, `rebuild`) use the Payload **local API**, so they need the seeded
+database but not a server; `verify:sync` (read path) and `verify:endpoints` (write path over real
+HTTP) share one `with-cms.sh` invocation with the live CMS. Verified end to end with **no
+`cms/.env` present**, which is the real CI condition.
 
 ### 2.6 — Two dead variables in `cms/.env.example` ✅ FIXED
 
@@ -488,8 +496,9 @@ correct, and the missing piece was a CMS that CI never started.
 `CMS_URL` is set explicitly — it is the **build-time content origin**, a different variable from
 `PUBLIC_CMS_ORIGIN` (the browser-facing origin for the interactive islands).
 
-This also retires the note in §2.5 that the CMS harnesses were deferred "until the CI minutes
-budget has headroom" — the expensive part (a seeded CMS) now happens anyway.
+This also retired the note in §2.5 that the CMS harnesses were deferred "until the CI minutes
+budget has headroom" — the expensive part (a seeded CMS) now happens anyway, and **all 14
+harnesses were wired in the same pass** (§6.7).
 
 ### 6.3 — The deploy workflow would have deployed a thin site ⚠️ (blocking, fixed)
 
@@ -536,6 +545,37 @@ in `.htaccess` is the only thing keeping repeat image views off the 200 GB origi
 | `pnpm run verify:csp` | **exit 0** — all checks pass |
 | `pnpm run verify:build-output` | **exit 0** — "Build output is deployable" |
 | CI sequence simulated end to end | seed → build → both harnesses, **all exit 0** |
+
+### 6.7 — All 14 harnesses now run in CI (minor, fixed)
+
+§2.5 wired two harnesses into CI and deferred the rest. §6.2 then established that CI has to start
+a seeded CMS for the frontend build regardless — so the expensive part of running the CMS
+harnesses was already being paid for.
+
+**Wired:**
+
+| Group | Harnesses | Needs |
+|---|---|---|
+| Local API (one step, looped) | `media`, `newsletter`, `engagement`, `push`, `oauth`, `rebuild` | the seeded database only |
+| Live CMS (one `with-cms.sh` step) | `verify:sync` (read path), `verify:endpoints` (write path over real HTTP) | a running server; `verify:sync` also needs the build |
+
+**Verified under the real CI condition — with `cms/.env` absent entirely.** That mattered: a
+harness must not depend on a variable that exists only in a developer's local `.env`. None does —
+they need `PAYLOAD_SECRET`, `DATABASE_URI` and `CMS_URL`, all of which the workflow supplies.
+
+```
+seed                     → taxonomies 77 + demo content
+6 local-API harnesses    → all PASS (145 checks)
+build (with CMS)         → exit 0, 84 pages
+verify:csp               → PASS
+verify:build-output      → PASS
+verify:sync + endpoints  → exit 0, "All endpoint checks passed"
+```
+
+Nothing in CI is deferred any more except what genuinely needs infrastructure CI does not have:
+Lighthouse, a broken-link crawl and JSON-LD validation (all need real page templates served over
+HTTP), and the production-only measurements — TTFB is a hosting property, measured once at S12 on
+DianaHost with no CDN.
 
 **The conclusion in §5 is unchanged** — there is still no agent-buildable blocker left. What this
 addendum corrects is that the *pipeline* was not in the state §2b described. The site was
