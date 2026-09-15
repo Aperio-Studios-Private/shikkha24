@@ -2,8 +2,13 @@
 /**
  * Article card — the workhorse of every listing surface.
  *
- * Three variants:
- *   `lead`    — the homepage's primary story. Large stacked image, larger headline.
+ * Four variants:
+ *   `lead`    — the homepage masthead. Full-width hero: stacked 16:9 image,
+ *               largest headline, standfirst.
+ *   `feature` — a *section* lead. Also stacked, but sized for a half-column:
+ *               the masthead's `lg:text-4xl` in a ~400px column fits about ten
+ *               Bengali characters per line, so it needs its own scale rather
+ *               than a borrowed one.
  *   `default` — the standard news card. Single row: image left, text right.
  *   `compact` — the dense list row. Same single-row shape, tighter type.
  *
@@ -35,7 +40,7 @@
  * A standfirst beside an 80px thumbnail competes with the headline for a very
  * narrow column and pushes the card's height around. The approved card
  * reference shows category, headline, rule, then date — so the excerpt is
- * reserved for the `lead`, where there is width to spend.
+ * reserved for the stacked variants, where there is width to spend.
  */
 import type { CmsArticle } from '../lib/cms'
 import { getCategoryImage } from '../lib/images'
@@ -46,20 +51,31 @@ import SponsoredLabel from './SponsoredLabel.astro'
 
 interface Props {
   article: CmsArticle
-  variant?: 'lead' | 'default' | 'compact'
-  /** Only `lead` renders a standfirst by default; see the note above. */
+  variant?: 'lead' | 'feature' | 'default' | 'compact'
+  /** Only the stacked variants render a standfirst by default; see above. */
   showExcerpt?: boolean
   showCategory?: boolean
   /** Render the headline as <h3> instead of <h2> when nested under a section. */
   headingLevel?: 2 | 3
+  /**
+   * `sizes` for the image, when the card's rendered width differs from what the
+   * variant assumes.
+   *
+   * This is not cosmetic. `sizes` is what makes the browser choose a candidate
+   * from the `srcset`, and an over-declared value silently downloads a larger
+   * file than the slot can use — the `lead` default declares 800px, which is
+   * correct in the masthead and 2× too big in a half-column section.
+   */
+  sizes?: string
 }
 
 const {
   article,
   variant = 'default',
-  showExcerpt = variant === 'lead',
+  showExcerpt = variant === 'lead' || variant === 'feature',
   showCategory = true,
   headingLevel = 2,
+  sizes,
 } = Astro.props
 
 /**
@@ -98,7 +114,8 @@ const published = article.publishedAt
 
 const Heading = headingLevel === 2 ? 'h2' : 'h3'
 
-/** The hero is the only stacked variant; every other card is a single row. */
+/** Stacked variants put the image above the text; the rest are single rows. */
+const isStacked = variant === 'lead' || variant === 'feature'
 const isLead = variant === 'lead'
 
 /**
@@ -109,20 +126,31 @@ const isLead = variant === 'lead'
  * inside each row would read as a mistake rather than as structure.
  */
 const showRule = variant === 'default'
+
+/**
+ * `sizes` for the image, unless the caller knows better.
+ *
+ * The stacked variants fill their column, so the value depends on the column,
+ * not on the variant — which is why callers may override it. The `lead` default
+ * (800px) is measured for the masthead; the same value in a half-column section
+ * would have the browser fetch a candidate twice the size of the slot.
+ */
+const imageSizes = sizes ?? (isStacked ? '(min-width: 1024px) 800px, 100vw' : '96px')
 ---
 
 <article
   class:list={[
     'group h-full rounded-lg border border-rule bg-surface transition-all duration-200 hover:border-ink/20 hover:shadow-sm dark:border-dark-rule dark:bg-dark-surface dark:hover:border-dark-ink/20',
-    // The lead is a hero block — it earns more presence than the row cards.
-    isLead && 'overflow-hidden',
+    // A stacked card's image sits flush against the rounded border, so the
+    // card has to clip it. Row cards inset their thumbnail and do not.
+    isStacked && 'overflow-hidden',
   ]}
 >
   <a
     href={href}
     class:list={[
       'no-underline flex h-full',
-      isLead ? 'flex-col' : 'flex-row gap-3 p-3 sm:p-4',
+      isStacked ? 'flex-col' : 'flex-row gap-3 p-3 sm:p-4',
     ]}
   >
     {
@@ -132,11 +160,12 @@ const showRule = variant === 'default'
         <div
           class:list={[
             'shrink-0 overflow-hidden bg-surface-raised dark:bg-dark-raised',
-            // Lead: 16:9 (matches the source) and full-width, the hero image.
-            // Row variants: a fixed square so the headline column keeps a
-            // predictable width regardless of the source aspect ratio. 88px
-            // (h-22) reads as a thumbnail, not a speck, and stays ≥48px touch.
-            isLead
+            // Stacked variants: 16:9 (matches the source) and full-width, so the
+            // image carries the card. Row variants: a fixed square so the
+            // headline column keeps a predictable width regardless of the source
+            // aspect ratio. 88px (h-22) reads as a thumbnail, not a speck, and
+            // stays ≥48px touch.
+            isStacked
               ? 'aspect-16/9 w-full'
               : 'aspect-square h-20 w-20 sm:h-24 sm:w-24 rounded-md',
           ]}
@@ -145,10 +174,13 @@ const showRule = variant === 'default'
             <img
               src={photo.src}
               srcset={photo.srcset}
-              sizes={isLead ? '(min-width: 1024px) 800px, 100vw' : '96px'}
+              sizes={imageSizes}
               alt={photo.alt}
               width={photo.width}
               height={photo.height}
+              // Only the masthead hero is reliably above the fold. A section
+              // lead is lazy: there are eight of them down one page, and making
+              // them all eager would fight the LCP the hero is trying to win.
               loading={isLead ? 'eager' : 'lazy'}
               fetchpriority={isLead ? 'high' : 'auto'}
               decoding="async"
@@ -159,8 +191,8 @@ const showRule = variant === 'default'
               <CategoryImage
                 image={categoryImage}
                 alt={article.title}
-                sizes={isLead ? '(min-width: 1024px) 800px, 100vw' : '96px'}
-                widths={isLead ? [400, 800, 1200] : [96, 192]}
+                sizes={imageSizes}
+                widths={isStacked ? [400, 800, 1200] : [96, 192]}
                 priority={isLead}
                 class="h-full w-full object-cover"
               />
@@ -170,7 +202,7 @@ const showRule = variant === 'default'
       )
     }
 
-    <div class:list={['flex min-w-0 flex-1 flex-col', isLead ? 'p-4 sm:p-5' : 'justify-center gap-2']}>
+    <div class:list={['flex min-w-0 flex-1 flex-col', isStacked ? 'p-4 sm:p-5' : 'justify-center gap-2']}>
       {/* The category tag and the sponsored chip sit together above the
           headline: a reader scanning must see what section a story belongs to
           and whether it is paid for before they read a word of it. */}
@@ -189,6 +221,10 @@ const showRule = variant === 'default'
         class:list={[
           'font-headline font-bold text-ink transition-colors group-hover:text-brand-red dark:text-dark-ink dark:group-hover:text-brand-red',
           isLead && 'text-2xl leading-tight sm:text-3xl lg:text-4xl',
+          // A section lead gets its own scale rather than the masthead's. In a
+          // ~400px half-column, `lg:text-4xl` fits roughly ten Bengali
+          // characters per line — a headline that breaks every second word.
+          variant === 'feature' && 'line-clamp-3 text-xl leading-tight sm:text-2xl',
           variant === 'default' && 'line-clamp-2 text-base leading-snug sm:text-lg',
           variant === 'compact' && 'line-clamp-2 text-base leading-snug',
         ]}
@@ -218,6 +254,10 @@ const showRule = variant === 'default'
       <div class:list={[
         'flex flex-wrap items-center text-ink-subtle dark:text-dark-ink-muted',
         isLead ? 'gap-x-3 gap-y-1 text-sm' : 'gap-x-2 text-xs',
+        // A stacked card stretches to its column's height so a section's two
+        // columns end level. Pinning the metadata to the bottom keeps the card
+        // looking deliberate at any height rather than trailing off mid-air.
+        isStacked && 'mt-auto pt-3',
       ]}>
         {published && <time datetime={article.publishedAt ?? undefined}>{published}</time>}
         {

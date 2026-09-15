@@ -2,6 +2,20 @@
 /**
  * One homepage section per approved education category.
  *
+ * ## Layout
+ *
+ * The lead takes half the section and the next four stories take the other half
+ * as compact rows. The lead is a **stacked** card (`variant="feature"`), not a
+ * row card: a row card in a half-column is the same shape as the four rows
+ * beside it, so the section had no visual hierarchy at all and the lead did not
+ * read as a lead.
+ *
+ * ⚠️ **Do not wrap this section in `container-page`.** It is rendered inside the
+ * homepage's own `container-page`, and a second one adds another 1.5rem of
+ * horizontal padding — which inset every section's heading and cards by 24px
+ * against the masthead, the sidebar and the `সর্বশেষ` block in the same grid.
+ * The section is a grid child; it needs no container of its own.
+ *
  * Cards carry `data-level` / `data-district` so the FilterBar can hide them
  * without a round trip. A story with no level assigned is treated by the filter
  * as "no restriction" — a general education piece must never disappear for a
@@ -17,59 +31,65 @@ import ArticleCard from './ArticleCard.astro'
 interface Props {
   category: CmsCategory
   articles: CmsArticle[]
-  /** Show the lead card larger on wide screens. */
-  featured?: boolean
 }
 
-const { category, articles, featured = true } = Astro.props
+const { category, articles } = Astro.props
 
 const [lead, ...rest] = articles
+
+/**
+ * `sizes` for the lead image.
+ *
+ * The lead is half of an eight-column section, which at the 1248px container
+ * works out at **~400px** — not the 800px the `lead` variant assumes for the
+ * full-width masthead. Left over-declared, the browser fetches a candidate
+ * twice the size of the slot on every section, eight sections to a page.
+ *
+ * Below `lg` the section collapses to one column and the lead goes full width,
+ * hence `100vw`.
+ */
+const LEAD_SIZES = '(min-width: 1024px) 400px, 100vw'
 ---
 
 {
   articles.length > 0 && (
     <section class="border-b border-rule py-6 last:border-b-0 dark:border-dark-rule">
-      <div class="container-page">
-        <div class="mb-4 flex items-baseline justify-between gap-4 border-b-2 border-brand-red pb-2">
-          <h2 class="font-headline text-xl font-bold text-ink sm:text-2xl dark:text-dark-ink">
-            <a
-              href={`/category/${category.slug}`}
-              class="transition-colors hover:text-brand-red"
-            >
-              {category.nameBn}
-            </a>
-          </h2>
-          <a
-            href={`/category/${category.slug}`}
-            class="shrink-0 text-sm font-medium text-brand-red hover:underline"
-          >
-            আরও →
+      <div class="mb-4 flex items-baseline justify-between gap-4 border-b-2 border-brand-red pb-2">
+        <h2 class="font-headline text-xl font-bold text-ink sm:text-2xl dark:text-dark-ink">
+          <a href={`/category/${category.slug}`} class="transition-colors hover:text-brand-red">
+            {category.nameBn}
           </a>
-        </div>
+        </h2>
+        <a
+          href={`/category/${category.slug}`}
+          class="shrink-0 text-sm font-medium text-brand-red hover:underline"
+        >
+          আরও →
+        </a>
+      </div>
 
-        <div class="grid-12">
-          {featured && lead && (
-            <div
-              class="col-span-4 sm:col-span-8 lg:col-span-6"
-              data-level={relationSlugs(lead.level).join(' ')}
-              data-district={relationSlugs(lead.district).join(' ')}
-            >
-              <ArticleCard article={lead} variant="default" headingLevel={3} />
-            </div>
-          )}
-
-          <div class="col-span-4 sm:col-span-8 lg:col-span-6">
-            <ul class="flex flex-col gap-4">
-              {rest.slice(0, 4).map((article) => (
-                <li
-                  data-level={relationSlugs(article.level).join(' ')}
-                  data-district={relationSlugs(article.district).join(' ')}
-                >
-                  <ArticleCard article={article} variant="compact" showExcerpt={false} headingLevel={3} />
-                </li>
-              ))}
-            </ul>
+      <div class="grid-12">
+        {lead && (
+          <div
+            class="col-span-4 sm:col-span-8 lg:col-span-6"
+            data-level={relationSlugs(lead.level).join(' ')}
+            data-district={relationSlugs(lead.district).join(' ')}
+          >
+            <ArticleCard article={lead} variant="feature" headingLevel={3} sizes={LEAD_SIZES} />
           </div>
+        )}
+
+        <div class="col-span-4 sm:col-span-8 lg:col-span-6">
+          <ul class="flex flex-col gap-4">
+            {rest.slice(0, 4).map((article) => (
+              <li
+                data-level={relationSlugs(article.level).join(' ')}
+                data-district={relationSlugs(article.district).join(' ')}
+              >
+                <ArticleCard article={article} variant="compact" showExcerpt={false} headingLevel={3} />
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>
