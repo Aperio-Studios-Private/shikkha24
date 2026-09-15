@@ -15,11 +15,15 @@
 | Lighthouse CI (perf + a11y budgets) | Every CI run | Deploy |
 | HTML validation | Every CI run | Deploy (warn first) |
 | JSON-LD / schema validation | Every CI run | Deploy |
-| Broken-link check | Every CI run | Deploy (warn first) |
+| Build-output check (`pnpm verify:build-output`) | Every CI run | Deploy |
+| **`.htaccess` served through a real Apache** (`pnpm verify:apache`) | Every CI run | Deploy |
+| **Internal links** (`pnpm verify:links`) | Every CI run | Deploy |
 | `pnpm audit` | Every CI run | Policy in `docs/security.md` §9 |
 | Bengali render audit | Manual, per section | Section approval |
 | Device / browser matrix | Manual, at S12 and after major UI changes | Launch |
 | Restore drill | Manual, pre-launch + every 6 months | Launch (`docs/backup-and-recovery.md`) |
+
+**The broken-link check blocks, and it is not advisory.** It was planned as "warn first"; it blocks instead, because on a fully static site an internal link is a promise that a file exists and there is no legitimate exception to break it. The warning-only posture is what let `/latest` ship a "পরের →" link to `/latest/page/2` with no route behind it — a link is still valid HTML when its target is missing, so nothing upstream fails.
 
 All CI gates run inside the **debounced/batched build** — do not multiply CI minutes (see `docs/reliability.md`).
 

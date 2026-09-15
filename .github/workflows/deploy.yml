@@ -125,6 +125,11 @@ jobs:
       - name: Verify build output
         run: pnpm run verify:build-output
 
+      - name: Verify internal links
+        # A broken internal link is still valid HTML, so nothing upstream fails on
+        # it — it just 404s for the reader after deploy. Checked here so it cannot.
+        run: pnpm run verify:links
+
       # ── Deploy ─────────────────────────────────────────────────────────────
       - name: Prepare SSH key
         run: |

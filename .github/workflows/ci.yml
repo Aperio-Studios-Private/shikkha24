@@ -176,6 +176,14 @@ jobs:
         # a thin build (dead CMS → green exit code but missing pages).
         run: pnpm run verify:build-output
 
+      - name: Verify internal links
+        # Every `href`/`src` in the built output must resolve to a built file.
+        # Astro does not resolve `href` strings, and a link to a route that was
+        # never generated is still valid HTML — so the build stays green and the
+        # reader gets a 404. That is how `/latest` shipped a "পরের →" link
+        # pointing at `/latest/page/2` with no route behind it.
+        run: pnpm run verify:links
+
       - name: Verify CMS read and write paths
         # The two harnesses that need a LIVE CMS, so they share one `with-cms.sh`
         # invocation (a background process does not survive between steps).
