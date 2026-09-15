@@ -190,6 +190,21 @@ jobs:
         # pointing at `/latest/page/2` with no route behind it.
         run: pnpm run verify:links
 
+      - name: Verify the search-page bootstrap
+        # Runs `public/search-init.js` against a DOM: the date filter's values are
+        # reordered there because Pagefind renders them in index order, and a
+        # wrong comparison or a lost idempotence guard fails silently.
+        #
+        # ⚠️ **This step prints SKIP here.** The harness needs `linkedom`, which is
+        # deliberately not a project dependency — it is not worth one for a single
+        # check. The skip is explicit and names the fix, so it discloses that the
+        # check did not run rather than implying it passed. Add `linkedom` as a
+        # devDependency to make it real in CI; until then it is a local harness.
+        #
+        # The failure mode it guards against — Pagefind renaming its internal
+        # filter markup — IS covered in CI, by the hook check in verify:build-output.
+        run: pnpm run verify:search-init
+
       - name: Verify CMS read and write paths
         # The two harnesses that need a LIVE CMS, so they share one `with-cms.sh`
         # invocation (a background process does not survive between steps).
