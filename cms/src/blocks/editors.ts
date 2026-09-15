@@ -19,8 +19,10 @@ import { VideoEmbedBlock } from './VideoEmbedBlock'
  *     designing out (see the S8 self-hiding islands)
  *
  * ⚠️ The article route was `/article/*` before the S11 URL change. The CSP rule
- * in `frontend/public/.htaccess` is now the Apache `<LocationMatch>` regex
- * `^/[^/]+/[^/]+/[^/]+$` — see the note there before editing either side.
+ * in `frontend/public/.htaccess` is now the `SetEnvIf Request_URI` pattern
+ * `^/[^/?#]+/[^/?#]+/[^/?#]+/?(\?.*)?$` — see the note there before editing either
+ * side. (`<LocationMatch>` is illegal in `.htaccess` and takes the site down with
+ * HTTP 500; do not reintroduce it.)
  *
  * The block list is the *contract* between the editor and the frontend renderer
  * in `frontend/src/lib/content-blocks.ts`. A block added here without a matching

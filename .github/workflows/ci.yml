@@ -148,11 +148,27 @@ jobs:
             exit 1
           fi
 
-      - name: Verify CSP routes
-        # Asserts that the CSP rules in .htaccess match the actual route patterns
-        # in the built output. Catches the S11 regression where a URL architecture
-        # change left a CSP rule pointing at a stale prefix.
-        run: pnpm run verify:csp
+      - name: Verify .htaccess against a real Apache
+        # Serves the built dist/ through the real .htaccess on a real Apache and
+        # asserts the status code, the header count and the profile of every page.
+        #
+        # This replaced a harness that parsed the rules and reimplemented Apache's
+        # regex matching in JavaScript. That one passed while the file was
+        # **unrunnable**: `<LocationMatch>` is not permitted in .htaccess context,
+        # so Apache answered HTTP 500 to every request. Only running the server
+        # can catch a context error, so this step does.
+        #
+        # apache2 is preinstalled on ubuntu-latest; the install is a fallback so a
+        # runner image change cannot silently turn this gate into a no-op. The
+        # harness itself exits 1 when no Apache binary is present — it never skips.
+        run: |
+          set -euo pipefail
+          if ! command -v apache2 >/dev/null && [ ! -x /usr/sbin/apache2 ]; then
+            echo "apache2 not found — installing it so the .htaccess gate can run"
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq apache2
+          fi
+          pnpm run verify:apache
 
       - name: Verify build output
         # Asserts the dist directory is well-formed: sitemaps present and populated,

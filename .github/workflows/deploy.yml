@@ -110,8 +110,17 @@ jobs:
         run: pnpm run build:frontend
 
       # ── Verify ─────────────────────────────────────────────────────────────
-      - name: Verify CSP routes
-        run: pnpm run verify:csp
+      - name: Verify .htaccess against a real Apache
+        # The deploy path ships `.htaccess` verbatim, and a context error in it
+        # takes the whole site down with HTTP 500. This is the last chance to
+        # catch that before it reaches the host.
+        run: |
+          set -euo pipefail
+          if ! command -v apache2 >/dev/null && [ ! -x /usr/sbin/apache2 ]; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq apache2
+          fi
+          pnpm run verify:apache
 
       - name: Verify build output
         run: pnpm run verify:build-output

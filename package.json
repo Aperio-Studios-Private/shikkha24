@@ -21,11 +21,11 @@
     "typecheck:cms": "pnpm --filter @shikkha24/cms typecheck",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "verify:csp": "node scripts/verify-csp-routes.mjs",
+    "verify:apache": "node scripts/verify-apache.mjs",
     "verify:build-output": "node scripts/verify-build-output.mjs",
     "verify:sync": "node scripts/verify-cms-sync.mjs",
     "verify:endpoints": "pnpm --filter @shikkha24/cms verify:endpoints",
-    "verify": "pnpm run lint && pnpm run typecheck && pnpm run build && pnpm run verify:csp && pnpm run verify:build-output",
+    "verify": "pnpm run lint && pnpm run typecheck && pnpm run build && pnpm run verify:build-output && pnpm run verify:apache",
     "audit:ci": "pnpm audit --audit-level=high"
   },
   "devDependencies": {

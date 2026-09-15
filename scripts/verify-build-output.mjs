@@ -157,12 +157,8 @@ for (const feed of ['sitemap.xml', 'rss.xml']) {
   }
 }
 
-// ── 7. The CSP relaxed rule targets the new article path ─────────────────────
+// ── 7. The CSP relaxed rules target the real route shapes ────────────────────
 const htaccess = readFileSync(join(DIST, '.htaccess'), 'utf8')
-check(
-  '.htaccess relaxes the CSP for article paths (3-segment regex)',
-  htaccess.includes('^/[^/]+/[^/]+/[^/]+$'),
-)
 
 /*
  * Directive lines only — comment lines are stripped first.
@@ -172,22 +168,30 @@ check(
  * rather than on a directive. A harness that fails for the wrong reason trains
  * you to ignore it (`.sps/deployment-readiness.md` §2).
  *
- * The patterns are then read out of the `<LocationMatch>` directives and checked
- * for the retired prefix. Searching the raw text for the literal `/article/*`
- * would pass **vacuously**: that string was valid in the old Cloudflare
- * `_headers` format, but this file expresses rules as Apache regex, so a stale
- * rule here reads `^/article/.*` and would never contain it.
+ * The patterns are read out of the `SetEnvIf Request_URI` directives. This is a
+ * fast static pre-filter; `pnpm verify:apache` is the real gate, because only
+ * running Apache can prove the file is loadable at all.
  */
 const htaccessDirectives = htaccess
   .split('\n')
   .filter((line) => !line.trim().startsWith('#'))
   .join('\n')
-const locationMatchPatterns = [...htaccessDirectives.matchAll(/<LocationMatch\s+"([^"]+)"/g)].map(
+const routePatterns = [...htaccessDirectives.matchAll(/SetEnvIf Request_URI "([^"]+)"/g)].map(
   (match) => match[1],
+)
+
+check('.htaccess dispatches routes with SetEnvIf Request_URI', routePatterns.length > 0)
+check(
+  '.htaccess contains no <LocationMatch> — illegal in .htaccess context (HTTP 500)',
+  !htaccessDirectives.includes('<LocationMatch'),
 )
 check(
   '.htaccess has no CSP rule targeting the retired /article/ prefix',
-  locationMatchPatterns.length > 0 && !locationMatchPatterns.some((p) => p.includes('/article/')),
+  routePatterns.length > 0 && !routePatterns.some((p) => p.includes('/article/')),
+)
+check(
+  '.htaccess relaxes the CSP for article paths (exactly 3 segments)',
+  routePatterns.some((p) => p.includes('/[^/?#]+/[^/?#]+/[^/?#]+')),
 )
 
 console.log(

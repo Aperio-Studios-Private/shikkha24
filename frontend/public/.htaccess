@@ -11,17 +11,19 @@
 # set` replaces the value cleanly — no `!`-detach trick is needed. The former
 # Cloudflare `_headers` `! Content-Security-Policy` syntax is gone.
 #
-# ⚠️ **S12 check:** confirm in production that an ad-bearing page returns exactly
-# ONE Content-Security-Policy header with the relaxed policy. If a
-# <LocationMatch> pattern does not match, the page returns 200 under the strict
-# policy and AdSense is silently blocked with no error anywhere.
+# ⚠️ **Path matching in .htaccess is done with `SetEnvIf Request_URI`, never with
+# `<LocationMatch>`.** Apache permits <Location>/<LocationMatch> in server and
+# virtual-host context only; using them in .htaccess is a core parser error that
+# returns **HTTP 500 on every request**. The previous revision used them, and the
+# JS harness of the day reimplemented the regex matching instead of exercising
+# Apache, so it passed while the file was unrunnable. Verified against a real
+# Apache 2.4 by `pnpm verify:apache` — do not change the mechanism without
+# re-running it.
 #
-# ⚠️ **S12 check (from the S11 URL change):** confirm the article rule's
-# <LocationMatch> pattern actually matches in production. Request a real article
-# URL and assert the response carries the RELAXED policy (it must name
-# `pagead2.googlesyndication.com`). A pattern that fails to match fails
-# **silently** — the page still returns 200, just under the strict policy, and
-# AdSense is blocked on every article with no error anywhere.
+# ⚠️ **Production check:** confirm an ad-bearing page returns exactly ONE
+# Content-Security-Policy header with the relaxed policy. A pattern that fails to
+# match fails **silently** — the page still returns 200, just under the strict
+# policy, and AdSense is blocked with no error anywhere.
 #
 # ⚠️ **`cms.shikkha24.com` is a PLACEHOLDER hostname.** It is the CMS origin AND
 # the media origin (media on DianaHost disk since 2026-09-12). A CSP cannot be
@@ -48,11 +50,49 @@
 #     dropping them to the strict profile and blocking AdSense site-wide.
 #   • `/article/:slug` is now a redirect stub and deliberately keeps the strict
 #     profile (no script, no ad slot).
+#
+# S12 change (2026-09-15): the route dispatch was rewritten from `<LocationMatch>`
+# to `SetEnvIf Request_URI` + `Header ... env=`, and the two dead `<FilesMatch>`
+# cache rules were replaced with the same mechanism. See `docs/security.md` §5.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Route → CSP profile. Tag the ad-bearing routes; the headers below consume the
+# tags. `SetEnvIf` and `Header` are both FileInfo-level overrides, which is what
+# a cPanel host grants.
+# ─────────────────────────────────────────────────────────────────────────────
+
+<IfModule mod_setenvif.c>
+  # Homepage — 4 ad slots + poll + newsletter
+  SetEnvIf Request_URI "^/(\?.*)?$" SHIKKHA24_CSP_RELAXED=1
+
+  # Category listing — 1 ad slot. Also /category/:slug/page/:n (4 segments).
+  SetEnvIf Request_URI "^/category/[^/?#]+(/page/[0-9]+)?/?(\?.*)?$" SHIKKHA24_CSP_RELAXED=1
+
+  # Live blog — 1 ad slot + the refresh island
+  SetEnvIf Request_URI "^/live/[^/?#]+/?(\?.*)?$" SHIKKHA24_CSP_RELAXED=1
+
+  # Quiz — 2 ad slots
+  SetEnvIf Request_URI "^/quiz(/[^/?#]+)?/?(\?.*)?$" SHIKKHA24_CSP_RELAXED=1
+
+  # Article — 3 ad slots + comments + bookmarks + video embeds.
+  #
+  # Exactly three path segments. This is the article route and *only* the article
+  # route: `/:category/:id/:slug`. Every other route in the tree is 1, 2 or 4
+  # segments (`/category/:slug/page/:n` is 4). Do NOT add an exclusion list of
+  # reserved roots here — an earlier revision excluded `study-abroad`, which is
+  # both a 2-segment listing and the first segment of real article URLs, so every
+  # study-abroad article silently fell to the strict profile.
+  #
+  # If a future route introduces a non-article 3-segment path, `pnpm verify:apache`
+  # turns red: it reads each page's own JSON-LD to decide the expected profile, so
+  # it does not share this rule's blind spots.
+  SetEnvIf Request_URI "^/[^/?#]+/[^/?#]+/[^/?#]+/?(\?.*)?$" SHIKKHA24_CSP_ARTICLE=1
+</IfModule>
 
 <IfModule mod_headers.c>
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Strict profile — default for all routes
+# Strict profile — the default for every route
 # ─────────────────────────────────────────────────────────────────────────────
 
 # `style-src 'unsafe-inline'` is required by Astro's inline stylesheets
@@ -72,25 +112,23 @@
   Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com; font-src 'self'; connect-src 'self' https://cms.shikkha24.com; media-src 'self' https://cms.shikkha24.com; frame-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Relaxed profile — routes that carry ad slots, or whose islands need a
-# third-party frame.
+# Relaxed profile — the routes tagged above.
 #
 #   /                     homepage — 4 ad slots + the poll + newsletter
 #   /:category/:id/:slug  article  — 3 ad slots + comments + bookmarks + video embeds
-#   /category/*            category — 1 ad slot
-#   /live/*                live blog — 1 ad slot + the refresh island
+#   /category/*           category — 1 ad slot (and /category/*/page/*)
+#   /live/*               live blog — 1 ad slot + the refresh island
 #   /quiz, /quiz/*        quiz     — 2 ad slots
 #
-# ⚠️ The article rule uses a REGEX matching exactly 3 path segments, not a
-# wildcard — and this is load-bearing. A broad match would relax the CSP for the
-# entire site — silently re-opening the AdSense-blocking bug that S8 fixed.
-#
 # Every other route keeps the strict policy, which is the point of two profiles.
-# That now includes `/article/:slug` — since S11 those are 200-OK redirect stubs
-# with no script and no ad slot, so the strict profile is correct and tighter.
-# It also includes `/gallery` (no ad slot, no inline script), `/bookmarks` (no
+# That includes `/article/:slug` (since S11 a 200-OK redirect stub with no script
+# and no ad slot), `/gallery` (no ad slot, no inline script), `/bookmarks` (no
 # CMS call at all — the list is browser-local) and `/citizen` (posts to the CMS,
 # which the strict `connect-src` already allows).
+#
+# ⚠️ The two tags are mutually exclusive by construction, so a response carries
+# exactly one of these two headers. `set` replaces, and the article rule is last
+# so it wins if a route ever matched both.
 #
 # The AdSense loader only injects the library when a real AdSense unit exists, and
 # the islands only call the CMS when the reader taps something — so today these
@@ -103,49 +141,34 @@
 # tracking cookie until playback.
 # ─────────────────────────────────────────────────────────────────────────────
 
-  # Homepage — 4 ad slots + poll + newsletter
-  <LocationMatch "^/$">
-    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
-  </LocationMatch>
-
-  # Article — 3 ad slots + comments + bookmarks + video embeds
-  # Matches exactly 3 path segments: /:category/:id/:slug
-  <LocationMatch "^/[^/]+/[^/]+/[^/]+$">
-    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
-  </LocationMatch>
-
-  # Category listing — 1 ad slot
-  <LocationMatch "^/category/.+$">
-    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
-  </LocationMatch>
-
-  # Live blog — 1 ad slot + the refresh island
-  <LocationMatch "^/live/.+$">
-    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
-  </LocationMatch>
-
-  # Quiz — 2 ad slots
-  <LocationMatch "^/quiz(/.+)?$">
-    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
-  </LocationMatch>
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" env=SHIKKHA24_CSP_RELAXED
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" env=SHIKKHA24_CSP_ARTICLE
 
 </IfModule>
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Cache rules
+#
+# ⚠️ `<FilesMatch>` matches the **basename**, not the path, so it cannot express
+# "/_astro/*" — `<FilesMatch "\._astro/">` and `<FilesMatch "^/fonts/">` never
+# matched a single file and both rules were dead. They are `SetEnvIf Request_URI`
+# now. `<FilesMatch "\.html$">` genuinely is a basename rule and stays.
+#
+# These use `Header set` (not `always`) so a 404 is not cached for a year.
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Hashed build assets are content-addressed — cache them forever.
-<FilesMatch "\._astro/">
-  Header set Cache-Control "public, max-age=31536000, immutable"
-</FilesMatch>
+<IfModule mod_setenvif.c>
+  # Hashed build assets are content-addressed — cache them forever.
+  SetEnvIf Request_URI "^/_astro/" SHIKKHA24_IMMUTABLE=1
+  # Self-hosted fonts are content-stable; re-fetching them is pure waste.
+  SetEnvIf Request_URI "^/fonts/" SHIKKHA24_IMMUTABLE=1
+</IfModule>
 
-# Self-hosted fonts are content-stable; re-fetching them is pure waste.
-<FilesMatch "^/fonts/">
-  Header set Cache-Control "public, max-age=31536000, immutable"
-</FilesMatch>
+<IfModule mod_headers.c>
+  Header set Cache-Control "public, max-age=31536000, immutable" env=SHIKKHA24_IMMUTABLE
 
-# HTML must revalidate so a publish is visible as soon as the batch window closes.
-<FilesMatch "\.html$">
-  Header set Cache-Control "public, max-age=0, must-revalidate"
-</FilesMatch>
+  # HTML must revalidate so a publish is visible as soon as the batch window closes.
+  <FilesMatch "\.html$">
+    Header set Cache-Control "public, max-age=0, must-revalidate"
+  </FilesMatch>
+</IfModule>
