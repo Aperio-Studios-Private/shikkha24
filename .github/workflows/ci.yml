@@ -68,8 +68,34 @@ jobs:
         # type-checked. See .sps/handoff.md item 41.
         run: pnpm run typecheck:frontend
 
-      - name: Build (frontend)
-        run: pnpm run build:frontend
+      - name: Seed the CMS database
+        # The frontend build fetches every article, category and setting over
+        # HTTP, so CI needs a seeded CMS before it can produce a real build.
+        #
+        # Without this the build still **exits 0** but emits ~32 pages instead of
+        # ~84 — the "thin build" false green (`sandbox-build-traps` Trap 2). The
+        # two harness steps below then fail on missing articles, which is how this
+        # was caught: the gate was red, not the build.
+        env:
+          PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
+          DATABASE_URI: file:./data/ci.db
+        run: |
+          pnpm --filter @shikkha24/cms seed
+          pnpm --filter @shikkha24/cms seed:demo
+
+      - name: Build (frontend) against the seeded CMS
+        # `CMS_URL` is the **build-time** content origin. `PUBLIC_CMS_ORIGIN` is a
+        # different variable — the browser-facing origin for the interactive
+        # islands — and is deliberately left unset here so those islands self-hide.
+        #
+        # `with-cms.sh` starts Payload, waits for it to answer, runs the build and
+        # tears it down. A background process does not survive between steps, so
+        # the CMS and the build must share one invocation.
+        env:
+          PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
+          DATABASE_URI: file:./data/ci.db
+          CMS_URL: http://localhost:3000
+        run: scripts/with-cms.sh bash -c "pnpm run build:frontend"
 
       - name: Build output size ceiling
         # Regression guard on total dist size — NOT the per-page 1.2 MB payload
@@ -159,9 +185,10 @@ jobs:
       #
       # CMS-based harnesses (verify:sync, verify:endpoints, verify:media,
       # verify:newsletter, verify:engagement, verify:push, verify:oauth,
-      # verify:rebuild): need a running Payload instance with a seeded SQLite
-      # database. Adding a CMS startup + seed step to CI is possible but adds
-      # ~60s to every run — deferred until the CI minutes budget has headroom.
+      # verify:rebuild): need a running Payload instance. CI now starts a seeded
+      # CMS for the frontend build, so the expensive part already happens — these
+      # can be wired inside the same `with-cms.sh` invocation for the cost of
+      # their own runtime. Not done yet; each boots its own Payload process.
       #
       # Lighthouse CI, broken-link check and JSON-LD validation: need real page
       # templates served over HTTP. Wired at S3+ per docs/testing-and-qa.md §1.

@@ -122,8 +122,7 @@ export const SiteSettings: GlobalConfig = {
       type: 'group',
       label: { en: 'Tracking scripts', bn: 'ট্র্যাকিং স্ক্রিপ্ট' },
       admin: {
-        description:
-          'ঐচ্ছিক। AdSense ব্যবহৃত হবে; GA4 ইচ্ছাকৃতভাবে বাদ (docs/performance-budget.md §4)।',
+        description: 'ঐচ্ছিক। AdSense ব্যবহৃত হবে; GA4 ইচ্ছাকৃতভাবে বাদ (docs/performance-budget.md §4)।',
       },
       fields: [
         {

@@ -159,8 +159,36 @@ for (const feed of ['sitemap.xml', 'rss.xml']) {
 
 // ── 7. The CSP relaxed rule targets the new article path ─────────────────────
 const htaccess = readFileSync(join(DIST, '.htaccess'), 'utf8')
-check('.htaccess relaxes the CSP for article paths (3-segment regex)', htaccess.includes('^/[^/]+/[^/]+/[^/]+$'))
-check('.htaccess no longer has a stale /article/* rule', !/\/article\/\*/.test(htaccess))
+check(
+  '.htaccess relaxes the CSP for article paths (3-segment regex)',
+  htaccess.includes('^/[^/]+/[^/]+/[^/]+$'),
+)
+
+/*
+ * Directive lines only — comment lines are stripped first.
+ *
+ * The file documents *why* the relaxed rule moved off the old `/article/`
+ * prefix, so a raw text search matches that prose and fails on documentation
+ * rather than on a directive. A harness that fails for the wrong reason trains
+ * you to ignore it (`.sps/deployment-readiness.md` §2).
+ *
+ * The patterns are then read out of the `<LocationMatch>` directives and checked
+ * for the retired prefix. Searching the raw text for the literal `/article/*`
+ * would pass **vacuously**: that string was valid in the old Cloudflare
+ * `_headers` format, but this file expresses rules as Apache regex, so a stale
+ * rule here reads `^/article/.*` and would never contain it.
+ */
+const htaccessDirectives = htaccess
+  .split('\n')
+  .filter((line) => !line.trim().startsWith('#'))
+  .join('\n')
+const locationMatchPatterns = [...htaccessDirectives.matchAll(/<LocationMatch\s+"([^"]+)"/g)].map(
+  (match) => match[1],
+)
+check(
+  '.htaccess has no CSP rule targeting the retired /article/ prefix',
+  locationMatchPatterns.length > 0 && !locationMatchPatterns.some((p) => p.includes('/article/')),
+)
 
 console.log(
   failures === 0

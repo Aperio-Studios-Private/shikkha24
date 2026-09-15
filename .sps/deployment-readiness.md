@@ -4,6 +4,13 @@
 **Verdict:** ✅ **CODE IS DEPLOYABLE.** All buildable work is complete and green.
 Launch is blocked only by **owner-only actions** (§3) — none of which is code.
 
+> ⚠️ **Updated 2026-09-15 — the pipeline, as opposed to the code, was not ready.**
+> Re-verifying on request found four pipeline defects: a red lint gate, a CI workflow that
+> could never pass (it built the frontend with no CMS → a green 32-page thin build → the
+> harnesses failed), a deploy workflow that would have shipped that thin site, and one vacuous
+> harness check. All are fixed and re-verified. **Full detail: `.sps/production-readiness-audit-2026-09-14.md` §6.**
+> The verification table in §1 below was taken on 2026-09-13 and is valid for that revision only.
+
 ---
 
 ## 1. Verification results (this sweep)

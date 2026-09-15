@@ -389,9 +389,9 @@ pins. A normal `pnpm install` on a machine without the broker will complete it.
 
 | Severity | Count | Status |
 |---|---|---|
-| Blocking, fixed | 4 | dependency audit, 171 broken links, relative `og:image`, SVG og:image unsupported |
+| Blocking, fixed | 7 | dependency audit, 171 broken links, relative `og:image`, SVG og:image unsupported, **red lint gate**, **CI could never pass (no CMS)**, **deploy would ship a thin site** |
 | Significant, fixed | 4 | dead env vars, CI byte-budget gate, CI harness wiring, no deploy workflow |
-| Minor, fixed | 3 | placeholder logo commit/rename, manifest + Apple touch icon, demo-purge tooling |
+| Minor, fixed | 5 | placeholder logo commit/rename, manifest + Apple touch icon, demo-purge tooling, **vacuous harness check**, **stale Cloudflare refs** |
 | Blocking, open | 0 | — |
 | Significant, open | 1 | image fallback budget |
 | Minor, open | 1 | demo content (editorial — the purge tool exists, the real content does not) |
@@ -414,3 +414,105 @@ rewritten to use GitHub Actions artifacts instead of R2. §2.4 closed.*
 `seed:demo:purge`). §2.8's code half closed — the documented purge path had never existed.
 Verified against a throwaway copy of the dev database; the dev database itself was not
 touched. `demo.ts` now exports the purge keys so seed and purge cannot drift.*
+
+---
+
+## 6. Addendum — 2026-09-15: pipeline verification
+
+Asked directly whether the project was deployable, the answer was re-derived from the real
+repository rather than from §2b above. That surfaced four defects §2b had missed, all of them
+in the **pipeline** rather than in the site, and three of them introduced by the Cloudflare
+removal of 2026-09-14.
+
+### 6.1 — The lint gate was red ⚠️ (blocking, fixed)
+
+§2b recorded `pnpm run lint` as "0 errors, 10 pre-existing warnings". It was **4 errors**.
+`ci.yml` runs lint as a blocking step, so **CI failed on every push**.
+
+| File | Error | Cause |
+|---|---|---|
+| `cms/src/globals/SiteSettings.ts` | format | Cloudflare removal commit |
+| `scripts/verify-build-output.mjs` | format | Cloudflare removal commit |
+| `scripts/verify-csp-routes.mjs` | format + `noAssignInExpressions` | Cloudflare removal commit |
+
+Three were pure formatting (`biome check --write`). The fourth was the classic
+assignment-in-condition regex loop (`while ((match = re.exec(text)) !== null)`), replaced with
+`text.matchAll(re)` — clearer, and it removes the assignment entirely.
+
+**Result:** `pnpm run lint` → exit 0, 10 warnings (all pre-existing `noNonNullAssertion`).
+**Lesson:** §2b's numbers were measured *before* the Cloudflare commits and never re-measured.
+A verification table is only valid for the revision it was taken against.
+
+### 6.2 — CI could never pass: it builds the frontend with no CMS ⚠️ (blocking, fixed)
+
+`ci.yml` ran `pnpm run build:frontend` with no CMS running and no `CMS_URL` set, so the build
+fell back to `http://localhost:3000`, found nothing, and **degraded to a 32-page thin build —
+exiting 0**. The two harness steps that follow then failed on the missing articles.
+
+So the gate was red for a reason nobody could see: the build was green, the harnesses were
+correct, and the missing piece was a CMS that CI never started.
+
+**Measured, both ways:**
+
+| Condition | Build exit | HTML files | `verify:csp` | `verify:build-output` |
+|---|---|---|---|---|
+| No CMS (as CI was) | 0 ✅ | **32** | ❌ 1 check failed | ❌ 2 checks failed |
+| Seeded CMS (as CI is now) | 0 ✅ | **84** | ✅ all pass | ✅ all pass |
+
+**Fix:** CI now seeds the database (`seed` + `seed:demo`) and runs the build inside
+`scripts/with-cms.sh`, which starts Payload, waits for it to answer, builds, and tears it down.
+`CMS_URL` is set explicitly — it is the **build-time content origin**, a different variable from
+`PUBLIC_CMS_ORIGIN` (the browser-facing origin for the interactive islands).
+
+This also retires the note in §2.5 that the CMS harnesses were deferred "until the CI minutes
+budget has headroom" — the expensive part (a seeded CMS) now happens anyway.
+
+### 6.3 — The deploy workflow would have deployed a thin site ⚠️ (blocking, fixed)
+
+`.github/workflows/deploy.yml` set `PUBLIC_CMS_ORIGIN` but **not `CMS_URL`**. In CI there is no
+`frontend/.env`, so `CMS_URL` defaulted to localhost, nothing was listening, and the workflow
+would have rsynced a 32-page site over the live one. The harnesses would have caught it — but
+only after the deploy step if the order were ever changed, so the variable is now set correctly
+at the source.
+
+**Fix:** `CMS_URL` and `PUBLIC_CMS_ORIGIN` are both set, with the distinction documented in the
+workflow. The secrets list at the top of the file names both.
+
+### 6.4 — A harness check was vacuous (minor, fixed)
+
+`verify-build-output.mjs` asserted `.htaccess` has no stale `/article/*` rule by searching the
+raw text for the literal `/article/*`. That string was valid in the retired Cloudflare
+`_headers` format, but this file expresses rules as Apache **regex** — a stale rule reads
+`^/article/.*` and would never contain it. The check could not fail.
+
+It also tripped on its own documentation: the `.htaccess` explains *why* the rule moved off that
+prefix, and the prose contains the string.
+
+**Fix:** comment lines are stripped, then the `<LocationMatch>` patterns are extracted and
+checked for the retired prefix. **Counter-proved:** injecting a real
+`<LocationMatch "^/article/.*">` now fails the check, and removing it passes.
+
+### 6.5 — Stale Cloudflare references in two more files (minor, fixed)
+
+| File | Stale text |
+|---|---|
+| `frontend/.env.example` | "Serve it through the Cloudflare proxy…" on `PUBLIC_MEDIA_BASE_URL`; `public/_headers` for the CSP |
+| `frontend/astro.config.mjs` | `public/_headers` cited as the strict-CSP source |
+
+Both now reference `.htaccess`. The `PUBLIC_MEDIA_BASE_URL` comment records that browser caching
+in `.htaccess` is the only thing keeping repeat image views off the 200 GB origin allowance.
+
+### 6.6 — Verified after the fixes
+
+| Gate | Result |
+|---|---|
+| `pnpm run lint` | **exit 0** — 0 errors, 10 warnings |
+| `pnpm run typecheck` | **exit 0** |
+| Full build with a seeded CMS | **exit 0, 84 pages** |
+| `pnpm run verify:csp` | **exit 0** — all checks pass |
+| `pnpm run verify:build-output` | **exit 0** — "Build output is deployable" |
+| CI sequence simulated end to end | seed → build → both harnesses, **all exit 0** |
+
+**The conclusion in §5 is unchanged** — there is still no agent-buildable blocker left. What this
+addendum corrects is that the *pipeline* was not in the state §2b described. The site was
+deployable; the machinery that deploys it was not.

@@ -43,8 +43,7 @@ const check = (label, ok, detail = '') => {
 function parseLocationMatchBlocks(text) {
   const rules = []
   const blockRe = /<LocationMatch\s+"([^"]+)">\s*([\s\S]*?)<\/LocationMatch>/g
-  let match
-  while ((match = blockRe.exec(text)) !== null) {
+  for (const match of text.matchAll(blockRe)) {
     const regexStr = match[1]
     const body = match[2]
     // Extract the Content-Security-Policy header value if present.
@@ -68,8 +67,8 @@ const rules = parseLocationMatchBlocks(text)
 /** Does any <LocationMatch> rule matching `path` set a relaxed (AdSense-bearing) CSP? */
 function relaxedFor(path) {
   for (const rule of rules) {
-    if (!rule.pattern || !rule.pattern.test(path)) continue
-    if (rule.csp && rule.csp.includes('pagead2.googlesyndication.com')) return rule.raw
+    if (!rule.pattern?.test(path)) continue
+    if (rule.csp?.includes('pagead2.googlesyndication.com')) return rule.raw
   }
   return null
 }
@@ -77,10 +76,7 @@ function relaxedFor(path) {
 // ── 1. The rule set is what we expect ────────────────────────────────────────
 const articleRule = rules.find((r) => r.raw === '^/[^/]+/[^/]+/[^/]+$')
 check('article rule uses the 3-segment pattern', Boolean(articleRule))
-check(
-  'the stale /article/* pattern is gone',
-  !rules.some((r) => r.raw.includes('/article/')),
-)
+check('the stale /article/* pattern is gone', !rules.some((r) => r.raw.includes('/article/')))
 
 // ── 2. Every real article path resolves to the relaxed profile ───────────────
 const articlePaths = []
@@ -123,7 +119,7 @@ for (const path of strictOnly) {
 }
 
 // ── 4. The article regex does not over-match ─────────────────────────────────
-const articleRe = new RegExp('^/[^/]+/[^/]+/[^/]+$')
+const articleRe = /^\/[^/]+\/[^/]+\/[^/]+$/
 check('matches /admission/10/some-slug', articleRe.test('/admission/10/some-slug'))
 check('rejects /admission (one segment)', !articleRe.test('/admission'))
 check('rejects /category/admission (two segments)', !articleRe.test('/category/admission'))

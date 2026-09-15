@@ -34,6 +34,7 @@ DianaHost PNR 2 GB, Node 20.18.2 (EOL) → build in CI only. Frontend: Cloudflar
 - **Newsletter = resumable batch** (`sentThroughId`). Cron triggers disabled while token unset. Readers: no password, email optional. Account linking deliberately not implemented.
 - **`vite.build.assetsInlineLimit: 0`** — Astro inlines small scripts; strict CSP blocks them. Assert 0 inline scripts.
 - **Mid-article ads need ≥6 paragraphs.** Sponsored: excluded from masthead/ticker, kept in feed with «বিজ্ঞাপন». Feed excludes masthead story by **slug**.
+- **⚠️ Two CMS origins — do not confuse.** `CMS_URL` = read at **build** time, all content is fetched from it. `PUBLIC_CMS_ORIGIN` = **browser-facing** origin for interactive islands (empty ⇒ self-hide). Setting only the latter gives a **green 32-page thin build** instead of 84. A green build ≠ a full build: always assert the **page count**, never the exit code.
 - **IP forwarding:** `clientIp()` reads `x-forwarded-for` → `x-real-ip` → `unknown` (no `cf-connecting-ip` — Cloudflare removed).
 
 ## Environment traps (top 4; rest in `sandbox-build-traps` skill)

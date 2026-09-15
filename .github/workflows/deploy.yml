@@ -27,11 +27,16 @@
 # docs/hosting-and-deployment.md §2 for the arithmetic.
 #
 # SECRETS REQUIRED (set in GitHub → Settings → Secrets and variables → Actions):
+#   CMS_URL                 — build-time CMS origin the build fetches content from
+#                             (e.g. https://cms.shikkha24.com). Without it the
+#                             build produces a thin site and the harnesses fail.
+#   PUBLIC_CMS_ORIGIN       — browser-facing CMS origin for the interactive
+#                             islands. Must match the CSP `connect-src`.
 #   DIANAHOST_SSH_KEY       — private SSH key (ed25519 recommended)
 #   DIANAHOST_SSH_HOST      — host name (e.g. server1.dianahost.com)
 #   DIANAHOST_SSH_USER      — cPanel username
 #   DIANAHOST_PUBLIC_HTML   — absolute path to public_html on the host
-#   DEPLOY_WEBHOOK_TOKEN   — bearer token (optional, if set on the CMS side)
+#   DEPLOY_WEBHOOK_TOKEN    — bearer token (optional, if set on the CMS side)
 
 name: Deploy
 
@@ -85,10 +90,21 @@ jobs:
 
       - name: Build (frontend)
         env:
-          # The build fetches content from the CMS. In production the CMS is
-          # live on DianaHost; in CI it must be reachable. If the CMS is not
-          # reachable, the build degrades gracefully (thin build) — the
-          # verify:build-output harness catches this.
+          # ⚠️ Two different origins, and the build needs BOTH:
+          #
+          #   CMS_URL          — read at BUILD time; every article, category and
+          #                      setting is fetched from here and baked into the
+          #                      static HTML. If it is unset or unreachable the
+          #                      build still exits 0 but emits a fraction of the
+          #                      pages ("thin build") and this workflow would
+          #                      deploy that. The harnesses below are the guard.
+          #
+          #   PUBLIC_CMS_ORIGIN — the browser-facing origin for the interactive
+          #                      islands (live-blog refresh, poll, comments,
+          #                      newsletter, bookmarks, push). Empty means those
+          #                      controls self-hide rather than fail. It must also
+          #                      be in the CSP `connect-src` in `.htaccess`.
+          CMS_URL: ${{ secrets.CMS_URL }}
           PUBLIC_CMS_ORIGIN: ${{ secrets.PUBLIC_CMS_ORIGIN }}
           PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL || 'https://shikkha24.com' }}
         run: pnpm run build:frontend

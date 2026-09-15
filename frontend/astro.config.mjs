@@ -31,7 +31,7 @@ export default defineConfig({
        *
        * Astro inlines a `<script>` that is "small enough" directly into the HTML.
        * That silently breaks the site under the strict CSP in
-       * `public/_headers`, which is `script-src 'self'` with no `'unsafe-inline'`:
+       * `public/.htaccess`, which is `script-src 'self'` with no `'unsafe-inline'`:
        * every inlined script — the theme toggle, the mobile menu, the text
        * resizer, the share button — is blocked by the browser and the control
        * simply does nothing.
