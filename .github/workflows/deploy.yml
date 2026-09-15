@@ -149,15 +149,39 @@ jobs:
           echo "Deploy complete."
           echo "Reason: ${{ github.event.client_payload.reason || inputs.reason || 'unknown' }}"
 
-      - name: Deploy .htaccess (only if changed)
-        # Separate step so a hotfix .htaccess on the host is not silently
-        # overwritten. This copies the canonical .htaccess, but the owner
-        # can skip this step by adding `# NO-DEPLOY` to the host's .htaccess.
+      - name: Deploy .htaccess (honours a host-side hotfix)
+        # The rsync step above excludes `.htaccess`, so this step is the *only*
+        # thing that ever updates it on the host. That makes this the one place
+        # the escape hatch can live — and until now it did not exist, so the
+        # exclusion above was decorative: this step overwrote the host file
+        # unconditionally, on every run.
+        #
+        # ⚠️ Why an escape hatch is needed at all: the header file is the one
+        # artefact an operator may have to fix *on the host* during an incident.
+        # A `<LocationMatch>` pattern that fails to match does not error — the
+        # page still returns 200 under the strict policy and AdSense is silently
+        # blocked (docs/security.md §5). An emergency edit would otherwise be
+        # wiped by the next automated deploy, which is the worst possible moment
+        # to discover it.
+        #
+        # Contract: put `# NO-DEPLOY` in the host's `.htaccess` and this step
+        # skips, leaving the host copy in place. Remove the marker and the repo's
+        # file wins again — so the repo stays the source of truth by default and
+        # any deviation is explicit, greppable, and visible in the run summary.
+        #
+        # The probe can only ever *preserve* a hotfix: if the SSH check fails for
+        # any reason (unreachable host, no file yet) the canonical file is
+        # deployed — exactly the behaviour before this guard existed. It cannot
+        # block a deploy.
         run: |
           set -euo pipefail
-          scp -i ~/.ssh/id_ed25519 \
-            frontend/dist/.htaccess \
-            "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}:${{ secrets.DIANAHOST_PUBLIC_HTML }}/.htaccess"
+          HOST="${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}"
+          REMOTE="${{ secrets.DIANAHOST_PUBLIC_HTML }}/.htaccess"
+          if ssh -i ~/.ssh/id_ed25519 "$HOST" "grep -q 'NO-DEPLOY' '$REMOTE'" 2>/dev/null; then
+            echo "::warning::$REMOTE carries '# NO-DEPLOY' — skipping, so the host hotfix survives. Remove the marker to hand control back to CI."
+            exit 0
+          fi
+          scp -i ~/.ssh/id_ed25519 frontend/dist/.htaccess "$HOST:$REMOTE"
           echo ".htaccess deployed."
 
       - name: Summary
