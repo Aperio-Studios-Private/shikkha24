@@ -110,7 +110,7 @@ jobs:
       - name: Upload backup as GitHub Actions artifact
         # 7-day retention per GitHub Actions free tier. The owner must download
         # artifacts to local storage for longer retention.
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backup-${{ env.STAMP }}
           path: |
