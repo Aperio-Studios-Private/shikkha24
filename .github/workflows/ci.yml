@@ -76,10 +76,22 @@ jobs:
         # ~84 — the "thin build" false green (`sandbox-build-traps` Trap 2). The
         # harness steps below then fail on missing articles, which is how this
         # was caught: the gate was red, not the build.
+        #
+        # ⚠️ `mkdir -p cms/data` is required, and its absence is invisible
+        # locally. The directory holds the SQLite archive and the media library,
+        # so it is gitignored — meaning a fresh checkout does not have it, and
+        # SQLite cannot create a file inside a directory that does not exist.
+        # Locally the directory always exists, so the omission only ever shows up
+        # on a runner: `ConnectionFailed("Unable to open connection to local
+        # database ./data/ci.db: 14")`, where 14 is SQLITE_CANTOPEN.
         env:
           PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
           DATABASE_URI: file:./data/ci.db
         run: |
+          # `data/` holds the SQLite archive, `data/media/` the upload library.
+          # Both are gitignored, so a fresh checkout has neither — and neither
+          # SQLite nor the media harness creates its own directory.
+          mkdir -p cms/data/media
           pnpm --filter @shikkha24/cms seed
           pnpm --filter @shikkha24/cms seed:demo
 
