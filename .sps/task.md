@@ -25,7 +25,7 @@
 - [x] **GATE: SQLite WAL concurrency proven with 5+ concurrent writers** — 6/6 writers, 240/240 rows, integrity ok
 - [x] **GATE: ~~Cloudflare R2~~** — **REMOVED 2026-09-14.** No Cloudflare R2. Backups to GitHub Actions artifacts.
 - [x] **GATE: CI rebuild strategy settled** — adaptive batching; build time ~1s makes the 2,000 min/month quota comfortable
-- [~] **GATE: CI quality gates live** — lint/typecheck/build/audit/standalone-size wired and passing locally; **Lighthouse + link-check + JSON-LD deferred to S3+** (need real page templates)
+- [x] **GATE: CI quality gates live** — ✅ **2026-09-15: green on the runner** (run `34949512292`, 24/24 steps). lint/typecheck/build/audit/standalone-size all pass on a fresh checkout; **Lighthouse + link-check + JSON-LD deferred to S3+** (need served pages)
 - [~] **GATE: backup automated off-host AND a restore performed** — workflow written; **restore drill is an S12 gate**
 - [x] **GATE: feature-flag mechanism designed** — build-time (frontend) + runtime (cms), default-on contract
 - [x] **GATE: monitoring/alerting tool selected** — ✅ **UptimeRobot** (free, 50 monitors, no card required, 5-min checks, email + Telegram). Researched 2026-09-13. See `docs/reliability.md` §6.
@@ -178,7 +178,9 @@
 - [ ] S11 DoD evidence → **user approval**
 
 ## S12 — Deployment, QA & Launch
-- [x] **Deploy workflow created:** `.github/workflows/deploy.yml` — triggers on `repository_dispatch` (CMS webhook), builds frontend, runs harnesses, deploys via rsync to DianaHost `public_html`. Also `backup-db.yml` rewritten to use GitHub Actions artifacts instead of R2.
+- [x] **CI passes end to end on the runner** — ✅ **2026-09-15** (run `34949512292`, all 24 steps, 3m11s). The pipeline had never gone green: three defects in a row were each invisible locally (`.wrangler/` tracked by a `.gitignore` edit, `cms/data/` missing on a fresh checkout, and `sharp` undeclared so the runner could not generate a single image). **A green local run is a hypothesis; the runner is the evidence.**
+- [x] **Deploy workflow created:** `.github/workflows/deploy.yml` — triggers on `repository_dispatch` (CMS webhook), builds frontend, runs harnesses, deploys via rsync to DianaHost `public_html`. Also `backup-db.yml` rewritten to use GitHub Actions artifacts instead of R2. **✅ 2026-09-15: the `.htaccess` step's documented `# NO-DEPLOY` escape hatch is now implemented** — before, the step overwrote the host file unconditionally, so the rsync exclusion above it protected nothing.
+- [ ] **14 Dependabot PRs open — OWNER decision.** All red (they predate the CI fixes). 4 CI-action bumps would clear the Node 20 deprecation warning; 10 runtime bumps include majors that collide with deliberate pins (`graphql` 16→17, `react`/`react-dom`, `@types/node` 22→26, `dotenv` 16→17, `cross-env` 7→10), four duplicated across root and `cms/`. Left untouched under agent rule 8.
 - [x] **Demo-purge tooling:** `cms/src/seed/demo-purge.ts` + `seed:demo:purge` — dry run unless `--confirm`. Removes 55 demo rows across 15 collections; leaves taxonomies and the site logo. Verified on a throwaway DB copy.
 - [ ] Demo content purged before launch — **OWNER** runs `seed:demo:purge -- --confirm` once real content exists
 - [ ] DianaHost `public_html` setup; GitHub Actions secrets configured; DianaHost Passenger config — **OWNER-ONLY**
