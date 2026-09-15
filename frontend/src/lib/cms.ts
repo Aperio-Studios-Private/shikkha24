@@ -57,6 +57,22 @@ export interface CmsSiteSettings {
    * Ignored when no logo is set, so the brand can never render empty.
    */
   showNameWithLogo?: boolean | null
+  /**
+   * The browser-tab icon, managed in Site Settings.
+   *
+   * `mimeType` travels with it because the `<link type>` is derived from the
+   * media record rather than guessed from the filename — a `.png` that is
+   * actually WebP would otherwise be declared wrongly. The CMS validates both
+   * the type and the size (`SiteSettings.beforeValidate`), so anything that
+   * reaches here is already an allowed format.
+   */
+  favicon?: {
+    url?: string | null
+    mimeType?: string | null
+    filesize?: number | null
+    width?: number | null
+    height?: number | null
+  } | null
   contact?: { email?: string | null; phone?: string | null; address?: string | null } | null
   social?: Record<string, string | null> | null
   footerText?: string | null

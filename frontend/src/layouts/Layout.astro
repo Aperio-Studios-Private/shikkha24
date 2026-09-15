@@ -19,6 +19,7 @@ import Header from '../components/Header.astro'
 import Footer from '../components/Footer.astro'
 import MobileShareBar from '../components/MobileShareBar.astro'
 import type { CmsSiteSettings, CmsCategory, CmsPage } from '../lib/cms'
+import { mediaUrl } from '../lib/media'
 
 interface Props {
   /** Page title — appended after the site name. */
@@ -81,6 +82,24 @@ const metaDescription = description || settings.tagline || ''
 const siteOrigin = (import.meta.env.PUBLIC_SITE_URL || Astro.url.origin).replace(/\/$/, '')
 const ogImagePath = ogImage || '/og-default.png'
 const ogImageUrl = /^https?:\/\//i.test(ogImagePath) ? ogImagePath : `${siteOrigin}${ogImagePath}`
+
+/**
+ * Browser-tab icon — uploaded in Site Settings, not hardcoded.
+ *
+ * `mediaUrl()` is what turns Payload's relative `/api/media/file/…` into a URL
+ * the static host can serve. The raw value would 404 exactly like the publisher
+ * logo did before it was fixed — the static host serves no `/api/`.
+ *
+ * `type` comes from the media record's own mime type rather than from the
+ * filename extension, so a file whose name lies about its format is still
+ * declared correctly. Both the type and the size are enforced in the CMS
+ * (`SiteSettings.beforeValidate`), so anything reaching here is already allowed.
+ *
+ * When nothing is uploaded the two static icons in `public/` are emitted
+ * instead, so the tab is never blank and a fresh install has no dead link.
+ */
+const faviconUrl = mediaUrl(settings.favicon?.url)
+const faviconType = settings.favicon?.mimeType ?? undefined
 ---
 
 <!doctype html>
@@ -108,9 +127,16 @@ const ogImageUrl = /^https?:\/\//i.test(ogImagePath) ? ogImagePath : `${siteOrig
         Bengali AND Latin, so one preload serves mixed headlines like "HSC ২০২৬". */}
     <link rel="preload" href="/fonts/solaimanlipi-400.woff2" as="font" type="font/woff2" crossorigin />
 
+    {/* ── Icons ─────────────────────────────────────────────────────────────
+        A CMS-uploaded favicon wins; the static pair in `public/` is the
+        fallback, so a fresh install or a removed upload is never left without
+        one. Order matters — browsers take the first `rel="icon"` they can
+        decode, so the managed icon goes first. */}
+    {faviconUrl && <link rel="icon" href={faviconUrl} type={faviconType} />}
+    {faviconUrl && <link rel="apple-touch-icon" href={faviconUrl} />}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    {!faviconUrl && <link rel="apple-touch-icon" href="/apple-touch-icon.png" />}
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#da1c25" />
     <link rel="canonical" href={canonical} />

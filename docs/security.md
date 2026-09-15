@@ -121,7 +121,9 @@ A strict CSP will break AdSense, which needs inline scripts and dynamic script i
 ## 6. Input validation and content safety
 
 - **Comments are the primary XSS vector.** Never render reader input as raw HTML. Escape on output, store sanitised, moderate before publish.
-- **File uploads** (citizen journalism, avatars) — validate MIME type and extension server-side, cap size, store via Payload's upload pipeline (which writes to `data/media/` on the host disk, not the web root), never execute. Never trust the client-supplied content type.
+- **File uploads** (citizen journalism, avatars) — validate MIME type and extension server-side, cap size, store via Payload's upload pipeline (which writes to `data/media/` on the host disk, not the web root), never execute. Never trust the client-supplied content type. **The caps, stated here so the code can cite them:**
+  - `Media` accepts **images only** (`image/jpeg`, `png`, `webp`, `avif`, `gif`, `svg+xml`), **≤ 15 MB** per file, with a **250 MB per-day** upload cap (`cms/src/collections/Media.ts`, `lib/media-quota.ts`). Everything raster is re-encoded to WebP and capped at 2000 px wide.
+  - The **favicon** (`SiteSettings`) is tighter, because it is fetched on every page: **SVG / PNG / WebP**, **≤ 512 KB**, **≤ 512×512 px**. Enforced on the *reference* in `SiteSettings.beforeValidate` — the only place that knows the asset is a favicon. SVG is exempt from the dimension rule, since `sharp` cannot read a vector's intrinsic size and a vector has no resolution to cap.
 - **Rich text from editors** is higher-trust but still sanitise on render — a compromised editor account should not be able to inject scripts.
 - **CSRF** — Payload handles it for the admin; any custom endpoint (comments, newsletter, contact) needs its own token or origin check.
 - **GraphQL** — disable introspection in production and enforce query depth/complexity limits if it is exposed publicly.
