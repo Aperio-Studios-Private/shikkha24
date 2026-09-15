@@ -12,6 +12,10 @@ version: 2
 
 updates:
   # ── Root workspace ─────────────────────────────────────────────────────────
+  # The root lockfile resolves all workspace packages, so the root ecosystem
+  # sees CMS and frontend deps too. Without ignore rules it opens duplicate
+  # major-bump PRs for packages the /cms and /frontend blocks already gate.
+  # These matches mirror the /cms and /frontend ignore lists.
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -24,6 +28,26 @@ updates:
     labels: [dependencies]
     commit-message:
       prefix: 'chore(deps)'
+    ignore:
+      # Payload pins graphql ^16.8.1 — v17 breaks the peer range.
+      - dependency-name: graphql
+        update-types: [version-update:semver-major]
+      # @types/node must match the deployment runtime (Node 20 on DianaHost).
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+      # Payload's peer range pins react/react-dom to ^19.x — a major bump
+      # breaks the CMS build.
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+      # TS 7 is pinned deliberately (@astrojs/check and typescript-eslint
+      # do not yet support it).
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      # Next is pinned to Payload's peer range (>=16.2.6 <17.0.0).
+      - dependency-name: next
+        update-types: [version-update:semver-major]
     groups:
       # Patch/minor bumps batch into one PR per area.
       astro-ecosystem:
@@ -67,15 +91,22 @@ updates:
     commit-message:
       prefix: 'chore(deps)'
     ignore:
-      # Payload's peer range pins Next to >=16.2.6 <17.0.0 and react to ^19.2.x.
-      # A major bump here breaks the CMS build, so it must be a deliberate act.
+      # Payload's peer range pins Next to >=16.2.6 <17.0.0, react/react-dom to
+      # ^19.x, and graphql to ^16.8.1. A major bump for any of these breaks
+      # the CMS build, so it must be a deliberate act.
       - dependency-name: next
         update-types: [version-update:semver-major]
       - dependency-name: react
         update-types: [version-update:semver-major]
       - dependency-name: react-dom
         update-types: [version-update:semver-major]
+      - dependency-name: graphql
+        update-types: [version-update:semver-major]
       - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      # @types/node must match the deployment runtime (Node 20 on DianaHost),
+      # not the CI runner's Node version.
+      - dependency-name: '@types/node'
         update-types: [version-update:semver-major]
 
   # ── GitHub Actions ─────────────────────────────────────────────────────────
