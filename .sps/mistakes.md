@@ -46,6 +46,20 @@ Each entry is a mistake that was actually made in this repository, with the rule
 **What happened:** The SQLite WAL 5-writer concurrency test — a foundational database decision — was gated at S12, after all twelve sections were built.
 **Rule:** Foundational risks are validated in S0. Never gate a load-bearing decision at the finish line.
 
+## M11 — A capability documented in a comment that the code never implemented
+**What happened:** Twice. (a) `cms/src/seed/demo.ts` told the reader to run `payload run src/seed/demo-purge.ts`; **no such file existed**, so "delete the demo content before launch" silently meant hand-deleting ~130 records across 22 collections. (b) `.github/workflows/deploy.yml` told the operator they could skip the `.htaccess` deploy by putting `# NO-DEPLOY` in the host file — no such check existed, and the step overwrote the host file unconditionally, undoing the rsync exclusion two lines above it that existed specifically to protect a hotfix.
+**Why it matters:** Both read as working features. The second would have destroyed an emergency CSP fix *during the incident it was written for*.
+**Rule:** A comment is a promise. When you write a capability into a comment or a runbook, check the code implements it — and when you find one that does not, either implement it or delete the sentence, in the same commit. **The diagnostic is one grep:** if the only hit for the claimed flag, path or script name is the sentence that claims it, the capability does not exist.
+
+## M12 — An undeclared dependency that resolved only because of a stale directory
+**What happened:** `frontend/package.json` never declared `sharp`. `frontend/node_modules/sharp` was a **real directory** left by a manual install, so `astro build` resolved sharp on that machine and CI had nothing — `MissingSharp`, exit 1. It was the third CI failure in a row, each invisible locally.
+**Why it matters:** The local build was green for three days on a package the project did not depend on. A green build on a machine with history is not a green build.
+**Rule:** `node_modules` is not evidence that a dependency is declared. `ls -la node_modules/<pkg>` tells you which it is — a **symlink** is pnpm-managed, a **directory** is not. Any package the build needs must appear in that workspace's own `package.json`.
+
+## M13 — Repairing a broken tree with a command that can make it worse
+**What happened:** Mid-task, a `pnpm install` intended to relink one package purged the root `node_modules` and left it **empty of symlinks** while `node_modules/.pnpm` kept all 566 packages — so `astro` and `biome` stopped resolving, and the repair itself took four separate sandbox blockers to complete.
+**Rule:** Before running a mutating repair (install, purge, schema push, force-reset), know what the command removes on the failure path — and confirm the recovery path works *before* you need it. Prefer the narrowest operation that fixes the actual problem.
+
 ---
 
 ## Deliberately not done (and why)
