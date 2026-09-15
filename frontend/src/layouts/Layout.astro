@@ -95,11 +95,31 @@ const ogImageUrl = /^https?:\/\//i.test(ogImagePath) ? ogImagePath : `${siteOrig
  * declared correctly. Both the type and the size are enforced in the CMS
  * (`SiteSettings.beforeValidate`), so anything reaching here is already allowed.
  *
- * When nothing is uploaded the two static icons in `public/` are emitted
- * instead, so the tab is never blank and a fresh install has no dead link.
+ * ## Two things that made the favicon appear not to change
+ *
+ * 1. **Competing candidates.** This used to emit the managed icon *and* the two
+ *    static ones in `public/`. A browser collects every `rel="icon"` and picks
+ *    the "most appropriate" — with no `sizes` declared that choice is ambiguous,
+ *    and it can land on a stale static file. The managed icon is now emitted
+ *    **alone** when one is set; the static pair is the fallback for when none is,
+ *    not an alternative to it.
+ * 2. **Caching.** Browsers cache favicons far more stubbornly than other assets —
+ *    Chrome keeps them in a store that ignores ordinary cache headers — so
+ *    re-uploading under the same filename would keep showing the old icon
+ *    indefinitely. The URL is therefore versioned by the media record's
+ *    `updatedAt`, which is the only reliable way to force a refetch.
  */
-const faviconUrl = mediaUrl(settings.favicon?.url)
+const faviconBase = mediaUrl(settings.favicon?.url)
 const faviconType = settings.favicon?.mimeType ?? undefined
+
+const faviconStamp = settings.favicon?.updatedAt
+  ? Date.parse(settings.favicon.updatedAt)
+  : Number.NaN
+
+const faviconUrl =
+  faviconBase && Number.isFinite(faviconStamp)
+    ? `${faviconBase}${faviconBase.includes('?') ? '&' : '?'}v=${faviconStamp}`
+    : faviconBase
 ---
 
 <!doctype html>
@@ -128,15 +148,24 @@ const faviconType = settings.favicon?.mimeType ?? undefined
     <link rel="preload" href="/fonts/solaimanlipi-400.woff2" as="font" type="font/woff2" crossorigin />
 
     {/* ── Icons ─────────────────────────────────────────────────────────────
-        A CMS-uploaded favicon wins; the static pair in `public/` is the
-        fallback, so a fresh install or a removed upload is never left without
-        one. Order matters — browsers take the first `rel="icon"` they can
-        decode, so the managed icon goes first. */}
-    {faviconUrl && <link rel="icon" href={faviconUrl} type={faviconType} />}
-    {faviconUrl && <link rel="apple-touch-icon" href={faviconUrl} />}
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" />
-    {!faviconUrl && <link rel="apple-touch-icon" href="/apple-touch-icon.png" />}
+        Exactly one source, never both. Emitting the managed icon alongside the
+        static pair left three `rel="icon"` candidates with no `sizes` to
+        disambiguate them, and the browser was free to pick a stale static file.
+        See the note on `faviconUrl`. */}
+    {
+      faviconUrl ? (
+        <>
+          <link rel="icon" href={faviconUrl} type={faviconType} />
+          <link rel="apple-touch-icon" href={faviconUrl} />
+        </>
+      ) : (
+        <>
+          <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+          <link rel="icon" href="/favicon.ico" />
+          <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        </>
+      )
+    }
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#da1c25" />
     <link rel="canonical" href={canonical} />

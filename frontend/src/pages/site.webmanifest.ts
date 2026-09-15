@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro'
 import { FALLBACK_SETTINGS, getSiteSettings } from '../lib/cms'
+import { mediaUrl } from '../lib/media'
 
 /**
  * Web app manifest — generated at build time, not a static file.
@@ -38,6 +39,22 @@ export const GET: APIRoute = async () => {
     ? `${settings.siteName} — ${settings.siteNameEn}`
     : settings.siteName
 
+  /**
+   * The managed favicon, versioned by the media record's `updatedAt`.
+   *
+   * The version matters here for the same reason it does in `Layout.astro`:
+   * without it, replacing the icon under the same filename leaves the browser
+   * showing the old one. See that file for the full note.
+   */
+  const faviconBase = mediaUrl(settings.favicon?.url)
+  const faviconStamp = settings.favicon?.updatedAt
+    ? Date.parse(settings.favicon.updatedAt)
+    : Number.NaN
+  const faviconSrc =
+    faviconBase && Number.isFinite(faviconStamp)
+      ? `${faviconBase}${faviconBase.includes('?') ? '&' : '?'}v=${faviconStamp}`
+      : faviconBase
+
   const manifest = {
     name,
     // Browsers truncate `short_name` aggressively — the plain name is the right
@@ -54,7 +71,18 @@ export const GET: APIRoute = async () => {
     theme_color: '#da1c25',
     categories: ['education', 'news'],
     icons: [
-      { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+      // The managed icon replaces the bundled SVG when one is set. Left static,
+      // this entry kept advertising the old mark to the install prompt after the
+      // favicon had been changed — the same "it didn't change" symptom the
+      // `<link>` fix addresses, one surface over.
+      faviconSrc
+        ? {
+            src: faviconSrc,
+            sizes: 'any',
+            type: settings.favicon?.mimeType ?? undefined,
+            purpose: 'any',
+          }
+        : { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
       { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
       { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },

@@ -19,6 +19,11 @@
  *      renders its own container — because it is also used standalone — insets
  *      its whole subtree by another 24px when nested inside a page that already
  *      has one. Nothing fails; the page just does not line up.
+ *   6. **One source of tab icon, and it is versioned.** A page offers the
+ *      CMS-managed favicon *or* the bundled pair, never both — three candidates
+ *      with no `sizes` to disambiguate them lets the browser keep showing the
+ *      stale one. And the managed URL must carry a cache-buster, because
+ *      browsers cache favicons far more stubbornly than other assets.
  *
  * Run after `pnpm build`: node scripts/verify-build-output.mjs
  */
@@ -254,6 +259,54 @@ check(
   nestedContainerPages.length === 0
     ? `${htmlFiles.length} pages checked`
     : nestedContainerPages.slice(0, 3).join(', '),
+)
+
+// ── 6. Exactly one source of tab icon, and it is versioned ───────────────────
+/**
+ * A page offers **either** the CMS-managed favicon **or** the bundled pair —
+ * never both.
+ *
+ * Emitting the managed icon *and* `/favicon.svg` + `/favicon.ico` leaves three
+ * `rel="icon"` candidates with no `sizes` to disambiguate them, and the browser
+ * is then free to pick a stale bundled file. That is how "I changed the favicon
+ * and nothing happened" happens, and it is invisible to every other check —
+ * the markup is valid, the build is green, the icon is simply not the new one.
+ *
+ * The managed URL must also be versioned. Browsers cache favicons far more
+ * stubbornly than other assets — Chrome keeps them in a store that ignores
+ * ordinary cache headers — so without a changing URL, replacing the icon under
+ * the same filename keeps showing the old one.
+ */
+const mixedIconPages = []
+const unversionedIconPages = []
+for (const file of htmlFiles) {
+  const html = readFileSync(file, 'utf8')
+  const hrefs = [...html.matchAll(/<link[^>]+rel="icon"[^>]*>/g)]
+    .map((match) => match[0].match(/href="([^"]*)"/)?.[1] ?? '')
+    .filter(Boolean)
+
+  const bundled = hrefs.filter((href) => href.startsWith('/favicon.'))
+  const managed = hrefs.filter((href) => !href.startsWith('/favicon.'))
+
+  if (bundled.length > 0 && managed.length > 0) mixedIconPages.push(file.replace(`${DIST}/`, ''))
+  if (managed.some((href) => !href.includes('?v='))) {
+    unversionedIconPages.push(file.replace(`${DIST}/`, ''))
+  }
+}
+
+check(
+  'no page mixes a managed favicon with a bundled one',
+  mixedIconPages.length === 0,
+  mixedIconPages.length === 0
+    ? `${htmlFiles.length} pages checked`
+    : mixedIconPages.slice(0, 3).join(', '),
+)
+check(
+  'every managed favicon URL is versioned (cache-busting)',
+  unversionedIconPages.length === 0,
+  unversionedIconPages.length === 0
+    ? 'no unversioned managed icons'
+    : unversionedIconPages.slice(0, 3).join(', '),
 )
 
 console.log(

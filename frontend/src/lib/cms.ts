@@ -65,6 +65,11 @@ export interface CmsSiteSettings {
    * actually WebP would otherwise be declared wrongly. The CMS validates both
    * the type and the size (`SiteSettings.beforeValidate`), so anything that
    * reaches here is already an allowed format.
+   *
+   * `updatedAt` is not decoration: browsers cache favicons far more stubbornly
+   * than other assets, and Chrome keeps them in a store that ignores normal
+   * cache headers. It is used to version the URL so a replaced icon is actually
+   * refetched — without it, changing the favicon appears to do nothing.
    */
   favicon?: {
     url?: string | null
@@ -72,6 +77,7 @@ export interface CmsSiteSettings {
     filesize?: number | null
     width?: number | null
     height?: number | null
+    updatedAt?: string | null
   } | null
   contact?: { email?: string | null; phone?: string | null; address?: string | null } | null
   social?: Record<string, string | null> | null
