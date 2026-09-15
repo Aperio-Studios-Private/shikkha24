@@ -9,7 +9,7 @@
 
 | Asset | Where it lives | If lost |
 |---|---|---|
-| **SQLite database** | DianaHost (CMS data directory: `data/db/`) | **Total loss of all content** — the single most critical asset |
+| **SQLite database** | DianaHost (CMS `data/payload.db`) | **Total loss of all content** — the single most critical asset |
 | **Media library** | DianaHost (CMS data directory: `data/media/`) | All images lost — no article or gallery has a picture |
 | **Code, config, schema** | GitHub | Recoverable — already versioned |
 | **Secrets** (`.env`, API keys, OAuth secrets) | Local + GitHub Actions secrets | Recoverable only if documented separately |
@@ -95,7 +95,9 @@ The daily DB dump must not depend on someone remembering. Options, in order of p
 
 ⚠️ Whatever is chosen, the dump must land **off the host**. A backup stored on the same account as the database protects against corruption but not against account loss. GitHub Actions artifacts qualify as off-host (they live on GitHub's infrastructure).
 
-⚠️ **The backup must include `data/media/`, not just the SQLite file.** Media moved to the host disk in S9 — the media directory is now as critical as the database. A dump that only grabs the SQLite file leaves every article and gallery image behind if the host is lost. The daily backup should `tar` both `data/db/` and `data/media/` into one archive.
+⚠️ **The backup must include `data/media/`, not just the SQLite file.** Media moved to the host disk in S9 — the media directory is now as critical as the database. A dump that only grabs the SQLite file leaves every article and gallery image behind if the host is lost. The daily backup `tar`s both `data/payload.db` and `data/media/` into one archive (`.github/workflows/backup-db.yml`).
+
+⚠️ **The database is `data/payload.db` — not `data/db/payload.db`.** Earlier revisions of this document said `data/db/`; the CI backup workflow, `cms/.env.example` and the real tree all use `data/payload.db`. A restore performed against the wrong path fails silently at the worst possible moment, so check the path against `DATABASE_URI` before trusting any runbook — including this one.
 
 ⚠️ Also note: the daily dump runs through the same CI minutes budget that is already tight (see `docs/reliability.md`). Budget for it, or run it on the host via cron instead.
 

@@ -53,7 +53,7 @@ The Cloudflare Pages `_headers` format is replaced by Apache `.htaccess` directi
 ### 2.4 Backups: R2 → on-host + GitHub Actions artifacts
 
 The backup strategy changes:
-- **Tier 1 (daily dump):** A GitHub Actions workflow connects over SSH, creates a tar of `data/db/` + `data/media/`, and stores it as a workflow artifact with 7-day retention. The owner can download these to local storage. This replaces the R2 upload.
+- **Tier 1 (daily dump):** A GitHub Actions workflow connects over SSH, creates a tar of `data/payload.db` + `data/media/`, and stores it as a workflow artifact with 7-day retention. The owner can download these to local storage. This replaces the R2 upload.
 - **Limitation:** GitHub Actions artifacts have a 500 MB limit on free tier and 7-day retention. The SQLite DB + media tar must stay under this. If media grows past ~400 MB, the tar must split or exclude media (DB-only backup).
 - **Tier 5 (vendor backup):** Still depends on DianaHost cPanel's own backup mechanism — unchanged.
 

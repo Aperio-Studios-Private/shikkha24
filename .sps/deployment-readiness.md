@@ -113,7 +113,7 @@ None of these is code. The project is complete pending them.
 |---|---|---|
 | 1 | **DNS for `shikkha24.com`** → DianaHost nameservers | Nothing is reachable without it |
 | 2 | **Deploy `frontend/dist` to DianaHost `public_html`** via rsync from CI | The frontend has nowhere to live |
-| 3 | **Deploy the CMS to DianaHost** (Passenger) | Every reader write and the admin depend on it |
+| 3 | **Deploy the CMS to DianaHost** (Passenger) — ⚠️ **do this FIRST: the frontend is built *from* the CMS** | Every reader write and the admin depend on it. **Step-by-step runbook: `docs/cms-deployment.md`** |
 | 4 | **Set `PUBLIC_CMS_ORIGIN`** to the real CMS hostname | Currently `http://localhost:3000`. Until set, the live-blog refresh and poll vote controls are simply not rendered (by design) |
 | 5 | **Update the CSP host** in `frontend/public/.htaccess` (`cms.shikkha24.com` is a literal placeholder — a CSP cannot be templated) | Article images and CMS calls would be blocked |
 | 6 | **Create the remaining E-E-A-T pages** — privacy, terms, editorial/corrections policy | `/about` and `/contact` are now built into the site and driven by Site Settings; privacy and terms are still required for Google News eligibility. **⚠️ Found in the 2026-09-14 audit: the footer hardcodes `/page/privacy-policy`, `/page/terms-of-use` and `/page/contact`, and the CMS `pages` collection is empty — so all three 404 on every page (171 broken links across 82 pages). Being fixed as static routes, matching `/about` and `/contact`.** |
