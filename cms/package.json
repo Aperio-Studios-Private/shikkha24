@@ -19,6 +19,7 @@
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "seed": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/run.ts",
     "seed:demo": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/demo-run.ts",
+    "seed:demo:purge": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/demo-purge.ts",
     "verify:media": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/media.ts",
     "verify:endpoints": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/endpoints.ts",
     "verify:newsletter": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/newsletter.ts",

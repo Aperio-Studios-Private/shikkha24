@@ -179,6 +179,8 @@
 
 ## S12 — Deployment, QA & Launch
 - [x] **Deploy workflow created:** `.github/workflows/deploy.yml` — triggers on `repository_dispatch` (CMS webhook), builds frontend, runs harnesses, deploys via rsync to DianaHost `public_html`. Also `backup-db.yml` rewritten to use GitHub Actions artifacts instead of R2.
+- [x] **Demo-purge tooling:** `cms/src/seed/demo-purge.ts` + `seed:demo:purge` — dry run unless `--confirm`. Removes 55 demo rows across 15 collections; leaves taxonomies and the site logo. Verified on a throwaway DB copy.
+- [ ] Demo content purged before launch — **OWNER** runs `seed:demo:purge -- --confirm` once real content exists
 - [ ] DianaHost `public_html` setup; GitHub Actions secrets configured; DianaHost Passenger config — **OWNER-ONLY**
 - [x] **Initial payload measured:** all 5 key templates within 1.2MB budget (149–242 KB). See `.sps/section-todos/S12.md`.
 - [x] **Bengali typography verified:** 17px base, 1.65 line-height, 154 KB font total (within 200 KB budget).

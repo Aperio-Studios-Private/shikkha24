@@ -207,11 +207,24 @@ any-purpose PNG icons at 192×192 and 512×512, and a 180×180 Apple touch icon 
 brand logo mark. `Layout.astro` now links the manifest, sets `theme-color`, and includes the
 Apple touch icon link.
 
-### 2.8 — All current content is demo/throwaway
+### 2.8 — All current content is demo/throwaway ✅ TOOLING FIXED
 
 130 CMS records, 12 articles — every slug is `demo-*`. The seed script itself prints
 *"These are throwaway rows — delete before launch."* Expected at this stage, but checklist
 Phase 30 ("no demo content remains") cannot pass until real content replaces it.
+
+**The removal path was documented but did not exist.** `demo.ts` pointed at
+`src/seed/demo-purge.ts`, and no such file was ever written — so "delete before launch" meant
+hand-deleting 130 records across 22 collections in the admin UI.
+
+**Fix:** `cms/src/seed/demo-purge.ts` + a `seed:demo:purge` script. Dry run unless `--confirm`
+is passed. It removes **55 rows across 15 collections** — the demo content plus the reader rows
+that point at it (comments, poll votes, bookmarks, saved deadlines) — and deliberately leaves the
+taxonomies and the site logo. Verified end to end against a throwaway copy of the dev database:
+dry run → confirm (55 deleted) → re-seed (all 55 recreated) → confirm again (55 deleted), with the
+taxonomies and logo intact throughout.
+
+The remaining Phase 30 work is editorial, not code: real content must replace it.
 
 ---
 
@@ -327,7 +340,7 @@ reach 226 KB in `dist` (§2.2). Repo size is cosmetic; shipped size is not.
 | 8 | `NEWSLETTER_SEND_TOKEN` / `PUSH_SEND_TOKEN` | both cron endpoints are disabled while unset |
 | 9 | SMTP credentials + SPF/DKIM/DMARC | newsletter form stays hidden |
 | 10 | OAuth apps + exact callback URLs | login buttons stay hidden |
-| 11 | Real content to replace the demo rows (§2.8) | Phase 30 |
+| 11 | Real content to replace the demo rows (§2.8) — then remove them with `pnpm --filter @shikkha24/cms seed:demo:purge -- --confirm` | Phase 30 |
 | 12 | Trade Licence / TIN / Ministry registration | E-E-A-T pages render their "not yet provided" state |
 | 13 | UptimeRobot account + 2 monitors | monitoring (`docs/reliability.md` §6) |
 
@@ -378,15 +391,16 @@ pins. A normal `pnpm install` on a machine without the broker will complete it.
 |---|---|---|
 | Blocking, fixed | 4 | dependency audit, 171 broken links, relative `og:image`, SVG og:image unsupported |
 | Significant, fixed | 4 | dead env vars, CI byte-budget gate, CI harness wiring, no deploy workflow |
-| Minor, fixed | 2 | placeholder logo commit/rename, manifest + Apple touch icon |
+| Minor, fixed | 3 | placeholder logo commit/rename, manifest + Apple touch icon, demo-purge tooling |
 | Blocking, open | 0 | — |
 | Significant, open | 1 | image fallback budget |
-| Minor, open | 1 | demo content |
+| Minor, open | 1 | demo content (editorial — the purge tool exists, the real content does not) |
 | Clean | 16 checks | see §3 |
 
 **Every agent-buildable launch blocker identified by this audit is now closed.
 The only remaining open items are §2.2 (image fallback budget — product decision),
-and §2.8 (demo content — expected at this stage).**
+and §2.8 (demo content — the purge tool now exists; replacing it with real content
+is editorial work).**
 
 *Updated 2026-09-14: placeholder logo committed as `docs/assets/logo.svg`,
 dead env vars removed from `cms/.env.example`, CI byte-budget gate corrected, two dist-only
@@ -395,3 +409,8 @@ SVG og:image replaced with a 1200×630 PNG. Cloudflare fully removed — all hos
 DNS, security headers, and analytics now on DianaHost only (`_headers` → `.htaccess`).
 Deploy workflow created (`deploy.yml` — rsync to DianaHost `public_html`). Backup workflow
 rewritten to use GitHub Actions artifacts instead of R2. §2.4 closed.*
+
+*Updated 2026-09-15: demo-content purge tooling written (`cms/src/seed/demo-purge.ts` +
+`seed:demo:purge`). §2.8's code half closed — the documented purge path had never existed.
+Verified against a throwaway copy of the dev database; the dev database itself was not
+touched. `demo.ts` now exports the purge keys so seed and purge cannot drift.*

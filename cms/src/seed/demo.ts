@@ -15,11 +15,15 @@ import type { Payload } from 'payload'
  *
  * ## Deleting it
  *
- *   pnpm --filter @shikkha24/cms exec payload run src/seed/demo-purge.ts
+ *   pnpm --filter @shikkha24/cms seed:demo:purge              # report only
+ *   pnpm --filter @shikkha24/cms seed:demo:purge -- --confirm # delete
  *
- * ...or just delete the demo rows from the admin. Nothing in the site depends on
- * them. The taxonomies seeded by `pnpm seed` are the real, approved data and are
- * untouched by this script.
+ * See `./demo-purge.ts`. It is a dry run unless `--confirm` is passed, and it
+ * matches the `deadlines` / `quizzes` / `polls` rows using the key lists
+ * exported at the bottom of this file, so the two cannot drift apart.
+ *
+ * Nothing in the site depends on the demo rows. The taxonomies seeded by
+ * `pnpm seed` are the real, approved data and are untouched by the purge.
  */
 
 /** Reuses the confined cast from the production seed — see `./index.ts`. */
@@ -414,6 +418,29 @@ const QUIZ = {
     },
   ],
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Purge keys — what `demo-purge.ts` matches on
+ *
+ * Most demo content carries a marker of its own: a `demo-` slug (articles,
+ * authors, institutions, study-abroad guides, live blogs, galleries), a
+ * `demo-` filename (media) or a `ডেমো:` title prefix (scholarships, result
+ * links, circulars). The three below carry **no** marker — `deadlines`,
+ * `quizzes` and `polls` are identified only by their title / question text — so
+ * the purge imports these values rather than duplicating the Bengali strings.
+ *
+ * Exported so the seed and the purge cannot drift apart: change the seed data
+ * here and the purge follows automatically.
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/** Exact titles the demo seed writes to `deadlines`. */
+export const DEMO_DEADLINE_TITLES: string[] = DEADLINES.map((d) => d.title)
+
+/** Exact title the demo seed writes to `quizzes`. */
+export const DEMO_QUIZ_TITLE: string = QUIZ.title
+
+/** Exact `questionBn` the demo seed writes to `polls`. */
+export const DEMO_POLL_QUESTION: string = POLL.questionBn
 
 export async function seedDemo(payload: Payload): Promise<DemoReport> {
   const db = payload as unknown as SlugAgnosticPayload

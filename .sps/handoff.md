@@ -2,7 +2,7 @@
 
 ## Current Phase
 - **Status:** **S11 build complete. S12 local verification complete — owner-only items remaining.** All buildable work across S0–S12 is done. Remaining items require production deployment, DNS access, or real hardware.
-- **Last Activity:** 2026-09-15T11:20+06:00 — Deploy workflow created (`deploy.yml`), backup workflow rewritten to use GitHub Actions artifacts instead of R2, remaining Cloudflare references cleaned up. §2.4 of the production-readiness audit is now closed.
+- **Last Activity:** 2026-09-15T11:45+06:00 — Demo-purge tooling written. The removal path documented in `demo.ts` (`src/seed/demo-purge.ts`) had never been implemented, so "delete before launch" meant hand-deleting 130 records. Now one command, dry-run by default. Verified against a throwaway copy of the dev DB (dry run → confirm → re-seed → confirm); the dev DB was not touched.
 - **Next Action:** owner sets GitHub Actions secrets (DIANAHOST_SSH_KEY, DIANAHOST_SSH_HOST, DIANAHOST_SSH_USER, DIANAHOST_PUBLIC_HTML), sets DEPLOY_WEBHOOK_URL on the CMS, deploys CMS to DianaHost (Passenger), configures DNS/SMTP, runs Lighthouse/restore/device tests, then LAUNCH.
 - **⚠️ S11 summary:** JSON-LD on all page types, URL architecture `/:category/:id/:slug` + shortlink + 500-cap fix, `llms.txt`, `og-default.svg`, all feeds updated. Commits: `5c8c3af`, `a20f0df`.
 - **⚠️ S12 summary:** all agent-buildable items verified locally. Initial payload 149–242 KB (well within 1.2MB). Bengali typography (17px/1.65), touch targets (48px), ad slots reserved, 404 page Bengali with nav. 79 pages, 0 inline scripts. Pre-launch QA checklist written. Most S12 items are owner-only (Lighthouse in production, DNS, monitoring, restore drill, WCAG manual test, device matrix). Evidence: `.sps/section-todos/S12.md`.
@@ -401,6 +401,10 @@ the widget and never fails the build.
    added 12 articles, 5 deadlines and 1 author so the homepage could be reviewed.
    The production seed (`pnpm seed`) stays **taxonomies-only** per the S1
    principle. All demo slugs are prefixed `demo-`.
+   **Removal is now one command** — `cms/src/seed/demo-purge.ts`, a dry run unless
+   `--confirm` is passed. It removes 55 rows across 15 collections and leaves the
+   taxonomies and the site logo alone. Verified on a throwaway copy of the dev DB:
+   dry run → confirm → re-seed → confirm all behave.
 
 **Finding worth not rediscovering:** `Deadlines.type` is a `select` — values must
 be one of `admission, result, examRoutine, scholarshipDeadline, holiday,
