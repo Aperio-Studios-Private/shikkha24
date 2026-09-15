@@ -28,6 +28,7 @@ try {
   console.log('')
   console.log('Demo content ready:')
   console.log(`  author    ${report.author}`)
+  console.log(`  tags      ${report.tags}`)
   console.log(`  articles  ${report.articles}`)
   console.log(`  deadlines ${report.deadlines}`)
   console.log(`  liveBlog  ${report.liveBlog}`)

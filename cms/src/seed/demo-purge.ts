@@ -54,9 +54,6 @@ const DEMO_SLUG = 'demo-'
 /** Bengali marker on demo education titles — «ডেমো:». */
 const DEMO_BN = 'ডেমো:'
 
-/** The one demo author, identified by slug. */
-const DEMO_AUTHOR_SLUG = 'demo-reporter'
-
 const payload = await getPayload({ config })
 const db = payload as unknown as Db
 
@@ -134,6 +131,10 @@ await purge('photo-galleries', { slug: { like: DEMO_SLUG } }, 'photo galleries')
 await purge('media', { filename: { like: DEMO_SLUG } }, 'media uploads')
 
 await purge('articles', { slug: { like: DEMO_SLUG } }, 'articles')
+// After the articles that reference them, so nothing is left pointing at a
+// deleted tag. Tags are editorial labels, not fixed taxonomy — the production
+// seed deliberately creates none, so every `demo-` tag here is demo content.
+await purge('tags', { slug: { like: DEMO_SLUG } }, 'tags')
 await purge('live-blogs', { slug: { like: DEMO_SLUG } }, 'live blogs')
 await purge('institutions', { slug: { like: DEMO_SLUG } }, 'institutions')
 await purge('study-abroad-guides', { slug: { like: DEMO_SLUG } }, 'study-abroad guides')
@@ -147,10 +148,14 @@ await purge('polls', { questionBn: { equals: DEMO_POLL_QUESTION } }, 'polls')
 await purge('deadlines', { title: { in: DEMO_DEADLINE_TITLES } }, 'deadlines')
 
 /*
- * The demo author is removed only when nothing that *survives this purge* still
- * references it. An editor may have assigned it to a real article, and deleting
- * the author would leave that article with a dangling byline — worse than
- * leaving one demo row behind.
+ * Demo authors are removed only when nothing that *survives this purge* still
+ * references them. An editor may have assigned one to a real article, and
+ * deleting the author would leave that article with a dangling byline — worse
+ * than leaving one demo row behind.
+ *
+ * Matched by the `demo-` slug pattern rather than by a single hardcoded slug:
+ * the demo seed now creates three authors so the author-profile route has
+ * something to list, and a hardcoded slug would silently leave two behind.
  *
  * The exclusion is by explicit id rather than by a slug pattern, so the check is
  * correct on a dry run too: while a dry run is only counting, the demo articles
@@ -158,7 +163,8 @@ await purge('deadlines', { title: { in: DEMO_DEADLINE_TITLES } }, 'deadlines')
  * always answer yes. The question that matters is "does any article that is
  * *not* already scheduled for deletion".
  */
-for (const author of await all('authors', { slug: { equals: DEMO_AUTHOR_SLUG } })) {
+for (const author of await all('authors', { slug: { like: DEMO_SLUG } })) {
+  const slug = String(author.slug)
   const authorWhere: Record<string, unknown> = { author: { equals: author.id } }
   const survivors = await db.find({
     collection: 'articles',
@@ -169,10 +175,10 @@ for (const author of await all('authors', { slug: { equals: DEMO_AUTHOR_SLUG } }
     overrideAccess: true,
   })
   if (survivors.docs.length > 0) {
-    skipped.push(`author "${DEMO_AUTHOR_SLUG}" — a non-demo article still uses it`)
+    skipped.push(`author "${slug}" — a non-demo article still uses it`)
     continue
   }
-  await purge('authors', { slug: { equals: DEMO_AUTHOR_SLUG } }, 'demo author')
+  await purge('authors', { slug: { equals: slug } }, `demo author "${slug}"`)
 }
 
 /* ── Report ────────────────────────────────────────────────────────────────── */
@@ -215,6 +221,7 @@ if (total > 0 && !CONFIRM) {
 const CONTENT_COLLECTIONS = [
   'articles',
   'authors',
+  'tags',
   'deadlines',
   'scholarships',
   'result-links',

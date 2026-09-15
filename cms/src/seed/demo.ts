@@ -36,6 +36,7 @@ interface SlugAgnosticPayload {
 
 export interface DemoReport {
   author: number
+  tags: number
   articles: number
   deadlines: number
   liveBlog: number
@@ -108,7 +109,22 @@ const richText = (...blocks: LexNode[]): LexNode => ({
   root: { type: 'root', version: 1, format: '', indent: 0, direction: 'ltr', children: blocks },
 })
 
-/** Demo articles — realistic Bengali education news across all 8 categories. */
+/**
+ * Demo articles — realistic Bengali education news across all 8 categories.
+ *
+ * ## Why there are more than `PAGE_SIZE` of them
+ *
+ * `PAGE_SIZE` is 12. While the corpus held exactly 12 articles, `totalPages` was
+ * always 1 and **no pagination control ever rendered anywhere** — so the
+ * `/latest/page/:n` route and the `Pagination` component were never exercised by
+ * any build, and two defects hid behind that (see M17 in `.sps/mistakes.md`).
+ * The corpus now deliberately exceeds the limit, and `verify:links` checks the
+ * `/page/2` links it generates.
+ *
+ * `tags` and `author` exist for the same reason: the author, tag and date
+ * archive routes were deferred because the demo content had one author and no
+ * tags, so there was nothing for them to show.
+ */
 const ARTICLES: Array<{
   slug: string
   title: string
@@ -118,6 +134,10 @@ const ARTICLES: Array<{
   isBreaking?: boolean
   isLead?: boolean
   readingTimeMinutes?: number
+  /** Demo author slug. Defaults to the first author. */
+  author?: string
+  /** Demo tag slugs — created on demand by `seedDemo`. */
+  tags?: string[]
 }> = [
   {
     slug: 'demo-hsc-result-2026',
@@ -230,6 +250,140 @@ const ARTICLES: Array<{
     category: 'education-news',
     level: 'primary',
     readingTimeMinutes: 4,
+  },
+
+  /* ── Second dozen: added 2026-09-15 so the corpus exceeds `PAGE_SIZE` ──────
+   *
+   * Twelve was exactly `PAGE_SIZE`, which meant `totalPages` was always 1 and
+   * the pagination path was never executed. These also carry `tags` and a
+   * second/third `author`, which the tag and author routes need to have
+   * anything to show. See the array's own doc comment.
+   */
+  {
+    slug: 'demo-hsc-routine-2027',
+    title: 'এইচএসসি ২০২৭ পরীক্ষার সময়সূচি চূড়ান্ত, প্রথম পরীক্ষা ৩০ জুন',
+    excerpt:
+      'শিক্ষা বোর্ড এইচএসসি ও সমমানের পরীক্ষার চূড়ান্ত সময়সূচি প্রকাশ করেছে। বিভাগভিত্তিক সময়সূচি ও ব্যবহারিক পরীক্ষার তারিখও এতে রয়েছে।',
+    category: 'exams-results',
+    level: 'higher-secondary',
+    readingTimeMinutes: 3,
+    author: 'demo-desk',
+    tags: ['demo-hsc', 'demo-routine'],
+  },
+  {
+    slug: 'demo-result-recheck-process',
+    title: 'ফলাফল পুনঃনিরীক্ষণ: আবেদনের নিয়ম ও ফি কত',
+    excerpt:
+      'পরীক্ষার ফলাফল নিয়ে সন্তুষ্ট না হলে পুনঃনিরীক্ষণের আবেদন করা যায়। আবেদনের সময়সীমা, ফি ও ফলাফল প্রকাশের সময় জানুন।',
+    category: 'exams-results',
+    level: 'secondary',
+    readingTimeMinutes: 4,
+    author: 'demo-correspondent',
+    tags: ['demo-result', 'demo-ssc'],
+  },
+  {
+    slug: 'demo-board-challenge-result',
+    title: 'বোর্ড চ্যালেঞ্জ: পুনর্মূল্যায়নের ফলাফল প্রকাশিত',
+    excerpt:
+      'পুনর্মূল্যায়নের আবেদনকারীদের ফলাফল প্রকাশ করা হয়েছে। কতজন শিক্ষার্থীর নম্বর পরিবর্তন হয়েছে তার পরিসংখ্যানও প্রকাশ করেছে বোর্ড।',
+    category: 'exams-results',
+    level: 'higher-secondary',
+    readingTimeMinutes: 3,
+    tags: ['demo-result', 'demo-hsc'],
+  },
+  {
+    slug: 'demo-scholarship-girls-stipend',
+    title: 'মেয়েদের উপবৃত্তি: নতুন কিস্তি ছাড়, যাচাইয়ের নিয়ম কঠোর',
+    excerpt:
+      'সরকারি স্কুলে পড়ুয়া মেয়েদের উপবৃত্তির নতুন কিস্তি ছাড় করা হয়েছে। উপস্থিতি যাচাইয়ের নিয়ম কঠোর করা হয়েছে বলে জানিয়েছে সংশ্লিষ্ট দপ্তর।',
+    category: 'scholarship',
+    level: 'secondary',
+    readingTimeMinutes: 4,
+    author: 'demo-correspondent',
+    tags: ['demo-scholarship'],
+  },
+  {
+    slug: 'demo-scholarship-mphil',
+    title: 'এমফিল ও পিএইচডি বৃত্তি: আবেদন শুরু, আসন সীমিত',
+    excerpt:
+      'উচ্চশিক্ষা ও গবেষণার জন্য সরকারি বৃত্তিতে আবেদন শুরু হয়েছে। আসনসংখ্যা সীমিত হওয়ায় আগে আবেদন করার পরামর্শ দিয়েছেন শিক্ষকরা।',
+    category: 'scholarship',
+    level: 'postgraduate',
+    readingTimeMinutes: 5,
+    tags: ['demo-scholarship', 'demo-research'],
+  },
+  {
+    slug: 'demo-admission-medical-2027',
+    title: 'মেডিকেল ভর্তি পরীক্ষা ২০২৭: প্রস্তুতির পূর্ণাঙ্গ নির্দেশিকা',
+    excerpt:
+      'মেডিকেল ও ডেন্টাল কলেজে ভর্তি পরীক্ষার প্রস্তুতি নিতে হলে কোন বিষয়ে কতটা জোর দিতে হবে — শিক্ষার্থীদের জন্য ধাপে ধাপে পরামর্শ।',
+    category: 'admission',
+    level: 'higher-secondary',
+    readingTimeMinutes: 7,
+    author: 'demo-desk',
+    tags: ['demo-admission', 'demo-medical'],
+  },
+  {
+    slug: 'demo-admission-engineering-2027',
+    title: 'ইঞ্জিনিয়ারিং ভর্তি: সরকারি প্রযুক্তি বিশ্ববিদ্যালয়ে আসন বাড়ছে',
+    excerpt:
+      'নতুন শিক্ষাবর্ষে কয়েকটি সরকারি প্রযুক্তি বিশ্ববিদ্যালয়ে আসনসংখ্যা বাড়ানোর সিদ্ধান্ত হয়েছে। বিভাগভিত্তিক আসনের তালিকা প্রকাশিত হবে শীঘ্রই।',
+    category: 'admission',
+    level: 'higher-secondary',
+    readingTimeMinutes: 4,
+    tags: ['demo-admission', 'demo-engineering'],
+  },
+  {
+    slug: 'demo-madrasa-new-syllabus',
+    title: 'মাদ্রাসা শিক্ষা বোর্ড: নতুন সিলেবাস অনুমোদন, ২০২৭ থেকে কার্যকর',
+    excerpt:
+      'মাদ্রাসা শিক্ষা বোর্ড নতুন সিলেবাস অনুমোদন করেছে। আগামী শিক্ষাবর্ষ থেকে ধাপে ধাপে এটি কার্যকর হবে বলে জানানো হয়েছে।',
+    category: 'education-news',
+    level: 'secondary',
+    readingTimeMinutes: 4,
+    author: 'demo-correspondent',
+    tags: ['demo-syllabus'],
+  },
+  {
+    slug: 'demo-university-teacher-training',
+    title: 'বিশ্ববিদ্যালয় শিক্ষকদের জন্য নতুন প্রশিক্ষণ কর্মসূচি',
+    excerpt:
+      'উচ্চশিক্ষার গুণগত মান বাড়াতে শিক্ষকদের জন্য গবেষণাভিত্তিক প্রশিক্ষণ কর্মসূচি চালু হচ্ছে। অনলাইন ও সরাসরি—দুই ধরনের সেশন থাকবে।',
+    category: 'university',
+    level: 'graduate',
+    readingTimeMinutes: 5,
+    author: 'demo-desk',
+    tags: ['demo-teacher', 'demo-research'],
+  },
+  {
+    slug: 'demo-teacher-recruitment-2026',
+    title: 'শিক্ষক নিয়োগ: ১২ হাজার পদের বিজ্ঞপ্তি প্রকাশ',
+    excerpt:
+      'সরকারি প্রাথমিক ও মাধ্যমিক পর্যায়ে শিক্ষক নিয়োগের বড় বিজ্ঞপ্তি প্রকাশিত হয়েছে। যোগ্যতা, বয়সসীমা ও আবেদন প্রক্রিয়ার বিস্তারিত।',
+    category: 'jobs-career',
+    level: 'graduate',
+    readingTimeMinutes: 5,
+    author: 'demo-correspondent',
+    tags: ['demo-job', 'demo-teacher'],
+  },
+  {
+    slug: 'demo-study-abroad-australia',
+    title: 'অস্ট্রেলিয়ায় উচ্চশিক্ষা: আর্থিক প্রমাণপত্রের নিয়ম বদলাচ্ছে',
+    excerpt:
+      'অস্ট্রেলিয়া আন্তর্জাতিক শিক্ষার্থীদের জন্য আর্থিক প্রমাণপত্রের নিয়ম পরিবর্তন করছে। আবেদনের আগে কী কী কাগজ প্রস্তুত রাখতে হবে জেনে নিন।',
+    category: 'study-abroad',
+    level: 'postgraduate',
+    readingTimeMinutes: 6,
+    tags: ['demo-study-abroad'],
+  },
+  {
+    slug: 'demo-research-thesis-writing',
+    title: 'গবেষণা প্রবন্ধ লেখার নিয়ম: প্রথমবার যাঁরা লিখছেন তাঁদের জন্য',
+    excerpt: 'গবেষণা প্রবন্ধের কাঠামো, তথ্যসূত্র লেখার নিয়ম ও সাধারণ ভুলগুলো—নতুন গবেষকদের জন্য ব্যবহারিক পরামর্শ।',
+    category: 'higher-study',
+    level: 'postgraduate',
+    readingTimeMinutes: 8,
+    tags: ['demo-research', 'demo-writing'],
   },
 ]
 
@@ -446,6 +600,7 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
   const db = payload as unknown as SlugAgnosticPayload
   const report: DemoReport = {
     author: 0,
+    tags: 0,
     articles: 0,
     deadlines: 0,
     liveBlog: 0,
@@ -454,30 +609,101 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
     skipped: 0,
   }
 
-  /* ── A single demo author ─────────────────────────────────────────────── */
-  const existingAuthors = await db.find({
-    collection: 'authors',
-    where: { slug: { equals: 'demo-reporter' } },
-    limit: 1,
-    overrideAccess: true,
-  })
+  /* ── Demo authors ─────────────────────────────────────────────────────── *
+   *
+   * Three, not one. The author-profile route was deferred because a single
+   * byline gives a profile page nothing to list, so the demo had to have more
+   * than one before that route could be judged. Every slug is `demo-` prefixed
+   * so `seed:demo:purge` removes them by pattern rather than by name.
+   */
+  const DEMO_AUTHORS = [
+    {
+      slug: 'demo-reporter',
+      nameBn: 'ডেমো রিপোর্টার',
+      nameEn: 'Demo Reporter',
+      designation: 'নিজস্ব প্রতিবেদক',
+      bio: 'হোমপেজ ডিজাইন পর্যালোচনার জন্য তৈরি ডেমো লেখক। লঞ্চের আগে মুছে ফেলা হবে।',
+    },
+    {
+      slug: 'demo-desk',
+      nameBn: 'ডেমো ডেস্ক',
+      nameEn: 'Demo Desk',
+      designation: 'ডেস্ক রিপোর্ট',
+      bio: 'ডেস্ক থেকে প্রকাশিত ডেমো প্রতিবেদনের বাইলাইন। লঞ্চের আগে মুছে ফেলা হবে।',
+    },
+    {
+      slug: 'demo-correspondent',
+      nameBn: 'ডেমো প্রতিনিধি',
+      nameEn: 'Demo Correspondent',
+      designation: 'জেলা প্রতিনিধি',
+      bio: 'জেলা পর্যায়ের ডেমো প্রতিবেদনের বাইলাইন। লঞ্চের আগে মুছে ফেলা হবে।',
+    },
+  ]
 
-  let authorId: unknown = existingAuthors.docs[0]?.id
-  if (!authorId) {
-    const author = await db.create({
+  const authorIds = new Map<string, unknown>()
+  for (const spec of DEMO_AUTHORS) {
+    const existing = await db.find({
       collection: 'authors',
-      data: {
-        nameBn: 'ডেমো রিপোর্টার',
-        nameEn: 'Demo Reporter',
-        slug: 'demo-reporter',
-        designation: 'নিজস্ব প্রতিবেদক',
-        bio: 'হোমপেজ ডিজাইন পর্যালোচনার জন্য তৈরি ডেমো লেখক। লঞ্চের আগে মুছে ফেলা হবে।',
-      },
+      where: { slug: { equals: spec.slug } },
+      limit: 1,
       overrideAccess: true,
     })
-    authorId = author.id
-    report.author = 1
+    if (existing.docs[0]) {
+      authorIds.set(spec.slug, existing.docs[0].id)
+      continue
+    }
+    const created = await db.create({ collection: 'authors', data: spec, overrideAccess: true })
+    authorIds.set(spec.slug, created.id)
+    report.author++
   }
+
+  /** Byline for articles that do not name one. */
+  const defaultAuthorId = authorIds.get('demo-reporter')
+
+  /* ── Demo tags ────────────────────────────────────────────────────────── *
+   *
+   * `tags` is deliberately empty in the production taxonomy seed — tags are
+   * editorial labels, created while writing, not fixed taxonomy. So the demo
+   * brings its own, and `seed:demo:purge` removes them (they were previously
+   * absent from the purge list, which is why that list now names `tags`).
+   */
+  const DEMO_TAGS: Array<{ slug: string; nameBn: string }> = [
+    { slug: 'demo-hsc', nameBn: 'এইচএসসি' },
+    { slug: 'demo-ssc', nameBn: 'এসএসসি' },
+    { slug: 'demo-result', nameBn: 'ফলাফল' },
+    { slug: 'demo-routine', nameBn: 'পরীক্ষার রুটিন' },
+    { slug: 'demo-scholarship', nameBn: 'বৃত্তি' },
+    { slug: 'demo-admission', nameBn: 'ভর্তি' },
+    { slug: 'demo-medical', nameBn: 'মেডিকেল' },
+    { slug: 'demo-engineering', nameBn: 'ইঞ্জিনিয়ারিং' },
+    { slug: 'demo-job', nameBn: 'চাকরি' },
+    { slug: 'demo-teacher', nameBn: 'শিক্ষক' },
+    { slug: 'demo-study-abroad', nameBn: 'বিদেশে পড়াশোনা' },
+    { slug: 'demo-research', nameBn: 'গবেষণা' },
+    { slug: 'demo-syllabus', nameBn: 'সিলেবাস' },
+    { slug: 'demo-writing', nameBn: 'লেখালেখি' },
+  ]
+
+  const tagIds = new Map<string, unknown>()
+  for (const spec of DEMO_TAGS) {
+    const existing = await db.find({
+      collection: 'tags',
+      where: { slug: { equals: spec.slug } },
+      limit: 1,
+      overrideAccess: true,
+    })
+    if (existing.docs[0]) {
+      tagIds.set(spec.slug, existing.docs[0].id)
+      continue
+    }
+    const created = await db.create({ collection: 'tags', data: spec, overrideAccess: true })
+    tagIds.set(spec.slug, created.id)
+    report.tags++
+  }
+
+  /** Resolve a list of demo tag slugs to ids, dropping any that failed to create. */
+  const resolveTags = (slugs: string[] | undefined): unknown[] =>
+    (slugs ?? []).map((slug) => tagIds.get(slug)).filter((id): id is unknown => id !== undefined)
 
   /* ── Resolve taxonomy ids by slug ─────────────────────────────────────── */
   const categoryIds = new Map<string, unknown>()
@@ -503,13 +729,23 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
     if (found.docs[0]) levelIds.set(slug, found.docs[0].id)
   }
 
-  /* ── Articles ─────────────────────────────────────────────────────────── */
+  /* ── Articles ─────────────────────────────────────────────────────────── *
+   *
+   * Publish times step back four days per article, so the corpus spans roughly
+   * three months. The earlier ~37-minute stagger put every article inside a
+   * single day, which left the date archive exactly one bucket to show.
+   */
+  const PUBLISH_INTERVAL_MS = 4 * 24 * 60 * 60_000
+
   for (const [index, article] of ARTICLES.entries()) {
     const categoryId = categoryIds.get(article.category)
     if (!categoryId) {
       report.skipped++
       continue
     }
+
+    const authorForArticle = authorIds.get(article.author ?? 'demo-reporter') ?? defaultAuthorId
+    const publishedAt = new Date(Date.now() - index * PUBLISH_INTERVAL_MS).toISOString()
 
     const existing = await db.find({
       collection: 'articles',
@@ -518,16 +754,38 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
       overrideAccess: true,
     })
     if (existing.docs.length > 0) {
-      // Backfill: an article created before body content existed should pick it
-      // up on a re-run rather than staying permanently empty.
-      if (!existing.docs[0].body) {
+      // A re-run converges earlier demo rows on the current spec instead of
+      // leaving them as first created. This is throwaway content deleted before
+      // launch, so overwriting is intended — but only when something is
+      // actually stale, so a second run reports "skipped" rather than
+      // rewriting every row.
+      const doc = existing.docs[0]
+      const bodyMissing = !doc.body
+      const tagsMissing = Boolean(article.tags?.length) && !doc.tags
+      const dateStale =
+        Math.abs(new Date(String(doc.publishedAt)).getTime() - Date.parse(publishedAt)) >
+        24 * 60 * 60_000
+
+      if (bodyMissing || tagsMissing || dateStale) {
+        // ⚠️ Send only the fields being changed. Do **not** echo `doc.body`
+        // back: the read above runs at the default `depth`, so relationship
+        // nodes inside the Lexical body come back as populated objects, and
+        // re-sending them fails validation with "Body > Poster image". Only
+        // build a body when there is not one.
+        const data: Record<string, unknown> = {
+          tags: resolveTags(article.tags),
+          author: authorForArticle,
+          publishedAt,
+        }
+        if (bodyMissing) {
+          data.body = buildBody(article)
+          data.keyTakeaways = TAKEAWAYS.map((point) => ({ point }))
+        }
+
         await db.update({
           collection: 'articles',
-          id: existing.docs[0].id,
-          data: {
-            body: buildBody(article),
-            keyTakeaways: TAKEAWAYS.map((point) => ({ point })),
-          },
+          id: doc.id,
+          data,
           overrideAccess: true,
         })
         report.articles++
@@ -536,9 +794,6 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
       }
       continue
     }
-
-    // Stagger publish times so "latest" ordering is visible and stable.
-    const publishedAt = new Date(Date.now() - index * 37 * 60_000).toISOString()
 
     await db.create({
       collection: 'articles',
@@ -549,8 +804,9 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
         body: buildBody(article),
         keyTakeaways: TAKEAWAYS.map((point) => ({ point })),
         category: categoryId,
-        author: authorId,
+        author: authorForArticle,
         level: article.level ? levelIds.get(article.level) : undefined,
+        tags: resolveTags(article.tags),
         isBreaking: article.isBreaking ?? false,
         isLead: article.isLead ?? false,
         reviewStatus: 'approved',
