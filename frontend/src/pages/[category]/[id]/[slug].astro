@@ -35,7 +35,7 @@ import ContentBlockScripts from '../../../components/ContentBlockScripts.astro'
 import CommentSection from '../../../components/CommentSection.astro'
 import CategoryImage from '../../../components/CategoryImage.astro'
 import { countParagraphs, lexicalToHtml, lexicalToPlainText, splitHtmlAtParagraph } from '../../../lib/richtext'
-import { resolveCmsImage } from '../../../lib/media'
+import { mediaUrl, resolveCmsImage } from '../../../lib/media'
 import { getCategoryImage } from '../../../lib/images'
 import { getPublicCmsOrigin } from '../../../lib/interactive'
 import { getApprovedComments } from '../../../lib/engagement'
@@ -200,8 +200,13 @@ const jsonLd = {
     '@type': 'Organization',
     name: settings.siteName,
     alternateName: settings.siteNameEn ?? undefined,
-    logo: settings.logo?.url
-      ? { '@type': 'ImageObject', url: settings.logo.url }
+    // `mediaUrl()` — not the raw `settings.logo.url`. Payload stores a
+    // *relative* `/api/media/file/…`, and the static host serves no `/api/`, so
+    // the raw value was a publisher logo pointing at a 404 on every article.
+    // Google News reads this field, and the JSON-LD surface is invisible to an
+    // `href`-only link check — which is why `verify:links` now reads it too.
+    logo: mediaUrl(settings.logo?.url)
+      ? { '@type': 'ImageObject', url: mediaUrl(settings.logo?.url) }
       : undefined,
   },
   mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
