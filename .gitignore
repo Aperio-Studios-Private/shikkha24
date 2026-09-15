@@ -34,7 +34,12 @@ build/
 cms/data/
 cms/media/
 
-# ─── Cloudflare / Wrangler ───────────────────────────────────────────────────
+# ─── Stale tooling caches ────────────────────────────────────────────────────
+# `.wrangler/` is left over from the Cloudflare era (all Cloudflare services were
+# removed 2026-09-14). Nothing depends on it, but a stale cache can still exist in
+# a working tree that predates the removal — and **Biome scans anything not
+# ignored**, so an un-ignored `.wrangler/` fails the lint gate on a file nobody
+# wrote. Keep this entry until the directory is confirmed gone from every clone.
 .wrangler/
 
 # ─── Test / coverage ─────────────────────────────────────────────────────────
