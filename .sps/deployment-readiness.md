@@ -133,6 +133,11 @@ trusting its verdict.
 
 None of these is code. The project is complete pending them.
 
+> 📋 **Start with `docs/dianahost-provisioning-checklist.md`** — it sequences everything below into
+> the order it must actually be obtained in, with the vendor facts verified against DianaHost's
+> live site and knowledgebase (2026-09-15). It also records what their documentation does **not**
+> answer, so those gaps get asked rather than assumed.
+
 ### Required before launch
 
 | # | Action | Why it blocks |

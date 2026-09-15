@@ -274,6 +274,7 @@ the 2,000 min/month GitHub Actions budget. Breaking news bypasses the wait.
 
 | Document | Covers |
 |---|---|
+| **`docs/dianahost-provisioning-checklist.md`** | **what to obtain from DianaHost, in dependency order — start here** |
 | `docs/hosting-and-deployment.md` | the whole hosting model, CI quotas, bandwidth ceilings |
 | `docs/reliability.md` §7 | CMS restart procedure, incident response |
 | `docs/security.md` §2–3 | why the database lives outside the web root; admin hardening |
