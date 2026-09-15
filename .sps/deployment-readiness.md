@@ -126,7 +126,7 @@ until configured:
 |---|---|
 | **Set `DEPLOY_WEBHOOK_URL`** on the CMS host to the CI endpoint that starts a rebuild (GitHub Actions `repository_dispatch` / `workflow_dispatch`) | Unset means a **no-op** — edits will save correctly and still never appear |
 | **Set `DEPLOY_WEBHOOK_TOKEN`** if the endpoint requires auth | Optional |
-| **Create the GitHub Actions workflow** that rebuilds and deploys (rsync to `public_html`) | The webhook has nothing to call otherwise. Not yet in the repo — it needs the deploy target decided first |
+| **Create the GitHub Actions workflow** that rebuilds and deploys (rsync to `public_html`) | ✅ Created: `.github/workflows/deploy.yml`. Triggers on `repository_dispatch` (fired by the CMS webhook). Builds on Node 24, runs dist-only harnesses, deploys via rsync to DianaHost `public_html` over SSH. The CMS standalone bundle is deployed manually (it changes rarely). |
 | **Tune `REBUILD_MIN_INTERVAL_MS`** (default 300000 = 5 min) | Quota guard: GitHub Actions allows 2,000 min/month; at 15–20 articles/day, per-save triggering would be wasteful. Debouncing collapses a burst into one build |
 
 Note: the `wrangler pages deploy` quota question is now moot — Cloudflare was removed

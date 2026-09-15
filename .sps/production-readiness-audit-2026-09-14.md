@@ -153,18 +153,24 @@ labelled as the **per-page 1.2 MB payload** budget, and `12288 KB` is 12 MB, not
 domain of Lighthouse CI, which measures what a single page loads, not what the entire `dist/`
 directory weighs.
 
-### 2.4 — There is no deploy workflow
+### 2.4 — There is no deploy workflow ✅ FIXED
 
 `ci.yml` lints, typechecks, builds, audits and **uploads artifacts** — it never deploys. The
-comment refers to a "separate deploy workflow", but `.github/workflows/` contains only `ci.yml`
+comment refers to a "separate deploy workflow", but `.github/workflows/` contained only `ci.yml`
 and `backup-db.yml`.
 
-Consequence: `cms/src/lib/rebuild-trigger.ts` (the debounced webhook) has **nothing to call**.
-An editor can publish and the live site will never update — which is precisely the failure mode
+Consequence: `cms/src/lib/rebuild-trigger.ts` (the debounced webhook) had **nothing to call**.
+An editor could publish and the live site would never update — which is precisely the failure mode
 that was diagnosed earlier and is documented in `docs/hosting-and-deployment.md` §1.
 
-Blocked on the unresolved quota question in §4 of that doc (whether `wrangler pages deploy`
-bypasses the 500 builds/month limit). **Owner decision required before this can be written.**
+~~Blocked on the unresolved quota question in §4 of that doc (whether `wrangler pages deploy`
+bypasses the 500 builds/month limit). **Owner decision required before this can be written.**~~
+**Owner decision (2026-09-14): Cloudflare removed entirely.** The deploy workflow is now created:
+`.github/workflows/deploy.yml`. It triggers on `repository_dispatch` (fired by the CMS webhook),
+builds the Astro frontend on Node 24, runs the dist-only verification harnesses, and deploys via
+rsync to DianaHost `public_html` over SSH. The CMS standalone bundle is deployed manually (it
+changes rarely — only on dependency upgrades). Also: `backup-db.yml` was rewritten to use
+GitHub Actions artifacts instead of the removed Cloudflare R2.
 
 ### 2.5 — CI ran none of the 14 verification harnesses ✅ FIXED
 
@@ -174,7 +180,7 @@ bug that a CI-wired harness would have caught.
 
 **Fix:** the two harnesses that run against the built `dist/` alone are now CI steps right after
 the frontend build:
-- `verify:csp` — asserts `_headers` route patterns match actual built routes.
+- `verify:csp` — asserts `.htaccess` `<LocationMatch>` route patterns match actual built routes.
 - `verify:build-output` — asserts dist is well-formed (page count, sitemaps, no inline scripts,
   no stale URL prefixes, etc.).
 
@@ -371,19 +377,21 @@ pins. A normal `pnpm install` on a machine without the broker will complete it.
 | Severity | Count | Status |
 |---|---|---|
 | Blocking, fixed | 4 | dependency audit, 171 broken links, relative `og:image`, SVG og:image unsupported |
-| Significant, fixed | 3 | dead env vars, CI byte-budget gate, CI harness wiring |
+| Significant, fixed | 4 | dead env vars, CI byte-budget gate, CI harness wiring, no deploy workflow |
 | Minor, fixed | 2 | placeholder logo commit/rename, manifest + Apple touch icon |
 | Blocking, open | 0 | — |
-| Significant, open | 2 | image fallback budget, no deploy workflow |
+| Significant, open | 1 | image fallback budget |
 | Minor, open | 1 | demo content |
 | Clean | 16 checks | see §3 |
 
 **Every agent-buildable launch blocker identified by this audit is now closed.
 The only remaining open items are §2.2 (image fallback budget — product decision),
-§2.4 (no deploy workflow — owner quota decision), and §2.8 (demo content — expected at this stage).**
+and §2.8 (demo content — expected at this stage).**
 
 *Updated 2026-09-14: placeholder logo committed as `docs/assets/logo.svg`,
 dead env vars removed from `cms/.env.example`, CI byte-budget gate corrected, two dist-only
 verification harnesses wired into CI, web app manifest and Apple touch icon added,
 SVG og:image replaced with a 1200×630 PNG. Cloudflare fully removed — all hosting, storage,
-DNS, security headers, and analytics now on DianaHost only (`_headers` → `.htaccess`).*
+DNS, security headers, and analytics now on DianaHost only (`_headers` → `.htaccess`).
+Deploy workflow created (`deploy.yml` — rsync to DianaHost `public_html`). Backup workflow
+rewritten to use GitHub Actions artifacts instead of R2. §2.4 closed.*

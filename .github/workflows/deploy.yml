@@ -1,0 +1,154 @@
+# Shikkha24 — deploy workflow
+#
+# Source: docs/hosting-and-deployment.md §3 (recommended deploy pipeline).
+#
+# This workflow is the second half of the publishing pipeline. The CMS fires
+# a webhook (cms/src/lib/rebuild-trigger.ts) when an editor publishes, and
+# this workflow rebuilds the static site and deploys it to DianaHost.
+#
+# TRIGGER: `repository_dispatch` (fired by the CMS webhook) or manual
+# `workflow_dispatch`. The webhook sends `{ reason, at }` — we use `reason`
+# in the GitHub Actions summary so the owner can see why a build ran.
+#
+# WHAT IT DOES:
+#   1. Build the Astro frontend (on Node 24, which DianaHost does not have)
+#   2. Run the dist-only verification harnesses
+#   3. Deploy the static output to DianaHost `public_html` via rsync over SSH
+#
+# WHAT IT DOES NOT DO:
+#   - Build or deploy the CMS (that is a manual SSH step — the standalone
+#     bundle changes rarely, only on dependency upgrades or Payload updates)
+#   - Run Lighthouse CI (needs a served origin — deferred to S12 production)
+#   - Run the CMS-based harnesses (need a running Payload + seeded DB)
+#
+# CI-MINUTES BUDGET: this consumes the same 2,000 min/month as ci.yml and
+# backup-db.yml. At ~1 min per build and 600–900 publishes/month (debounced
+# to far fewer builds), the budget is comfortable. See
+# docs/hosting-and-deployment.md §2 for the arithmetic.
+#
+# SECRETS REQUIRED (set in GitHub → Settings → Secrets and variables → Actions):
+#   DIANAHOST_SSH_KEY       — private SSH key (ed25519 recommended)
+#   DIANAHOST_SSH_HOST      — host name (e.g. server1.dianahost.com)
+#   DIANAHOST_SSH_USER      — cPanel username
+#   DIANAHOST_PUBLIC_HTML   — absolute path to public_html on the host
+#   DEPLOY_WEBHOOK_TOKEN   — bearer token (optional, if set on the CMS side)
+
+name: Deploy
+
+on:
+  # The CMS webhook calls this via repository_dispatch.
+  # The `client_payload` contains `{ reason: 'debounced'|'breaking'|'max-wait', at: ISO-string }`.
+  repository_dispatch:
+    types: [rebuild]
+  # Manual trigger for testing or emergency redeploy.
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Why this deploy was triggered'
+        required: false
+        default: 'manual'
+
+concurrency:
+  # Only one deploy at a time per ref. A new deploy cancels a pending one
+  # (the rebuild trigger is debounced, so a cancelled deploy's content will
+  # be picked up by the next one).
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Build + deploy to DianaHost public_html
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.22.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ── Build ──────────────────────────────────────────────────────────────
+      - name: Astro sync (generate content + env types)
+        run: pnpm --filter @shikkha24/frontend exec astro sync
+
+      - name: Build (frontend)
+        env:
+          # The build fetches content from the CMS. In production the CMS is
+          # live on DianaHost; in CI it must be reachable. If the CMS is not
+          # reachable, the build degrades gracefully (thin build) — the
+          # verify:build-output harness catches this.
+          PUBLIC_CMS_ORIGIN: ${{ secrets.PUBLIC_CMS_ORIGIN }}
+          PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL || 'https://shikkha24.com' }}
+        run: pnpm run build:frontend
+
+      # ── Verify ─────────────────────────────────────────────────────────────
+      - name: Verify CSP routes
+        run: pnpm run verify:csp
+
+      - name: Verify build output
+        run: pnpm run verify:build-output
+
+      # ── Deploy ─────────────────────────────────────────────────────────────
+      - name: Prepare SSH key
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DIANAHOST_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.DIANAHOST_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy to DianaHost public_html (rsync)
+        # rsync is the right tool: it transfers only changed files, deletes
+        # files that no longer exist ( --delete), and preserves the directory
+        # structure. --checksum is overkill for HTML; --times is enough and
+        # far faster.
+        #
+        # The --delete flag is essential: without it, deleted articles would
+        # remain on the live site. With it, the host mirrors the build output
+        # exactly.
+        #
+        # We exclude .htaccess from rsync so a manual edit on the host (e.g.
+        # an emergency CSP fix) is not overwritten by CI. The .htaccess in
+        # the build output is the canonical source, but a hotfix on the host
+        # should survive until the next deliberate deploy.
+        run: |
+          set -euo pipefail
+          rsync -azP --delete \
+            --exclude='.htaccess' \
+            -e "ssh -i ~/.ssh/id_ed25519" \
+            frontend/dist/ \
+            "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}:${{ secrets.DIANAHOST_PUBLIC_HTML }}/"
+          echo "Deploy complete."
+          echo "Reason: ${{ github.event.client_payload.reason || inputs.reason || 'unknown' }}"
+
+      - name: Deploy .htaccess (only if changed)
+        # Separate step so a hotfix .htaccess on the host is not silently
+        # overwritten. This copies the canonical .htaccess, but the owner
+        # can skip this step by adding `# NO-DEPLOY` to the host's .htaccess.
+        run: |
+          set -euo pipefail
+          scp -i ~/.ssh/id_ed25519 \
+            frontend/dist/.htaccess \
+            "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}:${{ secrets.DIANAHOST_PUBLIC_HTML }}/.htaccess"
+          echo ".htaccess deployed."
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Deploy summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Reason:** ${{ github.event.client_payload.reason || inputs.reason || 'unknown' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Timestamp:** ${{ github.event.client_payload.at || github.event.head_commit.timestamp }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Status:** ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"

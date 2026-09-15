@@ -178,7 +178,8 @@
 - [ ] S11 DoD evidence → **user approval**
 
 ## S12 — Deployment, QA & Launch
-- [ ] DianaHost `public_html` setup; GitHub Actions pipeline (rsync deploy); DianaHost Passenger config — **OWNER-ONLY**
+- [x] **Deploy workflow created:** `.github/workflows/deploy.yml` — triggers on `repository_dispatch` (CMS webhook), builds frontend, runs harnesses, deploys via rsync to DianaHost `public_html`. Also `backup-db.yml` rewritten to use GitHub Actions artifacts instead of R2.
+- [ ] DianaHost `public_html` setup; GitHub Actions secrets configured; DianaHost Passenger config — **OWNER-ONLY**
 - [x] **Initial payload measured:** all 5 key templates within 1.2MB budget (149–242 KB). See `.sps/section-todos/S12.md`.
 - [x] **Bengali typography verified:** 17px base, 1.65 line-height, 154 KB font total (within 200 KB budget).
 - [x] **Touch targets verified:** 48px pattern present in CSS.

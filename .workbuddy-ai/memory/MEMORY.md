@@ -28,12 +28,13 @@ DianaHost PNR 2 GB, Node 20.18.2 (EOL) → build in CI only. Frontend: Cloudflar
 
 ## Top contracts (easy to break unknowingly)
 - **`AD_POSITIONS` = contract.** No raw-HTML ad field, no `clickCount`. AdSense on `requestIdleCallback`, zero requests when unconfigured.
-- **⚠️ Cloudflare JOINS duplicate CSP headers with a comma** — strict `script-src 'self'` blocks AdSense even with a specific rule. Must `!`-detach first. S12: verify ONE CSP header.
+- **~~Cloudflare JOINS duplicate CSP headers with a comma~~** → **REMOVED 2026-09-14.** Apache `.htaccess` `Header set` replaces cleanly — no comma-join. Two-profile CSP via `<LocationMatch>` regex. S12: verify ONE CSP header.
 - **Self-hiding islands:** `getPublicCmsOrigin()` null → control not rendered (live-blog, poll, bookmark, reminder, social login).
 - **⚠️ `overrideAccess: true` bypasses field-level access** on public handlers — protection is the key-by-key whitelist.
 - **Newsletter = resumable batch** (`sentThroughId`). Cron triggers disabled while token unset. Readers: no password, email optional. Account linking deliberately not implemented.
 - **`vite.build.assetsInlineLimit: 0`** — Astro inlines small scripts; strict CSP blocks them. Assert 0 inline scripts.
 - **Mid-article ads need ≥6 paragraphs.** Sponsored: excluded from masthead/ticker, kept in feed with «বিজ্ঞাপন». Feed excludes masthead story by **slug**.
+- **IP forwarding:** `clientIp()` reads `x-forwarded-for` → `x-real-ip` → `unknown` (no `cf-connecting-ip` — Cloudflare removed).
 
 ## Environment traps (top 4; rest in `sandbox-build-traps` skill)
 1. **`HTTP_PROXY` set → CMS fetches fail 502.** `NO_PROXY=localhost,127.0.0.1,::1`.

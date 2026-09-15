@@ -88,7 +88,7 @@ jobs:
           fi
 
       - name: Verify CSP routes
-        # Asserts that the CSP rules in _headers match the actual route patterns
+        # Asserts that the CSP rules in .htaccess match the actual route patterns
         # in the built output. Catches the S11 regression where a URL architecture
         # change left a CSP rule pointing at a stale prefix.
         run: pnpm run verify:csp

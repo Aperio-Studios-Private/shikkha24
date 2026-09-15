@@ -1,4 +1,4 @@
-# Shikkha24 — daily off-host database backup
+# Shikkha24 — daily off-host database + media backup
 #
 # Source: docs/backup-and-recovery.md §3 (tier 1) and §6 (automating the dump).
 #
@@ -11,11 +11,15 @@
 #
 # Targets (§4): RPO 24h (this runs daily), RTO 4h.
 #
+# OFF-HOST DESTINATION: GitHub Actions artifacts (7-day retention, 500 MB limit).
+# Cloudflare R2 was removed 2026-09-14. The owner must download artifacts to
+# local storage for longer retention. See docs/backup-and-recovery.md §3.
+#
 # CI-minutes note: this consumes the same 2,000 min/month budget as the build
 # pipeline, so it is kept deliberately tiny — a single SSH pull and an upload,
 # typically well under a minute.
 
-name: Backup database
+name: Backup database + media
 
 on:
   schedule:
@@ -28,8 +32,10 @@ permissions:
 
 jobs:
   dump-and-upload:
-    name: Dump SQLite → Cloudflare R2
+    name: Dump SQLite + media → GitHub Actions artifact
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
       - name: Prepare SSH key
         run: |
@@ -47,6 +53,7 @@ jobs:
         run: |
           set -euo pipefail
           STAMP=$(date -u +%Y-%m-%d)
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
           ssh -i ~/.ssh/id_ed25519 \
               "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}" \
               "sqlite3 '${{ secrets.DIANAHOST_APP_PATH }}/data/payload.db' \".backup '/tmp/payload-${STAMP}.db'\""
@@ -68,47 +75,54 @@ jobs:
           sqlite3 "$FILE" "PRAGMA integrity_check;" | tee /tmp/integrity.txt
           grep -q '^ok$' /tmp/integrity.txt
 
-      - name: Upload to R2 (separate bucket from media)
-        # Separate bucket by design — a media lifecycle rule must never be able
-        # to delete database backups (docs/backup-and-recovery.md §3).
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: auto
-          R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+      - name: Tar the media directory
+        # docs/backup-and-recovery.md §6: "The backup must include data/media/,
+        # not just the SQLite file." Media moved to the host disk in S9.
+        # If the media directory is empty or missing, the tar still succeeds
+        # (empty archive) — the database is the critical asset.
         run: |
           set -euo pipefail
-          FILE=$(ls payload-*.db | head -1)
-          aws s3 cp "$FILE" "s3://shikkha24-backups/$FILE" --endpoint-url "$R2_ENDPOINT"
+          ssh -i ~/.ssh/id_ed25519 \
+              "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}" \
+              "cd '${{ secrets.DIANAHOST_APP_PATH }}/data' && tar cf /tmp/media-${STAMP}.tar media/ 2>/dev/null || tar cf /tmp/media-${STAMP}.tar --files-from=/dev/null"
+          scp -i ~/.ssh/id_ed25519 \
+              "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}:/tmp/media-${STAMP}.tar" \
+              "./media-${STAMP}.tar"
+          ssh -i ~/.ssh/id_ed25519 \
+              "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}" \
+              "rm -f /tmp/media-${STAMP}.tar"
+          ls -lh "./media-${STAMP}.tar"
 
-      - name: Retention — keep 30 daily, 12 monthly
-        # §3: 30 daily + 12 monthly. Anything older is pruned so R2 stays inside
-        # the 10 GB free tier (a card is on file, so overage would be billable).
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: auto
-          R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+      - name: Check total size against 500 MB artifact limit
+        # GitHub Actions free-tier artifacts are capped at 500 MB. If the DB +
+        # media tar exceed this, the artifact upload will fail. Warn early.
         run: |
           set -euo pipefail
-          TODAY=$(date -u +%d)
-          if [ "$TODAY" = "01" ]; then
-            echo "First of the month — keeping this dump as a monthly archive."
-            exit 0
+          DB_KB=$(du -sk payload-*.db | cut -f1)
+          MEDIA_KB=$(du -sk media-*.tar | cut -f1)
+          TOTAL_KB=$((DB_KB + MEDIA_KB))
+          TOTAL_MB=$((TOTAL_KB / 1024))
+          echo "DB: ${DB_KB} KB, Media: ${MEDIA_KB} KB, Total: ${TOTAL_MB} MB"
+          if [ "$TOTAL_KB" -gt 512000 ]; then
+            echo "::warning::Backup total (${TOTAL_MB} MB) exceeds the 500 MB artifact limit. The upload may fail. Consider splitting the media tar or excluding media from the daily dump."
           fi
-          CUTOFF=$(date -u -d '30 days ago' +%Y-%m-%d)
-          aws s3 ls "s3://shikkha24-backups/" --endpoint-url "$R2_ENDPOINT" \
-            | awk '{print $4}' | grep -E '^payload-[0-9]{4}-[0-9]{2}-[0-9]{2}\.db$' \
-            | while read -r key; do
-                d=$(printf '%s' "$key" | sed -E 's/^payload-([0-9-]+)\.db$/\1/')
-                if [[ "$d" < "$CUTOFF" ]]; then
-                  aws s3 rm "s3://shikkha24-backups/$key" --endpoint-url "$R2_ENDPOINT"
-                fi
-              done
+
+      - name: Upload backup as GitHub Actions artifact
+        # 7-day retention per GitHub Actions free tier. The owner must download
+        # artifacts to local storage for longer retention.
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ env.STAMP }}
+          path: |
+            payload-*.db
+            media-*.tar
+          retention-days: 7
 
       - name: Alert on failure
         # docs/backup-and-recovery.md §7: alert if the daily dump fails or has
         # not run in 48 hours. GitHub notifies on a failed scheduled run; the
         # 48-hour silence case needs the uptime monitor (docs/reliability.md §6).
         if: failure()
-        run: echo "::error::Daily database backup FAILED — the archive is unprotected. Investigate immediately."
+        run: |
+          echo "::error::Daily database + media backup FAILED — the archive is unprotected. Investigate immediately."
+          echo "::error::Check SSH connectivity, DianaHost account status, and disk space."
