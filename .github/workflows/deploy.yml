@@ -167,7 +167,8 @@ jobs:
         # Contract: put `# NO-DEPLOY` in the host's `.htaccess` and this step
         # skips, leaving the host copy in place. Remove the marker and the repo's
         # file wins again — so the repo stays the source of truth by default and
-        # any deviation is explicit, greppable, and visible in the run summary.
+        # any deviation is explicit and greppable in the host file, and surfaces
+        # as a run **annotation** (the `::warning::` below), not a silent pass.
         #
         # The probe can only ever *preserve* a hotfix: if the SSH check fails for
         # any reason (unreachable host, no file yet) the canonical file is
