@@ -205,6 +205,9 @@ CODEBUDDY_SAFE_DELETE_ENABLED=0 pnpm run build:frontend
 # Build-output + route invariants
 pnpm run verify:build-output
 
+# Every internal href/src in dist/ resolves to a built file
+pnpm run verify:links
+
 # The .htaccess, served by a real Apache over the real dist/
 pnpm run verify:apache
 
