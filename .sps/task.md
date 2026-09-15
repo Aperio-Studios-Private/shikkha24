@@ -103,7 +103,7 @@
 
 ⚠️ **Known limitation (not a bug):** Pagefind has **no Bengali stemming** — it prints this at build time. Search matches exact word forms only, so "শিক্ষা" will not match "শিক্ষার্থী". Options later: a synonym list, or lean on the category taxonomy for discovery.
 - [ ] **GATE: Bengali search quality tested on a real Bengali corpus** — blocking; **partially unblocked 2026-09-15**: the demo corpus grew from 12 to 24 Bengali articles, so Pagefind's behaviour can now be judged on more than a handful of documents. It still does **not** satisfy this gate as written — "real" means the owner's actual editorial content, and synthetic demo articles are not that. The stemming limitation is unchanged.
-- [ ] Date/section filters
+- [x] **Date/section filters** — ✅ **built 2026-09-15.** The article page tags every story with `data-pagefind-filter="বিভাগ:<category>"` and `data-pagefind-filter="তারিখ:<YYYY-MM in Bengali numerals>"`; `/search` shows both as Pagefind filters. Keys are Bengali because Pagefind UI renders the filter **key** as the group heading and has no per-filter label translation. Verified in the real index — both filters carry all 8 categories and all 4 months. See `.sps/section-todos/S6.md`.
 - [ ] S6 DoD evidence → **user approval** *(committed as `01f84e1`; lint/typecheck/build all green)*
 
 ## S7 — Ad System ✅ COMPLETE 2026-09-12
