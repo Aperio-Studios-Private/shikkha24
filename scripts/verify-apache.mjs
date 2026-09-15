@@ -32,7 +32,7 @@
  *
  * Run: node scripts/verify-apache.mjs
  */
-import { spawn } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import {
   cpSync,
   existsSync,
@@ -64,15 +64,26 @@ const MODULE_DIRS = [
   '/usr/local/libexec/apache2',
 ]
 
-const MODULES = [
-  ['log_config_module', 'mod_log_config.so'],
-  ['authz_core_module', 'mod_authz_core.so'],
-  ['dir_module', 'mod_dir.so'],
-  ['mime_module', 'mod_mime.so'],
-  ['headers_module', 'mod_headers.so'],
-  ['setenvif_module', 'mod_setenvif.so'],
-  ['unixd_module', 'mod_unixd.so'],
+/**
+ * Modules the harness needs, by Apache's short name.
+ *
+ * These are not all loadable files on every distribution: Debian/Ubuntu compile
+ * many of them into the server binary, so `mod_log_config.so` simply does not
+ * exist there. The harness therefore checks `<bin> -l` first and only falls back
+ * to `LoadModule` for what is genuinely a shared object — otherwise it fails on
+ * a healthy Ubuntu runner, which is exactly what happened the first time.
+ */
+const REQUIRED_MODULES = [
+  ['log_config', 'access and error logging'],
+  ['authz_core', '`Require all granted`'],
+  ['dir', 'DirectoryIndex'],
+  ['mime', 'content types'],
+  ['headers', 'every Header directive in the .htaccess — without it the file is inert'],
+  ['setenvif', 'the SetEnvIf route dispatch — without it no page gets a relaxed CSP'],
+  ['unixd', 'privilege handling'],
 ]
+
+const MPM_CANDIDATES = ['event', 'prefork', 'worker']
 
 let failures = 0
 const check = (label, ok, detail = '') => {
@@ -184,24 +195,67 @@ if (!moduleDir) {
   process.exit(1)
 }
 
-const mpmFile = ['mod_mpm_event.so', 'mod_mpm_prefork.so', 'mod_mpm_worker.so'].find((m) =>
-  existsSync(join(moduleDir, m)),
-)
-if (!mpmFile) {
-  console.error(`✗ no MPM module found in ${moduleDir}`)
-  process.exit(1)
-}
-
-const moduleFiles = [...MODULES.map(([, file]) => file), mpmFile]
-for (const file of moduleFiles) {
-  if (!existsSync(join(moduleDir, file))) {
-    console.error(`✗ required module ${file} is missing from ${moduleDir}`)
-    process.exit(1)
+/**
+ * Module short names Apache has compiled into the server binary, from `<bin> -l`.
+ *
+ * Debian/Ubuntu ship many modules statically, so their `.so` files do not exist
+ * and `LoadModule`-ing them would fail with "module already loaded" or a missing
+ * file. macOS builds more of them as shared objects. Ask the binary rather than
+ * assuming a distribution layout.
+ */
+function compiledInModules(binary) {
+  try {
+    const out = execFileSync(binary, ['-l'], { encoding: 'utf8' })
+    return new Set(
+      out
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.endsWith('.c'))
+        .map((line) => line.replace(/^mod_/, '').replace(/\.c$/, '')),
+    )
+  } catch {
+    // `-l` is unavailable on some builds; fall back to requiring every .so.
+    return new Set()
   }
 }
 
-/** `mod_mpm_event.so` → `mpm_event_module` — the name Apache's LoadModule expects. */
+const compiledIn = compiledInModules(bin)
+
+/** `mod_mpm_event.so` → `mpm_event_module` — the name `LoadModule` expects. */
 const loadModuleName = (file) => `${file.replace(/^mod_/, '').replace(/\.so$/, '')}_module`
+
+const moduleFiles = []
+
+// Only LoadModule what is not already part of the binary.
+for (const [name, why] of REQUIRED_MODULES) {
+  if (compiledIn.has(name)) continue
+  const file = `mod_${name}.so`
+  if (!existsSync(join(moduleDir, file))) {
+    console.error(
+      `✗ Apache has neither a compiled-in nor a loadable '${name}' module.\n` +
+        `  ${file} is missing from ${moduleDir}, and \`${bin} -l\` does not list it.\n` +
+        `  That module provides: ${why}.\n` +
+        '  Without it this harness cannot prove anything about the .htaccess.',
+    )
+    process.exit(1)
+  }
+  moduleFiles.push(file)
+}
+
+// Exactly one MPM must be active. If none is compiled in, load a shared one.
+if (!MPM_CANDIDATES.some((name) => compiledIn.has(name))) {
+  const mpmFile = MPM_CANDIDATES.map((name) => `mod_mpm_${name}.so`).find((file) =>
+    existsSync(join(moduleDir, file)),
+  )
+  if (!mpmFile) {
+    console.error(
+      `✗ no MPM found: none of ${MPM_CANDIDATES.join(', ')} is compiled into ${bin}, ` +
+        `and no mod_mpm_*.so exists in ${moduleDir}`,
+    )
+    process.exit(1)
+  }
+  moduleFiles.push(mpmFile)
+}
 
 // ── Start a throwaway Apache over a copy of dist/ ────────────────────────────
 //
@@ -216,6 +270,17 @@ cpSync(join(process.cwd(), DIST), docroot, { recursive: true })
 
 const port = 18000 + Math.floor(Math.random() * 2000)
 
+// Where each distribution keeps `mime.types`. The line is dropped entirely if
+// none of them exist — Apache then serves `application/octet-stream` for
+// everything, which does not affect a single assertion here.
+const typesConfig = firstExisting([
+  '/etc/apache2/mime.types',
+  '/etc/httpd/conf/mime.types',
+  '/etc/mime.types',
+  join(moduleDir, '..', '..', 'etc', 'apache2', 'mime.types'),
+  '/usr/share/misc/mime.types',
+])
+
 const conf = `ServerName shikkha24.test
 Listen ${port}
 DefaultRuntimeDir "${scratch}"
@@ -223,7 +288,7 @@ PidFile "${scratch}/httpd.pid"
 ErrorLog "${scratch}/error.log"
 CustomLog "${scratch}/access.log" common
 ${moduleFiles.map((file) => `LoadModule ${loadModuleName(file)} "${join(moduleDir, file)}"`).join('\n')}
-TypesConfig "${join(moduleDir, '..', '..', 'etc', 'apache2', 'mime.types')}"
+${typesConfig ? `TypesConfig "${typesConfig}"` : ''}
 DocumentRoot "${docroot}"
 DirectoryIndex index.html
 <Directory "${docroot}">
@@ -236,6 +301,14 @@ DirectoryIndex index.html
 const confPath = join(scratch, 'httpd.conf')
 writeFileSync(confPath, conf)
 
+// Print the resolved environment up front. When this harness fails on a runner,
+// the first question is always "which Apache, and which modules?" — and that is
+// cheaper to answer from the log than by reproducing the runner's layout.
+console.log(
+  `Apache ${bin} · modules ${moduleDir} · ${compiledIn.size} compiled in · ` +
+    `loading ${moduleFiles.length} shared${moduleFiles.length ? ` (${moduleFiles.join(', ')})` : ''}\n`,
+)
+
 let child = null
 const stop = () => {
   if (child && !child.killed) child.kill('SIGTERM')
@@ -243,12 +316,6 @@ const stop = () => {
 }
 
 try {
-  // A types file that does not exist is not fatal, but an unreadable one is
-  // noisy; drop the line if the guessed path is wrong.
-  const typesLine = conf.match(/TypesConfig "([^"]+)"/)?.[1]
-  if (typesLine && !existsSync(typesLine))
-    writeFileSync(confPath, conf.replace(/^TypesConfig.*$/m, ''))
-
   child = spawn(bin, ['-f', confPath, '-DFOREGROUND'], { stdio: ['ignore', 'pipe', 'pipe'] })
   let stderr = ''
   child.stderr.on('data', (c) => {
