@@ -40,7 +40,7 @@ import { getCategoryImage } from '../../../lib/images'
 import { getPublicCmsOrigin } from '../../../lib/interactive'
 import { getApprovedComments } from '../../../lib/engagement'
 import { articleUrl } from '../../../lib/url'
-import { toBnDigits } from '../../../lib/bangla-date'
+import { toBnDigits, formatBnBd, getDhakaYearMonth } from '../../../lib/bangla-date'
 import {
   getSiteSettings,
   getCategories,
@@ -149,23 +149,19 @@ const photo = resolveCmsImage(article.featuredImage, article.title)
 const categoryImage = getCategoryImage(category?.slug)
 
 const published = article.publishedAt
-  ? new Date(article.publishedAt).toLocaleDateString('bn-BD', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
+  ? formatBnBd(article.publishedAt, { day: 'numeric', month: 'long', year: 'numeric' })
   : null
 
 /**
  * `YYYY-MM` for the search page's date filter.
  *
- * Derived from the same `toISOString()` basis the displayed date uses, so the
- * two can never disagree — a filter that says August while the byline says
- * September is worse than no filter. (That both are UTC rather than Dhaka-local
- * is a separate, pre-existing issue; see the handoff.)
+ * Derived with `getDhakaYearMonth()` so the filter key always agrees with the
+ * displayed date — both anchored to Asia/Dhaka. A story published at 02:00
+ * Dhaka on 1 September shows "1 সেপ্টেম্বর" and has filter key `2026-09`,
+ * even when built in UTC.
  */
 const publishedMonth = article.publishedAt
-  ? new Date(article.publishedAt).toISOString().slice(0, 7)
+  ? getDhakaYearMonth(article.publishedAt)
   : null
 
 const canonical = new URL(articleUrl(article), Astro.site ?? Astro.url).href

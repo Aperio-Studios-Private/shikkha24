@@ -10,6 +10,7 @@
 import Layout from '../layouts/Layout.astro'
 import Breadcrumbs from '../components/Breadcrumbs.astro'
 import { toBnDigits } from '../lib/widgets'
+import { formatBnBd } from '../lib/bangla-date'
 import { getSiteSettings, getCategories, getFooterPages, getAllDeadlines, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../lib/cms'
 
 const [settings, categories, footerPages, allDeadlines] = await Promise.all([
@@ -33,7 +34,7 @@ TODAY.setHours(0, 0, 0, 0)
 
 function formatDate(date: string | null | undefined): string {
   if (!date) return ''
-  return new Date(date).toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' })
+  return formatBnBd(date, { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 function daysUntil(date: string | null | undefined): number | null {

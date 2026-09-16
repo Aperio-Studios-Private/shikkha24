@@ -15,6 +15,7 @@ import Layout from '../layouts/Layout.astro'
 import Breadcrumbs from '../components/Breadcrumbs.astro'
 import DeadlineReminder from '../components/DeadlineReminder.astro'
 import { toBnDigits } from '../lib/widgets'
+import { formatBnBd } from '../lib/bangla-date'
 import { getPublicCmsOrigin } from '../lib/interactive'
 import {
   getSiteSettings,
@@ -111,7 +112,7 @@ function urgencyLabel(days: number | null): { text: string; urgent: boolean } | 
 
 function formatDate(date: string | null | undefined): string {
   if (!date) return ''
-  return new Date(date).toLocaleDateString('bn-BD', {
+  return formatBnBd(date, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',

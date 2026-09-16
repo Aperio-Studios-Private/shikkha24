@@ -71,11 +71,7 @@ function urgencyLabel(days: number | null): { text: string; urgent: boolean } | 
 
 function formatDate(date: string | null | undefined): string {
   if (!date) return ''
-  return new Date(date).toLocaleDateString('bn-BD', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  return formatBnBd(date, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 ---
 

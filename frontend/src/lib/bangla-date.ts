@@ -117,3 +117,51 @@ export function formatBanglaDate(date: Date = new Date()): string {
   const bd = toBanglaDate(date)
   return `${bd.weekday}, ${toBnDigits(bd.day)} ${bd.monthName}, ${toBnDigits(bd.year)}`
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Dhaka-timezone helpers
+ *
+ * Problem: `toLocaleDateString('bn-BD')` without `timeZone` uses the runtime's
+ * local timezone. In CI (UTC) a story published at 02:00 Dhaka on 1 September
+ * displays as "31 August", and the date-filter month key disagrees with the
+ * displayed date. These helpers always anchor to Asia/Dhaka.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+const DHAKA_TZ = 'Asia/Dhaka'
+
+/** Shared formatter that yields `YYYY-MM-DD` in Dhaka time. */
+const dhakaIsoFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: DHAKA_TZ,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
+/**
+ * Format a date in Bengali (bn-BD) with Asia/Dhaka timezone.
+ * Accepts ISO strings or Date objects.
+ */
+export function formatBnBd(
+  iso: string | Date,
+  options?: Intl.DateTimeFormatOptions
+): string {
+  const d = typeof iso === 'string' ? new Date(iso) : iso
+  return d.toLocaleDateString('bn-BD', { ...options, timeZone: DHAKA_TZ })
+}
+
+/**
+ * Return `YYYY-MM` in Dhaka time — used for Pagefind date-filter keys so the
+ * filter value always agrees with the displayed date.
+ */
+export function getDhakaYearMonth(iso: string | Date): string {
+  const d = typeof iso === 'string' ? new Date(iso) : iso
+  return dhakaIsoFormatter.format(d).slice(0, 7)
+}
+
+/**
+ * Return `YYYY-MM-DD` in Dhaka time.
+ */
+export function getDhakaDate(iso: string | Date): string {
+  const d = typeof iso === 'string' ? new Date(iso) : iso
+  return dhakaIsoFormatter.format(d)
+}

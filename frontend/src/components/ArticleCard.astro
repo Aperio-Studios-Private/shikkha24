@@ -46,6 +46,7 @@ import type { CmsArticle } from '../lib/cms'
 import { getCategoryImage } from '../lib/images'
 import { resolveCmsImage } from '../lib/media'
 import { articleUrl } from '../lib/url'
+import { formatBnBd } from '../lib/bangla-date'
 import CategoryImage from './CategoryImage.astro'
 import SponsoredLabel from './SponsoredLabel.astro'
 
@@ -105,11 +106,7 @@ const href = articleUrl(article)
 
 /** Bengali date. Resolved at build time, so no client-side locale work. */
 const published = article.publishedAt
-  ? new Date(article.publishedAt).toLocaleDateString('bn-BD', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
+  ? formatBnBd(article.publishedAt, { day: 'numeric', month: 'long', year: 'numeric' })
   : null
 
 const Heading = headingLevel === 2 ? 'h2' : 'h3'

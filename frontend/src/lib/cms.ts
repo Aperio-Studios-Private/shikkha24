@@ -19,6 +19,7 @@
  * is what makes the frontend independently testable.
  */
 import type { CmsMedia } from './media'
+import { formatBnBd, getDhakaYearMonth } from './bangla-date'
 
 /** Payload origin. Set `CMS_URL` in the environment; defaults to local dev. */
 const CMS_URL = import.meta.env.CMS_URL || 'http://localhost:3000'
@@ -841,8 +842,7 @@ export async function getArchiveBuckets(): Promise<ArchiveBucket[]> {
   const counts = new Map<string, number>()
   for (const doc of data?.docs ?? []) {
     if (!doc.publishedAt) continue
-    const date = new Date(doc.publishedAt)
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    const key = getDhakaYearMonth(doc.publishedAt)
     counts.set(key, (counts.get(key) ?? 0) + 1)
   }
 
@@ -850,7 +850,7 @@ export async function getArchiveBuckets(): Promise<ArchiveBucket[]> {
     .sort((a, b) => b[0].localeCompare(a[0]))
     .map(([key, count]) => {
       const [year, month] = key.split('-').map(Number)
-      const label = new Date(year, month - 1, 1).toLocaleDateString('bn-BD', {
+      const label = formatBnBd(new Date(year, month - 1, 1), {
         month: 'long',
         year: 'numeric',
       })

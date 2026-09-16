@@ -36,11 +36,7 @@ const renderable = Boolean(cmsOrigin) && isEnabled('comments')
 
 /** Bengali date. Resolved at build time for the seeded comments. */
 function bnDate(value: string): string {
-  return new Date(value).toLocaleDateString('bn-BD', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  return formatBnBd(value, { day: 'numeric', month: 'long', year: 'numeric' })
 }
 ---
 

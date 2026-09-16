@@ -18,6 +18,7 @@
 import Layout from '../layouts/Layout.astro'
 import Breadcrumbs from '../components/Breadcrumbs.astro'
 import { getSiteSettings, getCategories, getFooterPages, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../lib/cms'
+import { formatBnBd } from '../lib/bangla-date'
 
 const [settings, categories, footerPages] = await Promise.all([
   getSiteSettings().catch(() => FALLBACK_SETTINGS),
@@ -171,7 +172,7 @@ const legalRows = [
       }
 
       <p class="border-t border-rule pt-6 text-sm text-ink-muted dark:border-dark-rule dark:text-dark-ink-muted">
-        শেষ হালনাগাদ: {new Date().toLocaleDateString('bn-BD', { year: 'numeric', month: 'long' })}
+        শেষ হালনাগাদ: {formatBnBd(new Date(), { year: 'numeric', month: 'long' })}
       </p>
     </div>
   </div>

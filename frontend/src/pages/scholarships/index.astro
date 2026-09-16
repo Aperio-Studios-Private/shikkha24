@@ -9,6 +9,7 @@
 import Layout from '../../layouts/Layout.astro'
 import Breadcrumbs from '../../components/Breadcrumbs.astro'
 import { toBnDigits } from '../../lib/widgets'
+import { formatBnBd } from '../../lib/bangla-date'
 import { getActiveScholarships, type CmsScholarship } from '../../lib/education'
 import {
   getSiteSettings,
@@ -51,7 +52,7 @@ function urgencyLabel(days: number | null): { text: string; urgent: boolean } | 
 
 function formatDate(date: string | null | undefined): string {
   if (!date) return ''
-  return new Date(date).toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' })
+  return formatBnBd(date, { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 function levelNames(s: CmsScholarship): string[] {

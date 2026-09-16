@@ -20,7 +20,7 @@ import Layout from '../../layouts/Layout.astro'
 import QuizRunner from '../../components/QuizRunner.astro'
 import AdSlot from '../../components/AdSlot.astro'
 import { getQuizById, getQuizzes } from '../../lib/interactive'
-import { toBnDigits } from '../../lib/bangla-date'
+import { toBnDigits, formatBnBd } from '../../lib/bangla-date'
 import {
   FALLBACK_CATEGORIES,
   FALLBACK_SETTINGS,
@@ -54,7 +54,7 @@ const dateLabel = (() => {
   const date = new Date(quiz.date)
   return Number.isNaN(date.getTime())
     ? ''
-    : date.toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' })
+    : formatBnBd(quiz.date, { day: 'numeric', month: 'long', year: 'numeric' })
 })()
 ---
 

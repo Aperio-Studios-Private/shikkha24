@@ -11,6 +11,7 @@
  * shows nothing rather than an empty frame.
  */
 import type { CmsAuthor } from '../lib/cms'
+import { formatBnBd } from '../lib/bangla-date'
 
 interface Props {
   author: CmsAuthor | null
@@ -29,11 +30,7 @@ const photoUrl = photo?.url
   : null
 
 const published = publishedAt
-  ? new Date(publishedAt).toLocaleDateString('bn-BD', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
+  ? formatBnBd(publishedAt, { day: 'numeric', month: 'long', year: 'numeric' })
   : null
 ---
 

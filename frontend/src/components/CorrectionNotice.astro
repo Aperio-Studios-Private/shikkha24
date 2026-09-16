@@ -15,6 +15,8 @@
  * Rendered only when `hasCorrection` is set, so an uncorrected article shows
  * nothing at all — no empty box implying something is wrong.
  */
+import { formatBnBd } from '../lib/bangla-date'
+
 interface Props {
   notice?: string | null
   updatedAt?: string | null
@@ -23,11 +25,7 @@ interface Props {
 const { notice, updatedAt } = Astro.props
 
 const updated = updatedAt
-  ? new Date(updatedAt).toLocaleDateString('bn-BD', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
+  ? formatBnBd(updatedAt, { day: 'numeric', month: 'long', year: 'numeric' })
   : null
 ---
 

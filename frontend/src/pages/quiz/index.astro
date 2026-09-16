@@ -15,7 +15,7 @@
  */
 import Layout from '../../layouts/Layout.astro'
 import { getQuizzes } from '../../lib/interactive'
-import { toBnDigits } from '../../lib/bangla-date'
+import { toBnDigits, formatBnBd } from '../../lib/bangla-date'
 import {
   FALLBACK_CATEGORIES,
   FALLBACK_SETTINGS,
@@ -40,7 +40,7 @@ const formatDate = (value: string): string => {
   const date = new Date(value)
   return Number.isNaN(date.getTime())
     ? ''
-    : date.toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' })
+    : formatBnBd(value, { day: 'numeric', month: 'long', year: 'numeric' })
 }
 ---
 

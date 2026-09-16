@@ -133,6 +133,7 @@ const enabled = isEnabled('bookmarks')
     clearBookmarks,
     readBookmarks,
   } from '../lib/bookmarks'
+  import { formatBnBd } from '../lib/bangla-date'
 
   const list = document.querySelector<HTMLElement>('[data-bookmark-list]')
   const empty = document.querySelector<HTMLElement>('[data-bookmark-empty]')
@@ -143,7 +144,7 @@ const enabled = isEnabled('bookmarks')
   function bnDate(value: string): string {
     const date = new Date(value)
     if (Number.isNaN(date.getTime())) return ''
-    return date.toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' })
+    return formatBnBd(value, { day: 'numeric', month: 'long', year: 'numeric' })
   }
 
   /** Only a same-site path is allowed through. */

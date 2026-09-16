@@ -17,7 +17,7 @@ import TextResizer from './TextResizer.astro'
 import type { CmsSiteSettings, CmsCategory } from '../lib/cms'
 import { isEnabled } from '../lib/feature-flags'
 import { getWeather, getPrayerTimes } from '../lib/widgets'
-import { formatBanglaDate } from '../lib/bangla-date'
+import { formatBanglaDate, formatBnBd } from '../lib/bangla-date'
 import HeaderWidgets from './HeaderWidgets.astro'
 
 interface Props {
@@ -51,11 +51,7 @@ const [weather, prayer] = await Promise.all([
  */
 const now = new Date()
 const banglaDate = formatBanglaDate(now)
-const gregorianDate = now.toLocaleDateString('bn-BD', {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-})
+const gregorianDate = formatBnBd(now, { year: 'numeric', month: 'long', day: 'numeric' })
 
 const socialLinks = Object.entries(settings.social ?? {}).filter(([, url]) => !!url)
 ---
