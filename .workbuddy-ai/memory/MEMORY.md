@@ -14,7 +14,9 @@ Durable truths only. Detail → `.sps/handoff.md` + `.sps/section-todos/S*.md`. 
 DianaHost PNR 2 GB, Node 20.18.2 (EOL) → build in CI only. Frontend: **DianaHost `public_html` via rsync** (Cloudflare removed 2026-09-14 — nothing on Cloudflare). Media: **host disk** (R2 descoped). Payload as Next `output: 'standalone'`. 15–20 articles/day, burst 40+, team of 5.
 
 ## ⚠️ The frontend is STATIC — a CMS edit does not change the site
-The CMS is read **at build time only**. Editing `/admin` changes the database and nothing else; a rebuild is what publishes it. **When the owner says "I changed it in the CMS and nothing happened", check the build before the code.** Locally: `scripts/with-cms.sh bash -c "pnpm run build:frontend"` (a plain `build:frontend` is a **34-page thin build**; the real one is **147 pages**). In production `DEPLOY_WEBHOOK_URL` is what triggers it — currently **unset**.
+The CMS is read **at build time only**. Editing `/admin` changes the database and nothing else; a rebuild is what publishes it. **When the owner says "I changed it in the CMS and nothing happened", check the build before the code.** Locally: `scripts/with-cms.sh bash -c "pnpm run build:frontend"` (a plain `build:frontend` is a **34-page thin build**; the real one is **147 pages**). In production `DEPLOY_WEBHOOK_URL` is what triggers it — currently **unset**, and the CMS says so in its own admin description now.
+- ⚠️ **Media URLs must go through `mediaUrl()`.** Payload stores a **relative** `/api/media/file/…` and the static host serves no `/api/`, so a raw `src={x.url}` is a silent 404 in the browser (green build, valid markup). `AdCreative.astro` shipped that bug until 2026-09-18. `verify:links` catches this class — but only once content referencing it exists.
+- ⚠️ **`cmsFetch`'s response cache is disabled in dev** (`CACHE_ENABLED = !import.meta.env.DEV`). It is a build-time concurrency control; with no invalidation it froze CMS data for the life of an `astro dev` process.
 
 ## Verified facts (don't re-research)
 - Next.js `>=16.2.6 <17.0.0`, `react` 19.2.x, `graphql` 16.x. TS 7 → `tsc --noEmit` + Biome (ESLint/`@astrojs/check` reject TS 7).
