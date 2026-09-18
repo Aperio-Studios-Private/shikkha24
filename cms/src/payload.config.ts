@@ -7,6 +7,7 @@ import sharp from 'sharp'
 import { defaultEditor } from './blocks/editors'
 import { AdUnits } from './collections/AdUnits'
 import { Articles } from './collections/Articles'
+import { Assignments } from './collections/Assignments'
 import { Authors } from './collections/Authors'
 import { Bookmarks } from './collections/Bookmarks'
 import { Categories } from './collections/Categories'
@@ -169,6 +170,13 @@ export default buildConfig({
     withRebuildTrigger(Districts),
     withRebuildTrigger(Tags),
     withRebuildTrigger(Authors),
+    /*
+     * ⚠️ Deliberately NOT wrapped in `withRebuildTrigger`. An assignment is
+     * internal work-in-progress — it never appears on the public site, so
+     * scheduling a rebuild for it would spend CI minutes for no reader-visible
+     * change. The rebuild happens when the reporter files the Article.
+     */
+    Assignments,
     withRebuildTrigger(Pages),
     withRebuildTrigger(FactChecks),
 

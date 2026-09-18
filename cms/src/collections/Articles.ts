@@ -8,6 +8,7 @@ import {
   publishedOrEditor,
 } from '../access/roles'
 import { articleBodyEditor } from '../blocks/editors'
+import { guardPublishStatus } from '../hooks/publish'
 
 /** Review states on top of Payload's own draft/published `_status`. */
 export const REVIEW_STATUSES = ['draft', 'pendingReview', 'changesRequested', 'approved'] as const
@@ -32,8 +33,14 @@ const REVIEW_LABELS: Record<ReviewStatus, string> = {
  *   Editor-in-Chief: direct publish, homepage control, breaking news
  *
  * Payload's drafts feature gives the draft/published mechanics; `reviewStatus`
- * adds the review queue on top. Publishing itself is `_status: published`, and
- * the collection `update` access below keeps that to editors.
+ * adds the review queue on top. Publishing itself is `_status: published`.
+ *
+ * ⚠️ **The collection `update` access does NOT restrict publishing.** It cannot:
+ * it is `isEditorial`, which must include reporters so they can save their own
+ * drafts. Until 2026-09-18 this comment claimed otherwise and nothing enforced
+ * it, so a reporter could publish their own unreviewed story with a single
+ * `PATCH`. `guardPublishStatus` (see `hooks/publish.ts`) is what actually
+ * enforces it now, and `verify:reporter` is the check that proves it.
  *
  * ## Field-level restrictions
  *
@@ -348,6 +355,13 @@ export const Articles: CollectionConfig = {
         return data
       },
     ],
+    /*
+     * ⚠️ The publish guard. `update: isEditorial` above has to include reporters
+     * (they save their own drafts), so the collection rule cannot be what keeps
+     * publishing to editors — this hook is. See `hooks/publish.ts` for the defect
+     * it closes and why it throws rather than silently stripping the field.
+     */
+    beforeChange: [guardPublishStatus],
   },
   timestamps: true,
 }

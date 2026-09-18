@@ -74,6 +74,7 @@ export interface Config {
     districts: District;
     tags: Tag;
     authors: Author;
+    assignments: Assignment;
     pages: Page;
     'fact-checks': FactCheck;
     scholarships: Scholarship;
@@ -113,6 +114,7 @@ export interface Config {
     districts: DistrictsSelect<false> | DistrictsSelect<true>;
     tags: TagsSelect<false> | TagsSelect<true>;
     authors: AuthorsSelect<false> | AuthorsSelect<true>;
+    assignments: AssignmentsSelect<false> | AssignmentsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     'fact-checks': FactChecksSelect<false> | FactChecksSelect<true>;
     scholarships: ScholarshipsSelect<false> | ScholarshipsSelect<true>;
@@ -494,11 +496,111 @@ export interface Author {
    * ঐচ্ছিক। E-E-A-T সম্পাদকীয় দলের পাতায় যাচাইযোগ্য পরিচয় হিসেবে দেখানো হয়।
    */
   pressCardNo?: string | null;
+  /**
+   * স্বয়ংক্রিয়ভাবে তৈরি (SHK-R-বর্ষ-ক্রম)। QR কার্ড ও যাচাইয়ের পাতায় ব্যবহৃত হয়।
+   */
+  reporterId?: string | null;
+  /**
+   * শুধু সম্পাদক পরিবর্তন করতে পারেন। প্রতিবেদক নিজে নিজেকে যাচাই করতে পারেন না।
+   */
+  verificationStatus: 'unverified' | 'pending' | 'verified' | 'suspended';
+  /**
+   * যাচাইকৃত অবস্থায় যাওয়ার সময় স্বয়ংক্রিয়ভাবে বসে।
+   */
+  verifiedAt?: string | null;
+  /**
+   * কোন সম্পাদক যাচাই করেছেন — নিরীক্ষার জন্য।
+   */
+  verifiedBy?: (number | null) | User;
+  /**
+   * প্রেস কার্ডের মেয়াদ। মেয়াদোত্তীর্ণ কার্ড প্রকাশ্যে "মেয়াদোত্তীর্ণ" দেখায়।
+   */
+  validUntil?: string | null;
+  /**
+   * অভ্যন্তরীণ নোট — কখনোই প্রকাশ্যে দেখানো হয় না।
+   */
+  verificationNote?: string | null;
+  joiningDate?: string | null;
+  /**
+   * প্রতিবেদক কোন বিষয়ে রিপোর্ট করেন।
+   */
+  beat?: ('school' | 'college' | 'university' | 'madrasa' | 'exam' | 'scholarship' | 'admission' | 'job')[] | null;
+  /**
+   * প্রতিবেদকের কার্যক্ষেত্র।
+   */
+  district?: (number | null) | District;
   social?: {
     facebook?: string | null;
     twitter?: string | null;
     linkedin?: string | null;
   };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * সম্পাদকীয় দলের অ্যাকাউন্ট। পাঠকের অ্যাকাউন্ট আলাদা।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  nameBn: string;
+  /**
+   * একজন ব্যবহারকারী একাধিক ভূমিকা পেতে পারেন। প্রতিবেদক নিজের ভূমিকা পরিবর্তন করতে পারেন না।
+   */
+  roles: ('reporter' | 'sectionEditor' | 'editorInChief' | 'adManager' | 'superAdmin')[];
+  /**
+   * এই অ্যাকাউন্টের সাথে যুক্ত লেখক প্রোফাইল — বাইলাইনের জন্য।
+   */
+  authorProfile?: (number | null) | Author;
+  phone?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'users';
+}
+/**
+ * সম্পাদক প্রতিবেদককে কাজ দেন; প্রতিবেদক কাজ নিয়ে খসড়া জমা দেন।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "assignments".
+ */
+export interface Assignment {
+  id: number;
+  title: string;
+  /**
+   * কোণ, সূত্র, কী জানতে হবে।
+   */
+  brief?: string | null;
+  assignedTo: number | Author;
+  assignedBy?: (number | null) | User;
+  dueAt?: string | null;
+  priority: 'normal' | 'high' | 'urgent';
+  /**
+   * প্রতিবেদক শুধু accepted / inProgress / filed দিতে পারেন। অনুমোদন সম্পাদকের কাজ।
+   */
+  status: 'assigned' | 'accepted' | 'inProgress' | 'filed' | 'approved' | 'rejected';
+  /**
+   * প্রতিবেদক যে সংবাদটি লিখেছেন।
+   */
+  filedArticle?: (number | null) | Article;
+  district?: (number | null) | District;
+  editorNote?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1294,43 +1396,6 @@ export interface PollVote {
   createdAt: string;
 }
 /**
- * সম্পাদকীয় দলের অ্যাকাউন্ট। পাঠকের অ্যাকাউন্ট আলাদা।
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: number;
-  nameBn: string;
-  /**
-   * একজন ব্যবহারকারী একাধিক ভূমিকা পেতে পারেন। প্রতিবেদক নিজের ভূমিকা পরিবর্তন করতে পারেন না।
-   */
-  roles: ('reporter' | 'sectionEditor' | 'editorInChief' | 'adManager' | 'superAdmin')[];
-  /**
-   * এই অ্যাকাউন্টের সাথে যুক্ত লেখক প্রোফাইল — বাইলাইনের জন্য।
-   */
-  authorProfile?: (number | null) | Author;
-  phone?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: 'users';
-}
-/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -1469,6 +1534,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'authors';
         value: number | Author;
+      } | null)
+    | ({
+        relationTo: 'assignments';
+        value: number | Assignment;
       } | null)
     | ({
         relationTo: 'pages';
@@ -1735,6 +1804,15 @@ export interface AuthorsSelect<T extends boolean = true> {
   photo?: T;
   email?: T;
   pressCardNo?: T;
+  reporterId?: T;
+  verificationStatus?: T;
+  verifiedAt?: T;
+  verifiedBy?: T;
+  validUntil?: T;
+  verificationNote?: T;
+  joiningDate?: T;
+  beat?: T;
+  district?: T;
   social?:
     | T
     | {
@@ -1742,6 +1820,24 @@ export interface AuthorsSelect<T extends boolean = true> {
         twitter?: T;
         linkedin?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "assignments_select".
+ */
+export interface AssignmentsSelect<T extends boolean = true> {
+  title?: T;
+  brief?: T;
+  assignedTo?: T;
+  assignedBy?: T;
+  dueAt?: T;
+  priority?: T;
+  status?: T;
+  filedArticle?: T;
+  district?: T;
+  editorNote?: T;
   updatedAt?: T;
   createdAt?: T;
 }

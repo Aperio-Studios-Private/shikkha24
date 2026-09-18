@@ -70,6 +70,22 @@ export function isLoggedIn(user: unknown): boolean {
   return Boolean((user as RoleBearingUser | null)?.id)
 }
 
+/**
+ * Read the ID out of a relationship value.
+ *
+ * A relationship comes back as a bare ID at depth 0 and as a populated document
+ * at depth ≥ 1, and **the same field can be either** depending on how the
+ * document was fetched. Code that assumes one shape silently returns `undefined`
+ * for the other — which in an access rule means a reporter sees nothing, or
+ * worse, an unfiltered set. Normalise here.
+ */
+export function relationId(value: unknown): string | number | null {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string' || typeof value === 'number') return value
+  const id = (value as { id?: string | number }).id
+  return id === undefined ? null : id
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Collection-level access
 // ─────────────────────────────────────────────────────────────────────────────
@@ -98,6 +114,24 @@ export function isEditorialUser(user: unknown): boolean {
 
 /** Any authenticated editorial role (excludes Ad Manager, who is not editorial). */
 export const isEditorial: Access = ({ req }) => isEditorialUser(req.user)
+
+/**
+ * The roles that may **vouch for** content or people — Section Editor and above.
+ *
+ * A reporter is editorial but is not an editor: they may write, but they may not
+ * approve a story, verify a colleague, or sign off an assignment. S13's
+ * verification fields and assignment approvals key on this list, so the
+ * distinction is stated once here rather than re-derived at each call site.
+ */
+const EDITOR_ROLES = ['superAdmin', 'editorInChief', 'sectionEditor'] as const
+
+/** True when the user may approve, verify or sign off. Takes a bare user. */
+export function isEditorUser(user: unknown): boolean {
+  return hasRole(user, ...EDITOR_ROLES)
+}
+
+/** Section Editor, Editor-in-Chief or Super Admin. */
+export const isEditor: Access = ({ req }) => isEditorUser(req.user)
 
 /** Ad Manager, Super Admin, or Editor-in-Chief — the people who touch ad units. */
 export const canManageAds: Access = ({ req }) =>
@@ -128,6 +162,31 @@ export const isSelfOrAdmin: Access = ({ req }) => {
   return { id: { equals: id } }
 }
 
+/**
+ * Update access for the `authors` collection — the reporter's own profile, or any
+ * editor.
+ *
+ * ⚠️ **`isSelfOrAdmin` must not be used on `authors`.** It compares the document
+ * id to the **user** id, which is right for `users` (a user editing their own
+ * account, where the two ids are the same number) and wrong here: the link is
+ * `Users.authorProfile → authors`, so a reporter's user id and their author id
+ * are different values and the `where` clause matches nothing. The effect is a
+ * flat **403 on a reporter editing their own profile**, while the comment above
+ * the rule claimed the opposite. Found by `verify:reporter` on its first run.
+ *
+ * Resolve the relationship instead, and deny when there is no profile linked —
+ * a reporter with no author record has nothing of their own to edit.
+ */
+export const isOwnAuthorProfileOrEditor: Access = ({ req }) => {
+  if (!req.user) return false
+  if (isEditorUser(req.user)) return true
+
+  const authorId = relationId((req.user as { authorProfile?: unknown }).authorProfile)
+  if (authorId === null) return false
+
+  return { id: { equals: authorId } }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Field-level access
 // ─────────────────────────────────────────────────────────────────────────────
@@ -138,6 +197,20 @@ export const editorInChiefField: FieldAccess = ({ req }) =>
 
 /** Field is editable by any editorial role. */
 export const editorialField: FieldAccess = ({ req }) => isEditorialUser(req.user)
+
+/**
+ * Field is editable only by Section Editor and above.
+ *
+ * ⚠️ This is the guard that stops a **reporter verifying themselves**. S13's
+ * `verificationStatus`, `verifiedAt`, `verifiedBy` and `validUntil` all use it.
+ * Hiding the control in the admin UI would not be authorisation — a reporter
+ * could still send `PATCH /api/authors/<their-id>` with a crafted body
+ * (`docs/security.md` §3).
+ */
+export const editorField: FieldAccess = ({ req }) => isEditorUser(req.user)
+
+/** Field is readable only by an authenticated user — for internal notes and PII. */
+export const authenticatedField: FieldAccess = ({ req }) => Boolean(req.user)
 
 /** Field is readable by everyone, editable by nobody through the API. */
 export const systemManagedField: FieldAccess = ({ req }) => hasRole(req.user, 'superAdmin')

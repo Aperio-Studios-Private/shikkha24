@@ -27,6 +27,7 @@
     "verify:push": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/push.ts",
     "verify:oauth": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/oauth.ts",
     "verify:rebuild": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/rebuild-trigger.ts",
+    "verify:reporter": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/reporter.ts",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload"
   },
   "dependencies": {
