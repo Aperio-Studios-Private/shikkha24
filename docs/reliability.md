@@ -208,3 +208,58 @@ DianaHost runs the CMS as a Node.js application behind Phusion Passenger via cPa
 - [x] Write the CMS restart procedure for DianaHost — ✅ Written in §7.1 (cPanel + Passenger restart, SSH fallback, cold-start note, post-deploy steps)
 - [ ] ~~Confirm Cloudflare Pages retains failed builds~~ — **Removed 2026-09-14.** No Cloudflare Pages. CI rsync only runs after all gates pass.
 - [ ] Decide whether any reader-facing rendering ever moves off static HTML — **recommendation: never**
+- [ ] **Set `DEPLOY_WEBHOOK_URL` in production** — until it is set, no edit republishes the site automatically. See §10.
+
+---
+
+## 10. "I edited the CMS and nothing changed" — the failure mode with no error
+
+**Reported by the owner, 2026-09-18.** It is the single most likely thing to be
+mistaken for a backend fault in this architecture, and it deserves its own section
+because *nothing is broken* — publishing is genuinely two steps and nothing said so.
+
+### 10.1 Why it happens
+
+The public site is **pre-built static HTML**. The CMS is read **at build time
+only**. Editing `/admin` changes the database and nothing else; a rebuild is what
+publishes it. The documented pipeline is:
+
+```
+editor saves → Payload fires a webhook → CI rebuilds → new HTML deploys
+```
+
+### 10.2 The three things that made it look broken
+
+| # | Cause | Status |
+|---|---|---|
+| 1 | **The rebuild was silent.** With `DEPLOY_WEBHOOK_URL` unset, `rebuild-trigger.ts` does nothing **and says nothing** — the editor saves, Payload says "Saved successfully", and the site does not change. No error, no warning, no clue. | ✅ fixed — every rebuild-triggered config now shows a Bengali notice at the top of its edit view, stating which state it is in |
+| 2 | **The dev server cached the CMS forever.** `cmsFetch`'s module-level response cache is right for a **build** (short-lived, fetch once, exit) and wrong for `astro dev` (runs for hours) — it had **no invalidation at all**, so the first response per path was cached for the life of the server. | ✅ fixed — `CACHE_ENABLED = !import.meta.env.DEV` |
+| 3 | **A CMS-uploaded ad banner was 404ing.** `AdCreative.astro` rendered `src={image.url}` **raw**; Payload stores media as a relative `/api/media/file/…` and the static host serves no `/api/`. Every other image already went through `mediaUrl()` — this was the one exception. | ✅ fixed |
+
+⚠️ **Cause 1 is the one to remember.** The state is now stated where the editor is
+looking, and the notice says **which** of the two states it is — configured (be
+patient) or not (a rebuild must be run):
+
+> ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+
+Counter-proved by `verify:rebuild-notice` (**10/10**): present on all five
+triggered configs, **absent** on `Comments` / `PollVotes` / `Assignments` / `Users`,
+and it does not replace the collection's own description. The absent direction is
+the one a careless helper would break, so it is asserted rather than assumed.
+
+### 10.3 The rebuild is debounced, and that is deliberate
+
+One quota constrains rebuilds: GitHub Actions **2,000 minutes/month** on a private
+repo. A newsroom publishing 15–20 articles a day would exhaust a per-save trigger.
+So saves are debounced (default 5-minute quiet period, 30-minute maximum wait), and
+**breaking news bypasses the wait entirely**.
+
+### 10.4 ⚠️ Do not trust `req.user` for relationship fields
+
+Found while building the reporter workspace. `req.user.authorProfile` and
+`/api/users/me` both return `undefined` even though the column is set and a depth-0
+read returns the id. Code that reads `req.user.<relationship>` gets `null` and
+fails **silently**, in a way that looks like missing data rather than a bug.
+
+**Read the document back explicitly** with `findByID` + `user` +
+`overrideAccess: false`, so the real access rule still governs.

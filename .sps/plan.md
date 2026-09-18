@@ -241,26 +241,45 @@ DianaHost runs **Node.js 20.18.2**. `astro@7.3.2` requires `>=22.12.0` and `vite
 >
 > **S13–S17 were added 2026-09-18** (feature batch 2). See `docs/feature-batch-2.md` for the full specification and the "Scope amendment (2026-09-18)" section above for the owner decisions. S12 remains the launch gate for the original scope; S13–S17 are post-S12 feature work.
 
-| # | Section | Key Deliverables |
-|---|---------|-----------------|
-| S0 | Foundation & Toolchain | Monorepo, Astro 7 init, Payload CMS 3 init, Tailwind 4.3, TS7, Node 24, SQLite, env, GitHub Actions CI, Apache `.htaccess` wiring |
-| S1 | CMS Content Models & RBAC | Education collections, 5 RBAC roles, Bengali admin labels |
-| S2 | Design System & Base Layout | Typography, colors, dark mode, 12-col grid, Header, Mega menu, Footer, sticky mobile share bar, text resizer. **Font: SolaimanLipi only — one Bengali family for headline and body; Hind Siliguri and Noto Sans Bengali both removed, owner-approved 2026-09-12** (see the font budget note below) |
-| S3 | Homepage | Breaking ticker, lead story, academic deadline strip (N1/N2), level + district filters, category grids, trending, latest feed, ad slots, weather + prayer header utilities |
-| S4 | Article Page | Full article, takeaways box, author card, related articles, share, progress bar, comments, correction notice, print view, JSON-LD |
-| S5 | Category/Tag/Author/Archive | Listings, pagination, breadcrumbs, subcategory filters, author profiles, date archive |
-| S6 | Search | Pagefind 1.5, search UI, Bengali, date/section filters |
-| S7 | Ad System | AdSlot (zero-CLS), AdSense, sponsor banners, Payload ad management, sponsored content template |
-| S8 | Live Blog & Interactive | Live blog engine (exam results, admission days), polls, quizzes, infographic blocks, scrollytelling |
-| S9 | Media, Newsletter & Engagement | Gallery, video, Listmonk-free newsletter module, push notifications, bookmarks, social login, citizen journalism |
-| S10 | Utility Widgets & Sections | Education utility widgets (see `docs/data-sources.md`) — exam calendar, result links, scholarship tracker, admission deadlines |
-| S11 | SEO, Feeds & AI Optimization | News sitemap, sitemap, RSS, OG/Twitter, auto OG images, canonical, `llms.txt`, robots.txt, E-E-A-T pages |
-| S12 | Deployment, QA & Launch | DianaHost `public_html` + Passenger setup, GitHub Actions pipeline (rsync deploy), Lighthouse ≥95, mobile test, Bengali font audit, load test, accessibility |
-| S13 | Reporter Management, Verification & Submission | `Authors` verification group + `reporterId`; `Assignments` collection with per-reporter read scoping; mobile-first reporter admin view; `/reporters` + `/reporters/[slug]`; byline verification mark *(added 2026-09-18)* |
-| S14 | QR Reporter ID Card & Automatic Photocard | `qrcode` (MIT) + `sharp`; on-demand cached CMS endpoints for ID card and news photocard; static `/verify/[reporterId]`; Facebook share button *(added 2026-09-18)* |
-| S15 | Live TV | `LiveStreams` collection (YouTube + Facebook); `/live-tv` click-to-load player; **third CSP profile `SHIKKHA24_CSP_MEDIA`** *(added 2026-09-18)* |
-| S16 | Reader Reactions | `Reactions` collection with DB-level dedupe; `POST /api/reactions/toggle`; self-hiding reaction island *(added 2026-09-18)* |
-| S17 | Photo Story & Video News | `Articles.layout = photoStory` + block array; `Articles.videoUrl`; `/video` hub reusing the MEDIA profile *(added 2026-09-18)* |
+| # | Section | Key Deliverables | Status |
+|---|---------|-----------------|--------|
+| S0 | Foundation & Toolchain | Monorepo, Astro 7 init, Payload CMS 3 init, Tailwind 4.3, TS7, Node 24, SQLite, env, GitHub Actions CI, Apache `.htaccess` wiring | ✅ approved 2026-09-12 |
+| S1 | CMS Content Models & RBAC | Education collections, 5 RBAC roles, Bengali admin labels | ✅ approved 2026-09-12 |
+| S2 | Design System & Base Layout | Typography, colors, dark mode, 12-col grid, Header, Mega menu, Footer, sticky mobile share bar, text resizer. **Font: SolaimanLipi only — one Bengali family for headline and body; Hind Siliguri and Noto Sans Bengali both removed, owner-approved 2026-09-12** (see the font budget note below) | ✅ complete 2026-09-12 |
+| S3 | Homepage | Breaking ticker, lead story, academic deadline strip (N1/N2), level + district filters, category grids, trending, latest feed, ad slots, weather + prayer header utilities | ✅ complete 2026-09-12 |
+| S4 | Article Page | Full article, takeaways box, author card, related articles, share, progress bar, comments, correction notice, print view, JSON-LD | ✅ complete 2026-09-12 |
+| S5 | Category/Tag/Author/Archive | Listings, pagination, breadcrumbs, subcategory filters, author profiles, date archive | ✅ complete 2026-09-12 |
+| S6 | Search | Pagefind 1.5, search UI, Bengali, date/section filters | ✅ complete 2026-09-12 |
+| S7 | Ad System | AdSlot (zero-CLS), AdSense, sponsor banners, Payload ad management, sponsored content template | ✅ complete 2026-09-12 |
+| S8 | Live Blog & Interactive | Live blog engine (exam results, admission days), polls, quizzes, infographic blocks, scrollytelling | ✅ approved 2026-09-13 |
+| S9 | Media, Newsletter & Engagement | Gallery, video, Listmonk-free newsletter module, push notifications, bookmarks, social login, citizen journalism | ✅ approved 2026-09-13 |
+| S10 | Utility Widgets & Sections | Education utility widgets (see `docs/data-sources.md`) — exam calendar, result links, scholarship tracker, admission deadlines | ✅ built, approval pending |
+| S11 | SEO, Feeds & AI Optimization | News sitemap, sitemap, RSS, OG/Twitter, auto OG images, canonical, `llms.txt`, robots.txt, E-E-A-T pages | ✅ built (auto OG images deferred), approval pending |
+| S12 | Deployment, QA & Launch | DianaHost `public_html` + Passenger setup, GitHub Actions pipeline (rsync deploy), Lighthouse ≥95, mobile test, Bengali font audit, load test, accessibility | ⏳ local verification done; owner-only items open |
+| S13 | Reporter Management, Verification & Submission | `Authors` verification group + `reporterId`; `Assignments` collection with per-reporter read scoping; mobile-first reporter admin view; `/reporters` + `/reporters/[slug]`; byline verification mark *(added 2026-09-18)* | ✅ **built 2026-09-18** — admin view needs a manual browser check; approval pending |
+| S14 | QR Reporter ID Card & Automatic Photocard | `qrcode` (MIT) + `sharp`; on-demand cached CMS endpoints for ID card and news photocard; static `/verify/[reporterId]`; Facebook share button *(added 2026-09-18)* | ⬜ specified |
+| S15 | Live TV | `LiveStreams` collection (YouTube + Facebook); `/live-tv` click-to-load player; **third CSP profile `SHIKKHA24_CSP_MEDIA`** *(added 2026-09-18)* | ⬜ specified |
+| S16 | Reader Reactions | `Reactions` collection with DB-level dedupe; `POST /api/reactions/toggle`; self-hiding reaction island *(added 2026-09-18)* | ⬜ specified |
+| S17 | Photo Story & Video News | `Articles.layout = photoStory` + block array; `Articles.videoUrl`; `/video` hub reusing the MEDIA profile *(added 2026-09-18)* | ⬜ specified |
+
+### Built outside the section sequence (2026-09-18)
+
+Recorded here because they are not S0–S17 work but are shipped and must not be
+lost. Full detail in **`docs/feature-register.md`**.
+
+| Feature | Why it was built | Where |
+|---|---|---|
+| **Fact-check section** (`/fact-check` + `/fact-check/:id`) | The `FactChecks` collection existed with **no reader and no route** — the "fact-check radar" is a retained feature, scoped to admission rumours and fake result links | `frontend/src/pages/fact-check/`, `frontend/src/components/FactVerdictBadge.astro` |
+| **Official social links** (unified + validated) | Three surfaces built the list independently and **none validated the URL scheme** — a stored `javascript:` value would execute on click | `frontend/src/lib/social.ts`, `frontend/src/components/SocialLinks.astro` |
+| **Developer credit** (footer) | The developer's WhatsApp/Facebook were styled like the site's own contact links | `frontend/src/components/DeveloperCredit.astro` |
+| **CMS rebuild notice** | With `DEPLOY_WEBHOOK_URL` unset the rebuild was **silent** — the editor saved, saw "Saved successfully", and the site did not change | `cms/src/lib/rebuild-trigger.ts` |
+| **`safeExternalUrl`** | One shared URL-scheme guard instead of three copies of a security check | `frontend/src/lib/url.ts` |
+
+### Removed outside the section sequence
+
+| Removed | Reason |
+|---|---|
+| **`Jobs` collection** | A **strict subset of `Circulars`** — Circulars' `type` already offers শিক্ষা / বিসিএস / সরকারি চাকরি / বেসরকারি চাকরি, and it carries *more* (`level`, `publishedDate`, `vacancyCount`). Two collections for one content type splits the site's own authority across two URLs for the same query. Job content remains publishable as an article (`/category/jobs-career`) or a circular (`/circulars`). |
 
 ---
 

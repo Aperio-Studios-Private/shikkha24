@@ -1,5 +1,17 @@
 # SPS Handoff
 
+## Documentation index — where to look
+
+| Question | Document |
+|---|---|
+| **Is feature X built, and where?** | **`docs/feature-register.md`** — the authoritative index of every requested feature |
+| What is the approved scope of record? | `docs/education-feature-inventory.md` |
+| What is the S13–S17 specification? | `docs/feature-batch-2.md` |
+| What is the build order and the gates? | `.sps/plan.md` |
+| What is left to do, section by section? | `.sps/task.md` |
+| What went wrong, and why? | `.sps/mistakes.md` + this file |
+| Section-by-section evidence | `.sps/section-todos/S*.md` |
+
 ## Current Phase
 - **✅ CMS→storefront audit (2026-09-18, commit `517b69f`).** Owner reported "I have edited lots of things but those are not reflecting to the storefront." **Audited rather than assumed — the pipeline is FINE.** Every CMS field tested (siteName, tagline, contact email/phone/address) is present in the built HTML. **Three separate things were making it look broken:**
   1. **🚨 A CMS-uploaded ad banner was 404ing.** `AdCreative.astro` rendered `src={image.url}` **raw**; Payload stores media as a relative `/api/media/file/…` and the static host serves no `/api/`, so the owner's "Marsus" banner was a broken image on the homepage. Every other image already went through `mediaUrl()` — this was the one exception, which is exactly what a "we always use `mediaUrl()`" assumption hides. **Audited project-wide: it was the only instance** (the three `SocialLinks` `href`s are external URLs, already validated as absolute). Found by `verify:links` (`missing: /api/media/file/3.webp ← /`) — the gate worked; it had no broken link to find until the ad unit existed.

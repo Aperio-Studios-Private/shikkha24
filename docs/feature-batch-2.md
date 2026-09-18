@@ -1,13 +1,33 @@
 # Feature Batch 2 — Reporter System, Photocard, Live TV, Reactions, Photo Story
 
-**Created:** 2026-09-18 · **Status:** 📝 SPECIFICATION — pending owner approval
+**Created:** 2026-09-18 · **Status:** 🚧 **S13 BUILT · S14–S17 specified and approved, not started**
 **Requested by:** owner, 2026-09-18
 **Builds on:** `docs/education-feature-inventory.md` (approved 2026-09-11) + `.sps/plan.md` S0–S12
+**Index:** `docs/feature-register.md` — the single answer to *"is feature X built, and where?"*
 
 > **Why this document exists (rule 13).** The owner requested 11 features on 2026-09-18.
 > Six of them are **already built** and need no work; the remaining five are new and were
 > not covered by the approved plan. Per rule 13 the docs are amended **before** any code is
 > written, and this document is that amendment's specification.
+
+---
+
+## Build outcomes — read this first
+
+| Section | Feature | Status |
+|---|---|---|
+| **S13** | Reporter verification + assignment + submission | ✅ **BUILT 2026-09-18** — see §2.5 |
+| **S14** | QR ID card + photocard | ⬜ Specified, not started |
+| **S15** | Live TV | ⬜ Specified, not started |
+| **S16** | Reader reactions | ⬜ Specified, not started |
+| **S17** | Photo story + video news | ⬜ Specified, not started |
+
+**Not covered by this batch but built in the same period:** the fact-check section
+(`/fact-check`), the official social links, the developer credit, and the CMS rebuild
+notice. All are recorded in `docs/feature-register.md` §2.
+
+**Removed in the same period:** the `Jobs` collection — a strict subset of `Circulars`.
+See `docs/feature-register.md` §3.
 
 ---
 
@@ -158,6 +178,72 @@ The new view is a Payload **custom admin view** at `/admin/reporter`:
 | `reporterId` cannot be forged | `beforeValidate` hook; `unique: true` at the DB level |
 | Verification is auditable | `verifiedBy` + Payload versions on `Authors` |
 | Reporter PII stays private | `verifiedBy`, `verificationNote` are `read: authenticated` |
+
+---
+
+### 2.5 S13 build outcomes — ✅ BUILT 2026-09-18
+
+Everything in §2.2 was implemented. Commits `dafa1cf`, `32f4427`, `517b69f` era.
+
+**CMS**
+
+| Piece | Where |
+|---|---|
+| Verification block on `Authors` | `reporterId` (unique, hook-generated `SHK-R-YYYY-NNNN`, Dhaka-anchored year, **not** create-only so it backfills), `verificationStatus`, `verifiedAt`, `verifiedBy`, `verificationNote`, `validUntil`, `joiningDate`, `beat`, `district` |
+| `Assignments` collection | title, brief, `assignedTo`, `assignedBy`, `dueAt`, `priority`, `status`, `filedArticle`, `district`, `editorNote` |
+| Hooks | `assignReporterId`, `stampVerification`, `guardAssignmentStatus`, `guardPublishStatus` |
+| Endpoint | `POST /api/reporter/quick-draft` |
+| Admin view | `/admin/reporter` — আমার কাজ + দ্রুত সংবাদ |
+| Entry points | `afterNavLinks` + `beforeDashboard` |
+
+**Frontend**
+
+| Piece | Where |
+|---|---|
+| `/reporters` | Verified reporters **only** — filtered in the CMS query, so an unverified record never enters the build |
+| `/reporters/:slug` | Badge, `reporterId`, `validUntil` (with an **expired** state), beat, district |
+| Byline mark | `AuthorCard.astro` — 17 article pages carry it |
+| `VerificationBadge.astro` | Shared by the team page, the profile and the byline |
+
+**⚠️ Four defects found and fixed during the build — all were live:**
+
+1. **A reporter could publish their own article.** `Articles` claimed the collection
+   `update` access kept publishing to editors. It does not: that access is
+   `isEditorial`, which **must** include reporters so they can save drafts, and
+   `_status` carried no field-level restriction. `PATCH {"_status":"published"}`
+   published an unreviewed story. → `guardPublishStatus` **throws** on the
+   transition into `published` for non-editors. It throws rather than stripping
+   the field, because a stripped write returns 200 and the reporter believes the
+   story went live.
+2. **`isSelfOrAdmin` cannot be used on `authors`.** It compares the document id to
+   the **user** id — right for `users`, wrong here, where the link is
+   `Users.authorProfile → authors`. A reporter got a flat **403 editing their own
+   profile** while the comment claimed the opposite. → `isOwnAuthorProfileOrEditor`.
+3. **`req.user` does not carry relationship fields.** `req.user.authorProfile` and
+   `/api/users/me` both return `undefined` even though the column is set and a
+   depth-0 read returns the id. The workspace therefore told a reporter with a
+   valid profile that they had none, and the quick-draft form was unreachable — a
+   failure that looks like missing data rather than a bug. → read the document back
+   explicitly with `findByID` + `user` + `overrideAccess: false`.
+4. **The timezone fix had shipped two broken imports.** `CommentSection.astro` and
+   `DeadlineStrip.astro` called `formatBnBd` without importing it. `tsc` never
+   checks `.astro` frontmatter, so it was neither a type nor a lint error, and the
+   thin build hid both. → new gate `pnpm verify:astro-imports`, counter-proved.
+
+**Verification**
+
+- `pnpm --filter @shikkha24/cms verify:reporter` — **32/32**, including the
+  quick-draft whitelist: a hostile body (`_status: published`, `isBreaking`,
+  `isLead`, `reviewStatus: approved`, another `author`, a backdated `publishedAt`)
+  is accepted as a request but **none of it reaches the database**, and **the
+  byline is the reporter's own profile, not the one in the body**.
+- 149-page build; `verify:links` all resolve; `verify:build-output` deployable.
+
+**⚠️ Not verified, and recorded as such:** the **rendered** admin view. Payload
+admin views hydrate client-side, so an authenticated `curl` returns the admin
+**shell** (200, `__next_r`, `#portal`) — a 200 proves the route is registered and
+nothing more. A render harness was written and then **removed** rather than shipped
+as a check that always fails. **The view needs a manual browser check.**
 
 ---
 

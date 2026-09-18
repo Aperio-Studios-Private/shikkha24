@@ -5,6 +5,38 @@
 
 > **Provenance.** Nothing here was invented. The original 87 approved features were reclassified into **retained unchanged**, **re-scoped to education** and **descoped as general-news-only**. A small set of new education features was added, explicitly marked `[NEW]`. The owner delegated the two open structural choices to the agent on 2026-09-11 and answered three others directly; every decision is recorded below with its rationale.
 
+> **📌 Looking for the current status of any feature?** See **`docs/feature-register.md`**.
+> That is the single authoritative index — every requested feature with its build
+> status, where it lives, and the evidence. This document remains the *approved
+> scope of record* for the original S1 build; the register is the live picture.
+
+---
+
+## Post-approval additions & removals (2026-09-18)
+
+Recorded here so the **scope of record** stays complete. These are amendments to
+the approved inventory, not part of it — each carries its date and reason.
+
+### Added
+
+| Added | Why | Spec |
+|---|---|---|
+| **S13** — Reporter verification, assignments, news submission, `/reporters`, reporter workspace | Owner requested a Reporter Management & Verification system plus a news-submit/assignment flow | `docs/feature-batch-2.md` §2 |
+| **S14** — QR reporter ID card + automatic photocard | Owner requested both | `docs/feature-batch-2.md` §3 |
+| **S15** — Live TV (YouTube + Facebook) | Owner requested it | `docs/feature-batch-2.md` §4 |
+| **S16** — Reader reactions | Owner requested a Comment & Reaction system; **comments already existed**, so only reactions are new | `docs/feature-batch-2.md` §5 |
+| **S17** — Photo story + video news | Owner requested them; **the gallery already existed**, so only these two are new | `docs/feature-batch-2.md` §6 |
+| **Fact-check section** — `/fact-check` + `/fact-check/:id` | The `FactChecks` collection existed with **no reader and no route**. The "fact-check radar" is listed in §2 above as retained, but was never surfaced | `docs/feature-register.md` §2 |
+| **Official social links** — unified + URL-validated | Three surfaces built the list independently and **none validated the URL scheme** — a stored `javascript:` value would have executed on click | `docs/feature-register.md` §2 |
+| **Developer credit** in the footer | Owner: the developer's WhatsApp/Facebook were styled like the site's own contact links | `docs/feature-register.md` §2 |
+| **CMS rebuild notice** | Owner: *"I edited lots of things but those are not reflecting to the storefront."* The rebuild was **silent** | `docs/feature-register.md` §2 |
+
+### Removed
+
+| Removed | Why |
+|---|---|
+| **`Jobs` collection** | A **strict subset of `Circulars`.** Circulars' `type` already offers শিক্ষা / বিএসিএস / সরকারি চাকরি / বেসরকারি চাকরি, and Circulars carries *more* (`level`, `publishedDate`, `vacancyCount`). Two collections for one content type means the editor guesses which to use and the site splits its own authority across two URLs for the same query. §3 above re-scopes "Jobs section → education-sector jobs + BCS/job circulars"; that content is served by **`Circulars` (N8)** and by the **`চাকরি ও ক্যারিয়ার`** article category. **Job content remains fully publishable** — as an article (`/category/jobs-career`) or a circular (`/circulars`). |
+
 ---
 
 ## 0. Owner decisions recorded 2026-09-11

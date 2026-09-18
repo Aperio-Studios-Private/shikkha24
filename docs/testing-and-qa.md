@@ -11,6 +11,7 @@
 |---|---|---|
 | TypeScript typecheck | Every CI run | Merge |
 | Lint | Every CI run | Merge |
+| **`.astro` frontmatter imports** (`pnpm verify:astro-imports`) | Every CI run | Merge |
 | Production build | Every CI run | Deploy |
 | Lighthouse CI (perf + a11y budgets) | Every CI run | Deploy |
 | HTML validation | Every CI run | Deploy (warn first) |
@@ -18,6 +19,11 @@
 | Build-output check (`pnpm verify:build-output`) | Every CI run | Deploy |
 | **`.htaccess` served through a real Apache** (`pnpm verify:apache`) | Every CI run | Deploy |
 | **Internal links** (`pnpm verify:links`) | Every CI run | Deploy |
+| **Search-init behaviour** (`pnpm verify:search-init`) | Every CI run | Deploy |
+| **Reporter access control + quick-draft whitelist** (`verify:reporter`) | Every CI run | Merge |
+| **Rebuild-notice placement** (`verify:rebuild-notice`) | Every CI run | Merge |
+| **Social URL validation** (`verify:social`) | Every CI run | Merge |
+| CMS read/write paths (`verify:sync`, `verify:endpoints`) | Every CI run | Deploy |
 | `pnpm audit` | Every CI run | Policy in `docs/security.md` §9 |
 | Bengali render audit | Manual, per section | Section approval |
 | Device / browser matrix | Manual, at S12 and after major UI changes | Launch |
@@ -26,6 +32,53 @@
 **The broken-link check blocks, and it is not advisory.** It was planned as "warn first"; it blocks instead, because on a fully static site an internal link is a promise that a file exists and there is no legitimate exception to break it. The warning-only posture is what let `/latest` ship a "পরের →" link to `/latest/page/2` with no route behind it — a link is still valid HTML when its target is missing, so nothing upstream fails.
 
 All CI gates run inside the **debounced/batched build** — do not multiply CI minutes (see `docs/reliability.md`).
+
+### 1.1 ⚠️ Why `verify:astro-imports` exists
+
+**`.astro` frontmatter is not typechecked in this project.** `tsc --noEmit` only sees
+`.ts`/`.tsx`; `@astrojs/check` is the tool that would cover `.astro`, and it rejects
+TypeScript 7 — which is *why* Biome was adopted.
+
+The consequence: an identifier used in a component's frontmatter without an import
+is **neither a type error nor a lint error**. It is a `ReferenceError` at build
+time, thrown **only if that component actually renders**.
+
+That is not theoretical. The 2026-09-16 timezone fix changed `bnDate()` in
+`CommentSection.astro` and `formatDate()` in `DeadlineStrip.astro` to call
+`formatBnBd()`, and **both import edits silently failed**. The thin build passed,
+because `CommentSection` self-hides without a CMS origin and `DeadlineStrip`
+renders nothing without deadlines. It surfaced only on a **full** build against a
+live CMS.
+
+The gate scans every `.astro` file: any name exported as a runtime value from
+`src/lib/*.ts` that is *used* in the frontmatter must also be *imported* there or
+declared locally. Counter-proved by removing the import and watching it fail by
+name. It runs **before** the build — it needs no build, and failing there is faster
+and clearer than failing inside the prerender.
+
+### 1.2 The five standing rules these gates encode
+
+1. **A green build is not a full build.** With no reachable CMS the frontend exits
+   **0** and emits ~34 pages instead of ~149. Assert the **page count**, never the
+   exit code.
+2. **A route nothing generates has never run.** Fixtures must cover every branch a
+   route can take, or the route is unexercised. This has cost this project three
+   defects.
+3. **A harness that reimplements the mechanism is not evidence.** `verify-csp-routes`
+   passed for three days while the `.htaccess` was unrunnable, because it
+   re-implemented Apache's regex matching in JavaScript. `verify:apache` starts a
+   real Apache instead.
+4. **A test that pollutes the thing it tests is worse than no test.** The reporter
+   harness left fixtures in the database after three crashes, and because they
+   carried real slugs they generated **real pages**. Cleanup now runs in a
+   `finally`, plus a startup purge of the reserved `verify-` namespace.
+5. **Counter-prove every new check** — inject the defect and watch it fail. A check
+   that has never failed has never been tested.
+6. **Some things cannot be verified from outside.** Payload admin views hydrate
+   client-side, so `curl` returns the admin **shell** (200, `__next_r`, `#portal`)
+   and a 200 proves only that the route is registered. The `/admin/reporter` view
+   therefore needs a **manual browser check**; the automated harness written for it
+   was **removed** rather than shipped as a check that always fails.
 
 ---
 

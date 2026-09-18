@@ -122,6 +122,19 @@ On DianaHost, Passenger passes the client IP via `x-forwarded-for`. There is no 
 
 The CSP route verification (`scripts/verify-csp-routes.mjs`) validates that `_headers` rules match built routes. This needs to be updated to parse `.htaccess` `<LocationMatch>` patterns instead of `_headers` rules. The matching semantics change from Cloudflare's placeholder/splat to Apache regex.
 
+> **✅ RESOLVED 2026-09-15 — better than planned.** `verify-csp-routes.mjs` was
+> **deleted**, not rewritten. It parsed the rules and re-implemented Apache's regex
+> matching in JavaScript, so it could only ever prove that two implementations
+> agreed — never that either was right about Apache. (It passed for three days while
+> the `.htaccess` was unrunnable, because `<LocationMatch>` is illegal in
+> `.htaccess` and returned HTTP 500 sitewide.)
+>
+> It is replaced by **`scripts/verify-apache.mjs`**, which starts a **real Apache**
+> over the real `dist/` and asserts status codes, header counts and per-page
+> profiles. See `.sps/handoff.md` (the M16 note: the harness must derive the
+> expected profile from the **cause** — an ad slot — not from a correlated field
+> like the JSON-LD type).
+
 ---
 
 ## 4. What does NOT change

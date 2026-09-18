@@ -202,8 +202,70 @@ Editor-in-Chief may publish directly.
 ## Open items for S1
 
 - [x] ~~Confirm the education category tree~~ — ✅ approved 2026-09-11 (8 categories + level filter)
-- [ ] Re-scope remaining general-news fields on the legacy collections (e.g. `press_card_no` on Authors, `comparison_images` on Fact Checks)
-- [ ] Bengali admin labels (i18n bundle) — Payload ships no pre-built Bengali locale; write it
-- [ ] Seed the 8 education categories + the 5 levels + 64 districts
-- [ ] Seed a handful of Bengali test articles
-- [ ] Decide whether `Subcategories` is a separate collection or a self-relation on `Categories` (currently modelled as `parent_category` on Categories)
+- [x] ~~Re-scope remaining general-news fields on the legacy collections~~ — ✅ `pressCardNo` on Authors is **kept and documented** as an optional E-E-A-T credential; `comparisonImages` on Fact Checks is **kept** (a side-by-side "what the rumour claimed vs what is true" is the clearest way to present a verdict)
+- [x] ~~Bengali admin labels (i18n bundle)~~ — ✅ `cms/src/i18n/bn.ts`
+- [x] ~~Seed the 8 education categories + the 5 levels + 64 districts~~ — ✅ 77 rows, idempotent
+- [x] ~~Seed a handful of Bengali test articles~~ — ✅ the demo corpus, grown to 24 articles so pagination actually generates
+- [x] ~~Decide whether `Subcategories` is a separate collection~~ — ✅ **self-relation on `Categories`**, because the approved tree is flat
+
+---
+
+## Collections added after S1 (2026-09-18)
+
+The S1 model shipped 26 collections + 1 global. These were added later. **Full
+detail in `docs/feature-register.md`; this is the content-model summary.**
+
+### `Assignments` — the editor → reporter work queue
+
+| Field | Notes |
+|---|---|
+| `title`, `brief` | What to cover, and the angle |
+| `assignedTo` | → `authors`. ⚠️ **A reporter reads only their own rows** — access-level, not a UI filter |
+| `assignedBy` | → `users`, stamped from the request, never sent |
+| `dueAt`, `priority`, `status`, `filedArticle`, `district`, `editorNote` | |
+
+**Why it is not "an article with a draft status":** a draft answers *"what has been
+written"*. An assignment answers *"what has been **asked for**, by whom, by when,
+and has anyone picked it up"* — which is the question a desk actually runs on.
+Modelling it as an Article field would lose the un-started work, the deadline, and
+the record of who was asked.
+
+⚠️ **Deliberately not wrapped in `withRebuildTrigger`** — an assignment never
+appears on the public site, so scheduling a rebuild for it would spend CI minutes
+for no reader-visible change.
+
+### `Authors` — gained a verification block
+
+`reporterId` (`SHK-R-YYYY-NNNN`, unique, hook-generated, **Dhaka-anchored** year),
+`verificationStatus` (unverified / pending / verified / suspended), `verifiedAt`,
+`verifiedBy`, `verificationNote`, `validUntil`, `joiningDate`, `beat`, `district`.
+
+⚠️ The credential fields are `editorField` — **a reporter must not verify
+themselves.** ⚠️ The fields are **flat, not nested in a `group`**, so access rules,
+`where` queries and the frontend can address `verificationStatus` directly.
+
+### `FactChecks` — now has a public surface
+
+No schema change; `/fact-check` + `/fact-check/:id` were built because the
+collection had **no reader and no route**. `FACT_VERDICTS` = `false` / `misleading`
+/ `true` → মিথ্যা / বিভ্রান্তিকর / সত্য.
+
+### `Jobs` — REMOVED
+
+A **strict subset of `Circulars`**. Circulars' `type` already offers শিক্ষা /
+বিসিএস / সরকারি চাকরি / বেসরকারি চাকরি, and Circulars carries *more* (`level`,
+`publishedDate`, `vacancyCount`). Two collections for one content type means the
+editor guesses which to use and the site splits its own authority across two URLs
+for the same query. **Job content remains publishable** as an article
+(`/category/jobs-career`) or a circular (`/circulars`).
+
+⚠️ The orphan `jobs` SQLite table is left in place on purpose — a manual
+`DROP TABLE` leaves Drizzle's bookkeeping stale, after which every schema push
+fails with `index … already exists`.
+
+### Site Settings — social fields are now validated
+
+The `social` group (`facebook`, `youtube`, `twitter`, `instagram`) gained a
+validator (`cms/src/lib/social-url.ts`) because it accepted the **platforms' own
+homepages** — valid URLs that link to Facebook's front page rather than the
+newsroom's account.
