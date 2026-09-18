@@ -178,7 +178,25 @@ function warnOnce(reason: string): void {
  * Failures are cached too, so a dead CMS is hit once per path rather than once
  * per page — the build gets *faster* the more broken the CMS is, instead of
  * slower.
+ *
+ * ## ⚠️ Disabled in `astro dev`, and that is not an optimisation detail
+ *
+ * A build is a **short-lived process**: it fetches everything once, writes the
+ * HTML and exits, so a process-lifetime cache is exactly right. `astro dev` is
+ * the opposite — the process runs for hours while an editor works, and this map
+ * had **no invalidation at all**. So in dev the first response for each path was
+ * cached for the life of the server: you could change a category, a site setting
+ * or an article in the CMS, reload the page, and keep seeing the old value until
+ * you restarted the dev server.
+ *
+ * That is indistinguishable from "the CMS is not connected to the storefront",
+ * and it is the kind of thing that gets diagnosed as a backend problem for a
+ * long time. Dev re-fetches per request instead; the concurrency protection the
+ * cache exists for is a *build* problem (hundreds of pages firing at once), not
+ * a dev one.
  */
+const CACHE_ENABLED = !import.meta.env.DEV
+
 const responseCache = new Map<string, Promise<unknown>>()
 
 /** Retry once after a short pause — most of these failures are transient. */
@@ -214,8 +232,12 @@ async function fetchOnce<T>(path: string, fallback: T): Promise<T> {
  * @param fallback Returned on any failure — network, timeout, non-2xx, bad JSON.
  */
 export async function cmsFetch<T>(path: string, fallback: T): Promise<T> {
-  const cached = responseCache.get(path)
-  if (cached) return cached as Promise<T>
+  // The cache is a build-time concurrency control, not a data cache — see
+  // `CACHE_ENABLED` above for why dev deliberately skips it.
+  if (CACHE_ENABLED) {
+    const cached = responseCache.get(path)
+    if (cached) return cached as Promise<T>
+  }
 
   const request = (async (): Promise<T> => {
     let result = await fetchOnce<T>(path, fallback)
@@ -238,7 +260,7 @@ export async function cmsFetch<T>(path: string, fallback: T): Promise<T> {
     return result
   })()
 
-  responseCache.set(path, request)
+  if (CACHE_ENABLED) responseCache.set(path, request)
   return request
 }
 

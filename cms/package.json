@@ -29,6 +29,7 @@
     "verify:rebuild": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/rebuild-trigger.ts",
     "verify:reporter": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/reporter.ts",
     "verify:social": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/social-url.ts",
+    "verify:rebuild-notice": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/rebuild-notice.ts",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload"
   },
   "dependencies": {

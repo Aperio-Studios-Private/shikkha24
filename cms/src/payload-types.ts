@@ -209,6 +209,8 @@ export interface UserAuthOperations {
   };
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * সংবাদের মূল কনটেন্ট। খসড়া → পর্যালোচনা → প্রকাশ।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -315,6 +317,8 @@ export interface Article {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * ছবির লাইব্রেরি। প্রতিটি আপলোড স্বয়ংক্রিয়ভাবে WebP-তে রূপান্তরিত হয় এবং প্রতিদিনের আপলোড সীমা প্রযোজ্য।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -373,6 +377,8 @@ export interface Media {
   };
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * আটটি মূল বিভাগ। উপবিভাগ যোগ করা যায় — একটি বিভাগকে অন্যটির অধীনে রাখুন।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -413,6 +419,8 @@ export interface Category {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * প্রাথমিক থেকে স্নাতকোত্তর — সাইটজুড়ে ব্যবহৃত শ্রেণি ফিল্টার।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -433,6 +441,8 @@ export interface Level {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * ৬৪টি জেলা — "আমার জেলা" ফিল্টারে ব্যবহৃত।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -456,6 +466,8 @@ export interface District {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * বিভাগের বাইরে বিষয়ভিত্তিক লেবেল। লেখার সময়েই তৈরি করা যায়।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -472,6 +484,8 @@ export interface Tag {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * লেখক প্রোফাইল — প্রতিবেদকের বাইলাইন ও সম্পাদকীয় দলের পাতা।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -605,6 +619,8 @@ export interface Assignment {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * স্থায়ী পাতা — পরিচিতি, সম্পাদকীয় নীতি, গোপনীয়তা ও শর্তাবলি।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -638,6 +654,8 @@ export interface Page {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * ভুয়া খবর, গুজব ও বিভ্রান্তিকর দাবির যাচাই।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -681,6 +699,8 @@ export interface FactCheck {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * বৃত্তির তালিকা — সময়সীমা অনুযায়ী সাজানো।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -721,6 +741,8 @@ export interface Scholarship {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * ভর্তি, ফলাফল, রুটিন ও ছুটির তারিখ — একাডেমিক ক্যালেন্ডার।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -746,6 +768,8 @@ export interface Deadline {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * বিশ্ববিদ্যালয় ও কলেজের তালিকা — প্রাথমিক সেট দিয়ে শুরু, ক্রমে বাড়ছে।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -786,6 +810,8 @@ export interface Institution {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * শিক্ষা ও চাকরির বিজ্ঞপ্তি — আবেদনের শেষ তারিখসহ।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -821,6 +847,8 @@ export interface Circular {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * ফলাফল ও মেধাতালিকার লিংক এবং ব্যবহারের নিয়ম।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -861,6 +889,8 @@ export interface ResultLink {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * প্রতিটি দেশের জন্য ভিসা, খরচ, ইনটেক ও আবেদনের ধাপ।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -923,6 +953,8 @@ export interface StudyAbroadGuide {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * শিক্ষা খাতের চাকরি ও সরকারি নিয়োগ।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -955,6 +987,8 @@ export interface Job {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * ফলাফল প্রকাশ বা ভর্তি লটারির দিনের লাইভ কভারেজ।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1000,6 +1034,8 @@ export interface LiveBlog {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * পাঠক জরিপ — ভর্তি নীতি বা পরীক্ষা সংক্রান্ত মতামত।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1027,6 +1063,8 @@ export interface Poll {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * ভর্তি ও বিসিএস প্রস্তুতির দৈনিক কুইজ।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1058,6 +1096,8 @@ export interface Quiz {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * ছবির গ্যালারি — প্রতিটি ছবির ক্যাপশনসহ।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1079,6 +1119,8 @@ export interface PhotoGallery {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * বিজ্ঞাপনের অবস্থান ও ক্যাম্পেইন। CLS শূন্য রাখতে নির্দিষ্ট অবস্থান ব্যবহার করুন — নতুন অবস্থান যোগ করার আগে ফ্রন্টএন্ডে সেই স্লট থাকতে হবে।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2408,6 +2450,8 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * সাইটের নাম, লোগো, যোগাযোগ ও সোশ্যাল লিংক — একবার বদলালেই সব জায়গায় বদলাবে।
  *
  * This interface was referenced by `Config`'s JSON-Schema

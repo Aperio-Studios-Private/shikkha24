@@ -20,8 +20,22 @@
  * `rel="sponsored nofollow"`. That is both an honesty requirement and Google's
  * own policy for paid links — an unlabelled paid link is a link-scheme violation.
  * AdSense supplies its own attribution, so it is not double-labelled.
+ *
+ * ## ⚠️ The creative URL must go through `mediaUrl()`
+ *
+ * It did not, and that shipped a broken banner. Payload stores media as a
+ * **relative** path (`/api/media/file/3.webp`); the static host serves no `/api/`,
+ * so the raw value 404s. Every other image in the project already prefixed it —
+ * this one was the exception, which is exactly the kind of gap a "we always use
+ * mediaUrl()" assumption hides.
+ *
+ * Found by `verify:links`, which reported
+ * `missing: /api/media/file/3.webp ← /` on the homepage after an ad unit with an
+ * uploaded banner was created in the CMS. Nothing else could see it: the markup
+ * is valid, the build is green, and the failure is a 404 in the browser.
  */
 import type { CmsAdUnit } from '../lib/ads'
+import { mediaUrl } from '../lib/media'
 
 interface Props {
   unit: CmsAdUnit
@@ -34,6 +48,8 @@ interface Props {
 const { unit, width, height, clientId } = Astro.props
 
 const image = unit.image && typeof unit.image === 'object' ? unit.image : null
+/** Absolute, browser-reachable URL — see the note above. */
+const imageSrc = mediaUrl(image?.url)
 const isAdsense = unit.adType === 'adsense'
 const label = unit.sponsorName?.trim() ? `বিজ্ঞাপন — ${unit.sponsorName.trim()}` : 'বিজ্ঞাপন'
 ---
@@ -56,10 +72,10 @@ const label = unit.sponsorName?.trim() ? `বিজ্ঞাপন — ${unit.sp
       class="relative block h-full w-full"
       aria-label={label}
     >
-      {image?.url && (
+      {imageSrc && (
         <img
-          src={image.url}
-          alt={image.alt || ''}
+          src={imageSrc}
+          alt={image?.alt || ''}
           width={width}
           height={height}
           loading="lazy"

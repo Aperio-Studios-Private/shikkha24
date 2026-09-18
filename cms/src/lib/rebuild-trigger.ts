@@ -112,13 +112,50 @@ const isBreaking = (doc: unknown): boolean =>
   Boolean((doc as { isBreaking?: boolean } | null | undefined)?.isBreaking)
 
 /**
+ * What the editor needs to know about publishing, shown at the top of the edit
+ * view of everything that rebuilds the site.
+ *
+ * ## Why this exists
+ *
+ * When `DEPLOY_WEBHOOK_URL` is unset this module **silently does nothing** — the
+ * editor saves, Payload says "Saved successfully", and the live site does not
+ * change. There is no error, no warning and no clue. That silence is what made
+ * the owner report a "massive CMS–storefront connection problem": the connection
+ * was fine, but nothing anywhere said that publishing is a two-step process.
+ *
+ * So the state is stated where the editor is looking, and it says which of the
+ * two it is — configured (be patient) or not (a rebuild must be run).
+ */
+export const REBUILD_NOTICE = WEBHOOK_URL
+  ? 'সংরক্ষণ করলে কয়েক মিনিটের মধ্যে সাইট নিজে থেকে নতুন করে তৈরি হবে — সাথে সাথে নয়।'
+  : '⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।'
+
+/**
+ * Prepend the publishing notice to a config's existing admin description.
+ *
+ * The notice goes **first** so it is the line the editor reads; the collection's
+ * own description (which explains what the collection is for) follows. A
+ * non-string description is left alone rather than coerced — Payload allows a
+ * localised object there, and mangling one would be worse than a missing notice.
+ */
+function withRebuildNotice<T extends { admin?: Record<string, unknown> }>(config: T): T {
+  const existing = config.admin?.description
+  const description =
+    typeof existing === 'string' && existing.length > 0
+      ? `${REBUILD_NOTICE}\n\n${existing}`
+      : REBUILD_NOTICE
+
+  return { ...config, admin: { ...config.admin, description } }
+}
+
+/**
  * Attach the trigger to a collection.
  *
  * Exported rather than applied inside each collection file so the decision of
  * *which* collections rebuild the site stays visible in one place — the config.
  */
 export function withRebuildTrigger<T extends CollectionConfig>(collection: T): T {
-  return {
+  return withRebuildNotice({
     ...collection,
     hooks: {
       ...collection.hooks,
@@ -135,12 +172,12 @@ export function withRebuildTrigger<T extends CollectionConfig>(collection: T): T
         },
       ],
     },
-  }
+  })
 }
 
 /** Attach the trigger to a global such as Site Settings. */
 export function withRebuildTriggerGlobal<T extends GlobalConfig>(global: T): T {
-  return {
+  return withRebuildNotice({
     ...global,
     hooks: {
       ...global.hooks,
@@ -151,5 +188,5 @@ export function withRebuildTriggerGlobal<T extends GlobalConfig>(global: T): T {
         },
       ],
     },
-  }
+  })
 }
