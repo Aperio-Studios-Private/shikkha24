@@ -2438,6 +2438,9 @@ export interface SiteSetting {
     phone?: string | null;
     address?: string | null;
   };
+  /**
+   * পোর্টালের নিজস্ব অফিসিয়াল অ্যাকাউন্টের সম্পূর্ণ ঠিকানা দিন — https:// দিয়ে শুরু করে (যেমন https://www.facebook.com/shikkha24)। শুধু প্ল্যাটফর্মের মূল পাতা দিলে (যেমন https://www.facebook.com/) তা আপনার পাতা নয়, তাই যাচাই করে আটকে দেওয়া হয়। খালি রাখলে হেডার ও ফুটারে কিছু দেখানো হবে না।
+   */
   social?: {
     facebook?: string | null;
     youtube?: string | null;

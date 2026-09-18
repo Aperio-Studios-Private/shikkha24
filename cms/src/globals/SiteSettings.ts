@@ -1,6 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
 import { anyone, hasRole } from '../access/roles'
+import { socialUrlValidator } from '../lib/social-url'
 
 /**
  * Formats a browser tab icon actually accepts.
@@ -182,11 +183,49 @@ export const SiteSettings: GlobalConfig = {
       name: 'social',
       type: 'group',
       label: { en: 'Social links', bn: 'সোশ্যাল লিংক' },
+      admin: {
+        /*
+         * ⚠️ The description is load-bearing, not decoration.
+         *
+         * These were four unvalidated text fields. On 2026-09-18 the owner filled
+         * them with the platforms' own homepages (`https://www.fb.com/` and
+         * friends) — valid URLs, so nothing complained, but they link to
+         * Facebook's front page rather than to the newsroom's account. The
+         * footer then showed four working icons that sent readers nowhere.
+         *
+         * The `validate` below now rejects that specific mistake, and this text
+         * tells an editor the shape of a correct answer before they type it.
+         */
+        description:
+          'পোর্টালের নিজস্ব অফিসিয়াল অ্যাকাউন্টের সম্পূর্ণ ঠিকানা দিন — https:// দিয়ে শুরু করে (যেমন https://www.facebook.com/shikkha24)। ' +
+          'শুধু প্ল্যাটফর্মের মূল পাতা দিলে (যেমন https://www.facebook.com/) তা আপনার পাতা নয়, তাই যাচাই করে আটকে দেওয়া হয়। ' +
+          'খালি রাখলে হেডার ও ফুটারে কিছু দেখানো হবে না।',
+      },
       fields: [
-        { name: 'facebook', type: 'text', label: { en: 'Facebook', bn: 'ফেসবুক' } },
-        { name: 'youtube', type: 'text', label: { en: 'YouTube', bn: 'ইউটিউব' } },
-        { name: 'twitter', type: 'text', label: { en: 'X / Twitter', bn: 'এক্স / টুইটার' } },
-        { name: 'instagram', type: 'text', label: { en: 'Instagram', bn: 'ইনস্টাগ্রাম' } },
+        {
+          name: 'facebook',
+          type: 'text',
+          label: { en: 'Facebook', bn: 'ফেসবুক' },
+          validate: socialUrlValidator('facebook'),
+        },
+        {
+          name: 'youtube',
+          type: 'text',
+          label: { en: 'YouTube', bn: 'ইউটিউব' },
+          validate: socialUrlValidator('youtube'),
+        },
+        {
+          name: 'twitter',
+          type: 'text',
+          label: { en: 'X / Twitter', bn: 'এক্স / টুইটার' },
+          validate: socialUrlValidator('twitter'),
+        },
+        {
+          name: 'instagram',
+          type: 'text',
+          label: { en: 'Instagram', bn: 'ইনস্টাগ্রাম' },
+          validate: socialUrlValidator('instagram'),
+        },
       ],
     },
     {
