@@ -168,6 +168,61 @@ stays — the same pattern as `PUBLIC_CMS_ORIGIN` in S8: **no control is rendere
 
 ---
 
+## Scope amendment (2026-09-18) — feature batch 2: S13–S17
+
+**Trigger:** the owner requested 11 additional features on 2026-09-18. Six are already built
+(polls, comments, weather, prayer times, ad placements, admin security, photo gallery) and need no
+work. The remaining five were **not covered by the approved plan**, so they are added here before any
+code is written (rule 13). Full specification: **`docs/feature-batch-2.md`**.
+
+### Owner decisions recorded 2026-09-18
+
+| Decision | Answer | Date |
+|---|---|---|
+| Live TV video source | **Both YouTube and Facebook** — the CMS stores the provider, the page picks the player | 2026-09-18 |
+| Photocard → Facebook | **Share button only.** No Graph API, no page token, no app review | 2026-09-18 |
+| Reporter portal | **Payload CMS admin stays the single auth surface**, plus a purpose-built mobile-first reporter view. A second frontend login was rejected as a second attack surface with none of the existing hardening | 2026-09-18 (delegated) |
+| Build order | **S13 → S14 → S15 → S16 → S17** (dependency-ordered) | 2026-09-18 (delegated) |
+
+### New sections
+
+| # | Section | Key Deliverables |
+|---|---------|-----------------|
+| S13 | Reporter Management, Verification & Submission | `Authors` verification group (status, `reporterId`, validity, beat, district, audit); `Assignments` collection with per-reporter read scoping; mobile-first reporter admin view (My Work + quick draft); `/reporters` + `/reporters/[slug]` public surfaces; byline verification mark |
+| S14 | QR Reporter ID Card & Automatic Photocard | `qrcode` (MIT) + existing `sharp`; on-demand CMS endpoints `GET /api/idcard/:id.png` and `GET /api/photocard/:articleId.png`, cached and `updatedAt`-versioned; static `/verify/[reporterId]` route; Facebook **share button** (no Graph API) |
+| S15 | Live TV | `LiveStreams` collection (YouTube + Facebook); `/live-tv` click-to-load player; **a third CSP profile `SHIKKHA24_CSP_MEDIA`** (see below) |
+| S16 | Reader Reactions | `Reactions` collection with DB-level dedupe; `POST /api/reactions/toggle` mounted on the collection (the `/comments/submit` lesson); self-hiding reaction bar island |
+| S17 | Photo Story & Video News | `Articles.layout = photoStory` + photo-story block array; `Articles.videoUrl`; `/video` hub |
+
+### ⚠️ The one architectural change this batch forces: a third CSP profile
+
+`/live-tv` must embed **YouTube and Facebook** iframes. Neither existing profile fits:
+
+- **`RELAXED`** has no video in `frame-src` → **the iframe would be blocked**.
+- **`ARTICLE`** has YouTube but **not Facebook**, and using an `_ARTICLE`-named variable for a
+  non-article route is the semantic drift `.sps/handoff.md` warns against.
+- **Widening `RELAXED`** would give the homepage, every category listing and `/quiz` iframe
+  permission they do not need — a security regression.
+
+**Decision: add `SHIKKHA24_CSP_MEDIA`, scoped to `/live-tv` (and later `/video`).** It is a
+**third** profile, so the same commit must:
+
+1. teach `scripts/verify-apache.mjs` the third profile — its expectation logic (corrected in M16 to
+   key on `data-ad-slot`) assumes exactly two, and a third breaks that assumption;
+2. document it in `docs/security.md` §5;
+3. assert the rule's presence in `verify-build-output.mjs`, counter-proved by injecting its removal.
+
+### Dependencies
+
+```
+S13 ──┬──> S14        (the ID card renders verified reporter records)
+      │
+S15 ──┴──> S17        (S17 reuses the MEDIA profile and the click-to-load player)
+S16   (independent)
+```
+
+---
+
 **CI minutes constraint:** GitHub Actions gives 2,000 minutes/month on private repos. At the **chosen baseline of 15–20 articles/day plus bursts** (≈600–900 publishes/month), a per-publish build costs ~450 minutes if an incremental build is ~30s (comfortable) but ~4,500 minutes if it is a 5-minute full rebuild (over budget). **The deciding number is the measured incremental build time — an S0 gate.** Rebuilds are **adaptively batched** (15–30 min in quiet hours, 5 min at peak, on-demand for `is_breaking`).
 
 ⚠️ **One quota remains:** GitHub Actions at 2,000 minutes/month on a private repo. The Cloudflare Pages 500 builds/month and 20,000 files/site quotas are **removed** — the frontend deploys to DianaHost `public_html` via rsync, not Pages.
@@ -183,6 +238,8 @@ DianaHost runs **Node.js 20.18.2**. `astro@7.3.2` requires `>=22.12.0` and `vite
 ## 13-Section Build Order
 
 > Section deliverables are now re-scoped to education — see `docs/education-feature-inventory.md` (approved 2026-09-11) for the feature set, category tree and per-section changes.
+>
+> **S13–S17 were added 2026-09-18** (feature batch 2). See `docs/feature-batch-2.md` for the full specification and the "Scope amendment (2026-09-18)" section above for the owner decisions. S12 remains the launch gate for the original scope; S13–S17 are post-S12 feature work.
 
 | # | Section | Key Deliverables |
 |---|---------|-----------------|
@@ -199,6 +256,11 @@ DianaHost runs **Node.js 20.18.2**. `astro@7.3.2` requires `>=22.12.0` and `vite
 | S10 | Utility Widgets & Sections | Education utility widgets (see `docs/data-sources.md`) — exam calendar, result links, scholarship tracker, admission deadlines |
 | S11 | SEO, Feeds & AI Optimization | News sitemap, sitemap, RSS, OG/Twitter, auto OG images, canonical, `llms.txt`, robots.txt, E-E-A-T pages |
 | S12 | Deployment, QA & Launch | DianaHost `public_html` + Passenger setup, GitHub Actions pipeline (rsync deploy), Lighthouse ≥95, mobile test, Bengali font audit, load test, accessibility |
+| S13 | Reporter Management, Verification & Submission | `Authors` verification group + `reporterId`; `Assignments` collection with per-reporter read scoping; mobile-first reporter admin view; `/reporters` + `/reporters/[slug]`; byline verification mark *(added 2026-09-18)* |
+| S14 | QR Reporter ID Card & Automatic Photocard | `qrcode` (MIT) + `sharp`; on-demand cached CMS endpoints for ID card and news photocard; static `/verify/[reporterId]`; Facebook share button *(added 2026-09-18)* |
+| S15 | Live TV | `LiveStreams` collection (YouTube + Facebook); `/live-tv` click-to-load player; **third CSP profile `SHIKKHA24_CSP_MEDIA`** *(added 2026-09-18)* |
+| S16 | Reader Reactions | `Reactions` collection with DB-level dedupe; `POST /api/reactions/toggle`; self-hiding reaction island *(added 2026-09-18)* |
+| S17 | Photo Story & Video News | `Articles.layout = photoStory` + block array; `Articles.videoUrl`; `/video` hub reusing the MEDIA profile *(added 2026-09-18)* |
 
 ---
 
@@ -230,6 +292,12 @@ DianaHost runs **Node.js 20.18.2**. `astro@7.3.2` requires `>=22.12.0` and `vite
 | **S10 entry** | Every remaining data-backed element has a confirmed free provider, or is descoped |
 | **S12 entry** | Monitoring + alerting live (`docs/reliability.md`) |
 | **S12 entry** | Full restore drill completed and timed against the RPO/RTO targets |
+| **S13 entry** | Feature batch 2 specification approved — 📝 **OPEN** (`docs/feature-batch-2.md`) |
+| **S13 exit** | A reporter account **cannot** self-verify, read another reporter's assignment, or publish — each proven by a real request, not by UI inspection |
+| **S14 exit** | A generated ID card and photocard are byte-identical across two runs, and the QR resolves to a live `/verify/:id` page |
+| **S15 exit** | `verify:apache` asserts the third CSP profile on `/live-tv`, and `/live-tv` loads with **zero third-party requests** before the reader taps play |
+| **S16 exit** | Double-voting is rejected at the **database** level (not merely in the UI), proven by two direct writes |
+| **S17 exit** | Every photo-story image reserves its box (CLS < 0.02), and `/video` embeds under the MEDIA profile |
 | Every section exit | Full Definition of Done passes (build, typecheck, lint, performance targets) + explicit user approval |
 
 > **This table is the authoritative gate list.** `.sps/task.md` mirrors it inline per section at a finer granularity (it also labels each section's DoD as a gate). The two are kept **semantically equivalent, not row-for-row identical** — if a gate changes, change it in both files in the same commit (rule 13). Verified 2026-09-11: every gate here has a counterpart there and vice versa.

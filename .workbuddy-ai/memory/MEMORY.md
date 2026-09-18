@@ -36,6 +36,7 @@ DianaHost PNR 2 GB, Node 20.18.2 (EOL) → build in CI only. Frontend: **DianaHo
 - **Mid-article ads need ≥6 paragraphs.** Sponsored: excluded from masthead/ticker, kept in feed with «বিজ্ঞাপন». Feed excludes masthead story by **slug**.
 - **⚠️ THREE CMS-host values — do not confuse.** `CMS_URL` = read at **build** time, all content is fetched from it. `PUBLIC_CMS_ORIGIN` = **browser-facing** origin for interactive islands (empty ⇒ self-hide). `PUBLIC_MEDIA_BASE_URL` = **browser-facing** origin for media; `mediaUrl()` prefixes the CMS's relative `/api/media/file/…` with it, and **unset it emits that path as-is so every article image 404s** (the static host serves no `/api/`). Setting only `PUBLIC_CMS_ORIGIN` gives a **green 32-page thin build** instead of 84. A green build ≠ a full build: always assert the **page count**, never the exit code.
 - **IP forwarding:** `clientIp()` reads `x-forwarded-for` → `x-real-ip` → `unknown` (no `cf-connecting-ip` — Cloudflare removed).
+- **⚠️ All date formatting MUST use `formatBnBd()` from `bangla-date.ts`.** Never call `toLocaleDateString('bn-BD')` without `timeZone: 'Asia/Dhaka'` — in UTC CI it shows the wrong day and the date-filter month key disagrees with the byline. Use `getDhakaYearMonth()` for `YYYY-MM` filter keys, never `toISOString().slice(0,7)`.
 
 ## Environment traps (top 4; rest in `sandbox-build-traps` skill)
 1. **`HTTP_PROXY` set → CMS fetches fail 502.** `NO_PROXY=localhost,127.0.0.1,::1`.
