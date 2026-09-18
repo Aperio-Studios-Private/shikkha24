@@ -30,7 +30,8 @@
  * Drizzle's push is interactive on a rename and would deadlock against a running
  * server (`.sps/handoff.md` — build trap 4).
  */
-import { getPayload } from 'payload'
+import { getPayload, type PayloadRequest } from 'payload'
+import { reporterQuickDraftEndpoint } from '../endpoints/reporter'
 import config from '../payload.config'
 
 const payload = await getPayload({ config })
@@ -527,6 +528,107 @@ try {
     'an editor CAN publish the same article',
     publishedByEditor._status === 'published',
     `_status = "${publishedByEditor._status}"`,
+  )
+
+  // ── 5. The quick-draft endpoint ─────────────────────────────────────────────
+  /*
+   * The mobile form posts here, and it is the one place a reporter can *create*
+   * something. The generated `POST /api/articles` accepts every writable field,
+   * so the whole point of this endpoint is that it does not — the body is built
+   * key by key from a whitelist.
+   *
+   * So the assertions are about what a hostile body **cannot** do, which is the
+   * only thing that distinguishes this handler from the generated route.
+   */
+
+  const callQuickDraft = async (user: unknown, body: unknown) => {
+    const request = {
+      payload,
+      user,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => body,
+    } as unknown as PayloadRequest
+
+    const response = await (
+      reporterQuickDraftEndpoint.handler as (r: PayloadRequest) => Promise<Response>
+    )(request)
+    return { status: response.status, body: (await response.json()) as Record<string, unknown> }
+  }
+
+  const validDraft = {
+    title: `দ্রুত খসড়া ${stamp}`,
+    excerpt: 'পরীক্ষামূলক সংক্ষিপ্তসার।',
+    category: categoryId,
+    body: 'প্রথম অনুচ্ছেদ।\n\nদ্বিতীয় অনুচ্ছেদ।',
+  }
+
+  const anonymous = await callQuickDraft(null, validDraft)
+  check(
+    'quick-draft rejects an anonymous caller',
+    anonymous.status === 401,
+    String(anonymous.status),
+  )
+
+  // A hostile body: publish, break the news, claim a byline, self-approve.
+  const hostile = await callQuickDraft(reporterA, {
+    ...validDraft,
+    _status: 'published',
+    isBreaking: true,
+    isLead: true,
+    reviewStatus: 'approved',
+    author: authorB.id,
+    publishedAt: '2000-01-01T00:00:00.000Z',
+  })
+  check('quick-draft accepts a well-formed body', hostile.status === 201, String(hostile.status))
+
+  const quickDraftId = hostile.body.id
+  if (quickDraftId !== undefined) track('articles', { id: quickDraftId as number | string })
+
+  const stored = quickDraftId
+    ? ((
+        await db.find({
+          collection: 'articles',
+          where: { id: { equals: quickDraftId } },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+      ).docs[0] as Record<string, unknown> | undefined)
+    : undefined
+
+  check('the created draft is NOT published', stored?._status === 'draft', String(stored?._status))
+  check(
+    'the created draft is NOT approved',
+    stored?.reviewStatus === 'draft',
+    String(stored?.reviewStatus),
+  )
+  check('isBreaking was ignored', stored?.isBreaking !== true, String(stored?.isBreaking))
+  check('isLead was ignored', stored?.isLead !== true, String(stored?.isLead))
+  check(
+    'publishedAt was ignored (not backdated to the body value)',
+    String(stored?.publishedAt ?? '') !== '2000-01-01T00:00:00.000Z',
+    String(stored?.publishedAt ?? '(unset)'),
+  )
+  check(
+    'the byline is the reporter’s OWN profile, not the one in the body',
+    idOf(stored?.author) === String(authorA.id),
+    `${idOf(stored?.author)} (body asked for ${authorB.id})`,
+  )
+
+  // A body missing a required field must be refused, not silently half-created.
+  const incomplete = await callQuickDraft(reporterA, { title: 'শুধু শিরোনাম' })
+  check(
+    'quick-draft refuses an incomplete body',
+    incomplete.status === 400,
+    String(incomplete.status),
+  )
+
+  // A non-numeric category must be rejected rather than coerced.
+  const badCategory = await callQuickDraft(reporterA, { ...validDraft, category: { evil: true } })
+  check(
+    'quick-draft refuses a non-scalar category',
+    badCategory.status === 400,
+    String(badCategory.status),
   )
 
   // ── Cleanup ──────────────────────────────────────────────────────────────────

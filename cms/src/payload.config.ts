@@ -43,6 +43,7 @@ import { citizenSubmitEndpoint } from './endpoints/citizen'
 import { newsletterEndpoints } from './endpoints/newsletter'
 import { oauthEndpoints } from './endpoints/oauth'
 import { pushEndpoints } from './endpoints/push'
+import { reporterQuickDraftEndpoint } from './endpoints/reporter'
 import { SiteSettings } from './globals/SiteSettings'
 import { bn } from './i18n/bn'
 import { isMailConfigured } from './lib/mailer'
@@ -124,6 +125,34 @@ export default buildConfig({
     meta: {
       titleSuffix: ' — শিক্ষা২৪',
     },
+    components: {
+      /*
+       * The reporter workspace (S13) — `/admin/reporter`.
+       *
+       * Registered as a root view rather than a collection view because it spans
+       * two collections (`assignments` + `articles`) and belongs to neither.
+       * `Component` is resolved against `importMap.baseDir` (`src/`), and the
+       * `#` separates the module path from the named export.
+       */
+      views: {
+        reporter: {
+          Component: '/components/admin/ReporterWorkspace#ReporterWorkspace',
+          path: '/reporter',
+        },
+      },
+      /*
+       * ⚠️ A view nothing links to is a view nobody finds. The dashboard lists
+       * 31 collections and neither `assignments` nor this workspace would be
+       * discoverable from it, so it gets two entry points: the conventional nav
+       * slot, and a card in the dashboard body.
+       *
+       * The card exists because the nav slot's output did not appear in the
+       * server-rendered HTML — the dashboard body does, so at least one entry
+       * point is verifiable rather than assumed.
+       */
+      afterNavLinks: ['/components/admin/ReporterNavLink#ReporterNavLink'],
+      beforeDashboard: ['/components/admin/ReporterDashboardLink#ReporterDashboardLink'],
+    },
   },
 
   // Reader-facing calls come from the static site on a different origin.
@@ -151,7 +180,13 @@ export default buildConfig({
    * is deliberately absent from this array. When adding an endpoint here, check
    * the first segment against every collection slug in `collections/`.
    */
-  endpoints: [...newsletterEndpoints, ...oauthEndpoints, citizenSubmitEndpoint, ...pushEndpoints],
+  endpoints: [
+    ...newsletterEndpoints,
+    ...oauthEndpoints,
+    citizenSubmitEndpoint,
+    ...pushEndpoints,
+    reporterQuickDraftEndpoint,
+  ],
 
   collections: [
     /**
