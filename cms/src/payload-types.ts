@@ -83,7 +83,6 @@ export interface Config {
     circulars: Circular;
     'result-links': ResultLink;
     'study-abroad-guides': StudyAbroadGuide;
-    jobs: Job;
     'live-blogs': LiveBlog;
     polls: Poll;
     quizzes: Quiz;
@@ -123,7 +122,6 @@ export interface Config {
     circulars: CircularsSelect<false> | CircularsSelect<true>;
     'result-links': ResultLinksSelect<false> | ResultLinksSelect<true>;
     'study-abroad-guides': StudyAbroadGuidesSelect<false> | StudyAbroadGuidesSelect<true>;
-    jobs: JobsSelect<false> | JobsSelect<true>;
     'live-blogs': LiveBlogsSelect<false> | LiveBlogsSelect<true>;
     polls: PollsSelect<false> | PollsSelect<true>;
     quizzes: QuizzesSelect<false> | QuizzesSelect<true>;
@@ -955,40 +953,6 @@ export interface StudyAbroadGuide {
 /**
  * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
  *
- * শিক্ষা খাতের চাকরি ও সরকারি নিয়োগ।
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "jobs".
- */
-export interface Job {
-  id: number;
-  title: string;
-  organization: string;
-  deadline?: string | null;
-  category: 'teaching' | 'bcs' | 'government' | 'private' | 'research';
-  circularImage?: (number | null) | Media;
-  applyUrl?: string | null;
-  description?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
- *
  * ফলাফল প্রকাশ বা ভর্তি লটারির দিনের লাইভ কভারেজ।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1614,10 +1578,6 @@ export interface PayloadLockedDocument {
         value: number | StudyAbroadGuide;
       } | null)
     | ({
-        relationTo: 'jobs';
-        value: number | Job;
-      } | null)
-    | ({
         relationTo: 'live-blogs';
         value: number | LiveBlog;
       } | null)
@@ -2027,21 +1987,6 @@ export interface StudyAbroadGuidesSelect<T extends boolean = true> {
   applicationSteps?: T;
   scholarshipNotes?: T;
   isFeatured?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "jobs_select".
- */
-export interface JobsSelect<T extends boolean = true> {
-  title?: T;
-  organization?: T;
-  deadline?: T;
-  category?: T;
-  circularImage?: T;
-  applyUrl?: T;
-  description?: T;
   updatedAt?: T;
   createdAt?: T;
 }

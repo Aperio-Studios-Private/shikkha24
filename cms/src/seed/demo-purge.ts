@@ -37,7 +37,12 @@
 import { getPayload } from 'payload'
 
 import config from '../payload.config'
-import { DEMO_DEADLINE_TITLES, DEMO_POLL_QUESTION, DEMO_QUIZ_TITLE } from './demo'
+import {
+  DEMO_DEADLINE_TITLES,
+  DEMO_FACT_CHECK_CLAIM,
+  DEMO_POLL_QUESTION,
+  DEMO_QUIZ_TITLE,
+} from './demo'
 
 /** The confined cast the other seed modules use — `collection` is a variable here. */
 interface Db {
@@ -145,6 +150,7 @@ await purge('circulars', { title: { like: DEMO_BN } }, 'circulars')
 
 await purge('quizzes', { title: { equals: DEMO_QUIZ_TITLE } }, 'quizzes')
 await purge('polls', { questionBn: { equals: DEMO_POLL_QUESTION } }, 'polls')
+await purge('fact-checks', { claim: { equals: DEMO_FACT_CHECK_CLAIM } }, 'fact checks')
 await purge('deadlines', { title: { in: DEMO_DEADLINE_TITLES } }, 'deadlines')
 
 /*
@@ -232,6 +238,7 @@ const CONTENT_COLLECTIONS = [
   'quizzes',
   'polls',
   'photo-galleries',
+  'fact-checks',
   'media',
 ]
 

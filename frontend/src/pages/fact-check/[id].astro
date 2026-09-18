@@ -1,0 +1,224 @@
+---
+/**
+ * A single fact check — `/fact-check/:id`.
+ *
+ * ## Why the id and not a slug
+ *
+ * `FactChecks` has no slug field, and the project's URL architecture already
+ * states the principle: **the `:id` is the stable part** — an edit changes the
+ * wording but not the URL (`docs/seo-plan.md` §2). Adding a slug here would mean
+ * a schema change plus a derivation hook for a cosmetic segment, on a content
+ * type whose "title" is a Bengali claim that cannot be transliterated usefully.
+ *
+ * ## Why the verdict leads
+ *
+ * A reader arrives from a search for a rumour they half-believe. The answer must
+ * be the first thing they see — a verdict buried under three paragraphs of
+ * evidence has already lost them. So the badge sits directly under the claim,
+ * before any explanation.
+ *
+ * ## Two path segments
+ *
+ * `/fact-check/:id` is 2 segments, so it cannot collide with the article CSP rule
+ * (which matches exactly three) — the same structural reasoning as
+ * `/reporters/:slug` and the archive month.
+ */
+import Layout from '../../layouts/Layout.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import FactVerdictBadge from '../../components/FactVerdictBadge.astro'
+import { lexicalToHtml } from '../../lib/richtext'
+import { resolveCmsImage } from '../../lib/media'
+import { safeExternalUrl, articleUrl } from '../../lib/url'
+import { formatBnBd } from '../../lib/bangla-date'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  getFactChecks,
+  getFactCheckById,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../../lib/cms'
+
+/*
+ * ⚠️ `getStaticPaths` is hoisted to module scope and cannot see a frontmatter
+ * `const` — only imports (`.sps/handoff.md`).
+ */
+export async function getStaticPaths() {
+  const factChecks = await getFactChecks().catch(() => [])
+  return factChecks.map((f) => ({ params: { id: String(f.id) } }))
+}
+
+const { id } = Astro.params
+
+const [settings, categories, footerPages, factCheck] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getFactCheckById(id ?? '').catch(() => null),
+])
+
+/** Evidence is Lexical JSON — converted through the escaping converter, never trusted. */
+const evidenceHtml = factCheck?.evidence ? lexicalToHtml(factCheck.evidence) : null
+
+/*
+ * ⚠️ Source URLs are CMS text going into an `href`. Filtered through
+ * `safeExternalUrl` so a stored `javascript:` value cannot become a link —
+ * the same control the social links use.
+ */
+const sources = (factCheck?.sourceUrls ?? [])
+  .map((s) => ({ url: safeExternalUrl(s.url), label: s.label?.trim() || safeExternalUrl(s.url) }))
+  .filter((s) => s.url !== '')
+
+const comparison = (factCheck?.comparisonImages ?? [])
+  .map((entry, index) => ({
+    image: resolveCmsImage(
+      (entry.image ?? null) as Parameters<typeof resolveCmsImage>[0],
+      entry.caption ?? '',
+    ),
+    caption: entry.caption ?? null,
+    // The pair is documented as "what the rumour claimed vs what is true", so the
+    // first is labelled as the claim and the second as the finding.
+    label: index === 0 ? 'যা দাবি করা হয়েছিল' : 'যা যাচাইয়ে পাওয়া গেছে',
+  }))
+  .filter((entry) => entry.image !== null)
+
+const date = factCheck?.updatedAt ?? factCheck?.createdAt ?? null
+
+const related =
+  factCheck?.relatedArticle && typeof factCheck.relatedArticle === 'object'
+    ? factCheck.relatedArticle
+    : null
+---
+
+<Layout
+  title={factCheck ? `সত্যতা যাচাই: ${factCheck.claim}` : 'সত্যতা যাচাই'}
+  description={factCheck ? factCheck.claim : 'গুজব ও ভুয়া খবরের যাচাই।'}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs
+      items={[
+        { label: 'হোম', href: '/' },
+        { label: 'সত্যতা যাচাই', href: '/fact-check' },
+        { label: factCheck ? 'রায়' : 'পাওয়া যায়নি' },
+      ]}
+    />
+
+    {
+      !factCheck ? (
+        <div class="rounded-lg border border-rule bg-surface-raised p-8 text-center dark:border-dark-rule dark:bg-dark-raised">
+          <h1 class="font-headline text-xl font-bold text-ink dark:text-dark-ink">
+            যাচাইটি পাওয়া যায়নি
+          </h1>
+          <p class="mt-2 text-sm text-ink-muted dark:text-dark-ink-muted">
+            এই ঠিকানায় কোনো যাচাই নেই। তালিকা থেকে খুঁজে দেখুন।
+          </p>
+          <a
+            href="/fact-check"
+            class="mt-4 inline-block rounded-md bg-brand-red px-4 py-2 text-sm font-semibold text-white"
+          >
+            সব যাচাই দেখুন
+          </a>
+        </div>
+      ) : (
+        <article class="mx-auto max-w-3xl">
+          <header>
+            <p class="text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
+              দাবি
+            </p>
+            <h1 class="font-headline mt-1 text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+              {factCheck.claim}
+            </h1>
+
+            {/* The verdict leads — see the note at the top of this file. */}
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+              <FactVerdictBadge verdict={factCheck.verdict} />
+              {date && (
+                <time
+                  datetime={date}
+                  class="text-xs text-ink-subtle dark:text-dark-ink-muted"
+                >
+                  {formatBnBd(date, { day: 'numeric', month: 'long', year: 'numeric' })}
+                </time>
+              )}
+            </div>
+          </header>
+
+          {
+            comparison.length > 0 && (
+              <section class="mt-8" aria-label="তুলনামূলক ছবি">
+                <div class="grid gap-4 sm:grid-cols-2">
+                  {comparison.map((entry) => (
+                    <figure>
+                      <img
+                        src={entry.image!.src}
+                        alt={entry.image!.alt ?? entry.caption ?? ''}
+                        width={entry.image!.width}
+                        height={entry.image!.height}
+                        loading="lazy"
+                        decoding="async"
+                        class="w-full rounded-lg border border-rule dark:border-dark-rule"
+                        style={`aspect-ratio: ${entry.image!.width} / ${entry.image!.height}`}
+                      />
+                      <figcaption class="mt-2 text-xs text-ink-muted dark:text-dark-ink-muted">
+                        <span class="font-semibold">{entry.label}</span>
+                        {entry.caption && <> — {entry.caption}</>}
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              </section>
+            )
+          }
+
+          {
+            evidenceHtml && (
+              <section class="prose-bn mt-8 text-ink dark:text-dark-ink" set:html={evidenceHtml} />
+            )
+          }
+
+          {
+            sources.length > 0 && (
+              <section class="mt-8 rounded-lg border border-rule p-4 dark:border-dark-rule">
+                <h2 class="text-sm font-semibold text-ink dark:text-dark-ink">সূত্র</h2>
+                <ul class="mt-2 space-y-1.5">
+                  {sources.map((source) => (
+                    <li>
+                      <a
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer nofollow"
+                        class="text-sm text-brand-red hover:underline"
+                      >
+                        {source.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )
+          }
+
+          {
+            related && (
+              <p class="mt-8 border-t border-rule pt-5 text-sm dark:border-dark-rule">
+                <span class="text-ink-muted dark:text-dark-ink-muted">সম্পর্কিত সংবাদ: </span>
+                <a href={articleUrl(related)} class="font-semibold text-brand-red hover:underline">
+                  {related.title}
+                </a>
+              </p>
+            )
+          }
+
+          <p class="mt-8 text-xs text-ink-subtle dark:text-dark-ink-muted">
+            কোনো দাবি যাচাই করতে চান?{' '}
+            <a href="/contact" class="text-brand-red hover:underline">আমাদের জানান</a>।
+          </p>
+        </article>
+      )
+    }
+  </div>
+</Layout>

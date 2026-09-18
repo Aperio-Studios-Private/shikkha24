@@ -42,6 +42,7 @@ export interface DemoReport {
   liveBlog: number
   poll: number
   quiz: number
+  factCheck: number
   skipped: number
 }
 
@@ -594,6 +595,37 @@ export const DEMO_DEADLINE_TITLES: string[] = DEADLINES.map((d) => d.title)
 export const DEMO_QUIZ_TITLE: string = QUIZ.title
 
 /** Exact `questionBn` the demo seed writes to `polls`. */
+/**
+ * Demo fact check — so `/fact-check/:id` is actually generated.
+ *
+ * The claim is a realistic education-season rumour: a "new result link" is the
+ * single most common thing students are scammed by during Bangladesh's result
+ * season, which is exactly what this feature was scoped to address.
+ *
+ * Exported so `seed:demo:purge` can match the row — a purge list that is not
+ * kept in step with what the seed creates is a documented trap here (M11).
+ */
+export const DEMO_FACT_CHECK_CLAIM = 'এইচএসসি ফলাফল নতুন এক লিংকে পুনঃপ্রকাশ করা হয়েছে'
+
+const DEMO_FACT_CHECK = {
+  claim: DEMO_FACT_CHECK_CLAIM,
+  verdict: 'false' as const,
+  evidence: richText(
+    para(
+      'সোশ্যাল মিডিয়ায় ছড়ানো একটি লিংকে দাবি করা হচ্ছে, শিক্ষা বোর্ড এইচএসসি ফলাফল নতুন এক ঠিকানায় পুনঃপ্রকাশ করেছে এবং সেখানে আগের চেয়ে বেশি নম্বর দেখা যাচ্ছে।',
+    ),
+    heading('যাচাইয়ে যা পাওয়া গেছে'),
+    para(
+      'শিক্ষা বোর্ডের কোনো নোটিশে এমন কোনো পুনঃপ্রকাশের ঘোষণা নেই। বোর্ডের নিজস্ব ঠিকানা ছাড়া অন্য কোনো সাইটে ফলাফল প্রকাশ করা হয় না, এবং আগের ফলাফল পরিবর্তনের কোনো সুযোগ নেই।',
+    ),
+    para(
+      'লিংকটিতে ব্যক্তিগত তথ্য (রোল, রেজিস্ট্রেশন নম্বর ও জন্মতারিখ) চাওয়া হয়, যা শিক্ষা বোর্ড কখনোই কোনো তৃতীয় পক্ষের সাইটে চায় না।',
+    ),
+    heading('কী করবেন'),
+    para('শুধু শিক্ষা বোর্ডের নিজস্ব ওয়েবসাইট থেকে ফলাফল দেখুন।'),
+  ),
+}
+
 export const DEMO_POLL_QUESTION: string = POLL.questionBn
 
 export async function seedDemo(payload: Payload): Promise<DemoReport> {
@@ -606,6 +638,7 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
     liveBlog: 0,
     poll: 0,
     quiz: 0,
+    factCheck: 0,
     skipped: 0,
   }
 
@@ -974,6 +1007,37 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
       overrideAccess: true,
     })
     report.quiz = 1
+  }
+
+  /* ── Demo fact check ──────────────────────────────────────────────────── *
+   *
+   * ⚠️ This exists so `/fact-check/:id` **actually runs**. With zero fact checks
+   * the route generates nothing, and a route nothing generates has never been
+   * executed — the M17 lesson, which cost two defects in S5. It also gives all
+   * three `FactVerdictBadge` branches something to render against, and one
+   * source URL plus one related article so those paths are exercised too.
+   */
+  const existingFactCheck = await db.find({
+    collection: 'fact-checks',
+    where: { claim: { equals: DEMO_FACT_CHECK.claim } },
+    limit: 1,
+    overrideAccess: true,
+  })
+
+  if (existingFactCheck.docs.length === 0) {
+    await db.create({
+      collection: 'fact-checks',
+      data: {
+        claim: DEMO_FACT_CHECK.claim,
+        verdict: DEMO_FACT_CHECK.verdict,
+        evidence: DEMO_FACT_CHECK.evidence,
+        sourceUrls: [{ url: 'https://educationboardresults.gov.bd', label: 'শিক্ষা বোর্ড' }],
+      },
+      overrideAccess: true,
+    })
+    report.factCheck = 1
+  } else {
+    report.skipped++
   }
 
   return report

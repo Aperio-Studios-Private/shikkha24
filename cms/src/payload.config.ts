@@ -18,7 +18,6 @@ import { Deadlines } from './collections/Deadlines'
 import { Districts } from './collections/Districts'
 import { FactChecks } from './collections/FactChecks'
 import { Institutions } from './collections/Institutions'
-import { Jobs } from './collections/Jobs'
 import { Levels } from './collections/Levels'
 import { LiveBlogs } from './collections/LiveBlogs'
 import { Media } from './collections/Media'
@@ -222,7 +221,6 @@ export default buildConfig({
     withRebuildTrigger(Circulars),
     withRebuildTrigger(ResultLinks),
     withRebuildTrigger(StudyAbroadGuides),
-    withRebuildTrigger(Jobs),
 
     // ── Interactive ──────────────────────────────────────────────────────────
     withRebuildTrigger(LiveBlogs),

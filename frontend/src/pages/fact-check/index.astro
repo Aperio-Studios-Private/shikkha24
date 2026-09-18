@@ -1,0 +1,138 @@
+---
+/**
+ * সত্যতা যাচাই — the fact-check radar, at `/fact-check`.
+ *
+ * ## Why this page exists
+ *
+ * `docs/education-feature-inventory.md` retains a "fact-check radar", scoped to
+ * education: **admission rumours, fake result links and fabricated scholarship
+ * notices**, which circulate heavily during Bangladesh's result and admission
+ * seasons. That is not a hypothetical harm — a student acting on a fake result
+ * link or a fabricated scholarship notice loses money or misses a real deadline.
+ *
+ * It is also an E-E-A-T asset: a newsroom that visibly publishes corrections and
+ * verdicts is demonstrating the expertise and trustworthiness Google's news
+ * guidance asks for.
+ *
+ * ## Renders nothing rather than an empty grid
+ *
+ * `getFactChecks()` returns `[]` both when there are genuinely none and when the
+ * CMS is unreachable. Both get the same honest empty state — an index page with
+ * no entries is a dead end (`docs/reliability.md` §4). Same contract as
+ * `/gallery`.
+ *
+ * ## No ad slot
+ *
+ * `AD_POSITIONS` is a contract with exactly one `AdSlot` per value, and none of
+ * the eight approved positions is a fact-check slot. Adding one is an ad-contract
+ * change needing a plan amendment (rule 13), so the page carries no ad rather
+ * than a placeholder.
+ */
+import Layout from '../../layouts/Layout.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import FactVerdictBadge from '../../components/FactVerdictBadge.astro'
+import { formatBnBd, toBnDigits } from '../../lib/bangla-date'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  getFactChecks,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../../lib/cms'
+
+const [settings, categories, footerPages, factChecks] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getFactChecks().catch(() => []),
+])
+
+const counts = {
+  false: factChecks.filter((f) => f.verdict === 'false').length,
+  misleading: factChecks.filter((f) => f.verdict === 'misleading').length,
+  true: factChecks.filter((f) => f.verdict === 'true').length,
+}
+
+const SUMMARY = [
+  { verdict: 'false' as const, label: 'মিথ্যা', count: counts.false },
+  { verdict: 'misleading' as const, label: 'বিভ্রান্তিকর', count: counts.misleading },
+  { verdict: 'true' as const, label: 'সত্য', count: counts.true },
+]
+
+const dated = factChecks.map((f) => ({
+  ...f,
+  date: f.updatedAt ?? f.createdAt ?? null,
+}))
+---
+
+<Layout
+  title="সত্যতা যাচাই — গুজব ও ভুয়া খবরের যাচাই"
+  description="ভর্তির গুজব, ভুয়া ফলাফলের লিংক ও জাল বৃত্তির বিজ্ঞপ্তি — যাচাই করে রায় দেওয়া হয়।"
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'হোম', href: '/' }, { label: 'সত্যতা যাচাই' }]} />
+
+    <header class="mb-6 border-b-2 border-brand-red pb-3">
+      <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+        সত্যতা যাচাই
+      </h1>
+      <p class="mt-2 max-w-2xl text-sm text-ink-muted dark:text-dark-ink-muted">
+        ভর্তি, ফলাফল ও বৃত্তি নিয়ে ছড়ানো দাবিগুলো যাচাই করে আমরা রায় দিই — মিথ্যা,
+        বিভ্রান্তিকর, নাকি সত্য। কোনো লিংক বা বিজ্ঞপ্তি নিয়ে সন্দেহ থাকলে সেটি যাচাই করে নিন।
+      </p>
+    </header>
+
+    {
+      factChecks.length === 0 ? (
+        <p class="rounded-lg border border-rule bg-surface-raised p-6 text-center text-sm text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
+          এখনো কোনো যাচাই প্রকাশিত হয়নি। গুজব বা সন্দেহজনক দাবি পেলে আমাদের জানান।
+        </p>
+      ) : (
+        <>
+          {/* Verdict summary — the shape of the record at a glance. */}
+          <dl class="mb-6 flex flex-wrap gap-3 text-sm">
+            {SUMMARY.map((item) => (
+              <div class="flex items-center gap-2">
+                <dt>
+                  <FactVerdictBadge verdict={item.verdict} size="sm" />
+                </dt>
+                <dd class="text-ink-muted dark:text-dark-ink-muted">
+                  {toBnDigits(item.count)}টি
+                </dd>
+              </div>
+            ))}
+          </dl>
+
+          <ul class="grid gap-4 sm:grid-cols-2">
+            {dated.map((fact) => (
+              <li>
+                <a
+                  href={`/fact-check/${fact.id}`}
+                  class="flex h-full flex-col rounded-lg border border-rule bg-surface p-4 transition-colors hover:border-brand-red dark:border-dark-rule dark:bg-dark-surface dark:hover:border-brand-red"
+                >
+                  <FactVerdictBadge verdict={fact.verdict} size="sm" />
+
+                  <h2 class="font-headline mt-2 text-base font-bold text-ink dark:text-dark-ink">
+                    {fact.claim}
+                  </h2>
+
+                  {fact.date && (
+                    <p class="mt-auto pt-3 text-xs text-ink-subtle dark:text-dark-ink-muted">
+                      <time datetime={fact.date}>
+                        {formatBnBd(fact.date, { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </time>
+                    </p>
+                  )}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </>
+      )
+    }
+  </div>
+</Layout>

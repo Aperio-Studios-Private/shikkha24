@@ -1,0 +1,59 @@
+---
+/**
+ * Verdict badge for the fact-check radar.
+ *
+ * ## Three verdicts, two brand colours
+ *
+ * The S2 palette has exactly two brand colours — `brand-red` and
+ * `brand-charcoal` — so three verdicts cannot each get their own hue. They are
+ * distinguished by **intensity within red plus a neutral**, which reads the way
+ * the verdicts actually relate:
+ *
+ *   মিথ্যা (false)        solid red      — the strongest signal, it is an alarm
+ *   বিভ্রান্তিকর (misleading)  tinted red     — same family, plainly weaker
+ *   সত্য (true)          solid charcoal — authoritative, deliberately NOT green
+ *
+ * Green would be the conventional choice for "true", but adding a third hue to a
+ * two-colour system for one badge is how palettes drift. Charcoal is the
+ * wordmark's own colour and reads as "this is the settled answer" without
+ * competing with the reds.
+ *
+ * ## The verdict is also written, not only coloured
+ *
+ * Colour alone fails for a colour-blind reader and for anyone printing the page,
+ * so the Bengali word is always present. The badge is never the only carrier of
+ * the verdict.
+ */
+import type { FactVerdict } from '../lib/cms'
+
+interface Props {
+  verdict: FactVerdict | string
+  size?: 'sm' | 'md'
+}
+
+const { verdict, size = 'md' } = Astro.props
+
+const LABELS: Record<string, string> = {
+  false: 'মিথ্যা',
+  misleading: 'বিভ্রান্তিকর',
+  true: 'সত্য',
+}
+
+const STYLES: Record<string, string> = {
+  false: 'bg-brand-red text-white',
+  misleading: 'bg-brand-red/10 text-brand-red border border-brand-red/30 dark:bg-brand-red/20',
+  true: 'bg-brand-charcoal text-white dark:bg-dark-ink dark:text-dark-base',
+}
+
+const label = LABELS[verdict] ?? String(verdict)
+const style = STYLES[verdict] ?? 'border border-rule text-ink-muted dark:border-dark-rule dark:text-dark-ink-muted'
+
+const sizing = size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-xs'
+---
+
+<span
+  class:list={['inline-flex items-center rounded-full font-semibold', sizing, style]}
+  role="status"
+>
+  <span class="sr-only">রায়: </span>{label}
+</span>

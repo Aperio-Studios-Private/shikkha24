@@ -761,6 +761,53 @@ export async function getReporterBySlug(slug: string): Promise<CmsAuthor | null>
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+ * Fact checks (the "fact-check radar")
+ *
+ * Scoped to education: admission rumours, fake result links and fabricated
+ * scholarship notices, which are a persistent problem during Bangladesh's result
+ * and admission seasons — and exactly the kind of claim a student acts on.
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/** `false` / `misleading` / `true`, mirroring `FACT_VERDICTS` in the CMS. */
+export type FactVerdict = 'false' | 'misleading' | 'true'
+
+export interface CmsFactCheck {
+  id: number | string
+  claim: string
+  verdict: FactVerdict
+  evidence?: unknown
+  sourceUrls?: Array<{ url?: string | null; label?: string | null }> | null
+  comparisonImages?: Array<{
+    image?: { url?: string | null; alt?: string | null } | number | null
+    caption?: string | null
+  }> | null
+  relatedArticle?: CmsArticle | number | null
+  updatedAt?: string | null
+  createdAt?: string | null
+}
+
+/**
+ * Published fact checks, newest first.
+ *
+ * Returns `[]` both when there are none and when the CMS is unreachable; the
+ * page treats both the same way and shows an honest empty state rather than an
+ * empty grid (`docs/reliability.md` §4).
+ */
+export async function getFactChecks(): Promise<CmsFactCheck[]> {
+  const data = await cmsFetch<{ docs?: CmsFactCheck[] } | null>(
+    `/api/fact-checks${qs({ limit: 100, depth: 1, sort: '-updatedAt' })}`,
+    null,
+  )
+  return data?.docs ?? []
+}
+
+/** A single fact check by id. The id is the stable part of the URL. */
+export async function getFactCheckById(id: string): Promise<CmsFactCheck | null> {
+  const data = await cmsFetch<CmsFactCheck | null>(`/api/fact-checks/${id}?depth=1`, null)
+  return data ?? null
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
  * Listings (S5)
  * ───────────────────────────────────────────────────────────────────────────── */
 
