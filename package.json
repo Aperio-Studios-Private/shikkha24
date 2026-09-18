@@ -22,12 +22,14 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "verify:apache": "node scripts/verify-apache.mjs",
+    "verify:astro-imports": "node scripts/verify-astro-imports.mjs",
     "verify:build-output": "node scripts/verify-build-output.mjs",
     "verify:links": "node scripts/verify-links.mjs",
     "verify:search-init": "node scripts/verify-search-init.mjs",
     "verify:sync": "node scripts/verify-cms-sync.mjs",
     "verify:endpoints": "pnpm --filter @shikkha24/cms verify:endpoints",
-    "verify": "pnpm run lint && pnpm run typecheck && pnpm run build && pnpm run verify:build-output && pnpm run verify:links && pnpm run verify:search-init && pnpm run verify:apache",
+    "verify:reporter": "pnpm --filter @shikkha24/cms verify:reporter",
+    "verify": "pnpm run lint && pnpm run verify:astro-imports && pnpm run typecheck && pnpm run build && pnpm run verify:build-output && pnpm run verify:links && pnpm run verify:search-init && pnpm run verify:apache",
     "audit:ci": "pnpm audit --audit-level=high"
   },
   "devDependencies": {

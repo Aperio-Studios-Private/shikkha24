@@ -1,0 +1,115 @@
+---
+/**
+ * Verification badge — the visible half of S13.
+ *
+ * ## Why the badge is not simply "is `verificationStatus` verified"
+ *
+ * A press card has a validity period, and the two facts are independent: someone
+ * can be a **verified** reporter whose card has since **expired**. Rendering a
+ * green tick in that case would have the site assert a credential that is no
+ * longer current — the exact failure the verification model exists to prevent.
+ * So an expired card renders its own state, in its own colour, and still shows
+ * the person: dropping a real reporter off the team page because a date passed
+ * would be worse than showing them honestly.
+ *
+ * ## Expiry is evaluated at build time
+ *
+ * The site is static, so "today" is the build date. A card that expires this
+ * afternoon keeps its badge until the next build. That is acceptable here only
+ * because publishing runs 15–40 times a day; it would not be acceptable for a
+ * live countdown. Same trade `DeadlineStrip.astro` documents.
+ *
+ * ## Unverified renders nothing
+ *
+ * Not a greyed badge — *nothing*. A visible "unverified" chip beside a byline
+ * reads as an accusation rather than an absence, and most contributors (columnists,
+ * guest writers) are simply not reporters and will never carry a card.
+ */
+import { formatBnBd, getDhakaDate } from '../lib/bangla-date'
+
+interface Props {
+  status?: string | null
+  validUntil?: string | null
+  /** `sm` for a byline, `md` for the profile and team page. */
+  size?: 'sm' | 'md'
+}
+
+const { status, validUntil, size = 'md' } = Astro.props
+
+const isVerified = status === 'verified'
+
+/*
+ * Compare as Dhaka `YYYY-MM-DD` strings rather than timestamps. `new Date(x) <
+ * Date.now()` would flip a card to expired partway through its final day
+ * depending on the build's timezone — the same class of bug the date-formatting
+ * fix removed from the rest of the site.
+ */
+const expiry = validUntil ? getDhakaDate(validUntil) : null
+const expired = expiry !== null && expiry < getDhakaDate(new Date())
+
+const expiryLabel = expiry ? formatBnBd(validUntil as string, { day: 'numeric', month: 'long', year: 'numeric' }) : null
+
+const isSmall = size === 'sm'
+const classes = isSmall
+  ? 'gap-1 px-1.5 py-0.5 text-[11px]'
+  : 'gap-1.5 px-2.5 py-1 text-xs'
+
+/*
+ * Colours come from the approved S2 palette only — no new token.
+ *
+ * The site has exactly two brand colours, so the badge cannot lean on the
+ * conventional green tick. A **solid charcoal** chip is the right stand-in: it
+ * is the wordmark's own colour, so a verified byline reads as authoritative
+ * rather than alarming, and it is visually distinct from the tinted
+ * `bg-brand-red/10` category chips used elsewhere. The expired state drops to an
+ * outlined, muted chip — present and legible, but plainly not current.
+ */
+const stateClasses = expired
+  ? 'border border-ink-subtle/50 text-ink-muted dark:border-dark-rule dark:text-dark-ink-muted'
+  : 'bg-brand-charcoal text-white dark:bg-dark-ink dark:text-dark-base'
+---
+
+{
+  isVerified && (
+    <span
+      class:list={[
+        'inline-flex items-center rounded-full font-semibold',
+        classes,
+        stateClasses,
+      ]}
+      title={expired ? `কার্ডের মেয়াদ শেষ: ${expiryLabel}` : 'যাচাইকৃত প্রতিবেদক'}
+    >
+      {
+        expired ? (
+          <svg
+            aria-hidden="true"
+            class={isSmall ? 'h-3 w-3' : 'h-3.5 w-3.5'}
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v4.5a.75.75 0 001.5 0v-4.5zM10 14a1 1 0 100-2 1 1 0 000 2z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        ) : (
+          <svg
+            aria-hidden="true"
+            class={isSmall ? 'h-3 w-3' : 'h-3.5 w-3.5'}
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.42 0l-3.5-3.5a1 1 0 111.42-1.42l2.79 2.79 6.79-6.79a1 1 0 011.42 0z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        )
+      }
+      <span>{expired ? 'মেয়াদোত্তীর্ণ' : 'যাচাইকৃত'}</span>
+      {!isSmall && expiryLabel && !expired && <span class="font-normal opacity-80">· {expiryLabel}</span>}
+    </span>
+  )
+}

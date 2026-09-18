@@ -141,10 +141,7 @@ const dhakaIsoFormatter = new Intl.DateTimeFormat('en-CA', {
  * Format a date in Bengali (bn-BD) with Asia/Dhaka timezone.
  * Accepts ISO strings or Date objects.
  */
-export function formatBnBd(
-  iso: string | Date,
-  options?: Intl.DateTimeFormatOptions
-): string {
+export function formatBnBd(iso: string | Date, options?: Intl.DateTimeFormatOptions): string {
   const d = typeof iso === 'string' ? new Date(iso) : iso
   return d.toLocaleDateString('bn-BD', { ...options, timeZone: DHAKA_TZ })
 }

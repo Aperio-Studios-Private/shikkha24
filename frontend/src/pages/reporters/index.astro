@@ -1,0 +1,178 @@
+---
+/**
+ * Editorial team — `/reporters`.
+ *
+ * ## Why this page exists at all
+ *
+ * S13 gives every reporter a verification status and a stable `reporterId`. A
+ * credential nobody can check is theatre, so this page is the check: it lists
+ * exactly the people the newsroom has vouched for, each with the badge and a link
+ * to a profile carrying the ID and the card's validity.
+ *
+ * It is also the E-E-A-T surface `docs/seo-plan.md` §5 asks for — "an editorial
+ * team page with real credentials" — which previously did not exist in any form.
+ *
+ * ## Only `verified` is listed
+ *
+ * Filtering happens in the CMS query (`getVerifiedReporters`), not in the
+ * template, so an unverified record is never fetched into the build. A team page
+ * that displayed unverified or suspended people would assert a credential the
+ * newsroom has not granted — the exact opposite of the page's purpose.
+ *
+ * ## Expired cards are still listed
+ *
+ * A reporter whose card has lapsed keeps their row and gets the amber-free
+ * "মেয়াদোত্তীর্ণ" chip from `VerificationBadge`. Dropping a real colleague off
+ * the team page because a date passed would be worse than showing them honestly.
+ *
+ * ## No ad slot
+ *
+ * `AD_POSITIONS` is a contract with one `AdSlot` per value and no team-page
+ * position among the eight. Adding one is an ad-contract change needing a plan
+ * amendment (rule 13), so the page carries no ad rather than a placeholder on a
+ * real page. Same reasoning as `/gallery`.
+ */
+import Layout from '../../layouts/Layout.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import VerificationBadge from '../../components/VerificationBadge.astro'
+import { resolveCmsImage } from '../../lib/media'
+import { formatBnBd } from '../../lib/bangla-date'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  getVerifiedReporters,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../../lib/cms'
+
+const [settings, categories, footerPages, reporters] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getVerifiedReporters().catch(() => []),
+])
+
+/** Bengali labels for the `beat` select, mirroring the CMS options. */
+const BEAT_LABELS: Record<string, string> = {
+  school: 'স্কুল',
+  college: 'কলেজ',
+  university: 'বিশ্ববিদ্যালয়',
+  madrasa: 'মাদ্রাসা',
+  exam: 'পরীক্ষা',
+  scholarship: 'বৃত্তি',
+  admission: 'ভর্তি',
+  job: 'চাকরি',
+}
+
+const districtName = (d: (typeof reporters)[number]['district']): string | null =>
+  typeof d === 'object' && d !== null && 'nameBn' in d ? (d.nameBn ?? null) : null
+
+const cards = reporters.map((r) => {
+  const photo = resolveCmsImage(
+    (r.photo ?? null) as Parameters<typeof resolveCmsImage>[0],
+    r.nameBn,
+  )
+  return {
+    ...r,
+    photo,
+    beats: (r.beat ?? []).map((b) => BEAT_LABELS[b] ?? b),
+    district: districtName(r.district),
+    joined: r.joiningDate
+      ? formatBnBd(r.joiningDate, { month: 'long', year: 'numeric' })
+      : null,
+  }
+})
+---
+
+<Layout
+  title="সম্পাদকীয় দল — যাচাইকৃত প্রতিবেদক"
+  description="শিক্ষা২৪-এর যাচাইকৃত প্রতিবেদকদের তালিকা — আইডি নম্বর, বিট ও কার্যক্ষেত্রসহ।"
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'হোম', href: '/' }, { label: 'সম্পাদকীয় দল' }]} />
+
+    <header class="mb-6 border-b-2 border-brand-red pb-3">
+      <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+        সম্পাদকীয় দল
+      </h1>
+      <p class="mt-2 max-w-2xl text-sm text-ink-muted dark:text-dark-ink-muted">
+        শিক্ষা২৪-এর যাচাইকৃত প্রতিবেদকেরা এখানে তালিকাভুক্ত। প্রত্যেকের একটি স্থায়ী আইডি নম্বর
+        রয়েছে, যা তাঁদের পরিচয়পত্রে থাকা QR কোড দিয়ে যাচাই করা যায়।
+      </p>
+    </header>
+
+    {
+      cards.length === 0 ? (
+        <p class="rounded-lg border border-rule bg-surface-raised p-6 text-center text-sm text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
+          এখনো কোনো যাচাইকৃত প্রতিবেদক তালিকাভুক্ত হননি।
+        </p>
+      ) : (
+        <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {cards.map((r) => (
+            <li>
+              <a
+                href={`/reporters/${r.slug ?? ''}`}
+                class="group flex h-full gap-4 rounded-lg border border-rule bg-surface p-4 transition-colors hover:border-brand-red dark:border-dark-rule dark:bg-dark-surface dark:hover:border-brand-red"
+              >
+                {r.photo ? (
+                  <img
+                    src={r.photo.src}
+                    alt={r.photo.alt ?? r.nameBn}
+                    width="72"
+                    height="72"
+                    loading="lazy"
+                    decoding="async"
+                    class="h-18 w-18 shrink-0 rounded-full object-cover"
+                    style="aspect-ratio: 1 / 1"
+                  />
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    class="flex h-18 w-18 shrink-0 items-center justify-center rounded-full bg-surface-raised font-headline text-xl font-bold text-ink-subtle dark:bg-dark-raised dark:text-dark-ink-muted"
+                  >
+                    {r.nameBn.slice(0, 1)}
+                  </span>
+                )}
+
+                <div class="min-w-0">
+                  <h2 class="font-headline text-base font-bold text-ink group-hover:text-brand-red dark:text-dark-ink">
+                    {r.nameBn}
+                  </h2>
+                  {r.designation && (
+                    <p class="mt-0.5 text-xs text-ink-muted dark:text-dark-ink-muted">
+                      {r.designation}
+                    </p>
+                  )}
+
+                  <div class="mt-2">
+                    <VerificationBadge
+                      status={r.verificationStatus}
+                      validUntil={r.validUntil}
+                      size="sm"
+                    />
+                  </div>
+
+                  {(r.beats.length > 0 || r.district) && (
+                    <p class="mt-2 text-xs text-ink-subtle dark:text-dark-ink-muted">
+                      {[...r.beats, r.district].filter(Boolean).join(' · ')}
+                    </p>
+                  )}
+
+                  {r.reporterId && (
+                    <p class="mt-1 font-mono text-[11px] text-ink-subtle dark:text-dark-ink-muted">
+                      {r.reporterId}
+                    </p>
+                  )}
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</Layout>

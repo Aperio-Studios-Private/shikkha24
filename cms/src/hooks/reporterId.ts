@@ -34,6 +34,11 @@ import type { CollectionBeforeValidateHook } from 'payload'
  * rather than a duplicate credential — the safe direction to fail. Reporter
  * records are created a handful of times a year, so a retry is acceptable; a
  * duplicate identity number is not.
+ *
+ * ## It also backfills
+ *
+ * Any author saved without an ID receives one, not just newly created records —
+ * see the note in the hook body for why that is load-bearing.
  */
 
 const PREFIX = 'SHK-R'
@@ -47,9 +52,19 @@ function dhakaYear(): number {
   )
 }
 
-export const assignReporterId: CollectionBeforeValidateHook = async ({ data, operation, req }) => {
-  if (!data || operation !== 'create' || data.reporterId) return data
+export const assignReporterId: CollectionBeforeValidateHook = async ({ data, req }) => {
+  if (!data || data.reporterId) return data
 
+  /*
+   * ⚠️ Deliberately **not** restricted to `operation === 'create'`.
+   *
+   * Any author without an ID gets one on the next save. Restricting this to
+   * creation looked correct and was wrong: every author that already existed
+   * when S13 shipped would have been left permanently without a `reporterId`,
+   * so their verification badge would render while the ID line beside it stayed
+   * empty — and nothing would ever fix it. A credential that some holders can
+   * never obtain is not a credential. Self-healing on save is the migration.
+   */
   const prefix = `${PREFIX}-${dhakaYear()}-`
 
   /*

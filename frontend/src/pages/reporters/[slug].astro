@@ -1,0 +1,267 @@
+---
+/**
+ * Reporter profile — `/reporters/:slug`.
+ *
+ * ## Why a separate route from `/author/:slug`
+ *
+ * `/author/:slug` is the **byline** surface: every writer, including columnists
+ * and guest contributors who will never hold a press card. This is the
+ * **credential** surface: it leads with the verification state, the stable
+ * `reporterId` and the card's validity, because that is what a reader arriving
+ * from a scanned QR code is trying to establish. Merging them would bury the
+ * credential under the article list.
+ *
+ * ## Two path segments, deliberately
+ *
+ * `/reporters/:slug` is 2 segments. The article CSP rule matches **exactly three**
+ * (`.htaccess`), so this route cannot collide with it — the same structural
+ * reasoning that made the archive month one segment (`.sps/handoff.md` M15).
+ * A `/reporters/verify/:id` shape would have been three.
+ *
+ * ## It renders even for an unverified reporter
+ *
+ * The page is reachable by direct link and by QR. If the record is not currently
+ * verified it says so plainly rather than 404ing — a 404 on a scanned card looks
+ * like the site is broken, when the honest answer is "this credential is not
+ * active". `getStaticPaths` covers every author with a slug, not just verified
+ * ones, so a suspension takes effect as a *change of state*, not a vanishing page.
+ */
+import Layout from '../../layouts/Layout.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import VerificationBadge from '../../components/VerificationBadge.astro'
+import { resolveCmsImage } from '../../lib/media'
+import { formatBnBd } from '../../lib/bangla-date'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  getVerifiedReporters,
+  getReporterBySlug,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../../lib/cms'
+
+/*
+ * ⚠️ `getStaticPaths` is hoisted to module scope and cannot see a frontmatter
+ * `const` — only imports. Anything it calls must be imported (`.sps/handoff.md`).
+ */
+export async function getStaticPaths() {
+  const reporters = await getVerifiedReporters().catch(() => [])
+  return reporters
+    .filter((r) => Boolean(r.slug))
+    .map((r) => ({ params: { slug: String(r.slug) } }))
+}
+
+const { slug } = Astro.params
+
+const [settings, categories, footerPages, reporter] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getReporterBySlug(slug ?? '').catch(() => null),
+])
+
+const BEAT_LABELS: Record<string, string> = {
+  school: 'স্কুল',
+  college: 'কলেজ',
+  university: 'বিশ্ববিদ্যালয়',
+  madrasa: 'মাদ্রাসা',
+  exam: 'পরীক্ষা',
+  scholarship: 'বৃত্তি',
+  admission: 'ভর্তি',
+  job: 'চাকরি',
+}
+
+const photo = reporter
+  ? resolveCmsImage(
+      (reporter.photo ?? null) as Parameters<typeof resolveCmsImage>[0],
+      reporter.nameBn,
+    )
+  : null
+
+const district =
+  reporter && typeof reporter.district === 'object' && reporter.district !== null
+    ? (reporter.district.nameBn ?? null)
+    : null
+
+const beats = (reporter?.beat ?? []).map((b) => BEAT_LABELS[b] ?? b)
+
+const joined = reporter?.joiningDate
+  ? formatBnBd(reporter.joiningDate, { day: 'numeric', month: 'long', year: 'numeric' })
+  : null
+
+const validUntilLabel = reporter?.validUntil
+  ? formatBnBd(reporter.validUntil, { day: 'numeric', month: 'long', year: 'numeric' })
+  : null
+
+const isVerified = reporter?.verificationStatus === 'verified'
+---
+
+<Layout
+  title={reporter ? `${reporter.nameBn} — যাচাইকৃত প্রতিবেদক` : 'প্রতিবেদক'}
+  description={
+    reporter
+      ? `${reporter.nameBn} — শিক্ষা২৪-এর ${reporter.designation ?? 'প্রতিবেদক'}। আইডি ${reporter.reporterId ?? ''}।`
+      : 'প্রতিবেদক প্রোফাইল।'
+  }
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs
+      items={[
+        { label: 'হোম', href: '/' },
+        { label: 'সম্পাদকীয় দল', href: '/reporters' },
+        { label: reporter?.nameBn ?? 'প্রতিবেদক' },
+      ]}
+    />
+
+    {
+      !reporter ? (
+        <div class="rounded-lg border border-rule bg-surface-raised p-8 text-center dark:border-dark-rule dark:bg-dark-raised">
+          <h1 class="font-headline text-xl font-bold text-ink dark:text-dark-ink">
+            প্রতিবেদকের তথ্য পাওয়া যায়নি
+          </h1>
+          <p class="mt-2 text-sm text-ink-muted dark:text-dark-ink-muted">
+            এই ঠিকানায় কোনো প্রতিবেদকের প্রোফাইল নেই। তালিকা থেকে খুঁজে দেখুন।
+          </p>
+          <a
+            href="/reporters"
+            class="mt-4 inline-block rounded-md bg-brand-red px-4 py-2 text-sm font-semibold text-white"
+          >
+            সম্পাদকীয় দলের তালিকা
+          </a>
+        </div>
+      ) : (
+        <>
+          <article class="rounded-lg border border-rule bg-surface p-6 dark:border-dark-rule dark:bg-dark-surface">
+            <div class="flex flex-col gap-5 sm:flex-row sm:items-start">
+              {photo ? (
+                <img
+                  src={photo.src}
+                  alt={photo.alt ?? reporter.nameBn}
+                  width="128"
+                  height="128"
+                  loading="eager"
+                  decoding="async"
+                  class="h-32 w-32 shrink-0 rounded-full object-cover"
+                  style="aspect-ratio: 1 / 1"
+                />
+              ) : (
+                <span
+                  aria-hidden="true"
+                  class="flex h-32 w-32 shrink-0 items-center justify-center rounded-full bg-surface-raised font-headline text-4xl font-bold text-ink-subtle dark:bg-dark-raised dark:text-dark-ink-muted"
+                >
+                  {reporter.nameBn.slice(0, 1)}
+                </span>
+              )}
+
+              <div class="min-w-0 flex-1">
+                <h1 class="font-headline text-2xl font-bold text-ink dark:text-dark-ink">
+                  {reporter.nameBn}
+                </h1>
+                {reporter.designation && (
+                  <p class="mt-1 text-sm text-ink-muted dark:text-dark-ink-muted">
+                    {reporter.designation}
+                  </p>
+                )}
+
+                <div class="mt-3">
+                  <VerificationBadge
+                    status={reporter.verificationStatus}
+                    validUntil={reporter.validUntil}
+                  />
+                </div>
+
+                <dl class="mt-5 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+                  {reporter.reporterId && (
+                    <div>
+                      <dt class="text-xs font-semibold text-ink-subtle dark:text-dark-ink-muted">
+                        প্রতিবেদক আইডি
+                      </dt>
+                      <dd class="font-mono text-ink dark:text-dark-ink">{reporter.reporterId}</dd>
+                    </div>
+                  )}
+                  {reporter.pressCardNo && (
+                    <div>
+                      <dt class="text-xs font-semibold text-ink-subtle dark:text-dark-ink-muted">
+                        প্রেস কার্ড নম্বর
+                      </dt>
+                      <dd class="text-ink dark:text-dark-ink">{reporter.pressCardNo}</dd>
+                    </div>
+                  )}
+                  {validUntilLabel && (
+                    <div>
+                      <dt class="text-xs font-semibold text-ink-subtle dark:text-dark-ink-muted">
+                        কার্ডের মেয়াদ
+                      </dt>
+                      <dd
+                        class:list={[
+                          isVerified ? 'text-ink dark:text-dark-ink' : 'text-ink-muted dark:text-dark-ink-muted',
+                        ]}
+                      >
+                        {validUntilLabel}
+                      </dd>
+                    </div>
+                  )}
+                  {joined && (
+                    <div>
+                      <dt class="text-xs font-semibold text-ink-subtle dark:text-dark-ink-muted">
+                        যোগদান
+                      </dt>
+                      <dd class="text-ink dark:text-dark-ink">{joined}</dd>
+                    </div>
+                  )}
+                  {beats.length > 0 && (
+                    <div>
+                      <dt class="text-xs font-semibold text-ink-subtle dark:text-dark-ink-muted">বিট</dt>
+                      <dd class="text-ink dark:text-dark-ink">{beats.join(' · ')}</dd>
+                    </div>
+                  )}
+                  {district && (
+                    <div>
+                      <dt class="text-xs font-semibold text-ink-subtle dark:text-dark-ink-muted">
+                        কার্যক্ষেত্র
+                      </dt>
+                      <dd class="text-ink dark:text-dark-ink">{district}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            </div>
+
+            {reporter.bio && (
+              <p class="mt-6 border-t border-rule pt-5 text-sm leading-relaxed text-ink-muted dark:border-dark-rule dark:text-dark-ink-muted">
+                {reporter.bio}
+              </p>
+            )}
+
+            {
+              !isVerified && (
+                <p
+                  role="status"
+                  class="mt-6 rounded-md border border-ink-subtle/50 p-4 text-sm text-ink-muted dark:border-dark-rule dark:text-dark-ink-muted"
+                >
+                  এই প্রতিবেদকের যাচাই এখন সক্রিয় নয়। পরিচয়পত্র যাচাইয়ের জন্য সম্পাদকীয় দলের সাথে
+                  যোগাযোগ করুন।
+                </p>
+              )
+            }
+          </article>
+
+          {reporter.slug && (
+            <p class="mt-6 text-sm">
+              <a
+                href={`/author/${reporter.slug}`}
+                class="font-semibold text-brand-red hover:underline"
+              >
+                এই প্রতিবেদকের সংবাদগুলো দেখুন →
+              </a>
+            </p>
+          )}
+        </>
+      )
+    }
+  </div>
+</Layout>

@@ -18,8 +18,9 @@
  * This also means a local `astro build` works with no CMS running at all, which
  * is what makes the frontend independently testable.
  */
-import type { CmsMedia } from './media'
+
 import { formatBnBd, getDhakaYearMonth } from './bangla-date'
+import type { CmsMedia } from './media'
 
 /** Payload origin. Set `CMS_URL` in the environment; defaults to local dev. */
 const CMS_URL = import.meta.env.CMS_URL || 'http://localhost:3000'
@@ -556,6 +557,26 @@ export interface CmsAuthor {
   designation?: string | null
   bio?: string | null
   photo?: { url?: string | null; alt?: string | null } | number | null
+  /*
+   * ── S13 verification ───────────────────────────────────────────────────────
+   *
+   * These are what turn a byline into a credential. `verificationStatus` is the
+   * single source of truth for whether the badge shows; `validUntil` is separate
+   * because a card can be verified **and** expired, and the profile must say so
+   * rather than showing a badge that is no longer true.
+   *
+   * `verifiedBy` and `verificationNote` are deliberately **absent** — the CMS
+   * restricts them to authenticated reads, so they never appear in a public
+   * build and typing them here would invite someone to render them.
+   */
+  reporterId?: string | null
+  verificationStatus?: 'unverified' | 'pending' | 'verified' | 'suspended' | null
+  verifiedAt?: string | null
+  validUntil?: string | null
+  joiningDate?: string | null
+  pressCardNo?: string | null
+  beat?: string[] | null
+  district?: { id: number | string; nameBn?: string | null } | number | null
 }
 
 /**
@@ -677,6 +698,44 @@ export async function getAuthor(author: CmsFullArticle['author']): Promise<CmsAu
   }
   const data = await cmsFetch<CmsAuthor | null>(`/api/authors/${String(author)}`, null)
   return data ?? null
+}
+
+/**
+ * Every reporter whose verification is current — the `/reporters` page.
+ *
+ * ## Why `verified` is filtered here and not in the template
+ *
+ * A public "our team" page that lists unverified or suspended people would be
+ * asserting a credential the newsroom has not granted, and the page exists
+ * precisely to make verification checkable. Filtering in the query also means
+ * an unverified record is never fetched into the build at all.
+ *
+ * ## Expiry is NOT filtered out
+ *
+ * A card past `validUntil` still appears, because silently dropping a real
+ * reporter from the team page is worse than showing them with an honest
+ * "মেয়াদোত্তীর্ণ" marker. The template decides how to present it.
+ */
+export async function getVerifiedReporters(): Promise<CmsAuthor[]> {
+  const data = await cmsFetch<{ docs?: CmsAuthor[] } | null>(
+    `/api/authors${qs({
+      limit: 200,
+      depth: 1,
+      sort: 'nameBn',
+      'where[verificationStatus][equals]': 'verified',
+    })}`,
+    null,
+  )
+  return data?.docs ?? []
+}
+
+/** A single reporter by slug, for the public profile route. */
+export async function getReporterBySlug(slug: string): Promise<CmsAuthor | null> {
+  const data = await cmsFetch<{ docs?: CmsAuthor[] } | null>(
+    `/api/authors${qs({ limit: 1, depth: 1, 'where[slug][equals]': slug })}`,
+    null,
+  )
+  return data?.docs?.[0] ?? null
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

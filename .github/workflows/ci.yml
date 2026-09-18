@@ -56,6 +56,23 @@ jobs:
         # and resolves its include patterns relative to itself.
         run: pnpm run lint
 
+      - name: Verify .astro frontmatter imports
+        # ⚠️ `.astro` frontmatter is NOT typechecked in this project — `tsc` only
+        # sees .ts/.tsx, and `@astrojs/check` (the tool that would cover .astro)
+        # rejects TypeScript 7, which is why Biome was adopted instead.
+        #
+        # So an identifier used in a component's frontmatter without an import is
+        # neither a type error nor a lint error: it is a ReferenceError at build
+        # time, thrown only if that component actually renders. That is exactly
+        # how the 2026-09-16 timezone fix shipped two broken imports — the thin
+        # build passed because `CommentSection` self-hides without a CMS origin
+        # and `DeadlineStrip` renders nothing without deadlines. A full build
+        # against a live CMS is what finally surfaced it.
+        #
+        # Runs before the build: it needs no build, and failing here is faster
+        # and clearer than failing inside the prerender.
+        run: pnpm run verify:astro-imports
+
       # ── Frontend ────────────────────────────────────────────────────────────
       - name: Astro sync (generate content + env types)
         # `astro sync` writes .astro/types.d.ts, which tsconfig.json includes.

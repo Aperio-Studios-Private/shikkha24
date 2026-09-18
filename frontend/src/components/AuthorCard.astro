@@ -12,6 +12,7 @@
  */
 import type { CmsAuthor } from '../lib/cms'
 import { formatBnBd } from '../lib/bangla-date'
+import VerificationBadge from './VerificationBadge.astro'
 
 interface Props {
   author: CmsAuthor | null
@@ -56,8 +57,15 @@ const published = publishedAt
         <p class="text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
           লেখক
         </p>
-        <h2 class="font-headline mt-0.5 text-lg font-bold text-ink dark:text-dark-ink">
+        <h2 class="font-headline mt-0.5 flex flex-wrap items-center gap-2 text-lg font-bold text-ink dark:text-dark-ink">
           {author.nameBn}
+          {/*
+            The byline is where most readers meet a reporter, so the credential
+            belongs here and not only on `/reporters`. The badge renders nothing
+            for an unverified author, so columnists and guest writers are
+            unaffected.
+          */}
+          <VerificationBadge status={author.verificationStatus} validUntil={author.validUntil} size="sm" />
         </h2>
         {author.designation && (
           <p class="text-sm text-brand-red">{author.designation}</p>

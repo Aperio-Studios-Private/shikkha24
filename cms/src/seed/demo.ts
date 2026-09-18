@@ -615,6 +615,20 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
    * byline gives a profile page nothing to list, so the demo had to have more
    * than one before that route could be judged. Every slug is `demo-` prefixed
    * so `seed:demo:purge` removes them by pattern rather than by name.
+   *
+   * ── S13: the three verification states are covered on purpose ────────────
+   *
+   * `/reporters/:slug` and the `VerificationBadge` branches are only exercised
+   * if the demo corpus contains the states they render. A route nothing
+   * generates is a route that has never run (`.sps/handoff.md`, M17 — the
+   * boundary-sized fixture that hid two defects). So:
+   *
+   *   demo-reporter       verified, card in date   → badge + listed + profile
+   *   demo-desk           verified, card EXPIRED   → the "মেয়াদোত্তীর্ণ" branch
+   *   demo-correspondent  unverified               → must be absent from /reporters
+   *
+   * `reporterId` is deliberately **not** set: the `assignReporterId` hook fills
+   * it, so the demo also exercises the hook rather than hardcoding its output.
    */
   const DEMO_AUTHORS = [
     {
@@ -623,6 +637,10 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
       nameEn: 'Demo Reporter',
       designation: 'নিজস্ব প্রতিবেদক',
       bio: 'হোমপেজ ডিজাইন পর্যালোচনার জন্য তৈরি ডেমো লেখক। লঞ্চের আগে মুছে ফেলা হবে।',
+      verificationStatus: 'verified',
+      validUntil: '2027-12-31T00:00:00.000Z',
+      joiningDate: '2024-03-01T00:00:00.000Z',
+      beat: ['school', 'college', 'admission'],
     },
     {
       slug: 'demo-desk',
@@ -630,6 +648,11 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
       nameEn: 'Demo Desk',
       designation: 'ডেস্ক রিপোর্ট',
       bio: 'ডেস্ক থেকে প্রকাশিত ডেমো প্রতিবেদনের বাইলাইন। লঞ্চের আগে মুছে ফেলা হবে।',
+      // Verified but lapsed — the badge must render "মেয়াদোত্তীর্ণ", not a tick.
+      verificationStatus: 'verified',
+      validUntil: '2025-12-31T00:00:00.000Z',
+      joiningDate: '2023-01-10T00:00:00.000Z',
+      beat: ['university'],
     },
     {
       slug: 'demo-correspondent',
@@ -637,6 +660,8 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
       nameEn: 'Demo Correspondent',
       designation: 'জেলা প্রতিনিধি',
       bio: 'জেলা পর্যায়ের ডেমো প্রতিবেদনের বাইলাইন। লঞ্চের আগে মুছে ফেলা হবে।',
+      // Left unverified on purpose: proves /reporters filters, not just labels.
+      verificationStatus: 'unverified',
     },
   ]
 
@@ -649,6 +674,26 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
       overrideAccess: true,
     })
     if (existing.docs[0]) {
+      /*
+       * Converge the S13 fields on an author that already exists.
+       *
+       * The seed is idempotent — it skips what is already there — but that alone
+       * would mean the verification states above never appear on a database
+       * seeded before they were added, so `/reporters/:slug` would keep
+       * generating nothing and the route would stay unexercised. Re-running the
+       * seed must reach the same end state, not merely avoid duplicating rows.
+       */
+      await db.update({
+        collection: 'authors',
+        id: existing.docs[0].id,
+        data: {
+          verificationStatus: spec.verificationStatus,
+          validUntil: spec.validUntil ?? null,
+          joiningDate: spec.joiningDate ?? null,
+          beat: spec.beat ?? [],
+        },
+        overrideAccess: true,
+      })
       authorIds.set(spec.slug, existing.docs[0].id)
       continue
     }
