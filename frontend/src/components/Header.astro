@@ -18,6 +18,7 @@ import type { CmsSiteSettings, CmsCategory } from '../lib/cms'
 import { isEnabled } from '../lib/feature-flags'
 import { getWeather, getPrayerTimes } from '../lib/widgets'
 import { formatBanglaDate, formatBnBd } from '../lib/bangla-date'
+import SocialLinks from './SocialLinks.astro'
 import HeaderWidgets from './HeaderWidgets.astro'
 
 interface Props {
@@ -52,8 +53,6 @@ const [weather, prayer] = await Promise.all([
 const now = new Date()
 const banglaDate = formatBanglaDate(now)
 const gregorianDate = formatBnBd(now, { year: 'numeric', month: 'long', day: 'numeric' })
-
-const socialLinks = Object.entries(settings.social ?? {}).filter(([, url]) => !!url)
 ---
 
 <header class="border-b border-rule bg-surface dark:border-dark-rule dark:bg-dark-base">
@@ -114,24 +113,9 @@ const socialLinks = Object.entries(settings.social ?? {}).filter(([, url]) => !!
         {/* Theme toggle */}
         <ThemeToggle />
 
-        {/* Social links — desktop only */}
-        {
-          socialLinks.length > 0 && (
-            <div class="hidden items-center gap-2 border-l border-rule pl-2 lg:flex dark:border-dark-rule">
-              {socialLinks.map(([platform, url]) => (
-                <a
-                  href={url!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-xs text-ink-subtle transition-colors hover:text-brand-red dark:text-dark-ink-muted dark:hover:text-brand-red"
-                  aria-label={platform}
-                >
-                  {platform}
-                </a>
-              ))}
-            </div>
-          )
-        }
+        {/* Official social accounts — desktop only; the mobile drawer carries
+            the same links, so nothing is lost on a small screen. */}
+        <SocialLinks social={settings.social} variant="header" />
       </div>
     </div>
   </div>
@@ -270,27 +254,9 @@ const socialLinks = Object.entries(settings.social ?? {}).filter(([, url]) => !!
         </ul>
       </div>
 
-      {
-        socialLinks.length > 0 && (
-          <div class="border-t border-rule px-4 py-4 dark:border-dark-rule">
-            <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
-              সোশ্যাল মিডিয়া
-            </h3>
-            <div class="flex flex-wrap gap-2">
-              {socialLinks.map(([platform, url]) => (
-                <a
-                  href={url!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="inline-flex items-center gap-1.5 rounded-md bg-surface-raised px-3 py-1.5 text-sm text-ink-muted dark:bg-dark-raised dark:text-dark-ink-muted"
-                >
-                  {platform}
-                </a>
-              ))}
-            </div>
-          </div>
-        )
-      }
+      {/* The same official accounts as the desktop ribbon, with labels — there
+          is room for words in the drawer, and a bare glyph is ambiguous. */}
+      <SocialLinks social={settings.social} variant="drawer" />
     </div>
   </div>
 </header>

@@ -41,6 +41,7 @@ import { resolveCmsImage } from '../lib/media'
 import { getActivePoll, getLiveBlogs, getPublicCmsOrigin, getQuizzes } from '../lib/interactive'
 import { isEnabled } from '../lib/feature-flags'
 import { articleUrl } from '../lib/url'
+import { socialLinks } from '../lib/social'
 import {
   getSiteSettings,
   getCategories,
@@ -137,13 +138,13 @@ const remainingLatest = latest.filter((article) => !mastheadSlugs.has(article.sl
  * Google show a sitelinks search box. The search target points at `/search`
  * with a `q` parameter, which is exactly how the Pagefind search page works.
  *
- * `sameAs` is built from the CMS `social` map — the keys are platform names
- * (facebook, youtube, etc.) and the values are URLs. This is the same source
- * the footer uses, so the two cannot drift.
+ * `sameAs` is built from the CMS `social` map through `socialLinks()`, the same
+ * helper the header and the footer render from — so the three genuinely cannot
+ * drift. (This comment previously claimed that unity while all three built the
+ * list independently, and this one used a bare `Object.values`, which meant a
+ * stored `javascript:` URL was published as structured data.)
  */
-const socialUrls = settings.social
-  ? Object.values(settings.social).filter((v): v is string => Boolean(v))
-  : []
+const socialUrls = socialLinks(settings.social).map((link) => link.url)
 
 const orgJsonLd = {
   '@context': 'https://schema.org',

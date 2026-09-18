@@ -1,0 +1,88 @@
+---
+/**
+ * Developer credit — the last line of the footer.
+ *
+ * ## What was wrong before
+ *
+ * The credit was wrapped in a bordered, shadowed button group with 32px-tall
+ * controls and 16px icons, which made the developer's contact methods the
+ * **heaviest element in the entire footer** — visually louder than the copyright
+ * and than the site's own legal links. A reader scanning the bottom of the page
+ * would reasonably read them as "contact this website", which is the exact
+ * confusion to avoid: these reach the **developer**, not the newsroom.
+ *
+ * ## The convention it now follows
+ *
+ * Published footer guidance is consistent on the principle even where it is
+ * silent on credits specifically: **button styling is reserved for calls to
+ * action.** Legal notices, copyright and attributions are secondary by nature
+ * and belong as low-prominence inline text, separated from navigation, with the
+ * copyright sitting at the very bottom. So this is:
+ *
+ *   · one line, all the developer's details together
+ *   · the smallest type in the footer (11px vs the 12px used elsewhere)
+ *   · inline text links — no border, no background, no shadow, no icon buttons
+ *   · the last band, below the copyright and the CMS footer text
+ *   · labelled "ডেভেলপার:" so it cannot be mistaken for site navigation
+ *
+ * ## Why the colour is `ink-muted` and not `ink-subtle`
+ *
+ * The same guidance warns against de-emphasising until legibility suffers, and
+ * that is the trap here: `text-ink-subtle` (#8a8a8a on white) is ≈3.5:1, which
+ * **fails WCAG AA's 4.5:1** for text this size. `text-ink-muted` (#5a5a5a) is
+ * ≈7.5:1 and passes. Subordination is carried by **size and the absence of
+ * chrome**, which is the legitimate tool — not by washing the text out.
+ *
+ * ## Why this is hardcoded and not a CMS field
+ *
+ * A developer credit describes who *built* the site, not what the newsroom
+ * publishes. It changes at most once per rebuild of the stack, so a CMS field
+ * would add an editor-facing control for a value no editor should change — and
+ * an editable credit is one more thing that can be pointed somewhere wrong.
+ * The WhatsApp number and profile URL live here, in one place, deliberately.
+ *
+ * ## Touch targets
+ *
+ * Inline links inside a paragraph are exempt from the 48×48px target rule
+ * (WCAG 2.5.8, "inline" exception) — which is what makes "smaller" compatible
+ * with the accessibility budget. The legal links above rely on the same
+ * exemption.
+ */
+const DEVELOPER = {
+  name: 'শাহিদুল ইসলাম',
+  facebook: 'https://www.facebook.com/shahid88142',
+  whatsapp: 'https://wa.me/8801840488142',
+} as const
+
+/** Shared inline-link treatment — matches the footer's legal links, one step down in size. */
+const linkClass =
+  'underline decoration-transparent underline-offset-2 transition-colors hover:text-brand-red hover:decoration-brand-red dark:hover:text-brand-red'
+---
+
+<div class="border-t border-rule dark:border-dark-rule">
+  <div class="container-page py-3">
+    <p class="text-center text-[11px] leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+      ডেভেলপার: <span class="font-medium">{DEVELOPER.name}</span>
+      <span aria-hidden="true" class="mx-1.5 text-ink-subtle dark:text-dark-ink-muted">·</span>
+      <a
+        href={DEVELOPER.facebook}
+        target="_blank"
+        rel="noopener noreferrer"
+        class={linkClass}
+        aria-label={`ডেভেলপার ${DEVELOPER.name} — ফেসবুক প্রোফাইল`}
+      >
+        ফেসবুক
+      </a>
+      <span aria-hidden="true" class="mx-1.5 text-ink-subtle dark:text-dark-ink-muted">·</span>
+      <a
+        href={DEVELOPER.whatsapp}
+        target="_blank"
+        rel="noopener noreferrer"
+        class={linkClass}
+        aria-label={`ডেভেলপার ${DEVELOPER.name} — হোয়াটসঅ্যাপে যোগাযোগ`}
+      >
+        হোয়াটসঅ্যাপ
+      </a>
+    </p>
+  </div>
+</div>
