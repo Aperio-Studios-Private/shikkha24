@@ -54,7 +54,7 @@
 ## S2 — Design System & Base Layout ✅ COMPLETE 2026-09-12
 - [x] **GATE: domain decided** — ✅ `shikkha24.com`
 - [x] **GATE: portal display name + logo decided** — ✅ **SATISFIED 2026-09-12.** Name = **শিক্ষা২৪ / Shikkha24** (owner-confirmed). Logo = **placeholder SVG**, owner-confirmed — it is a CMS-managed `SiteSettings` field, so the real asset drops in through the admin with no code change
-- [x] Typography: Hind Siliguri (headlines) + Noto Sans Bengali (body) — **Inter dropped, owner-approved 2026-09-12** (83 KB/weight variable file blew the 200 KB budget; the plan itself recommends a system UI stack). ≥17px mobile, line-height ≥1.65
+- [x] Typography: **SolaimanLipi only** — one Bengali family for BOTH headline and body (owner decision 2026-09-12; Hind Siliguri and Noto Sans Bengali both removed, Inter dropped). 154.0 KB / 200 KB budget, OFL, vendored. ≥17px mobile, line-height ≥1.65
 - [x] Colors: brand red #DA1C25 + brand charcoal #1F1F1F + white; dark mode base #121212 (BBC-style) — two distinct tokens, do not conflate them
 - [x] 12-col grid, Header + utility ribbon, mega menu, Footer
 - [x] Sticky mobile share bar, text resizer

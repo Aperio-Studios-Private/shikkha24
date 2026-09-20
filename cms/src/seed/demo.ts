@@ -1,5 +1,7 @@
 import type { Payload } from 'payload'
 
+import { PROGRAMMATIC_CONTEXT } from '../hooks/publish'
+
 /**
  * Demo content seed — `pnpm --filter @shikkha24/cms seed:demo`
  *
@@ -893,6 +895,11 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
         _status: 'published',
       },
       overrideAccess: true,
+      // The publish guard rejects a transition to `published` from any
+      // non-editor session, and a seed has no session at all. This marks the
+      // write as programmatic so the guard stands down — without it CI can
+      // never seed, so the deploy pipeline cannot run. See `hooks/publish.ts`.
+      context: { [PROGRAMMATIC_CONTEXT]: true },
     })
     report.articles++
   }

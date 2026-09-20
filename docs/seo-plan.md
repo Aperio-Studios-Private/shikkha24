@@ -182,4 +182,4 @@ Map each cluster to a template and a hub. **Keyword research is a follow-up task
 - [x] ~~Advertorial-label policy~~ — ✅ added as §6a (2026-09-13, S9)
 - [x] ~~Gallery template row~~ — ✅ added to §3 (2026-09-13, S9)
 - [x] ~~Video: template and schema position~~ — ✅ decided: no template, no schema, click-to-load (§3, 2026-09-13)
-- [ ] **`getAllArticleSlugs()` caps at 500 with no pagination** — past ~500 published articles the sitemap silently stops growing. Flagged at S6/S11, still unfixed.
+- [x] ~~`getAllArticleSlugs()` caps at 500 with no pagination~~ — ✅ **FIXED in S11.** `getAllArticlePaths()` (`frontend/src/lib/cms.ts`) now paginates through the full result set with Payload's `page` + `limit` parameters, so the sitemap no longer stops growing past 500 published articles.
