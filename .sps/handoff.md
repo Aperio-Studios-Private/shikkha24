@@ -1011,6 +1011,38 @@ the host-disk usage alert.
       a paid, official service answering "how is my degree read elsewhere". Pointing at them is more
       useful than trying to replace them.
 
+49. 🚨 **CI went red on the first push of this session — and it was a real S14 defect, not a CI
+    artefact** (2026-09-28, commit `a7f883c`). Worth reading before trusting any local run again.
+    - **Symptom:** `Verify internal links` failed with **26 broken targets** —
+      `/api/photocard/<id>.png` and `/api/idcard/<SHK-R-…>.png`, all **same-origin relative paths**.
+      Every local run had been green.
+    - **Why it passed locally, every time:** `frontend/.env` sets `PUBLIC_CMS_ORIGIN`, so the card
+      URLs were **absolute** and `verify:links` ignores off-origin links. **CI leaves that variable
+      unset deliberately** — its own step comment says so — because CMS-dependent islands are meant
+      to self-hide without it.
+    - **The defect:** `ShareRow.astro` and `reporters/[slug].astro` read the **raw**
+      `import.meta.env.PUBLIC_CMS_ORIGIN` and fell back to `?? ''`, producing a same-origin `/api/…`
+      path the static host does not serve — a dead card link on 24 article pages and a broken card
+      image + download on every verified reporter page.
+    - ⚠️ **`ShareRow`'s own comment claimed the opposite**: *"An unset `PUBLIC_CMS_ORIGIN` hides the
+      button rather than emitting a link to a path the static host does not serve."* The comment
+      stated the intent and the code did the reverse. **This is the second time in S14 that a
+      comment asserted behaviour the code lacked** (the first was the `/verify` not-found state).
+      **Treat a comment describing a *negative* behaviour — hides, refuses, skips — as a claim to
+      verify, not as documentation.**
+    - **Fix:** both now read through `getPublicCmsOrigin()`, the established helper: configured
+      origin → local `CMS_URL` in dev → `null`, and `null` means the section is not rendered at all.
+    - **How it was found and proved:** reproduced locally by copying `frontend/.env` aside and
+      supplying CI's env (`CMS_URL` + `PUBLIC_MEDIA_BASE_URL`) — the build then produced the **same
+      26 missing links**. After the fix, in the same env, the cards render absolute and
+      `verify:links` passes. `.env` restored **byte-identical** (md5 compared). ⚠️ A cross-device
+      `mv` fails with `EXDEV` — use `cp` then `rm`.
+    - **Then pushed and watched the runner: all 25 CI steps green**, including the two new
+      `verify:gpa` / `verify:cgpa` steps and the link check that had failed.
+    - **Lesson, and it is the same one the file already carried:** *a green local run is a
+      hypothesis; the runner is the evidence.* A harness that quietly reads a developer's `.env`
+      passes on every machine that has one, and fails only where it matters.
+
 - **Portal type: education portal** (2026-09-11) — domain `shikkha24.com`; general-news scope retired
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)
 - **Next.js pinned to 16.2.6+** (corrected by the audit)

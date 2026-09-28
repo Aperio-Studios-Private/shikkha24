@@ -81,7 +81,7 @@
 - [x] Correction notice — `CorrectionNotice.astro` (above the body, permanent)
 - [x] Print view — `PrintStyles.astro`
 - [x] JSON-LD — Article schema with headline/datePublished/author/publisher/inLanguage
-- [ ] Comments — ⏳ **deferred to S9** (needs social login + the comments collection UI; not part of S4's page shell)
+- [x] Comments — ✅ **built at S9** (approved 2026-09-13): `CommentSection.astro` + `POST /api/comments/submit` (collection-mounted), moderation-gated, escaped, rate-limited, `verify:engagement` 22/22. Deferred out of S4's page shell at the time, then delivered.
 - [x] S4 DoD evidence → **user approval pending**
 
 ## S5 — Category/Tag/Author/Archive ✅ COMPLETE 2026-09-12

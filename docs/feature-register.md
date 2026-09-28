@@ -347,4 +347,4 @@ Every claim in this document is backed by a runnable check.
 | 4 | YouTube channel + Facebook Page for live streams | S15 |
 | 5 | The `/admin/reporter` view needs a **manual browser check** — Payload admin views hydrate client-side, so no automated check can confirm the render | S13 sign-off |
 | 6 | Trade Licence / TIN / Ministry of Information numbers | The E-E-A-T footer block renders only once set |
-| 7 | Real logo | A placeholder SVG stands in |
+| 7 | Is the supplied logo **final**? | The real logo was supplied 2026-09-13 and is rendering. It is a CMS-managed `SiteSettings` field, so replacement needs no code change — only "is this the final artwork" is open |
