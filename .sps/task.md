@@ -265,16 +265,20 @@
 - [x] ⚠️ **Counter-proof:** the same card generated twice is byte-identical; the QR resolves to a live `/verify/:id`
 - [x] S14 DoD evidence → `.sps/section-todos/S14.md` → **user approval pending**
 
-## S15 — Live TV
+## S15 — Live TV ✅ BUILT 2026-09-28
 *(requested feature #5)*
-- [ ] `LiveStreams` collection: title, provider (youtube/facebook), `videoId`, `pageUrl`, `isLive`, schedule, description, poster
-- [ ] `/live-tv` route — **click-to-load**; zero third-party requests before the reader taps play
-- [ ] YouTube player uses `youtube-nocookie.com`
-- [ ] 🚨 **Add the third CSP profile `SHIKKHA24_CSP_MEDIA`** — the relaxed profile has no video `frame-src` and the article profile is YouTube-only
-- [ ] ⚠️ **Teach `verify-apache.mjs` the third profile** — its corrected logic assumes exactly two
-- [ ] ⚠️ Document the third profile in `docs/security.md` §5
-- [ ] ⚠️ `verify-build-output.mjs` asserts the `/live-tv` CSP rule exists, counter-proved by injecting its removal
-- [ ] S15 DoD evidence → `.sps/section-todos/S15.md` → **user approval**
+- [x] `LiveStreams` collection: title, provider (youtube/facebook), `videoId`, `pageUrl`, `isLive`, schedule, description, poster
+  - [x] ⚠️ Host-checked at the CMS (`lib/live-stream.ts`): the value becomes an **iframe `src`**, so an arbitrary origin would be a stored third-party frame on a page whose CSP is deliberately relaxed for video
+  - [x] Provider-conditional requirement — an empty `videoId` on a YouTube row renders a player with no source, which reads as a broken page rather than a missing field
+- [x] `/live-tv` route — **click-to-load**; zero third-party requests before the reader taps play (`0` iframes, `0` `youtube-nocookie` in the built markup; the only third-party URL is the fallback `<a href>`)
+- [x] YouTube player uses `youtube-nocookie.com`
+- [x] 🚨 **Added the third CSP profile `SHIKKHA24_CSP_MEDIA`**, scoped to `/live-tv` alone
+- [x] ⚠️ **Taught `verify-apache.mjs` the third profile** — keyed on `data-media-embed`, not on the path
+- [x] ⚠️ Documented the third profile in `docs/security.md` §13.5 (and `§5.1`)
+- [x] ⚠️ `verify-build-output.mjs` asserts the `/live-tv` CSP rule, the consumer, both providers, the single-route scoping, **and that the relaxed profile did not gain video**
+- [x] ⚠️ **Counter-proved:** the tag was stripped from both `.htaccess` copies — `/live-tv` came back **strict** and both gates went red
+- [x] Demo live stream seeded — ⚠️ this is the fixture that keeps the third-profile check non-vacuous
+- [x] S15 DoD evidence → `.sps/section-todos/S15.md` → **user approval pending**
 
 ## S16 — Reader Reactions
 *(reaction half of requested feature #7 — comments are already built)*

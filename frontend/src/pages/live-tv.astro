@@ -1,0 +1,157 @@
+---
+/**
+ * `/live-tv` — live television (S15, requested feature #5).
+ *
+ * ## Click-to-load, like every other embed on this site
+ *
+ * The page ships **no iframe and no third-party URL**. `MediaEmbed` renders a
+ * real link to the provider's watch page, and the player is created only on the
+ * reader's first tap. So the page makes zero third-party requests on load and the
+ * LCP budget is untouched — the same shape as the S9 article video block.
+ *
+ * ## ⚠️ This route needs the THIRD CSP profile
+ *
+ * It frames YouTube *and* Facebook. The strict profile is `frame-src 'none'` and
+ * the relaxed profile carries no video at all, so `.htaccess` tags this route
+ * with `SHIKKHA24_CSP_MEDIA` — scoped to `/live-tv` alone, because widening the
+ * relaxed profile would hand iframe permission to the homepage and every category
+ * listing. `pnpm verify:apache` asserts it against a real Apache.
+ *
+ * ⚠️ **Do not remove `data-media-embed` from the player.** That attribute is what
+ * `verify-apache` reads to decide the profile this page should get — it is the
+ * cause-keyed marker, not decoration. See `MediaEmbed.astro`.
+ *
+ * ## Empty is a state, not a failure
+ *
+ * With nothing configured the page renders an honest empty state and **no player
+ * and no ad slot** — an ad on a page with no content is worse than no ad. The
+ * route still exists and stays in the sitemap, so a reader who follows a link
+ * from a broadcast day does not land on a 404.
+ */
+import AdSlot from '../components/AdSlot.astro'
+import MediaEmbed from '../components/MediaEmbed.astro'
+import Layout from '../layouts/Layout.astro'
+import { formatBnBd } from '../lib/bangla-date'
+import {
+  FALLBACK_CATEGORIES,
+  FALLBACK_SETTINGS,
+  getCategories,
+  getFooterPages,
+  getLiveStreams,
+  getSiteSettings,
+} from '../lib/cms'
+import { resolveCmsImage } from '../lib/media'
+
+const [settings, categories, footerPages, streams] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getLiveStreams().catch(() => []),
+])
+
+/*
+ * `getLiveStreams` sorts `-isLive` first, so the first row is the one to play
+ * whenever anything is live. Falling back to the newest row means a reader who
+ * arrives between broadcasts still sees the most recent recording rather than an
+ * empty box — the spec's "most recent recording" branch.
+ */
+const liveStream = streams.find((stream) => stream.isLive) ?? null
+const current = liveStream ?? streams[0] ?? null
+
+/** Scheduled streams other than the one being shown — the "আসছে" list. */
+const upcoming = streams.filter((stream) => stream.id !== current?.id && stream.scheduledStart)
+
+const poster = current
+  ? resolveCmsImage(
+      (current.poster ?? null) as Parameters<typeof resolveCmsImage>[0],
+      current.title,
+    )
+  : null
+
+const isLive = Boolean(liveStream)
+
+/** `নির্বাচিত সময়` label for a scheduled stream, in Dhaka time. */
+const scheduledLabel = (value: string | null | undefined): string | null =>
+  value ? formatBnBd(value, { day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' }) : null
+---
+
+<Layout
+  title="লাইভ টিভি"
+  description="শিক্ষা২৪-এর সরাসরি সম্প্রচার — ভর্তি, ফলাফল ও বাজেটের লাইভ কভারেজ।"
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+>
+  <div class="container-page py-8">
+    <header class="mb-6">
+      <h1 class="text-2xl font-bold text-ink dark:text-dark-ink">লাইভ টিভি</h1>
+      <p class="mt-1 text-base text-ink-soft dark:text-dark-ink-soft">
+        শিক্ষা২৪-এর সরাসরি সম্প্রচার ও সাম্প্রতিক সম্প্রচারের রেকর্ডিং।
+      </p>
+    </header>
+
+    {
+      current ? (
+        <div class="mx-auto max-w-3xl">
+          <div class="mb-3 flex flex-wrap items-center gap-2">
+            {isLive ? (
+              <span class="inline-flex items-center gap-1.5 rounded bg-brand-red px-2 py-0.5 text-xs font-bold text-white">
+                <span class="h-2 w-2 rounded-full bg-white" aria-hidden="true" />
+                সরাসরি
+              </span>
+            ) : (
+              <span class="inline-flex items-center rounded bg-rule px-2 py-0.5 text-xs font-semibold text-ink-soft dark:bg-dark-rule dark:text-dark-ink-soft">
+                রেকর্ডিং
+              </span>
+            )}
+            <h2 class="text-lg font-semibold text-ink dark:text-dark-ink">{current.title}</h2>
+          </div>
+
+          <MediaEmbed
+            provider={current.provider}
+            videoId={current.videoId}
+            pageUrl={current.pageUrl}
+            title={current.title}
+            poster={poster}
+          />
+
+          {current.description ? (
+            <p class="mt-4 text-base leading-relaxed text-ink-soft dark:text-dark-ink-soft">
+              {current.description}
+            </p>
+          ) : null}
+
+          {/* Rendered only alongside a player — see the header comment. */}
+          <div class="mt-6">
+            <AdSlot position="liveTvTop" width={728} height={90} class="mx-auto" />
+          </div>
+        </div>
+      ) : (
+        <div class="mx-auto max-w-2xl rounded-lg border border-rule bg-surface-raised p-6 dark:border-dark-rule dark:bg-dark-surface-raised">
+          <p class="font-semibold text-ink dark:text-dark-ink">এখন কোনো সম্প্রচার নেই</p>
+          <p class="mt-1 text-sm text-ink-soft dark:text-dark-ink-soft">
+            শিক্ষা২৪-এর পরবর্তী সরাসরি সম্প্রচারের সময় এখানে জানানো হবে।
+          </p>
+        </div>
+      )
+    }
+
+    {
+      upcoming.length > 0 && (
+        <section class="mx-auto mt-8 max-w-3xl">
+          <h2 class="mb-3 text-lg font-semibold text-ink dark:text-dark-ink">আসছে</h2>
+          <ul class="divide-y divide-rule dark:divide-dark-rule">
+            {upcoming.map((stream) => (
+              <li class="flex items-center justify-between gap-4 py-3">
+                <span class="text-sm font-medium text-ink dark:text-dark-ink">{stream.title}</span>
+                <span class="shrink-0 text-xs text-ink-muted dark:text-dark-ink-muted">
+                  {scheduledLabel(stream.scheduledStart)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+  </div>
+</Layout>

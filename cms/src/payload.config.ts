@@ -20,6 +20,7 @@ import { FactChecks } from './collections/FactChecks'
 import { Institutions } from './collections/Institutions'
 import { Levels } from './collections/Levels'
 import { LiveBlogs } from './collections/LiveBlogs'
+import { LiveStreams } from './collections/LiveStreams'
 import { Media } from './collections/Media'
 import { NewsletterCampaigns } from './collections/NewsletterCampaigns'
 import { NewsletterSubscribers } from './collections/NewsletterSubscribers'
@@ -234,6 +235,7 @@ export default buildConfig({
     // ── Media & advertising ──────────────────────────────────────────────────
     withRebuildTrigger(Media),
     withRebuildTrigger(PhotoGalleries),
+    withRebuildTrigger(LiveStreams),
     withRebuildTrigger(AdUnits),
 
     // ── Readers ──────────────────────────────────────────────────────────────

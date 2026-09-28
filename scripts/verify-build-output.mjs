@@ -216,6 +216,63 @@ check(
   articleRule ?? 'no three-segment article rule found',
 )
 
+// ── 7b. The third CSP profile (S15) ──────────────────────────────────────────
+/*
+ * `/live-tv` frames **YouTube and Facebook**. Neither existing profile can
+ * express that — strict is `frame-src 'none'`, and the relaxed profile carries no
+ * video at all — so a third profile, `SHIKKHA24_CSP_MEDIA`, is scoped to it.
+ *
+ * Three things must hold together, and **each fails silently on its own**:
+ *
+ *   1. the route is tagged,
+ *   2. a `Header` line consumes the tag, and
+ *   3. that header actually frames both providers.
+ *
+ * A tagged route with no consuming header gets the strict policy and the player
+ * is blocked with no error anywhere — the same failure class as the `/article/*`
+ * rule that stopped matching at S11 and would have dropped AdSense sitewide.
+ *
+ * ⚠️ This is a static pre-filter. `pnpm verify:apache` is the real gate: only
+ * running Apache proves the file is loadable and the header is served.
+ */
+const mediaTagRules = routePatterns.filter((pattern) => pattern.includes('live-tv'))
+check(
+  '.htaccess tags /live-tv for the third CSP profile',
+  mediaTagRules.length === 1,
+  `${mediaTagRules.length} rule(s) matching /live-tv`,
+)
+check(
+  'SHIKKHA24_CSP_MEDIA is scoped to one route, not sitewide',
+  (htaccessDirectives.match(/SHIKKHA24_CSP_MEDIA=1/g) ?? []).length === 1,
+)
+
+const mediaHeader = [
+  ...htaccessDirectives.matchAll(/Header always set Content-Security-Policy "([^"]+)" env=(\S+)/g),
+].find((match) => match[2] === 'SHIKKHA24_CSP_MEDIA')
+check(
+  'a CSP header consumes SHIKKHA24_CSP_MEDIA',
+  Boolean(mediaHeader),
+  mediaHeader ? '' : 'the route is tagged but nothing consumes it — it would fall to strict',
+)
+if (mediaHeader) {
+  const frameSrc = mediaHeader[1].match(/frame-src ([^;]+);/)?.[1] ?? ''
+  check('the media profile frames YouTube', frameSrc.includes('youtube-nocookie.com'), frameSrc)
+  check('the media profile frames Facebook', frameSrc.includes('www.facebook.com'), frameSrc)
+  // The relaxed profile must NOT have gained video — that was the rejected
+  // option, and it is a security regression rather than a style choice.
+  const relaxedHeader = [
+    ...htaccessDirectives.matchAll(
+      /Header always set Content-Security-Policy "([^"]+)" env=(\S+)/g,
+    ),
+  ].find((match) => match[2] === 'SHIKKHA24_CSP_RELAXED')
+  const relaxedFrameSrc = relaxedHeader?.[1].match(/frame-src ([^;]+);/)?.[1] ?? ''
+  check(
+    'the relaxed profile did NOT gain video (the rejected regression)',
+    !relaxedFrameSrc.includes('facebook.com') && !relaxedFrameSrc.includes('youtube'),
+    relaxedFrameSrc || 'no frame-src directive',
+  )
+}
+
 // ── 5. No component nests a page container inside another ────────────────────
 /**
  * `.container-page` carries `padding-inline` and a `max-width`. It belongs once

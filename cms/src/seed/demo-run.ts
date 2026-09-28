@@ -38,6 +38,7 @@ try {
   console.log(`  galleries ${engagement.galleries}`)
   console.log(`  comments  ${engagement.comments}`)
   console.log(`  video     ${engagement.video}`)
+  console.log(`  liveTv    ${engagement.liveStreams}`)
   console.log(`  scholarships ${education.scholarships}`)
   console.log(`  results   ${education.results}`)
   console.log(`  institutions ${education.institutions}`)

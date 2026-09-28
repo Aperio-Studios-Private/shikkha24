@@ -147,6 +147,9 @@ await purge('study-abroad-guides', { slug: { like: DEMO_SLUG } }, 'study-abroad 
 await purge('scholarships', { title: { like: DEMO_BN } }, 'scholarships')
 await purge('result-links', { title: { like: DEMO_BN } }, 'result links')
 await purge('circulars', { title: { like: DEMO_BN } }, 'circulars')
+// S15. No slug on this collection, so it marks itself the same way the education
+// demo rows do — a `ডেমো:` title prefix.
+await purge('live-streams', { title: { like: DEMO_BN } }, 'live streams')
 
 await purge('quizzes', { title: { equals: DEMO_QUIZ_TITLE } }, 'quizzes')
 await purge('polls', { questionBn: { equals: DEMO_POLL_QUESTION } }, 'polls')

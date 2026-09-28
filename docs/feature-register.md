@@ -33,7 +33,7 @@ message maps one-to-one onto this table.
 | 2 | Reporter Management & Verification | ✅ **Built** | S13 | `cms/src/collections/Authors.ts` (verification block), `frontend/src/pages/reporters/` |
 | 3 | QR Code Reporter ID Card | ✅ **Built** | S14 | `cms/src/lib/id-card.ts` (QR + sharp), `frontend/src/pages/verify/[reporterId].astro` |
 | 4 | Reporter News Submit & Assignment | ✅ **Built** | S13 | `cms/src/collections/Assignments.ts`, `cms/src/endpoints/reporter.ts`, `cms/src/components/admin/ReporterWorkspace.tsx` |
-| 5 | Live TV | ⬜ **Not built** | S15 | — |
+| 5 | Live TV | ✅ **Built** | S15 | `cms/src/collections/LiveStreams.ts`, `frontend/src/pages/live-tv.astro`, `frontend/src/components/MediaEmbed.astro` |
 | 6 | Online Voting / Poll System | ✅ **Built** | S8 | `cms/src/collections/Polls.ts`, `PollVotes.ts`, `cms/src/endpoints/poll-vote.ts`, `frontend/src/components/PollWidget.astro` |
 | 7a | Comment System | ✅ **Built** | S4 / S9 | `cms/src/collections/Comments.ts`, `cms/src/endpoints/comments.ts`, `frontend/src/components/CommentSection.astro` |
 | 7b | Reaction System | ⬜ **Not built** | S16 | — |
@@ -220,22 +220,25 @@ Two defects were found only at verification time, and both are worth remembering
 time — a browser cannot be trusted to render an unforgeable card, and build-time
 generation would spend CI minutes on every reporter edit.
 
-### S15 — Live TV (request #5)
+### S15 — Live TV (request #5) — ✅ **BUILT 2026-09-28**
 
-**Specified in `docs/feature-batch-2.md` §4.** Nothing built.
+**Specified in `docs/feature-batch-2.md` §4.** **Built and verified** — evidence in
+`.sps/section-todos/S15.md`.
 
 - Owner decision: **both YouTube and Facebook**; the CMS stores the provider.
 - `/live-tv` — click-to-load player, **zero third-party requests before the reader
-  taps play**.
-- 🚨 **This forces a THIRD CSP profile (`SHIKKHA24_CSP_MEDIA`).** The relaxed
-  profile has no video in `frame-src` (the iframe would be silently blocked) and
-  the article profile is YouTube-only. Widening the relaxed profile was rejected
-  as a security regression — the homepage, every category listing and `/quiz`
-  would gain iframe permission they do not need.
-- ⚠️ A third profile **breaks `verify-apache.mjs`**, whose corrected expectation
-  logic assumes exactly two. That, `docs/security.md` §5, and a counter-proved
-  build-output check must land in the same commit.
+  taps play** (verified: 0 iframes, 0 `youtube-nocookie` in the built markup).
+- 🚨 **The third CSP profile, `SHIKKHA24_CSP_MEDIA`, is built** and scoped to
+  `/live-tv` alone. Widening the relaxed profile was rejected as a security
+  regression — and `verify:build-output` now *asserts* the relaxed profile carries
+  no video host, so that decision cannot be quietly reversed.
+- `verify-apache.mjs` learned the third profile, keyed on `data-media-embed` (the
+  component that causes the relaxation) rather than on the route path.
+- **Counter-proved:** stripping the tag made `/live-tv` come back `strict` and turned
+  both gates red.
 - Self-hosted streaming is **not possible** — DianaHost is 2 GB shared hosting.
+- ⚠️ A demo live stream is seeded because the page **self-hides when the collection is
+  empty**, which would otherwise leave the third-profile check vacuous.
 
 ### S16 — Reader Reactions (request #7b)
 

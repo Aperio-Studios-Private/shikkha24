@@ -88,6 +88,7 @@ export interface Config {
     quizzes: Quiz;
     media: Media;
     'photo-galleries': PhotoGallery;
+    'live-streams': LiveStream;
     'ad-units': AdUnit;
     comments: Comment;
     'newsletter-subscribers': NewsletterSubscriber;
@@ -127,6 +128,7 @@ export interface Config {
     quizzes: QuizzesSelect<false> | QuizzesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'photo-galleries': PhotoGalleriesSelect<false> | PhotoGalleriesSelect<true>;
+    'live-streams': LiveStreamsSelect<false> | LiveStreamsSelect<true>;
     'ad-units': AdUnitsSelect<false> | AdUnitsSelect<true>;
     comments: CommentsSelect<false> | CommentsSelect<true>;
     'newsletter-subscribers': NewsletterSubscribersSelect<false> | NewsletterSubscribersSelect<true>;
@@ -1089,6 +1091,49 @@ export interface PhotoGallery {
 /**
  * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
  *
+ * লাইভ টিভি — ইউটিউব বা ফেসবুকের লাইভ সম্প্রচার। /live-tv পাতায় দেখানো হয়। স্ট্রিম শেষ হলে isLive বন্ধ করুন।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "live-streams".
+ */
+export interface LiveStream {
+  id: number;
+  /**
+   * যেমন: বাজেট ২০২৬ সরাসরি সম্প্রচার।
+   */
+  title: string;
+  /**
+   * কোন প্লেয়ার ব্যবহার হবে তা ঠিক করে।
+   */
+  provider: 'youtube' | 'facebook';
+  /**
+   * ১১ অক্ষরের আইডি, যেমন aqz-KE-bpKQ। সম্পূর্ণ লিংক নয়।
+   */
+  videoId?: string | null;
+  /**
+   * ফেসবুক ভিডিও বা লাইভ সম্প্রচারের সম্পূর্ণ ঠিকানা (https://www.facebook.com/…)।
+   */
+  pageUrl?: string | null;
+  /**
+   * শুধু এই বোতাম চালু থাকলে পাতা সরাসরি সম্প্রচার দেখায়। সম্প্রচার শেষ হলে বন্ধ করে দিন।
+   */
+  isLive?: boolean | null;
+  /**
+   * সম্প্রচার না থাকলে এই সময় দেখানো হয়।
+   */
+  scheduledStart?: string | null;
+  scheduledEnd?: string | null;
+  description?: string | null;
+  /**
+   * প্লে করার আগে এই ছবিটি দেখানো হয়। নিজের ছবি দিন — ইউটিউবের থাম্বনেইল সরাসরি ব্যবহার করলে পাঠকের ব্রাউজার থেকে ইউটিউবে অনুরোধ যায়।
+   */
+  poster?: (number | null) | Media;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * বিজ্ঞাপনের অবস্থান ও ক্যাম্পেইন। CLS শূন্য রাখতে নির্দিষ্ট অবস্থান ব্যবহার করুন — নতুন অবস্থান যোগ করার আগে ফ্রন্টএন্ডে সেই স্লট থাকতে হবে।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1110,6 +1155,7 @@ export interface AdUnit {
     | 'sidebarSticky'
     | 'categoryLeaderboard'
     | 'liveBlogTop'
+    | 'liveTvTop'
     | 'articleTop'
     | 'articleMiddle'
     | 'articleBottom';
@@ -1600,6 +1646,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'photo-galleries';
         value: number | PhotoGallery;
+      } | null)
+    | ({
+        relationTo: 'live-streams';
+        value: number | LiveStream;
       } | null)
     | ({
         relationTo: 'ad-units';
@@ -2126,6 +2176,23 @@ export interface PhotoGalleriesSelect<T extends boolean = true> {
         id?: T;
       };
   description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "live-streams_select".
+ */
+export interface LiveStreamsSelect<T extends boolean = true> {
+  title?: T;
+  provider?: T;
+  videoId?: T;
+  pageUrl?: T;
+  isLive?: T;
+  scheduledStart?: T;
+  scheduledEnd?: T;
+  description?: T;
+  poster?: T;
   updatedAt?: T;
   createdAt?: T;
 }

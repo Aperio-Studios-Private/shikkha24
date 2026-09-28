@@ -1,0 +1,222 @@
+---
+/**
+ * Click-to-load media player — YouTube or Facebook.
+ *
+ * ## Nothing is requested until the reader taps play
+ *
+ * The markup contains **no iframe and no third-party URL**. The trigger is a real
+ * `<a>` pointing at the provider's watch page, so with JavaScript unavailable the
+ * reader still reaches the stream — they simply leave the site for it. When the
+ * script runs it takes over the click and swaps in the player. Same
+ * progressive-enhancement shape as the S9 article video block.
+ *
+ * ## Why one component for both providers
+ *
+ * The owner's decision was **both YouTube and Facebook**, and the two differ only
+ * in the frame URL. Keeping them in one component means the click-to-load
+ * behaviour, the reserved box and the runtime re-validation exist once, so a
+ * later change cannot land on one provider and miss the other.
+ *
+ * ## ⚠️ `data-media-embed` is a contract, not decoration
+ *
+ * The route that renders this component needs the **`SHIKKHA24_CSP_MEDIA`** CSP
+ * profile: it frames YouTube *and* Facebook, which neither the strict profile
+ * (`frame-src 'none'`) nor the relaxed one (no video at all) permits.
+ * `scripts/verify-apache.mjs` derives the profile a page *should* get from this
+ * attribute — the same cause-keyed approach as `data-ad-slot`, and for the same
+ * reason: keying it on the URL path would be a second copy of the `.htaccess`
+ * regex, and the two would drift.
+ *
+ * So this attribute decides a security header. Do not remove it, and do not emit
+ * it from a page that is not tagged in `.htaccess`.
+ *
+ * ## The poster is deliberately self-hosted
+ *
+ * YouTube's own thumbnail (`i.ytimg.com/…`) would be a third-party request on
+ * every page view — the exact thing this component exists to avoid. A stream with
+ * no uploaded poster renders a text-only trigger.
+ */
+import type { ResolvedImage } from '../lib/media'
+
+interface Props {
+  provider: 'youtube' | 'facebook'
+  /** The 11-character YouTube id. Required when `provider` is `youtube`. */
+  videoId?: string | null
+  /** The Facebook video URL. Required when `provider` is `facebook`. */
+  pageUrl?: string | null
+  /** Accessible name for the trigger — never optional. */
+  title: string
+  /** Resolved poster, or `null` for a text-only trigger. */
+  poster?: ResolvedImage | null
+}
+
+const { provider, videoId, pageUrl, title, poster } = Astro.props
+
+/**
+ * Re-validate at build time.
+ *
+ * The CMS validates these too (`cms/src/lib/live-stream.ts`), but this is the
+ * layer that decides what reaches the markup, and it is the one that still holds
+ * if a row is written through the API with `overrideAccess`. Same reasoning as
+ * `parseYouTubeId`: the id is checked against a fixed pattern and the frame URL
+ * is then assembled from a template, so no stored value ever becomes a URL.
+ */
+const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/
+const FACEBOOK_HOSTS = new Set([
+  'facebook.com',
+  'www.facebook.com',
+  'm.facebook.com',
+  'web.facebook.com',
+  'fb.watch',
+  'www.fb.watch',
+])
+
+/** The id or URL the frame will be built from, or `null` if the row is unusable. */
+function resolveSource(): string | null {
+  if (provider === 'youtube') {
+    const id = String(videoId ?? '').trim()
+    return YOUTUBE_ID.test(id) ? id : null
+  }
+  const raw = String(pageUrl ?? '').trim()
+  if (!raw) return null
+  try {
+    const url = new URL(raw)
+    if (url.protocol !== 'https:') return null
+    return FACEBOOK_HOSTS.has(url.hostname.toLowerCase()) ? url.href : null
+  } catch {
+    return null
+  }
+}
+
+const source = resolveSource()
+
+/** Where the no-JavaScript fallback link goes — the provider's own page. */
+const watchUrl =
+  provider === 'youtube'
+    ? `https://www.youtube.com/watch?v=${source ?? ''}`
+    : (source ?? '#')
+---
+
+{
+  source ? (
+    <figure
+      class="media-embed relative overflow-hidden rounded-lg border border-rule bg-charcoal dark:border-dark-rule"
+      data-media-embed
+      data-media-provider={provider}
+      data-media-source={source}
+    >
+      <a
+        class="group relative flex aspect-video w-full items-center justify-center"
+        href={watchUrl}
+        data-media-trigger
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {poster ? (
+          <img
+            src={poster.src}
+            srcset={poster.srcset}
+            width={poster.width}
+            height={poster.height}
+            alt=""
+            class="absolute inset-0 h-full w-full object-cover opacity-70"
+            loading="lazy"
+            decoding="async"
+          />
+        ) : null}
+        <span
+          class="relative flex h-16 w-16 items-center justify-center rounded-full bg-brand-red text-white shadow-lg transition-transform group-hover:scale-110"
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 24 24" class="ml-1 h-7 w-7 fill-current">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </span>
+        <span class="absolute bottom-3 left-3 right-3 text-sm font-medium text-white drop-shadow">
+          {title}
+        </span>
+      </a>
+    </figure>
+  ) : null
+}
+
+<script>
+  /**
+   * Build the frame on the reader's first tap.
+   *
+   * ## The stored value is re-validated here
+   *
+   * The build already checked it, but a page is not a trusted input once it is on
+   * a host — and this is the line that decides what gets framed. An invalid value
+   * leaves the ordinary link in place rather than producing a frame that the CSP
+   * would block anyway.
+   *
+   * ## Both providers, one handler
+   *
+   * `data-media-source` carries the 11-character id for YouTube and the full
+   * `https://…` URL for Facebook. The provider attribute decides which template
+   * it is pasted into — the value itself is never used as a frame URL.
+   */
+  const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/
+  const FACEBOOK_HOSTS = new Set([
+    'facebook.com',
+    'www.facebook.com',
+    'm.facebook.com',
+    'web.facebook.com',
+    'fb.watch',
+    'www.fb.watch',
+  ])
+
+  /** The frame URL for a validated source, or `null` if it does not hold up. */
+  function frameUrl(provider: string, source: string): string | null {
+    if (provider === 'youtube') {
+      if (!YOUTUBE_ID.test(source)) return null
+      // `autoplay=1` is allowed because a tap is a user gesture. `rel=0` keeps
+      // the end screen inside this channel; `playsinline` stops iOS Safari from
+      // hijacking the screen with its own fullscreen player.
+      return `https://www.youtube-nocookie.com/embed/${source}?autoplay=1&rel=0&playsinline=1`
+    }
+
+    let url: URL
+    try {
+      url = new URL(source)
+    } catch {
+      return null
+    }
+    if (url.protocol !== 'https:') return null
+    if (!FACEBOOK_HOSTS.has(url.hostname.toLowerCase())) return null
+    // The plugin frames the video named in `href`; the URL travels as a query
+    // parameter, so it is encoded rather than concatenated.
+    return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url.href)}&show_text=false&autoplay=1`
+  }
+
+  for (const figure of document.querySelectorAll<HTMLElement>('[data-media-embed]')) {
+    const trigger = figure.querySelector<HTMLAnchorElement>('[data-media-trigger]')
+    const provider = figure.dataset.mediaProvider ?? ''
+    const source = figure.dataset.mediaSource ?? ''
+    if (!trigger) continue
+
+    const src = frameUrl(provider, source)
+    if (!src) continue
+
+    trigger.addEventListener('click', (event) => {
+      // The link stays a link until this handler decides otherwise — so a browser
+      // that blocks the frame still has the ordinary navigation path.
+      event.preventDefault()
+
+      const frame = document.createElement('iframe')
+      frame.className = 'absolute inset-0 h-full w-full'
+      frame.src = src
+      frame.title = figure.querySelector('span:last-of-type')?.textContent?.trim() || 'ভিডিও'
+      // Scoped to what a player needs — not a blanket permission delegation.
+      frame.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture'
+      frame.allowFullscreen = true
+      frame.setAttribute('loading', 'lazy')
+
+      trigger.replaceWith(frame)
+      // The trigger has just left the document. Without this, focus falls back to
+      // `<body>` and a keyboard reader loses their place entirely.
+      frame.focus()
+    })
+  }
+</script>

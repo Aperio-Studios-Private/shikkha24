@@ -1096,3 +1096,52 @@ export async function getAllPageSlugs(): Promise<string[]> {
   )
   return (data?.docs ?? []).map((doc) => doc.slug).filter(Boolean)
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Live TV (S15)
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/** Mirrors `LiveStreams.provider` in the CMS. */
+export type LiveProvider = 'youtube' | 'facebook'
+
+export interface CmsLiveStream {
+  id: number | string
+  title: string
+  provider: LiveProvider
+  videoId?: string | null
+  pageUrl?: string | null
+  isLive?: boolean | null
+  scheduledStart?: string | null
+  scheduledEnd?: string | null
+  description?: string | null
+  poster?:
+    | {
+        url?: string | null
+        alt?: string | null
+        width?: number | null
+        height?: number | null
+      }
+    | number
+    | null
+  updatedAt?: string | null
+}
+
+/**
+ * Every live stream, the currently-live one first.
+ *
+ * Sort order is `-isLive` then `-scheduledStart`: a running broadcast outranks
+ * everything, and among the rest the most recently scheduled comes first. The
+ * page then splits the list itself, which keeps the "which one is playing?"
+ * decision in one readable place instead of in a query string.
+ *
+ * Returns `[]` both when there are none and when the CMS is unreachable. The page
+ * treats those the same and self-hides, so a CMS outage cannot leave an empty
+ * player frame on the site (`docs/reliability.md` §4).
+ */
+export async function getLiveStreams(): Promise<CmsLiveStream[]> {
+  const data = await cmsFetch<{ docs?: CmsLiveStream[] } | null>(
+    `/api/live-streams${qs({ limit: 50, depth: 1, sort: '-isLive,-scheduledStart' })}`,
+    null,
+  )
+  return data?.docs ?? []
+}

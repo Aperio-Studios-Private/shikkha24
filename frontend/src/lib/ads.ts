@@ -33,6 +33,7 @@ export const AD_POSITIONS = [
   'sidebarSticky',
   'categoryLeaderboard',
   'liveBlogTop',
+  'liveTvTop',
   'articleTop',
   'articleMiddle',
   'articleBottom',

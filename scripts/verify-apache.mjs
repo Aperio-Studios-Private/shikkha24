@@ -143,6 +143,11 @@ function headerValues(rawHeaders, name) {
 
 /** Classify a CSP value into the profile the file is supposed to serve. */
 function profileOf(csp) {
+  // Facebook is the discriminator for the MEDIA profile (S15): it is the only
+  // profile that frames the host, and no other profile mentions it at all.
+  // Checking it first is therefore unambiguous — the article profile also names
+  // YouTube, so YouTube alone could not tell the two apart.
+  if (csp.includes('www.facebook.com')) return 'media'
   if (csp.includes('pagead2.googlesyndication.com')) {
     return csp.includes('youtube-nocookie.com') ? 'relaxed-article' : 'relaxed-generic'
   }
@@ -158,6 +163,11 @@ function profileOf(csp) {
  * read here is `data-ad-slot` — the attribute `AdSlot.astro` emits — and not the
  * page's JSON-LD.
  *
+ * There are two markers in total: `data-ad-slot` for the relaxed profile and
+ * `data-media-embed` for the media profile (S15). Each names the component that
+ * *causes* the relaxation, so neither is a restatement of the `.htaccess` path
+ * regex.
+ *
  * JSON-LD was the wrong key, and it produced a false failure the first time a
  * listing page without ads was built. `CollectionPage` describes a *listing*,
  * which correlates with being ad-bearing but does not cause it: `/latest` is a
@@ -172,6 +182,18 @@ function profileOf(csp) {
  * the `.htaccess` path regex, so it stays independent of the rule under test.
  */
 function expectedProfile(html) {
+  /*
+   * The media profile (S15) is keyed on `data-media-embed` — the attribute
+   * `MediaEmbed.astro` emits, which is the component that frames both YouTube and
+   * Facebook. Same cause-keyed discipline as `data-ad-slot` below, and for the
+   * same reason: keying it on the `/live-tv` path would be a second copy of the
+   * `.htaccess` regex, and the two would drift.
+   *
+   * It is checked first because a media route also renders an ad slot, so the
+   * ad-bearing branches below would otherwise claim it.
+   */
+  if (/data-media-embed/.test(html)) return 'media'
+
   const adBearing = /data-ad-slot="/.test(html)
   if (!adBearing) return 'strict'
   return /"@type":\s*"NewsArticle"/.test(html) ? 'relaxed-article' : 'relaxed-generic'
@@ -360,12 +382,13 @@ try {
   const problems = []
   let relaxed = 0
   let adBearing = 0
-  // Relaxed pages that render no ad slot. `.htaccess` dispatches by route
+  let mediaRoutes = 0
+  // Pages that need no relaxation but get one. `.htaccess` dispatches by route
   // *family*, so a relaxed family may legitimately contain one — `/quiz` is
-  // relaxed because `/quiz/:id` carries ads. Over-relaxing is harmless (the
-  // page simply gets a wider policy than it needs), so it is reported, not
-  // failed. A page that *needs* relaxation and does not get it is the failure
-  // that matters, and that is what `problems` catches.
+  // relaxed because `/quiz/:id` carries ads. Over-relaxing is harmless (the page
+  // simply gets a wider policy than it needs), so it is reported, not failed. A
+  // page that *needs* relaxation and does not get it is the failure that
+  // matters, and that is what `problems` catches.
   const overRelaxed = []
 
   for (const route of routes) {
@@ -379,21 +402,21 @@ try {
       problems.push(`${route} → HTTP ${res.status}, ${csps.length} CSP headers, expected exactly 1`)
       continue
     }
-    const hasAd = /data-ad-slot="/.test(res.body)
-    if (hasAd) adBearing += 1
+    if (/data-ad-slot="/.test(res.body)) adBearing += 1
+    if (/data-media-embed/.test(res.body)) mediaRoutes += 1
 
     const want = expectedProfile(res.body)
     const got = profileOf(csps[0])
-    if (hasAd && got === 'strict') {
-      // The failure that matters: this page loads AdSense and the policy blocks it.
-      problems.push(`${route} → strict, but the page renders an ad slot`)
-    } else if (!hasAd && got !== 'strict') {
-      // Reported, not failed — see `overRelaxed` above.
-      overRelaxed.push(`${route} → ${got}`)
+
+    if (want === 'strict') {
+      if (got !== 'strict') overRelaxed.push(`${route} → ${got}`)
+    } else if (got === 'strict') {
+      // The failure that matters: this page needs a relaxation and did not get
+      // it. That is how AdSense or a player dies with no error anywhere.
+      problems.push(`${route} → strict, but the page needs ${want}`)
     } else if (got !== want) {
-      // Relaxed, ad-bearing, but the wrong flavour (article vs generic).
       problems.push(`${route} → ${got}, expected ${want}`)
-    } else if (want !== 'strict') {
+    } else {
       relaxed += 1
     }
   }
@@ -415,6 +438,22 @@ try {
       ? `${adBearing} ad-bearing page(s)`
       : 'no page rendered `data-ad-slot` — PUBLIC_FLAG_ADS is off, so the relaxed profile is untested',
   )
+
+  /*
+   * The third profile's non-vacuity is reported, not asserted — deliberately.
+   *
+   * `/live-tv` self-hides when no stream is configured (spec §4.2), which is a
+   * legitimate state, not a defect. Asserting `mediaRoutes > 0` would therefore
+   * turn red on a correct empty build and train the reader to ignore the harness.
+   * What is asserted instead is the direction that matters, inside the loop
+   * above: a page that renders `data-media-embed` must NOT be served `strict`.
+   */
+  if (mediaRoutes === 0) {
+    console.log(
+      '      note: no page rendered `data-media-embed` — /live-tv self-hides when no ' +
+        'stream is configured, so the third CSP profile is untested in this build',
+    )
+  }
   if (overRelaxed.length > 0) {
     console.log(
       `      note: ${overRelaxed.length} relaxed page(s) render no ad slot (route-family dispatch): ${overRelaxed
@@ -481,6 +520,33 @@ try {
     }
   }
   check('editorial and redirect routes stay strict', loose.length === 0, loose.join(', '))
+
+  /*
+   * The third profile, asserted by name.
+   *
+   * The loop above already covers `/live-tv` when a stream exists, but the page
+   * **self-hides when the collection is empty** — a legitimate state — and the
+   * profile would then go untested. This asks Apache directly, so the assertion
+   * holds either way: the header comes from the route rule, not from the page.
+   *
+   * The companion assertion is the `mustBeStrict` list above: if the media
+   * relaxation ever leaked sitewide, `/about` and `/search` would stop being
+   * strict and that check would go red.
+   */
+  const liveTv = await httpGet(port, '/live-tv/')
+  const liveTvCsps = headerValues(liveTv.rawHeaders, 'content-security-policy')
+  check(
+    '/live-tv is served the media profile (the third CSP profile)',
+    liveTvCsps.length === 1 && profileOf(liveTvCsps[0]) === 'media',
+    `HTTP ${liveTv.status}, got ${liveTvCsps[0] ? profileOf(liveTvCsps[0]) : 'none'}`,
+  )
+  const liveTvQuery = await httpGet(port, '/live-tv/?utm_source=facebook')
+  const liveTvQueryCsps = headerValues(liveTvQuery.rawHeaders, 'content-security-policy')
+  check(
+    '/live-tv keeps the media profile with a query string',
+    liveTvQueryCsps.length === 1 && profileOf(liveTvQueryCsps[0]) === 'media',
+    `HTTP ${liveTvQuery.status}, got ${liveTvQueryCsps[0] ? profileOf(liveTvQueryCsps[0]) : 'none'}`,
+  )
 
   // ── 5b. The `/verify/` unknown-ID rewrite (S14) ───────────────────────────
   //

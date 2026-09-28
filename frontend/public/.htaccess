@@ -3,9 +3,10 @@
 # Replaces the former Cloudflare Pages _headers file (removed 2026-09-14).
 # Source: docs/security.md §5 (security headers + CSP).
 #
-# TWO CSP PROFILES (docs/security.md §5): a strict one for static / editorial
-# pages, and a relaxed one for ad-bearing and interactive pages, because AdSense
-# needs inline scripts and dynamic script injection.
+# THREE CSP PROFILES (docs/security.md §5, §5.1): a strict one for static /
+# editorial pages; a relaxed one for ad-bearing and interactive pages, because
+# AdSense needs inline scripts and dynamic script injection; and a media one
+# scoped to /live-tv, which frames YouTube AND Facebook (S15).
 #
 # ⚠️ Apache does NOT have the Cloudflare comma-join problem. Apache's `Header
 # set` replaces the value cleanly — no `!`-detach trick is needed. The former
@@ -73,6 +74,12 @@
 
   # Quiz — 2 ad slots
   SetEnvIf Request_URI "^/quiz(/[^/?#]+)?/?(\?.*)?$" SHIKKHA24_CSP_RELAXED=1
+
+  # Live TV (S15) — the THIRD profile. It frames YouTube *and* Facebook, which
+  # neither of the other two permits: strict is `frame-src 'none'`, and the
+  # relaxed profile carries no video at all. Scoped to this one route so the
+  # homepage, every category listing and /quiz do NOT gain iframe permission.
+  SetEnvIf Request_URI "^/live-tv/?(\?.*)?$" SHIKKHA24_CSP_MEDIA=1
 
   # Article — 3 ad slots + comments + bookmarks + video embeds.
   #
@@ -163,7 +170,7 @@
 #   /live/*               live blog — 1 ad slot + the refresh island
 #   /quiz, /quiz/*        quiz     — 2 ad slots
 #
-# Every other route keeps the strict policy, which is the point of two profiles.
+# Every other route keeps the strict policy, which is the point of separate profiles.
 # That includes `/article/:slug` (since S11 a 200-OK redirect stub with no script
 # and no ad slot), `/gallery` (no ad slot, no inline script), `/bookmarks` (no
 # CMS call at all — the list is browser-local) and `/citizen` (posts to the CMS,
@@ -186,6 +193,28 @@
 
   Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" env=SHIKKHA24_CSP_RELAXED
   Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" env=SHIKKHA24_CSP_ARTICLE
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Media profile (S15) — `/live-tv` ONLY.
+#
+# The third profile exists because `/live-tv` frames YouTube **and** Facebook.
+# Neither of the other two can express that: strict is `frame-src 'none'`, and
+# the relaxed profile allows no video at all — so tagging the route `RELAXED`
+# blocks the player silently. Widening `RELAXED` was rejected as a security
+# regression: the homepage, every category listing and `/quiz` would each gain
+# iframe permission they have no use for.
+#
+# Identical to the article profile except for the Facebook entries in
+# `frame-src`. `www.facebook.com` is the host the embed plugin lives on
+# (`/plugins/video.php`); the `web.`/`m.` variants are Meta's own alternates.
+#
+# ⚠️ A tagged route with no consuming header falls back to the STRICT policy and
+# the player is blocked with no error anywhere — the same silent failure class as
+# the `/article/*` rule that stopped matching at S11. `pnpm verify:build-output`
+# asserts both halves (tag *and* consumer) and `pnpm verify:apache` proves it
+# against a real Apache.
+# ─────────────────────────────────────────────────────────────────────────────
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.facebook.com https://web.facebook.com https://m.facebook.com https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" env=SHIKKHA24_CSP_MEDIA
 
 </IfModule>
 

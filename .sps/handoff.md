@@ -742,6 +742,55 @@ the host-disk usage alert.
       URLs) · `verify:apache` · `verify:id-card` · `verify:endpoints` — **all green**.
 
 
+43. ✅ **S15 built — Live TV, and the THIRD CSP profile** (2026-09-28, verified locally).
+    Full detail in `.sps/section-todos/S15.md`.
+    - **What shipped:** `LiveStreams` collection, `MediaEmbed.astro` (one click-to-load player for
+      **both** providers — the owner chose both, and they differ only in the frame URL, so the
+      behaviour, the reserved 16:9 box and the runtime re-validation exist once), `/live-tv`, a
+      footer link, a sitemap entry, and a `liveTvTop` ad position.
+    - 🚨 **The third CSP profile is the architectural change.** `/live-tv` frames YouTube *and*
+      Facebook: strict is `frame-src 'none'`, and the relaxed profile carries no video at all, so
+      tagging the route `RELAXED` blocks the player **silently**. Widening `RELAXED` was rejected as
+      a security regression (the homepage, every category listing and `/quiz` would gain iframe
+      permission they do not need). `SHIKKHA24_CSP_MEDIA` is scoped to `/live-tv` alone.
+    - ⚠️ **Three things fail silently on their own**, so all three are asserted: a tagged route with
+      no consuming `Header` falls to **strict** (the same class as the `/article/*` rule that stopped
+      matching at S11); the tag leaking sitewide; and `frame-src` omitting one provider. The relaxed
+      profile is now *asserted* to carry no video host, so the rejected option cannot be quietly
+      reintroduced.
+    - ⚠️ **`verify-apache.mjs` keys the expected profile on `data-media-embed`**, not on the
+      `/live-tv` path — a path key would be a second copy of the `.htaccess` regex (the M14/M16
+      mistake). The route loop was restructured at the same time: its old `hasAd`-first branching
+      mis-classified a media page with no ad slot as merely "over-relaxed". The new logic keys on
+      the direction that matters — needing a relaxation and not getting it is a failure; having a
+      wider policy than needed is a note.
+    - **Counter-proved:** the tag was stripped from both `.htaccess` copies and both gates went red —
+      `verify:apache` reported `/live-tv … got strict`, `verify:build-output` reported
+      `0 rule(s) matching /live-tv`.
+    - ⚠️ **Two new traps, both cost real time:**
+      1. **Payload's boolean field type is `checkbox`, not `boolean`.** `type: 'boolean'` fails
+         `tsc` with `Type '"boolean"' is not assignable to …` — the error names the field, not the
+         fix.
+      2. **A seeder's early-return path is a silent trap.** `seedDemoEngagement` bails out once the
+         gallery exists, and that gallery predates S15 — so on any existing database the early
+         return is the *only* path taken and the first version of the live-stream fixture created
+         **nothing**. The only signal was the seed report printing `liveTv 0`. **When adding a
+         fixture to an idempotent seeder, check every return path.**
+    - **Dependency (rule 8):** none added. `qrcode` (S14) remains the only new package.
+    - **Fixture:** a demo live stream, because `/live-tv` self-hides when the collection is empty —
+      without it the third-profile check is vacuous. Purged by `seed:demo:purge` on the `ডেমো:`
+      title prefix.
+    - **Verified on the built page:** 0 `<iframe>`, 0 `youtube-nocookie` in the markup, and exactly
+      one third-party URL — the fallback `<a href>` to the watch page, which is a link and makes no
+      request. The S9 "no third-party request on load" invariant holds.
+    - Gates: biome 0 errors · typecheck 0 · `verify:astro-imports` 119 · build **154 pages** ·
+      `verify:build-output` · `verify:links` (7381 links) · `verify:apache` — **all green**.
+    - ⚠️ **Hit the Drizzle stale-index trap** (`payload_locked_documents_rels_order_idx already
+      exists`) on the first schema push for the new collection, exactly as recorded. A retry after
+      the failed push succeeded — no manual `DROP INDEX` was needed this time. **The database was
+      backed up to `/tmp/payload-backup-*.db` first.**
+
+
 - **Portal type: education portal** (2026-09-11) — domain `shikkha24.com`; general-news scope retired
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)
 - **Next.js pinned to 16.2.6+** (corrected by the audit)

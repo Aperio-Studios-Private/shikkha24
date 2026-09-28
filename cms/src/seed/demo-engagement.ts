@@ -42,6 +42,7 @@ export interface EngagementReport {
   galleries: number
   comments: number
   video: number
+  liveStreams: number
 }
 
 /** Two-tone gradient pairs, chosen to read as distinct "photographs". */
@@ -204,7 +205,13 @@ async function attachDemoVideo(db: SlugAgnosticPayload, report: EngagementReport
 
 export async function seedDemoEngagement(payload: Payload): Promise<EngagementReport> {
   const db = payload as unknown as SlugAgnosticPayload
-  const report: EngagementReport = { media: 0, galleries: 0, comments: 0, video: 0 }
+  const report: EngagementReport = {
+    media: 0,
+    galleries: 0,
+    comments: 0,
+    video: 0,
+    liveStreams: 0,
+  }
 
   /* ── Media ────────────────────────────────────────────────────────────── */
   const existingGallery = await db.find({
@@ -219,6 +226,11 @@ export async function seedDemoEngagement(payload: Payload): Promise<EngagementRe
     // must not multiply the comment list on every invocation. The video block
     // is reconciled anyway, because it is idempotent on its own.
     await attachDemoVideo(db, report)
+    // ⚠️ Also reconciled here, not only on the fresh path. The gallery was
+    // seeded long before S15 existed, so on any database that predates this
+    // section the early return is the ONLY path taken — and skipping the call
+    // here would leave `/live-tv` empty and the third CSP profile untested.
+    await seedLiveStreams(db, report)
     return report
   }
 
@@ -305,6 +317,58 @@ export async function seedDemoEngagement(payload: Payload): Promise<EngagementRe
 
   // Last, because it needs a poster from the media created above.
   await attachDemoVideo(db, report)
+  await seedLiveStreams(db, report)
 
   return report
+}
+
+/**
+ * One live stream, so `/live-tv` is reviewable — and so the S15 gate is testable.
+ *
+ * ⚠️ **This row is not decoration.** `verify:apache` decides which CSP profile a
+ * page *should* have from `data-media-embed` in its markup. With no stream
+ * configured the page self-hides, no player renders, and the third profile's
+ * expectation is never exercised — the gate would pass while proving nothing.
+ * This fixture is what keeps it non-vacuous.
+ *
+ * The video id is a long-lived public stream so the fixture does not rot when a
+ * real broadcast ends; the point of the row is the route, not the content.
+ *
+ * Idempotent: bails out once a stream with this title exists, so re-running the
+ * seed does not pile up duplicates. Removed by `seed:demo:purge`, which matches
+ * it on the same `ডেমো:` title prefix the education demo rows use.
+ */
+async function seedLiveStreams(db: SlugAgnosticPayload, report: EngagementReport): Promise<void> {
+  const TITLE = 'ডেমো: বাজেট ২০২৬ সরাসরি সম্প্রচার'
+
+  const existing = await db.find({
+    collection: 'live-streams',
+    where: { title: { equals: TITLE } },
+    limit: 1,
+  })
+  if (existing.docs.length > 0) return
+
+  // The poster is optional: the player renders a text-only trigger without one,
+  // so a missing demo plate must not stop the row from being created.
+  const poster = (
+    await db.find({
+      collection: 'media',
+      where: { filename: { like: 'demo-plate-' } },
+      limit: 1,
+    })
+  ).docs[0]
+
+  await db.create({
+    collection: 'live-streams',
+    data: {
+      title: TITLE,
+      provider: 'youtube',
+      videoId: 'aqz-KE-bpKQ',
+      isLive: true,
+      description: 'শিক্ষা বাজেট ২০২৬-এর সরাসরি কভারেজ — ডেমো সম্প্রচার।',
+      ...(poster ? { poster: poster.id } : {}),
+    },
+    overrideAccess: true,
+  })
+  report.liveStreams += 1
 }

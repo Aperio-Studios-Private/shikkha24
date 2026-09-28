@@ -291,9 +291,9 @@ byline is resolved from the session, never from the body**: a byline is an
 attribution of responsibility and must not be forgeable by the person being
 attributed.
 
-### 13.5 §5.1 — the third CSP profile S15 will need
+### 13.5 §5.1 — the third CSP profile (S15, **BUILT 2026-09-28**)
 
-`/live-tv` must embed **YouTube and Facebook** iframes. Neither existing profile
+`/live-tv` must embed **YouTube and Facebook** iframes. Neither original profile
 fits:
 
 | Profile | `frame-src` | Why it fails for `/live-tv` |
@@ -303,13 +303,35 @@ fits:
 | `SHIKKHA24_CSP_ARTICLE` | YouTube + ads | **No Facebook**, and using an `_ARTICLE`-named variable for a non-article route is semantic drift |
 
 Widening `RELAXED` was rejected: it would give the homepage, every category listing
-and `/quiz` iframe permission they do not need — a security regression.
+and `/quiz` iframe permission they do not need — a security regression. **That
+decision is now asserted**, not just recorded: `verify-build-output` fails if the
+relaxed profile's `frame-src` ever gains a video host.
 
-**So a third profile, `SHIKKHA24_CSP_MEDIA`, scoped to `/live-tv` (and later
-`/video`).** ⚠️ Adding it must also teach `scripts/verify-apache.mjs` the third
-profile — its expectation logic (corrected in M16 to key on `data-ad-slot`)
-assumes exactly two — and assert the rule in `verify-build-output.mjs`,
-counter-proved by injecting its removal. **All three in the same commit.**
+**Built: `SHIKKHA24_CSP_MEDIA`, scoped to `/live-tv` alone** — one
+`SetEnvIf Request_URI "^/live-tv/?(\?.*)?$"` tag and one `Header … env=` consumer,
+identical to the article profile except for the Facebook entries in `frame-src`.
+`www.facebook.com` is the host the embed plugin lives on (`/plugins/video.php`).
+
+⚠️ **Three things fail silently on their own**, which is why all three are asserted:
+
+1. **The route is tagged but no header consumes it** → the page falls to **strict**
+   and the player is blocked with no error anywhere. Same class as the `/article/*`
+   rule that stopped matching at S11 and would have dropped AdSense sitewide.
+2. **The tag leaks to other routes** → iframe permission spreads sitewide.
+3. **`frame-src` omits one provider** → that provider's embed is blocked while the
+   other still works, so the page looks half-broken.
+
+`verify:build-output` asserts the tag, the consumer, both providers, and the
+single-route scoping. `verify:apache` proves it against a real Apache. **Both were
+counter-proved by stripping the tag** — `/live-tv` came back `strict` and both gates
+went red.
+
+⚠️ **`verify-apache.mjs` decides which profile a page *should* get from
+`data-media-embed`** — the attribute `MediaEmbed.astro` emits, i.e. the component
+that can frame both providers. Keying it on the `/live-tv` path would be a second
+copy of the `.htaccess` regex, which is the M14/M16 mistake. The fixture that keeps
+this non-vacuous is the demo live stream (`seed:demo`): with no stream configured
+the page self-hides, no player renders, and the branch is never exercised.
 
 ### 13.6 Verification added
 
