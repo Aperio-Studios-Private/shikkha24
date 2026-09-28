@@ -141,16 +141,24 @@ function headerValues(rawHeaders, name) {
   return out
 }
 
-/** Classify a CSP value into the profile the file is supposed to serve. */
+/**
+ * Classify a CSP value by **capability**, not by which env var produced it.
+ *
+ * ⚠️ After S17 the article profile and the media profile carry the **same**
+ * policy — `Articles.videoProvider` can be `facebook`, so the article route needs
+ * the Facebook hosts too. A response therefore cannot be attributed to one env var
+ * from its content, and it does not need to be: what matters at runtime is whether
+ * the policy lets the page do what the page renders.
+ *
+ * The static half — which env var is tagged on which route, and what each contains
+ * — is asserted by `verify:build-output`. Together the two harnesses still prove
+ * the dispatch; neither alone does.
+ */
 function profileOf(csp) {
-  // Facebook is the discriminator for the MEDIA profile (S15): it is the only
-  // profile that frames the host, and no other profile mentions it at all.
-  // Checking it first is therefore unambiguous — the article profile also names
-  // YouTube, so YouTube alone could not tell the two apart.
-  if (csp.includes('www.facebook.com')) return 'media'
-  if (csp.includes('pagead2.googlesyndication.com')) {
-    return csp.includes('youtube-nocookie.com') ? 'relaxed-article' : 'relaxed-generic'
-  }
+  const adCapable = csp.includes('pagead2.googlesyndication.com')
+  const videoCapable = csp.includes('youtube-nocookie.com')
+  if (adCapable && videoCapable) return 'relaxed-video'
+  if (adCapable) return 'relaxed-generic'
   return 'strict'
 }
 
@@ -183,20 +191,26 @@ function profileOf(csp) {
  */
 function expectedProfile(html) {
   /*
-   * The media profile (S15) is keyed on `data-media-embed` — the attribute
-   * `MediaEmbed.astro` emits, which is the component that frames both YouTube and
-   * Facebook. Same cause-keyed discipline as `data-ad-slot` below, and for the
-   * same reason: keying it on the `/live-tv` path would be a second copy of the
-   * `.htaccess` regex, and the two would drift.
+   * A page needs the video-capable policy when it renders a third-party video
+   * frame. Two markers say so, and each is the page's own statement rather than a
+   * copy of the `.htaccess` regex:
    *
-   * It is checked first because a media route also renders an ad slot, so the
-   * ad-bearing branches below would otherwise claim it.
+   *   `data-media-embed` — `MediaEmbed.astro`, the component that frames a video:
+   *                        an article's own video, `/live-tv`, `/video`
+   *   `NewsArticle`      — the article route, whose *body* may contain an S9 video
+   *                        block. Its profile has always carried `frame-src`.
+   *
+   * ⚠️ The second one is why the expectation is not simply "has `data-media-embed`":
+   * an article can embed a video through its body block without ever rendering the
+   * component, and keying only on the component would leave that page expected to
+   * be strict while it is correctly served a frame-permitting policy.
    */
-  if (/data-media-embed/.test(html)) return 'media'
-
   const adBearing = /data-ad-slot="/.test(html)
-  if (!adBearing) return 'strict'
-  return /"@type":\s*"NewsArticle"/.test(html) ? 'relaxed-article' : 'relaxed-generic'
+  const videoCapable = /data-media-embed/.test(html) || /"@type":\s*"NewsArticle"/.test(html)
+
+  if (!adBearing && !videoCapable) return 'strict'
+  if (videoCapable) return 'relaxed-video'
+  return 'relaxed-generic'
 }
 
 // ── Preconditions ────────────────────────────────────────────────────────────
@@ -408,6 +422,24 @@ try {
     const want = expectedProfile(res.body)
     const got = profileOf(csps[0])
 
+    /*
+     * The provider that will actually be framed, read from the component's own
+     * attribute. A blanket "does the policy mention Facebook" would not do: what
+     * matters is whether the policy allows the frame **this page will create**.
+     *
+     * This is the check that caught the S17 defect — an article carrying a Facebook
+     * video was served the article profile, whose `frame-src` had no Facebook in it.
+     * The policy was otherwise valid, the page returned 200, and the player would
+     * simply have been dead.
+     */
+    const providers = [...res.body.matchAll(/data-media-provider="([^"]+)"/g)].map((m) => m[1])
+    if (providers.includes('facebook') && !csps[0].includes('www.facebook.com')) {
+      problems.push(`${route} → frames a Facebook video, but the policy forbids the frame`)
+    }
+    if (providers.includes('youtube') && !csps[0].includes('youtube-nocookie.com')) {
+      problems.push(`${route} → frames a YouTube video, but the policy forbids the frame`)
+    }
+
     if (want === 'strict') {
       if (got !== 'strict') overRelaxed.push(`${route} → ${got}`)
     } else if (got === 'strict') {
@@ -522,10 +554,11 @@ try {
   check('editorial and redirect routes stay strict', loose.length === 0, loose.join(', '))
 
   /*
-   * The third profile, asserted by name.
+   * The third profile, asserted by name for every route that needs it.
    *
-   * The loop above already covers `/live-tv` when a stream exists, but the page
-   * **self-hides when the collection is empty** — a legitimate state — and the
+   * The loop above already covers a media route that renders a player, but
+   * `/live-tv` **self-hides when the collection is empty** and `/video` renders
+   * nothing when no article carries a video — both legitimate states — and the
    * profile would then go untested. This asks Apache directly, so the assertion
    * holds either way: the header comes from the route rule, not from the page.
    *
@@ -533,19 +566,28 @@ try {
    * relaxation ever leaked sitewide, `/about` and `/search` would stop being
    * strict and that check would go red.
    */
-  const liveTv = await httpGet(port, '/live-tv/')
-  const liveTvCsps = headerValues(liveTv.rawHeaders, 'content-security-policy')
+  for (const route of ['/live-tv', '/video']) {
+    for (const suffix of ['/', '/?utm_source=facebook']) {
+      const res = await httpGet(port, `${route}${suffix}`)
+      const csps = headerValues(res.rawHeaders, 'content-security-policy')
+      check(
+        `${route}${suffix} is served a video-capable policy`,
+        csps.length === 1 && profileOf(csps[0]) === 'relaxed-video',
+        `HTTP ${res.status}, got ${csps[0] ? profileOf(csps[0]) : 'none'}`,
+      )
+    }
+  }
+
+  // Page 2 of the hub is 3 segments — the shape the article rule excludes only
+  // when `page` is the middle segment. It must still be media, not strict: a
+  // player that dies silently on page 2 is exactly the class of failure this
+  // profile exists to prevent.
+  const videoPage2 = await httpGet(port, '/video/page/2/')
+  const videoPage2Csps = headerValues(videoPage2.rawHeaders, 'content-security-policy')
   check(
-    '/live-tv is served the media profile (the third CSP profile)',
-    liveTvCsps.length === 1 && profileOf(liveTvCsps[0]) === 'media',
-    `HTTP ${liveTv.status}, got ${liveTvCsps[0] ? profileOf(liveTvCsps[0]) : 'none'}`,
-  )
-  const liveTvQuery = await httpGet(port, '/live-tv/?utm_source=facebook')
-  const liveTvQueryCsps = headerValues(liveTvQuery.rawHeaders, 'content-security-policy')
-  check(
-    '/live-tv keeps the media profile with a query string',
-    liveTvQueryCsps.length === 1 && profileOf(liveTvQueryCsps[0]) === 'media',
-    `HTTP ${liveTvQuery.status}, got ${liveTvQueryCsps[0] ? profileOf(liveTvQueryCsps[0]) : 'none'}`,
+    '/video/page/:n keeps a video-capable policy',
+    videoPage2Csps.length === 1 && profileOf(videoPage2Csps[0]) === 'relaxed-video',
+    `HTTP ${videoPage2.status}, got ${videoPage2Csps[0] ? profileOf(videoPage2Csps[0]) : 'none'}`,
   )
 
   // ── 5b. The `/verify/` unknown-ID rewrite (S14) ───────────────────────────

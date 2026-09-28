@@ -234,6 +234,15 @@ export interface Article {
    */
   excerpt: string;
   featuredImage?: (number | null) | Media;
+  /**
+   * ছবির গল্প বেছে নিলে নিচের ছবির তালিকা থেকে পাতা তৈরি হয় — লেখা নয়, ছবিই প্রধান।
+   */
+  layout?: ('standard' | 'photoStory') | null;
+  videoProvider?: ('youtube' | 'facebook') | null;
+  /**
+   * ঐচ্ছিক। দিলে সংবাদের উপরে একটি প্লেয়ার বসে — ক্লিক করার আগে কোনো অনুরোধ যায় না। ইউটিউব লিংক বা ফেসবুক ভিডিওর ঠিকানা।
+   */
+  videoUrl?: string | null;
   body?: {
     root: {
       type: string;
@@ -249,6 +258,27 @@ export interface Article {
     };
     [k: string]: unknown;
   } | null;
+  /**
+   * প্রতিটি ছবির ক্যাপশন ও কৃতিত্ব দিন। ছবির বাক্স আগেই সংরক্ষিত থাকে (আসল মাপ থেকে), তাই পাতা লাফায় না।
+   */
+  photoStory?:
+    | {
+        image: number | Media;
+        /**
+         * ছবির নিচে দেখানো হয়।
+         */
+        caption?: string | null;
+        /**
+         * যেমন: সংগৃহীত / শিক্ষা২৪।
+         */
+        credit?: string | null;
+        /**
+         * চালু থাকলে ছবিটি পাতার পুরো প্রস্থ নেয়। বন্ধ থাকলে লেখার প্রস্থেই থাকে।
+         */
+        fullBleed?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
   /**
    * সংক্ষেপে মূল পয়েন্ট — শিক্ষার্থীদের জন্য দ্রুত পাঠ।
    */
@@ -1784,7 +1814,19 @@ export interface ArticlesSelect<T extends boolean = true> {
   slug?: T;
   excerpt?: T;
   featuredImage?: T;
+  layout?: T;
+  videoProvider?: T;
+  videoUrl?: T;
   body?: T;
+  photoStory?:
+    | T
+    | {
+        image?: T;
+        caption?: T;
+        credit?: T;
+        fullBleed?: T;
+        id?: T;
+      };
   keyTakeaways?:
     | T
     | {

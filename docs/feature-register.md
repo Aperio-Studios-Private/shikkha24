@@ -41,8 +41,8 @@ message maps one-to-one onto this table.
 | 9a | নামাজের সময়সূচি (prayer times) | ✅ **Built** | S3 | `frontend/src/lib/prayer.ts` |
 | 9b | ইফতার ও সাহরির সময়সূচি | ✅ **Built** | S3 | same — Fajr = সাহরি ends, Maghrib = ইফতার |
 | 10a | Photo Gallery | ✅ **Built** | S9 | `cms/src/collections/PhotoGalleries.ts`, `frontend/src/pages/gallery/` |
-| 10b | Photo Story | ⬜ **Not built** | S17 | — |
-| 10c | Video News | ⬜ **Not built** | S17 | — |
+| 10b | Photo Story | ✅ **Built** | S17 | `Articles.layout` + `Articles.photoStory`, `frontend/src/components/PhotoStory.astro`, `frontend/src/lib/photo-story.ts` |
+| 10c | Video News | ✅ **Built** | S17 | `Articles.videoUrl` / `videoProvider`, `frontend/src/lib/video.ts`, `frontend/src/pages/video/[...path].astro` |
 | 11 | Multiple Advertisement Placement | ✅ **Built** | S7 | `cms/src/collections/AdUnits.ts`, `frontend/src/components/AdSlot.astro`, `AdCreative.astro`, `frontend/src/lib/ads.ts` |
 | 12 | Secure Admin Panel & Security System | ✅ **Built** | S0 / S1 / S7 | see §4 |
 
@@ -261,19 +261,32 @@ generation would spend CI minutes on every reporter edit.
   remove the index from the **collection config**: the push then drops it, and the
   harness reports `FAIL … a second row was created — the unique index is missing`.
 
-### S17 — Photo Story & Video News (requests #10b, #10c)
+### S17 — Photo Story & Video News (requests #10b, #10c) — ✅ **BUILT 2026-09-28**
 
-**Specified in `docs/feature-batch-2.md` §6.** Nothing built.
+**Specified in `docs/feature-batch-2.md` §6.** **Built and verified** — evidence in
+`.sps/section-todos/S17.md`.
 
-- `Articles.layout = 'photoStory'` + a photo-story block array — **a layout, not a
+- `Articles.layout = 'photoStory'` + a photo-story frame array — **a layout, not a
   new collection**, because a separate collection would split SEO authority and
   duplicate the editorial workflow.
 - `Articles.videoUrl` + `videoProvider`; a click-to-load player above the body.
-- `/video` hub.
-- ⚠️ Every photo-story image must reserve its box (`aspect-ratio`) — **CLS < 0.02
-  is a hard gate**.
-- ⚠️ `/video` is 1 segment ⇒ strict CSP ⇒ it must be tagged with the
-  `SHIKKHA24_CSP_MEDIA` profile from S15, or it must link out instead of embedding.
+- `/video` hub — the newest video is featured with a player, the rest are cards,
+  reusing `ArticleGrid` + `Pagination`.
+- ✅ Every photo-story image reserves its box from the media record's **true
+  dimensions** (measured: `--frame-ratio: 1600 / 1067` on all four fixture frames).
+- ✅ `/video` is tagged with `SHIKKHA24_CSP_MEDIA` — and so is `/video/page/:n`,
+  which is 3 segments and would otherwise fall to the article rule's exclusion and
+  be served strict.
+- 🚨 **`verify:apache` found a real defect while building this.** `Articles.videoProvider`
+  can be `facebook`, but the **article** profile's `frame-src` had no Facebook in it —
+  so an article carrying a Facebook video would have been **silently dead** on the
+  highest-traffic route: HTTP 200, valid markup, no error anywhere. The article
+  profile gained the Facebook hosts, and the harness is now **provider-aware** — it
+  reads `data-media-provider` off each page and asserts the served policy allows
+  *that* provider.
+- ⚠️ Consequence: after S17 the article profile and the media profile carry the
+  **same** policy. Both env vars remain, because they dispatch by different route
+  families, so a later change to one cannot silently widen the other.
 
 ---
 

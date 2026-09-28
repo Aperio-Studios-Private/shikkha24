@@ -399,6 +399,17 @@ export interface CmsArticle {
   sponsorName?: string | null
   publishedAt?: string | null
   readingTimeMinutes?: number | null
+  /**
+   * `standard` renders the ordinary article template; `photoStory` renders the
+   * frame list instead of the prose (S17). A layout rather than a separate
+   * collection — a photo story is an article with a different presentation, and
+   * splitting the collection would split SEO authority and duplicate the
+   * editorial workflow.
+   */
+  layout?: 'standard' | 'photoStory' | null
+  /** Present when the article carries a video; the page renders a player above the body. */
+  videoUrl?: string | null
+  videoProvider?: 'youtube' | 'facebook' | null
 }
 
 export interface CmsDeadline {
@@ -569,6 +580,20 @@ export interface CmsFullArticle extends CmsArticle {
   }> | null
   updatedAt?: string | null
   tags?: Array<{ nameBn?: string; slug?: string }> | number[] | null
+  /**
+   * The photo-story frames (S17). Present only when `layout === 'photoStory'`.
+   *
+   * Each frame's image is a media relation; the renderer resolves it with
+   * `resolveCmsImage`, which is what supplies the **true dimensions** the box is
+   * reserved from — `aspect-ratio` from real pixels is what holds CLS at zero on
+   * the most image-dense page on the site.
+   */
+  photoStory?: Array<{
+    image?: CmsMedia | number | null
+    caption?: string | null
+    credit?: string | null
+    fullBleed?: boolean | null
+  }> | null
 }
 
 export interface CmsAuthor {
@@ -1144,4 +1169,45 @@ export async function getLiveStreams(): Promise<CmsLiveStream[]> {
     null,
   )
   return data?.docs ?? []
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Video news (S17)
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Published articles that carry a video, newest first — the `/video` hub.
+ *
+ * ⚠️ **`where[videoUrl][exists]: true` is the filter, and it is deliberate.** The
+ * alternative — fetching every article and filtering in the page — would make
+ * `totalPages` describe the wrong set, so the pagination control would offer pages
+ * that render empty. The filter has to be in the query for the count to be honest.
+ *
+ * Returns an empty list rather than throwing when the CMS is unreachable, so the
+ * hub shows an honest empty state (`docs/reliability.md` §4).
+ */
+export async function getVideoArticles(
+  limit: number,
+  page: number,
+): Promise<{ articles: CmsArticle[]; totalPages: number; totalDocs: number }> {
+  const data = await cmsFetch<{
+    docs?: CmsArticle[]
+    totalPages?: number
+    totalDocs?: number
+  } | null>(
+    `/api/articles${qs({
+      limit,
+      page,
+      depth: 2,
+      sort: '-publishedAt',
+      'where[_status][equals]': 'published',
+      'where[videoUrl][exists]': true,
+    })}`,
+    null,
+  )
+  return {
+    articles: data?.docs ?? [],
+    totalPages: data?.totalPages ?? 1,
+    totalDocs: data?.totalDocs ?? 0,
+  }
 }

@@ -81,6 +81,13 @@
   # homepage, every category listing and /quiz do NOT gain iframe permission.
   SetEnvIf Request_URI "^/live-tv/?(\?.*)?$" SHIKKHA24_CSP_MEDIA=1
 
+  # Video hub (S17) — the same category: it features a click-to-load player, so
+  # the iframe built on a tap would be blocked by the strict profile. The
+  # `/page/:n` branch is here because that URL is 3 segments and the article rule
+  # deliberately excludes only `page/` in the middle position — without this it
+  # would fall to strict and the player would die silently on page 2.
+  SetEnvIf Request_URI "^/video(/page/[0-9]+)?/?(\?.*)?$" SHIKKHA24_CSP_MEDIA=1
+
   # Article — 3 ad slots + comments + bookmarks + video embeds.
   #
   # Exactly three path segments, and the middle one is not `page`. This is the
@@ -189,10 +196,22 @@
 # the iframe is created only after the reader taps play, so no third-party request
 # is made on page load. `youtube-nocookie.com` is used deliberately — it sets no
 # tracking cookie until playback.
+#
+# ⚠️ **S17 added the Facebook hosts to this profile.** `Articles.videoProvider` can
+# be `facebook`, so an article carrying a Facebook video would otherwise be blocked
+# **silently** on the highest-traffic route — precisely the failure the third
+# profile exists to prevent elsewhere. `pnpm verify:apache` is what found it: an
+# article page rendering a video player was being served a policy whose `frame-src`
+# had no Facebook in it. Nothing failed; the player would simply have been dead.
+#
+# After S17 this profile and `SHIKKHA24_CSP_MEDIA` carry the **same** policy. The
+# two env vars remain because they dispatch by different route families — the
+# article route, and the dedicated media routes — so a later change to one cannot
+# silently widen the other.
 # ─────────────────────────────────────────────────────────────────────────────
 
   Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" env=SHIKKHA24_CSP_RELAXED
-  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" env=SHIKKHA24_CSP_ARTICLE
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.facebook.com https://web.facebook.com https://m.facebook.com https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" env=SHIKKHA24_CSP_ARTICLE
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Media profile (S15) — `/live-tv` ONLY.

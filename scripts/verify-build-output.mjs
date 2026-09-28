@@ -188,9 +188,10 @@ const htaccessDirectives = htaccess
   .split('\n')
   .filter((line) => !line.trim().startsWith('#'))
   .join('\n')
-const routePatterns = [...htaccessDirectives.matchAll(/SetEnvIf Request_URI "([^"]+)"/g)].map(
-  (match) => match[1],
+const routeRules = [...htaccessDirectives.matchAll(/SetEnvIf Request_URI "([^"]+)"\s+(\S+)/g)].map(
+  (match) => ({ pattern: match[1], env: match[2] }),
 )
+const routePatterns = routeRules.map((rule) => rule.pattern)
 
 check('.htaccess dispatches routes with SetEnvIf Request_URI', routePatterns.length > 0)
 check(
@@ -235,16 +236,31 @@ check(
  * ⚠️ This is a static pre-filter. `pnpm verify:apache` is the real gate: only
  * running Apache proves the file is loadable and the header is served.
  */
-const mediaTagRules = routePatterns.filter((pattern) => pattern.includes('live-tv'))
+/**
+ * The routes that legitimately need the media profile.
+ *
+ * Scoping is asserted as an **explicit set**, not a count. A count would keep
+ * passing if a tag were moved from one route to another, and the whole point of
+ * the third profile is that it is scoped: the homepage, every category listing
+ * and `/quiz` must not gain iframe permission.
+ */
+const MEDIA_ROUTES = ['/live-tv', '/video']
+const mediaTagRules = routeRules
+  .filter((rule) => rule.env === 'SHIKKHA24_CSP_MEDIA=1')
+  .map((rule) => rule.pattern)
+
 check(
-  '.htaccess tags /live-tv for the third CSP profile',
-  mediaTagRules.length === 1,
-  `${mediaTagRules.length} rule(s) matching /live-tv`,
+  `SHIKKHA24_CSP_MEDIA is scoped to exactly ${MEDIA_ROUTES.length} routes, not sitewide`,
+  mediaTagRules.length === MEDIA_ROUTES.length,
+  `${mediaTagRules.length} tag(s): ${mediaTagRules.join(' | ') || 'none'}`,
 )
-check(
-  'SHIKKHA24_CSP_MEDIA is scoped to one route, not sitewide',
-  (htaccessDirectives.match(/SHIKKHA24_CSP_MEDIA=1/g) ?? []).length === 1,
-)
+for (const route of MEDIA_ROUTES) {
+  check(
+    `.htaccess tags ${route} for the media profile`,
+    mediaTagRules.some((pattern) => pattern.includes(route)),
+    mediaTagRules.join(' | ') || 'no media tag found',
+  )
+}
 
 const mediaHeader = [
   ...htaccessDirectives.matchAll(/Header always set Content-Security-Policy "([^"]+)" env=(\S+)/g),
@@ -270,6 +286,38 @@ if (mediaHeader) {
     'the relaxed profile did NOT gain video (the rejected regression)',
     !relaxedFrameSrc.includes('facebook.com') && !relaxedFrameSrc.includes('youtube'),
     relaxedFrameSrc || 'no frame-src directive',
+  )
+}
+
+/*
+ * ⚠️ S17: the ARTICLE profile must frame Facebook as well as YouTube.
+ *
+ * `Articles.videoProvider` can be `facebook`, so an article carrying a Facebook
+ * video needs it. This coupling was missing, and `verify:apache` is what found it:
+ * an article page rendering a player was served a policy whose `frame-src` had no
+ * Facebook in it, so the player would have been dead on the highest-traffic route
+ * with no error anywhere. Asserting it here means the next person to touch either
+ * side finds out at build time rather than from a reader.
+ */
+const articleHeader = [
+  ...htaccessDirectives.matchAll(/Header always set Content-Security-Policy "([^"]+)" env=(\S+)/g),
+].find((match) => match[2] === 'SHIKKHA24_CSP_ARTICLE')
+check(
+  'a CSP header consumes SHIKKHA24_CSP_ARTICLE',
+  Boolean(articleHeader),
+  articleHeader ? '' : 'the article rule is tagged but nothing consumes it',
+)
+if (articleHeader) {
+  const articleFrameSrc = articleHeader[1].match(/frame-src ([^;]+);/)?.[1] ?? ''
+  check(
+    'the article profile frames YouTube',
+    articleFrameSrc.includes('youtube-nocookie.com'),
+    articleFrameSrc,
+  )
+  check(
+    'the article profile frames Facebook (an article may carry a Facebook video)',
+    articleFrameSrc.includes('www.facebook.com'),
+    articleFrameSrc,
   )
 }
 

@@ -297,13 +297,19 @@
 - [x] Privacy policy discloses the reaction fingerprint and the browser-local choice
 - [x] S16 DoD evidence → `.sps/section-todos/S16.md` → **user approval pending**
 
-## S17 — Photo Story & Video News
+## S17 — Photo Story & Video News ✅ BUILT 2026-09-28
 *(missing half of requested feature #10 — the gallery is already built)*
-- [ ] `Articles.layout` gains `photoStory` (a layout, **not** a new collection)
-- [ ] Photo-story block array: image, caption, credit, `fullBleed`
-- [ ] ⚠️ Every image reserves its box — **CLS < 0.02 is a hard gate**
-- [ ] `ImageGallery` JSON-LD when `layout === 'photoStory'`
-- [ ] `Articles.videoUrl` + `videoProvider`; click-to-load player above the body
-- [ ] `/video` hub reusing the existing listing + pagination
-- [ ] ⚠️ `/video` tagged with `SHIKKHA24_CSP_MEDIA` (1 segment ⇒ strict would block the iframe)
-- [ ] S17 DoD evidence → `.sps/section-todos/S17.md` → **user approval**
+- [x] `Articles.layout` gains `photoStory` (a layout, **not** a new collection)
+- [x] Photo-story frame array: image, caption, credit, `fullBleed`
+- [x] ⚠️ Every image reserves its box — `--frame-ratio: 1600 / 1067` on all four fixture frames, from the media record's true dimensions
+  - [x] an image whose dimensions cannot be measured is **skipped, not guessed**
+- [x] `ImageGallery` JSON-LD when `layout === 'photoStory'` — emitted **in addition to** `NewsArticle`, from the same resolved frames the page renders
+- [x] `Articles.videoUrl` + `videoProvider`; click-to-load player above the body
+- [x] `/video` hub reusing the existing listing + pagination — the newest video is featured with a player, the rest are cards
+- [x] ⚠️ `/video` tagged with `SHIKKHA24_CSP_MEDIA` (1 segment ⇒ strict would block the iframe)
+  - [x] and `/video/page/:n` too — 3 segments, and the article rule excludes only a middle `page/`
+- [x] 🚨 **Defect found and fixed:** the **article** profile's `frame-src` had no Facebook, so an article carrying a Facebook video would have been **silently dead** on the highest-traffic route. `verify:apache` found it; the harness is now **provider-aware** (it reads `data-media-provider` and asserts the served policy allows *that* provider)
+- [x] ⚠️ Consequence recorded: the article and media profiles now carry the same policy; both env vars remain for route-family dispatch
+- [x] ⚠️ **Counter-proved:** stripping the `/video` tag and the article profile's Facebook hosts turned both gates red, naming the exact defect
+- [x] Fixtures seeded: one video per provider (YouTube **and** Facebook) + a 4-frame photo story
+- [x] S17 DoD evidence → `.sps/section-todos/S17.md` → **user approval pending**

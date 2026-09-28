@@ -203,6 +203,113 @@ async function attachDemoVideo(db: SlugAgnosticPayload, report: EngagementReport
   report.video = 1
 }
 
+/**
+ * Marks two demo articles as carrying a video — **one per provider** — so the S17
+ * player has something to render and the provider-aware CSP check has something to
+ * bite on.
+ *
+ * ## Why one per provider, and not just one video
+ *
+ * `verify:apache` reads `data-media-provider` off each page and asserts the served
+ * policy frames *that* provider. With only a YouTube fixture that check can never
+ * fire, and the Facebook half of `MediaEmbed` would never render anywhere in the
+ * build. That is exactly how the S17 defect survived: the article profile's
+ * `frame-src` had no Facebook in it, every page returned 200, and a Facebook video
+ * would simply have been dead — on the highest-traffic route.
+ *
+ * Idempotent: it assigns two fixed values per article.
+ */
+async function attachDemoArticleVideo(db: SlugAgnosticPayload): Promise<void> {
+  const FIXTURES: Array<{ slug: string; videoUrl: string; videoProvider: string }> = [
+    {
+      slug: 'demo-hsc-result-2026',
+      videoUrl: 'https://www.youtube.com/watch?v=aqz-KE-bpKQ',
+      videoProvider: 'youtube',
+    },
+    {
+      slug: 'demo-board-challenge-result',
+      videoUrl: 'https://www.facebook.com/watch/?v=1234567890',
+      videoProvider: 'facebook',
+    },
+  ]
+
+  for (const fixture of FIXTURES) {
+    const target = await db.find({
+      collection: 'articles',
+      where: { slug: { equals: fixture.slug } },
+      limit: 1,
+      overrideAccess: true,
+    })
+    const doc = target.docs[0]
+    if (!doc) continue
+
+    await db.update({
+      collection: 'articles',
+      id: doc.id,
+      data: { videoUrl: fixture.videoUrl, videoProvider: fixture.videoProvider },
+      overrideAccess: true,
+    })
+  }
+}
+
+/**
+ * Turns one demo article into a photo story, so the S17 layout is reviewable.
+ *
+ * ⚠️ **This is the fixture behind the `ImageGallery` gate.** With no photo-story
+ * article, the layout, the frame renderer and the schema are all unexercised —
+ * the build stays green and proves nothing about any of them.
+ *
+ * ⚠️ **The plates are used precisely because they have real dimensions**
+ * (1600×1067). The reserved box comes from the media record, so a fixture whose
+ * images carried no dimensions would not exercise the CLS-critical path at all.
+ *
+ * Idempotent: it assigns a fixed layout and a fixed frame list.
+ */
+async function attachDemoPhotoStory(db: SlugAgnosticPayload): Promise<void> {
+  const target = await db.find({
+    collection: 'articles',
+    where: { slug: { equals: 'demo-university-ranking' } },
+    limit: 1,
+    overrideAccess: true,
+  })
+  const doc = target.docs[0]
+  if (!doc) return
+
+  const plates = await db.find({
+    collection: 'media',
+    where: { filename: { like: 'demo-plate-' } },
+    limit: 4,
+    sort: 'filename',
+    overrideAccess: true,
+  })
+  const ids = plates.docs.map((plate) => plate.id)
+  if (ids.length === 0) return
+
+  const CAPTIONS = [
+    'ক্যাম্পাসে ভর্তি মেলা — শিক্ষার্থীদের ভিড়।',
+    'অভিভাবকদের জন্য তথ্যকেন্দ্র।',
+    'শিক্ষার্থী সংসদের স্বেচ্ছাসেবকরা।',
+    'বিশ্ববিদ্যালয়ের মূল ভবন।',
+  ]
+
+  await db.update({
+    collection: 'articles',
+    id: doc.id,
+    data: {
+      layout: 'photoStory',
+      photoStory: ids.map((image, index) => ({
+        image,
+        caption: CAPTIONS[index] ?? 'ডেমো ছবি।',
+        credit: 'ডেমো — শিক্ষা২৪',
+        // Alternating, so both presentations are rendered by the fixture rather
+        // than only the one an editor happens to pick.
+        fullBleed: index % 2 === 0,
+      })),
+    },
+    overrideAccess: true,
+  })
+}
+
 export async function seedDemoEngagement(payload: Payload): Promise<EngagementReport> {
   const db = payload as unknown as SlugAgnosticPayload
   const report: EngagementReport = {
@@ -231,6 +338,10 @@ export async function seedDemoEngagement(payload: Payload): Promise<EngagementRe
     // section the early return is the ONLY path taken — and skipping the call
     // here would leave `/live-tv` empty and the third CSP profile untested.
     await seedLiveStreams(db, report)
+    // S17, and for the same reason: this database predates the field, so the
+    // early return is the only path it will ever take.
+    await attachDemoArticleVideo(db)
+    await attachDemoPhotoStory(db)
     return report
   }
 
@@ -318,6 +429,8 @@ export async function seedDemoEngagement(payload: Payload): Promise<EngagementRe
   // Last, because it needs a poster from the media created above.
   await attachDemoVideo(db, report)
   await seedLiveStreams(db, report)
+  await attachDemoArticleVideo(db)
+  await attachDemoPhotoStory(db)
 
   return report
 }

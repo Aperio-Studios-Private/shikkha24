@@ -20,7 +20,7 @@
 | **S14** | QR ID card + photocard | ✅ **BUILT 2026-09-28** — see §3 and `.sps/section-todos/S14.md` |
 | **S15** | Live TV | ✅ **BUILT 2026-09-28** — see §4 and `.sps/section-todos/S15.md` |
 | **S16** | Reader reactions | ✅ **BUILT 2026-09-28** — see §5 and `.sps/section-todos/S16.md` |
-| **S17** | Photo story + video news | ⬜ Specified, not started |
+| **S17** | Photo story + video news | ✅ **BUILT 2026-09-28** — see §6 and `.sps/section-todos/S17.md` |
 
 **Not covered by this batch but built in the same period:** the fact-check section
 (`/fact-check`), the official social links, the developer credit, and the CMS rebuild
@@ -354,7 +354,7 @@ The current two profiles are:
 |---|---|
 | Strict | `'none'` |
 | Relaxed (`SHIKKHA24_CSP_RELAXED`) | ad domains **only** — no video |
-| Article (`SHIKKHA24_CSP_ARTICLE`) | `youtube-nocookie.com` + `youtube.com` + ads |
+| Article (`SHIKKHA24_CSP_ARTICLE`) | `youtube-nocookie.com` + `youtube.com` + ads — **plus the Facebook hosts since S17**, because `Articles.videoProvider` can be `facebook` |
 
 `/live-tv` needs **YouTube *and* Facebook** iframes. Neither existing profile fits:
 

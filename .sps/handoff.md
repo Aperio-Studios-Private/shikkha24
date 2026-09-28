@@ -835,6 +835,51 @@ the host-disk usage alert.
       `verify:reactions` 9/9 · `verify:endpoints` — **all green**.
 
 
+45. ✅ **S17 built — photo story + video news, and a real CSP defect found** (2026-09-28, verified
+    locally). Full detail in `.sps/section-todos/S17.md`.
+    - **What shipped:** `Articles.layout` / `photoStory` / `videoUrl` / `videoProvider` ·
+      `PhotoStory.astro` + `lib/photo-story.ts` · `lib/video.ts` · `MediaEmbed` above the body ·
+      `/video` hub · `ImageGallery` JSON-LD · `/video` tagged with the media profile.
+    - 🚨 **THE DEFECT, and it is the most valuable thing this section produced.**
+      `Articles.videoProvider` can be `facebook`, but the **article** profile's `frame-src` named
+      only YouTube. An article carrying a Facebook video would have been **silently dead on the
+      highest-traffic route** — HTTP 200, valid markup, a valid policy, and the iframe blocked with
+      no error anywhere. It surfaced only because S17 made an *article* render a `MediaEmbed` for
+      the first time, so `verify:apache`'s expectation finally mismatched.
+      **Fix:** the article profile gained the Facebook hosts, **and the harness became
+      provider-aware** — it reads `data-media-provider` off each page and asserts the served policy
+      allows *that* provider. A blanket "does the policy mention Facebook" would not have caught it,
+      because the question is whether the policy permits the frame the page actually creates.
+    - ⚠️ **Consequence: the article and media CSP profiles are now byte-identical.** Both env vars
+      remain (they dispatch by different route families, so a later change to one cannot silently
+      widen the other), but **neither harness alone proves the dispatch any more** — the static half
+      is `verify:build-output`, the runtime half is `verify:apache`. `profileOf()` now classifies by
+      **capability** (`relaxed-video` / `relaxed-generic` / `strict`), not by which env var produced
+      the header.
+    - ⚠️ **`/video/page/:n` needed its own rule.** It is 3 segments, and the article rule excludes
+      only a `page/` in the *middle* position — so page 2 of the hub would have been served strict
+      and its player would have died silently.
+    - ⚠️ **`/video` features the newest video with a player**, not just cards. The spec calls it a
+      listing *and* decides it needs the media profile because it embeds; those only agree if it
+      actually embeds. A page of plain cards needs no `frame-src` at all.
+    - **Fixtures, and why there are two of them:** one video article per provider (YouTube **and**
+      Facebook) plus a 4-frame photo story. With only a YouTube fixture the provider-aware check
+      can never fire and the Facebook half of `MediaEmbed` never renders — **which is exactly how
+      the defect survived.**
+    - **Photo story:** a layout, not a collection. Frames render **ahead of** the prose, never
+      instead of it. Box reservation measured at `--frame-ratio: 1600 / 1067` on all four frames;
+      an unmeasurable image is **skipped, not guessed**. Scroll-linked with pure CSS behind
+      `@supports` + `prefers-reduced-motion`, so the frames are fully readable with JavaScript off.
+    - **Counter-proved both couplings:** stripping the `/video` tag turned both gates red
+      (`/video → strict, but the page needs relaxed-video`); stripping the article profile's
+      Facebook hosts produced `frames a Facebook video, but the policy forbids the frame`.
+    - **Dependency (rule 8):** none added.
+    - Gates: biome 0 · typecheck 0 · astro-imports 124 · build **155 pages** · build-output · links
+      (7683) · apache · sync · `verify:reactions` · `verify:endpoints` · `verify:id-card` — **all
+      green**.
+    - ⚠️ **CLS was verified by construction, not measured.** The reserved boxes are asserted in the
+      built HTML; the `CLS < 0.02` Lighthouse number needs a production deployment (S12).
+
 - **Portal type: education portal** (2026-09-11) — domain `shikkha24.com`; general-news scope retired
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)
 - **Next.js pinned to 16.2.6+** (corrected by the audit)

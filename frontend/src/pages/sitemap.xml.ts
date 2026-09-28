@@ -106,6 +106,10 @@ export const GET: APIRoute = async () => {
     // shows the schedule, and a live-broadcast URL is high-intent on the day it
     // matters. `changefreq: daily` because a stream can start at any hour.
     { loc: '/live-tv', priority: '0.6', changefreq: 'daily' },
+    // S17. The video hub. Listed unconditionally: the route exists and shows an
+    // honest empty state, and the URL is worth having indexed for the day a
+    // video is published.
+    { loc: '/video', priority: '0.6', changefreq: 'daily' },
   ]
 
   /**

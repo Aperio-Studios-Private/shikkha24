@@ -1,0 +1,169 @@
+---
+/**
+ * Video news hub — `/video` and `/video/page/:n` (S17).
+ *
+ * ## Why the newest video gets a player
+ *
+ * The spec calls this "a hub listing every article that carries a video", and
+ * separately decides that `/video` must be tagged with the `SHIKKHA24_CSP_MEDIA`
+ * profile because it is "the same *embeds third-party video* category as
+ * `/live-tv`". Those two sentences only agree if the page actually embeds
+ * something: a page of plain cards needs no `frame-src` at all, and tagging it
+ * `MEDIA` would be a relaxation nothing uses.
+ *
+ * So the newest video is featured with a player and the rest are cards. That also
+ * makes the page worth visiting on its own rather than a second `/latest`.
+ *
+ * ⚠️ **`MediaEmbed` emits `data-media-embed`, and `verify-apache` reads it** to
+ * decide the profile this page should have been served. If the featured player is
+ * ever removed, `.htaccess` should be tightened at the same time — otherwise the
+ * page keeps a wider policy than it needs.
+ *
+ * ## Click-to-load, so the cost is still zero
+ *
+ * No iframe and no third-party URL reaches the markup — `MediaEmbed` renders a
+ * real link and builds the frame on the reader's first tap.
+ *
+ * ## Why a catch-all rather than `video.astro`
+ *
+ * Same reason as `/latest`: on a static site `?page=N` is evaluated at build time
+ * where there is no query string, so a query-parameter pager renders page 1
+ * forever and its own links point at routes nobody emitted. `Pagination` builds
+ * `${basePath}/page/${n}` path segments, so those routes have to exist.
+ */
+import ArticleGrid from '../../components/ArticleGrid.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import Layout from '../../layouts/Layout.astro'
+import MediaEmbed from '../../components/MediaEmbed.astro'
+import Pagination from '../../components/Pagination.astro'
+import {
+  FALLBACK_CATEGORIES,
+  FALLBACK_SETTINGS,
+  getCategories,
+  getFooterPages,
+  getSiteSettings,
+  getVideoArticles,
+  PAGE_SIZE,
+} from '../../lib/cms'
+import { resolveCmsImage } from '../../lib/media'
+import { videoEmbedProps } from '../../lib/video'
+
+const BASE_PATH = '/video'
+
+export async function getStaticPaths() {
+  // Page 1 tells us how many pages exist; one file then handles every page, the
+  // same shape `/latest` and the category listing use.
+  const first = await getVideoArticles(PAGE_SIZE, 1).catch(() => ({ totalPages: 1 }))
+  const totalPages = 'totalPages' in first ? (first.totalPages ?? 1) : 1
+
+  return Array.from({ length: Math.max(1, totalPages) }, (_, i) => {
+    const page = i + 1
+    return {
+      // `undefined` on a trailing rest param is how Astro expresses the base
+      // route, so page 1 is `/video` rather than `/video/page/1`.
+      params: { path: page === 1 ? undefined : `page/${page}` },
+      props: { page },
+    }
+  })
+}
+
+const { page } = Astro.props as { page: number }
+
+const [settings, categories, footerPages, result] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getVideoArticles(PAGE_SIZE, page).catch(() => ({
+    articles: [],
+    totalPages: 1,
+    totalDocs: 0,
+  })),
+])
+
+/*
+ * The featured player is page 1 only, and only when the newest article's video
+ * actually validates — otherwise every page would repeat the same lead item.
+ */
+const featured = page === 1 ? (result.articles[0] ?? null) : null
+const featuredEmbed = featured ? videoEmbedProps(featured) : null
+const rest = featured && featuredEmbed ? result.articles.slice(1) : result.articles
+
+const poster = featured
+  ? resolveCmsImage(
+      (featured.featuredImage ?? null) as Parameters<typeof resolveCmsImage>[0],
+      featured.title,
+    )
+  : null
+
+const canonical = new URL(`${BASE_PATH}${page > 1 ? `/page/${page}` : ''}`, Astro.site ?? Astro.url)
+  .href
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'ভিডিও সংবাদ',
+  url: canonical,
+  inLanguage: 'bn-BD',
+  isPartOf: {
+    '@type': 'WebSite',
+    name: settings.siteName,
+    url: Astro.site?.href ?? Astro.url.origin,
+  },
+}
+---
+
+<Layout
+  title={page > 1 ? `ভিডিও সংবাদ — পেজ ${page}` : 'ভিডিও সংবাদ'}
+  description={`${settings.siteName}-এর ভিডিও সংবাদ ও প্রতিবেদন।`}
+  canonical={canonical}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+  jsonLd={jsonLd}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'ভিডিও', href: BASE_PATH }]} />
+
+    <header class="mb-6 border-b-2 border-brand-red pb-3">
+      <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+        ভিডিও সংবাদ
+      </h1>
+      <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
+        {result.totalDocs} টি ভিডিও
+      </p>
+    </header>
+
+    {
+      featured && featuredEmbed ? (
+        <section class="mb-8" aria-labelledby="featured-video-heading">
+          <h2
+            id="featured-video-heading"
+            class="font-headline text-lg font-bold text-ink dark:text-dark-ink"
+          >
+            {featured.title}
+          </h2>
+          <div class="mt-3">
+            <MediaEmbed
+              provider={featuredEmbed.provider}
+              videoId={featuredEmbed.videoId}
+              pageUrl={featuredEmbed.pageUrl}
+              title={featured.title}
+              poster={poster}
+            />
+          </div>
+        </section>
+      ) : null
+    }
+
+    <ArticleGrid
+      articles={rest}
+      emptyMessage={
+        featured && featuredEmbed
+          ? 'আর কোনো ভিডিও নেই।'
+          : 'এখনো কোনো ভিডিও সংবাদ প্রকাশিত হয়নি।'
+      }
+    />
+
+    <Pagination page={page} totalPages={result.totalPages} basePath={BASE_PATH} />
+  </div>
+</Layout>

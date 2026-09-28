@@ -126,6 +126,47 @@ export const Articles: CollectionConfig = {
       admin: { position: 'sidebar' },
     },
     {
+      name: 'layout',
+      type: 'select',
+      defaultValue: 'standard',
+      index: true,
+      label: { en: 'Layout', bn: 'লেআউট' },
+      options: [
+        { value: 'standard', label: 'সাধারণ' },
+        { value: 'photoStory', label: 'ছবির গল্প' },
+      ],
+      admin: {
+        position: 'sidebar',
+        description: 'ছবির গল্প বেছে নিলে নিচের ছবির তালিকা থেকে পাতা তৈরি হয় — লেখা নয়, ছবিই প্রধান।',
+      },
+    },
+    {
+      name: 'videoProvider',
+      type: 'select',
+      defaultValue: 'youtube',
+      label: { en: 'Video provider', bn: 'ভিডিও সেবাদাতা' },
+      options: [
+        { label: 'ইউটিউব', value: 'youtube' },
+        { label: 'ফেসবুক', value: 'facebook' },
+      ],
+      admin: {
+        position: 'sidebar',
+        // Only meaningful with a video — an editor should not have to read a
+        // provider field that does nothing.
+        condition: (data: Record<string, unknown>) => Boolean(data?.videoUrl),
+      },
+    },
+    {
+      name: 'videoUrl',
+      type: 'text',
+      label: { en: 'Video URL', bn: 'ভিডিও ঠিকানা' },
+      admin: {
+        position: 'sidebar',
+        description:
+          'ঐচ্ছিক। দিলে সংবাদের উপরে একটি প্লেয়ার বসে — ক্লিক করার আগে কোনো অনুরোধ যায় না। ইউটিউব লিংক বা ফেসবুক ভিডিওর ঠিকানা।',
+      },
+    },
+    {
       name: 'body',
       type: 'richText',
       label: { en: 'Body', bn: 'মূল লেখা' },
@@ -133,6 +174,48 @@ export const Articles: CollectionConfig = {
       // (`/:category/:id/:slug`) is the only one whose CSP allows a third-party
       // frame. See `blocks/editors.ts`.
       editor: articleBodyEditor,
+    },
+    {
+      name: 'photoStory',
+      type: 'array',
+      label: { en: 'Photo story frames', bn: 'ছবির গল্পের ফ্রেম' },
+      admin: {
+        description:
+          'প্রতিটি ছবির ক্যাপশন ও কৃতিত্ব দিন। ছবির বাক্স আগেই সংরক্ষিত থাকে (আসল মাপ থেকে), তাই পাতা লাফায় না।',
+        // Only relevant to the photo-story layout — showing an empty frame list on
+        // every ordinary article is noise an editor has to scroll past.
+        condition: (data: Record<string, unknown>) => data?.layout === 'photoStory',
+      },
+      fields: [
+        {
+          name: 'image',
+          type: 'upload',
+          relationTo: 'media',
+          required: true,
+          label: { en: 'Image', bn: 'ছবি' },
+        },
+        {
+          name: 'caption',
+          type: 'textarea',
+          label: { en: 'Caption', bn: 'ক্যাপশন' },
+          admin: { description: 'ছবির নিচে দেখানো হয়।' },
+        },
+        {
+          name: 'credit',
+          type: 'text',
+          label: { en: 'Credit', bn: 'কৃতিত্ব' },
+          admin: { description: 'যেমন: সংগৃহীত / শিক্ষা২৪।' },
+        },
+        {
+          name: 'fullBleed',
+          type: 'checkbox',
+          defaultValue: false,
+          label: { en: 'Full bleed', bn: 'ফুল ব্লিড' },
+          admin: {
+            description: 'চালু থাকলে ছবিটি পাতার পুরো প্রস্থ নেয়। বন্ধ থাকলে লেখার প্রস্থেই থাকে।',
+          },
+        },
+      ],
     },
     {
       name: 'keyTakeaways',

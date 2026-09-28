@@ -34,6 +34,8 @@ import AdSlot from '../../../components/AdSlot.astro'
 import ContentBlockScripts from '../../../components/ContentBlockScripts.astro'
 import CommentSection from '../../../components/CommentSection.astro'
 import ReactionBar from '../../../components/ReactionBar.astro'
+import PhotoStory from '../../../components/PhotoStory.astro'
+import MediaEmbed from '../../../components/MediaEmbed.astro'
 import CategoryImage from '../../../components/CategoryImage.astro'
 import { countParagraphs, lexicalToHtml, lexicalToPlainText, splitHtmlAtParagraph } from '../../../lib/richtext'
 import { mediaUrl, resolveCmsImage } from '../../../lib/media'
@@ -41,6 +43,8 @@ import { getCategoryImage } from '../../../lib/images'
 import { getPublicCmsOrigin } from '../../../lib/interactive'
 import { getApprovedComments } from '../../../lib/engagement'
 import { articleUrl } from '../../../lib/url'
+import { resolvePhotoFrames } from '../../../lib/photo-story'
+import { videoEmbedProps } from '../../../lib/video'
 import { toBnDigits, formatBnBd, getDhakaYearMonth } from '../../../lib/bangla-date'
 import {
   getSiteSettings,
@@ -233,6 +237,45 @@ const jsonLd = {
     url: siteUrl,
   },
 }
+
+/*
+ * ── S17: photo story and video news ─────────────────────────────────────────
+ *
+ * Both are optional decorations on an ordinary article: the layout decides which
+ * template presents the body, and a video URL adds a player above it. An article
+ * with neither renders exactly as it did before this section existed, so nothing
+ * here changes the common path.
+ */
+const isPhotoStory = article.layout === 'photoStory'
+const photoFrames = resolvePhotoFrames(article.photoStory)
+
+/** The video, when the stored URL validates. `null` renders nothing at all. */
+const videoEmbed = videoEmbedProps(article)
+
+/*
+ * A photo story is an image gallery as far as a crawler is concerned, so the
+ * gallery schema is emitted **in addition to** the `NewsArticle`, never instead
+ * of it — the article is still the page's subject, and the gallery only describes
+ * how it is presented. `Layout` already accepts an array of JSON-LD objects.
+ */
+const imageGalleryLd =
+  isPhotoStory && photoFrames.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'ImageGallery',
+        name: article.title,
+        url: canonical,
+        inLanguage: 'bn-BD',
+        numberOfItems: photoFrames.length,
+        image: photoFrames.map((frame) => ({
+          '@type': 'ImageObject',
+          url: frame.image.src,
+          width: frame.image.width,
+          height: frame.image.height,
+          caption: frame.caption || undefined,
+        })),
+      }
+    : null
 ---
 
 <Layout
@@ -242,7 +285,7 @@ const jsonLd = {
   ogImage={photo?.src ?? undefined}
   publishDate={article.publishedAt ?? undefined}
   modifiedDate={article.updatedAt ?? article.publishedAt ?? undefined}
-  jsonLd={jsonLd}
+  jsonLd={imageGalleryLd ? [jsonLd, imageGalleryLd] : jsonLd}
   settings={settings}
   categories={categories}
   footerPages={footerPages}
@@ -391,6 +434,29 @@ const jsonLd = {
         ) : null}
 
         {bodyText && <ArticleAudio text={`${article.title}. ${bodyText}`} />}
+
+        {/* S17. A video sits directly above the body: the reader meets it before
+            the prose. It is click-to-load, so the markup carries no iframe and no
+            third-party URL until they tap play. */}
+        {
+          videoEmbed && (
+            <div class="mt-6">
+              <MediaEmbed
+                provider={videoEmbed.provider}
+                videoId={videoEmbed.videoId}
+                pageUrl={videoEmbed.pageUrl}
+                title={article.title}
+                poster={photo}
+              />
+            </div>
+          )
+        }
+
+        {/* S17. A photo story presents its frames ahead of the prose — the
+            editorial text stays, because a layout should not silently discard what
+            an editor wrote. Every frame reserves its box from the image's true
+            dimensions; this is the most image-dense page on the site. */}
+        {isPhotoStory && photoFrames.length > 0 && <PhotoStory frames={photoFrames} />}
 
         {/* In-article, top — placed after the header block so it can never land
             in the initial viewport, which the performance budget forbids. */}

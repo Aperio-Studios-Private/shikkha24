@@ -397,3 +397,34 @@ prove the harness works — `payload run` re-applies the declared schema on boot
 recreated it, so the harness passed with the index "dropped". Counter-prove a schema constraint
 by changing the **config**, so the push drops it for real.
 
+### 13.9 S17 — the article profile had to gain Facebook, and the harness had to become provider-aware
+
+`Articles.videoProvider` can be `facebook` (spec §6.2), but the **article** profile's `frame-src`
+named only YouTube. An article carrying a Facebook video would therefore have been **silently
+dead** on the highest-traffic route: the page returns 200, the markup is valid, the policy is a
+valid policy — and the iframe is blocked with no error anywhere. Exactly the failure class the
+third profile was introduced to prevent on `/live-tv`, sitting unnoticed on every article.
+
+`pnpm verify:apache` found it while S17 was being built, because S17 made an *article* render a
+`MediaEmbed` for the first time.
+
+**Two changes, and the second is the one that matters:**
+
+1. The article profile gained `https://www.facebook.com`, `https://web.facebook.com` and
+   `https://m.facebook.com` in `frame-src`.
+2. The harness became **provider-aware**. It now reads `data-media-provider` off each page — the
+   component's own statement of which provider the reader will frame — and asserts the served
+   policy allows **that** provider. A blanket "does the policy mention Facebook" would not do:
+   what matters is whether the policy permits the frame the page actually creates.
+
+⚠️ **Consequence: the article and media profiles now carry the same policy.** Both env vars
+remain, because they dispatch by different route families — the article route, and the dedicated
+media routes — so a later change to one cannot silently widen the other. The static half of the
+proof (which env var is tagged on which route, and what each contains) is asserted by
+`verify:build-output`; the runtime half by `verify:apache`. **Neither harness alone proves the
+dispatch any more.**
+
+Counter-proved: stripping the Facebook hosts from the article profile turns `verify:apache` red
+with `frames a Facebook video, but the policy forbids the frame`, and `verify:build-output` red
+with `the article profile frames Facebook`.
+
