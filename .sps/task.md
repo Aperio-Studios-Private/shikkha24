@@ -154,6 +154,7 @@
 - [x] **N4** Institution directory — starter set: public universities + top private, marked "growing" — `/institutions` + `[slug]`
 - [x] **N5** Exam routine & syllabus hub (shares the N2 data model) — `/exams`
 - [x] **N6** GPA / grade calculator (SSC/HSC, client-side, zero backend) — `/gpa` (flag-gated)
+  - [x] 🚨 **Corrected 2026-09-28.** Three wrong answers had shipped: the 4th-subject bonus was `min(GP, 2)` instead of `max(0, GP − 2)` (an A+ 4th subject earned 2.00, not 3.00); an F in a compulsory subject did not zero the result; and the letter grade was looked up against the **marks** boundaries, so **every** result read **এফ**. Root cause: the calculation was inline in a page `<script>`, so nothing could call it. Now `frontend/src/lib/gpa.ts` + `pnpm verify:gpa` (in `pnpm verify` and CI). See `.sps/section-todos/S10.md` → N6.
 - [x] **N8** Circular tracker (education + BCS/job circulars) — `/circulars`
 - [x] **N9** District-first opportunities — district filter on `/deadlines`
 - [x] **N10** Study-abroad country guides — starter set: UK, USA, Canada, Australia, Malaysia, Japan, South Korea, Germany — `/study-abroad` + `[slug]`

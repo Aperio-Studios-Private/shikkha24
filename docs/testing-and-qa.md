@@ -12,6 +12,7 @@
 | TypeScript typecheck | Every CI run | Merge |
 | Lint | Every CI run | Merge |
 | **`.astro` frontmatter imports** (`pnpm verify:astro-imports`) | Every CI run | Merge |
+| **GPA calculation** (`pnpm verify:gpa`) | Every CI run | Merge |
 | Production build | Every CI run | Deploy |
 | Lighthouse CI (perf + a11y budgets) | Every CI run | Deploy |
 | HTML validation | Every CI run | Deploy (warn first) |
@@ -92,7 +93,7 @@ This is a mostly-static site. Over-engineering a test suite here would be waste.
 |---|---|
 | **Static output** | Verified by the build itself + Lighthouse CI + link/schema checks. No unit tests needed. |
 | **Payload collections, hooks, access control** | **Deserve real tests** — RBAC enforcement, field-level restrictions, scheduled publishing, versioning. These are the places where a bug is silent and damaging. |
-| **Astro islands (client JS)** | A small number of targeted tests for the interactive bits (quiz, GPA calculator, deadline saver). |
+| **Astro islands (client JS)** | A small number of targeted tests for the interactive bits. **The GPA calculator is the first to have one** (`pnpm verify:gpa`) — and it earned it the hard way: its calculation lived inside a page `<script>`, nothing could call it, and three wrong answers shipped. Any island whose output a reader *relies on* should follow that pattern: pure logic in a `lib/` module, a harness over it, and a `verify:build-output` assertion that the page's DOM contract still holds. |
 | **End-to-end** | A smoke test of the critical paths: publish → build → page renders. Not a full E2E suite. |
 | **Editorial workflow** | Manual verification with real accounts for each of the 5 roles. |
 

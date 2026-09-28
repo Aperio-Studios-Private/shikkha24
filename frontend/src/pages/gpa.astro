@@ -6,10 +6,23 @@
  * on `PUBLIC_FLAG_GPA_CALCULATOR` so it can be dropped from a build if a
  * device class misbehaves. Like the quiz, the answers are in the page (there
  * is nothing to hide — it is a calculator, not an assessment).
+ *
+ * ## ⚠️ The calculation lives in `lib/gpa.ts`, not here
+ *
+ * It used to be inline in the `<script>` below, which is why **three wrong
+ * answers shipped unnoticed**: nothing could call a function defined inside a
+ * browser script, so nothing could check it. An F in a compulsory subject did not
+ * zero the result, an A+ 4th subject was credited 2.00 instead of 3.00, and every
+ * result was labelled **এফ**.
+ *
+ * The rules now live in a pure module with `scripts/verify-gpa.mjs` over it. This
+ * file is only the presentation.
  */
 import Layout from '../layouts/Layout.astro'
 import Breadcrumbs from '../components/Breadcrumbs.astro'
 import { isEnabled } from '../lib/feature-flags'
+import { GRADES, OPTIONAL_THRESHOLD, GPA_CAP } from '../lib/gpa'
+import { toBnDigits } from '../lib/bangla-date'
 import { getSiteSettings, getCategories, getFooterPages, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../lib/cms'
 
 if (!isEnabled('gpaCalculator')) {
@@ -21,6 +34,13 @@ const [settings, categories, footerPages] = await Promise.all([
   getCategories().catch(() => FALLBACK_CATEGORIES),
   getFooterPages().catch(() => []),
 ])
+
+/** The scale, rendered from the same table the calculation uses. */
+const scale = GRADES.map((grade) => ({
+  range: grade.minPercent === 0 ? '০–৩২' : `${toBnDigits(grade.minPercent)}+`,
+  label: grade.bn,
+  point: toBnDigits(grade.point.toFixed(2)),
+}))
 ---
 
 <Layout title="জিপিএ ক্যালকুলেটর" description="এসএসসি/এইচএসসি জিপিএ ক্যালকুলেটর — নম্বর থেকে গ্রেড পয়েন্ট।"
@@ -42,15 +62,27 @@ const [settings, categories, footerPages] = await Promise.all([
     </noscript>
 
     <div id="gpa-calc" class="hidden">
-      <p class="mb-3 text-sm text-ink-muted dark:text-dark-ink-muted">
-        ঐচ্ছিক বিষয় (৪র্থ/৫ম) চিহ্নিত করলে তার অতিরিক্ত পয়েন্ট জিপিএ-তে যোগ হবে (সর্বোচ্চ ২.০)।
-      </p>
+      <div class="mb-4 rounded-lg border border-rule bg-surface-raised p-4 text-sm leading-relaxed text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
+        <p class="font-semibold text-ink dark:text-dark-ink">হিসাবের নিয়ম</p>
+        <ul class="mt-2 list-disc space-y-1 pl-5">
+          <li>জিপিএ = <strong>মূল বিষয়গুলোর গ্রেড পয়েন্টের যোগফল ÷ মূল বিষয়ের সংখ্যা</strong>।</li>
+          <li>
+            ঐচ্ছিক (৪র্থ) বিষয় ভাগে ধরা হয় না — শুধু
+            <strong>{toBnDigits(OPTIONAL_THRESHOLD.toFixed(2))}-এর বেশি</strong> অংশটুকু বোনাস হিসেবে যোগ হয়
+            (সর্বোচ্চ {toBnDigits((GPA_CAP - OPTIONAL_THRESHOLD).toFixed(2))}, কারণ সর্বোচ্চ গ্রেড পয়েন্ট{' '}
+            {toBnDigits(GPA_CAP.toFixed(2))})।
+          </li>
+          <li><strong>কোনো মূল বিষয়ে এফ</strong> (৩৩-এর কম) থাকলে পুরো জিপিএ <strong>০.০০</strong>।</li>
+          <li>ঐচ্ছিক বিষয়ে এফ থাকলে ফলাফল খারাপ হয় না — শুধু বোনাস পাওয়া যায় না।</li>
+          <li>সর্বোচ্চ জিপিএ {toBnDigits(GPA_CAP.toFixed(2))}।</li>
+        </ul>
+      </div>
 
       <table class="w-full border-collapse text-sm">
         <thead>
           <tr class="border-b border-rule dark:border-dark-rule">
             <th class="p-2 text-left text-ink dark:text-dark-ink">বিষয়</th>
-            <th class="p-2 text-left text-ink dark:text-dark-ink">নম্বর (০–১০০)</th>
+            <th class="p-2 text-left text-ink dark:text-dark-ink">প্রাপ্ত নম্বর</th>
             <th class="p-2 text-left text-ink dark:text-dark-ink">গ্রেড</th>
             <th class="p-2 text-center text-ink dark:text-dark-ink">ঐচ্ছিক</th>
           </tr>
@@ -67,101 +99,180 @@ const [settings, categories, footerPages] = await Promise.all([
         <p class="text-sm text-ink-muted dark:text-dark-ink-muted">আপনার জিপিএ</p>
         <p id="gpa-result" class="font-headline text-3xl font-bold text-brand-red">—</p>
         <p id="gpa-grade" class="mt-1 text-sm text-ink dark:text-dark-ink"></p>
+        <p id="gpa-breakdown" class="mt-2 text-xs text-ink-muted dark:text-dark-ink-muted"></p>
+        <p id="gpa-fail" class="mt-3 hidden rounded-md bg-brand-red/10 p-3 text-sm font-medium text-brand-red"></p>
       </div>
+
+      <details class="mt-4 text-sm">
+        <summary class="cursor-pointer text-ink-muted dark:text-dark-ink-muted">গ্রেড সারণি</summary>
+        <table class="mt-3 w-full border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-rule dark:border-dark-rule">
+              <th class="p-2 text-left text-ink dark:text-dark-ink">নম্বর (%)</th>
+              <th class="p-2 text-left text-ink dark:text-dark-ink">গ্রেড</th>
+              <th class="p-2 text-left text-ink dark:text-dark-ink">পয়েন্ট</th>
+            </tr>
+          </thead>
+          <tbody>
+            {scale.map((row) => (
+              <tr class="border-b border-rule dark:border-dark-rule">
+                <td class="p-2 text-ink dark:text-dark-ink">{row.range}</td>
+                <td class="p-2 text-ink dark:text-dark-ink">{row.label}</td>
+                <td class="p-2 text-ink dark:text-dark-ink">{row.point}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p class="mt-2 text-xs text-ink-subtle dark:text-dark-ink-muted">
+          বাংলা ও ইংরেজি দুটি পত্র মিলিয়ে ২০০ নম্বরের — "মোট নম্বর" ২০০ করে মিলিত নম্বরটিই লিখুন।
+        </p>
+      </details>
     </div>
   </div>
 </Layout>
 
 <script>
-  // Grade boundaries: Bangladeshi SSC/HSC system.
-  const GRADES = [
-    { min: 80, point: 5.0, label: 'A+', bn: 'এ+' },
-    { min: 70, point: 4.0, label: 'A', bn: 'এ' },
-    { min: 60, point: 3.5, label: 'A-', bn: 'এ-' },
-    { min: 50, point: 3.0, label: 'B', bn: 'বি' },
-    { min: 40, point: 2.0, label: 'C', bn: 'সি' },
-    { min: 33, point: 1.0, label: 'D', bn: 'ডি' },
-    { min: 0, point: 0.0, label: 'F', bn: 'এফ' },
-  ]
-
-  function gradeFor(marks: number) {
-    return GRADES.find((g) => marks >= g.min) ?? GRADES[GRADES.length - 1]
-  }
-
-  function bnDigits(value: string | number): string {
-    return String(value).replace(/[0-9]/g, (d) => '\u09E7\u09E8\u09E9\u09EA\u09EB\u09EC\u09ED\u09EE\u09EF\u09E6'[
-      '0123456789'.indexOf(d)
-    ])
-  }
-
-  function fmtGPA(g: number): string {
-    return bnDigits(g.toFixed(2))
-  }
+  import { computeGpa, gradeForPercent } from '../lib/gpa'
+  import { toBnDigits } from '../lib/bangla-date'
 
   const tbody = document.getElementById('gpa-rows')!
   const result = document.getElementById('gpa-result')!
   const gradeLabel = document.getElementById('gpa-grade')!
+  const breakdown = document.getElementById('gpa-breakdown')!
+  const failBox = document.getElementById('gpa-fail')!
   const calc = document.getElementById('gpa-calc')!
   calc.classList.remove('hidden')
 
-  const SUBJECTS = ['বাংলা', 'ইংরেজি', 'গণিত', 'বিজ্ঞান', 'ধর্ম']
+  const SUBJECTS = [
+    'বাংলা',
+    'ইংরেজি',
+    'গণিত',
+    'তথ্য ও যোগাযোগ প্রযুক্তি',
+    'বাংলাদেশ ও বিশ্বপরিচয়',
+    'ধর্ম ও নৈতিক শিক্ষা',
+    'পদার্থবিজ্ঞান',
+    'রসায়ন',
+    'জীববিজ্ঞান',
+    'উচ্চতর গণিত',
+  ]
+
   let rowCount = 0
 
-  function addRow(name = '', marks = '') {
+  function addRow() {
     rowCount++
     const tr = document.createElement('tr')
     tr.className = 'border-b border-rule dark:border-dark-rule'
     const idx = rowCount
     tr.innerHTML = `
-      <td class="p-2"><input type="text" class="gpa-name w-full rounded border border-rule bg-transparent px-2 py-1 text-ink dark:border-dark-rule dark:text-dark-ink" placeholder="${SUBJECTS[(idx - 1) % SUBJECTS.length]}" /></td>
-      <td class="p-2"><input type="number" class="gpa-marks w-24 rounded border border-rule bg-transparent px-2 py-1 text-ink dark:border-dark-rule dark:text-dark-ink" min="0" max="100" placeholder="০–১০০" /></td>
-      <td class="p-2 gpa-grade text-ink dark:text-dark-ink">—</td>
-      <td class="p-2 text-center"><input type="checkbox" class="gpa-opt" /></td>
+      <td class="p-2">
+        <input type="text" class="gpa-name w-full rounded border border-rule bg-transparent px-2 py-1 text-ink dark:border-dark-rule dark:text-dark-ink" placeholder="${SUBJECTS[(idx - 1) % SUBJECTS.length]}" aria-label="বিষয়ের নাম" />
+      </td>
+      <td class="p-2">
+        <span class="flex items-center gap-1">
+          <input type="number" class="gpa-marks w-20 rounded border border-rule bg-transparent px-2 py-1 text-ink dark:border-dark-rule dark:text-dark-ink" min="0" max="100" step="1" aria-label="প্রাপ্ত নম্বর" />
+          <select class="gpa-outof rounded border border-rule bg-transparent px-1 py-1 text-xs text-ink-muted dark:border-dark-rule dark:text-dark-ink-muted" aria-label="মোট নম্বর">
+            <option value="100">/১০০</option>
+            <option value="200">/২০০</option>
+          </select>
+        </span>
+      </td>
+      <td class="p-2 gpa-row-grade text-ink dark:text-dark-ink">—</td>
+      <td class="p-2 text-center">
+        <input type="checkbox" class="gpa-opt" aria-label="ঐচ্ছিক (৪র্থ) বিষয়" />
+      </td>
     `
     tbody.appendChild(tr)
-    tr.querySelector('.gpa-marks')!.addEventListener('input', recalc)
+
+    const marksInput = tr.querySelector<HTMLInputElement>('.gpa-marks')!
+    const outOfSelect = tr.querySelector<HTMLSelectElement>('.gpa-outof')!
+    marksInput.addEventListener('input', recalc)
+    outOfSelect.addEventListener('change', () => {
+      // Keep the input's ceiling in step with the selected total, so the browser's
+      // own validation agrees with the calculation.
+      marksInput.max = outOfSelect.value
+      recalc()
+    })
     tr.querySelector('.gpa-opt')!.addEventListener('change', recalc)
   }
 
   function recalc() {
-    const rows = tbody.querySelectorAll('tr')
-    let mainSum = 0, mainCount = 0, optPoint = 0, hasOpt = false
-
-    for (const row of rows) {
-      const input = row.querySelector('.gpa-marks') as HTMLInputElement
-      const gradeCell = row.querySelector('.gpa-grade')!
-      const optBox = row.querySelector('.gpa-opt') as HTMLInputElement
-      const val = parseFloat(input.value)
-      gradeCell.textContent = '—'
-      if (isNaN(val) || val < 0 || val > 100) continue
-      const g = gradeFor(val)
-      gradeCell.textContent = `${g.bn} (${bnDigits(g.point.toFixed(1))})`
-      if (optBox.checked) {
-        hasOpt = true
-        optPoint = Math.max(optPoint, g.point)
-      } else {
-        mainSum += g.point
-        mainCount++
+    const rows = [...tbody.querySelectorAll('tr')]
+    const subjects = rows.map((row) => {
+      const marks = row.querySelector<HTMLInputElement>('.gpa-marks')!
+      const outOf = row.querySelector<HTMLSelectElement>('.gpa-outof')!
+      const opt = row.querySelector<HTMLInputElement>('.gpa-opt')!
+      return {
+        marks: Number.parseFloat(marks.value),
+        outOf: Number.parseFloat(outOf.value) || 100,
+        optional: opt.checked,
+        raw: marks.value,
       }
-    }
+    })
 
-    if (mainCount === 0) {
+    // Per-row grade cells, driven by the same helper the calculation uses — so a
+    // row can never display a grade the total disagrees with.
+    rows.forEach((row, index) => {
+      const cell = row.querySelector('.gpa-row-grade')!
+      const input = row.querySelector<HTMLInputElement>('.gpa-marks')!
+      const subject = subjects[index]!
+      const marks = subject.marks
+
+      const invalid =
+        subject.raw.trim() !== '' &&
+        (!Number.isFinite(marks) || marks < 0 || marks > subject.outOf)
+
+      input.classList.toggle('border-brand-red', invalid)
+      input.setAttribute('aria-invalid', invalid ? 'true' : 'false')
+
+      if (subject.raw.trim() === '' || !Number.isFinite(marks) || marks < 0 || marks > subject.outOf) {
+        cell.textContent = invalid ? 'নম্বর দেখুন' : '—'
+        return
+      }
+
+      const grade = gradeForPercent((marks / subject.outOf) * 100)
+      cell.textContent = `${grade.bn} (${toBnDigits(grade.point.toFixed(2))})`
+    })
+
+    const outcome = computeGpa(subjects)
+
+    if (outcome.gpa === null) {
       result.textContent = '—'
       gradeLabel.textContent = ''
+      breakdown.textContent = ''
+      failBox.classList.add('hidden')
       return
     }
 
-    let gpa = mainSum / mainCount
-    if (hasOpt) gpa += Math.min(optPoint, 2.0) / mainCount
-    gpa = Math.min(gpa, 5.0)
+    result.textContent = toBnDigits(outcome.gpa.toFixed(2))
+    gradeLabel.textContent = `গ্রেড: ${outcome.grade.bn}`
 
-    result.textContent = fmtGPA(gpa)
-    const letter = GRADES.find((g) => gpa >= g.min - 0.01) ?? GRADES[GRADES.length - 1]
-    gradeLabel.textContent = `গ্রেড: ${letter.bn}`
+    const parts = [
+      `মূল বিষয় ${toBnDigits(outcome.compulsoryCount)}টি`,
+      `পয়েন্ট ${toBnDigits(outcome.compulsoryPoints.toFixed(2))}`,
+    ]
+    if (outcome.bonus > 0) {
+      parts.push(`৪র্থ বিষয়ের বোনাস ${toBnDigits(outcome.bonus.toFixed(2))}`)
+    }
+    // The unrounded value is shown whenever rounding moved it, because the sources
+    // disagree about whether the board rounds or truncates (`lib/gpa.ts` header).
+    // A reader whose exact figure is 4.6667 can see that rather than being handed a
+    // rounded number presented as authoritative.
+    if (outcome.rawGpa !== null && Math.abs(outcome.rawGpa - outcome.gpa) > 0.0001) {
+      parts.push(`হিসাবের প্রকৃত মান ${toBnDigits(outcome.rawGpa.toFixed(4))}`)
+    }
+    breakdown.textContent = parts.join(' · ')
+
+    if (outcome.failed) {
+      failBox.textContent =
+        'কোনো একটি মূল বিষয়ে এফ থাকায় জিপিএ ০.০০ — ফলাফল অকৃতকার্য। ওই বিষয়ে উত্তীর্ণ হয়ে আবার পরীক্ষা দিতে হবে।'
+      failBox.classList.remove('hidden')
+    } else {
+      failBox.classList.add('hidden')
+    }
   }
 
   document.getElementById('gpa-add-row')!.addEventListener('click', () => addRow())
 
-  for (let i = 0; i < 5; i++) addRow()
+  for (let i = 0; i < 6; i++) addRow()
   recalc()
 </script>

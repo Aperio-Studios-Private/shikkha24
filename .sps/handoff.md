@@ -880,6 +880,63 @@ the host-disk usage alert.
     - ⚠️ **CLS was verified by construction, not measured.** The reserved boxes are asserted in the
       built HTML; the `CLS < 0.02` Lighthouse number needs a production deployment (S12).
 
+46. 🚨 **The GPA calculator was wrong in three ways — fixed 2026-09-28** (owner report: "the GPA
+    Calculations is not accurate"). This is **not** a new section; it corrects N6 from S10.
+    - **Researched first (rule 3), against three independent sources.** The verified rule:
+      ```
+      ৪র্থ বিষয় বোনাস = সর্বোচ্চ(০, ৪র্থ বিষয়ের পয়েন্ট − ২.০০)
+      চূড়ান্ত জিপিএ = (মূল বিষয়ের পয়েন্টের যোগফল + বোনাস) ÷ মূল বিষয়ের সংখ্যা   [সর্বোচ্চ ৫.০০]
+      ```
+      Only the part **above** 2.00 is added, so the maximum bonus is **3.00**, not 2.00 — and the
+      4th subject is **not** in the divisor. Boundaries: 80+ A+ 5.00 · 70 A 4.00 · 60 A− 3.50 ·
+      50 B 3.00 · 40 C 2.00 · 33 D 1.00 · 32 and below F 0.00.
+    - 🚨 **Bug 1 — the 4th-subject bonus was `min(GP, 2)` instead of `max(0, GP − 2)`.** An A+ 4th
+      subject contributed 2.00 instead of 3.00, and a B (3.00) contributed 2.00 instead of 1.00.
+      **The direction of the error was always downwards**, so the calculator systematically
+      under-reported.
+    - 🚨 **Bug 2 — an F in a compulsory subject did not fail the result.** It scored 0.00 for that
+      subject and averaged the rest, so a candidate with one F and five A+ was told **4.17** instead
+      of **0.00**. This is the one that could mislead someone about whether they passed.
+    - 🚨 **Bug 3 — the final letter grade was looked up on the wrong scale.** `GRADES.find(g => gpa
+      >= g.min)` compared a GPA (5.00 scale) against the **marks** boundaries (80, 70, 60 …), so the
+      first entry it could satisfy was always the `0` one — **every single result was labelled
+      এফ**. Visible, wrong, and nobody had reported it.
+    - ⚠️ **The root cause was structural, not arithmetic.** The calculation lived inside a
+      `<script>` in `gpa.astro`, so **nothing could call it and nothing could check it**. It is now
+      `frontend/src/lib/gpa.ts` — a pure module — with `scripts/verify-gpa.mjs` (60+ checks) over
+      it, wired into `pnpm verify` and CI. `verify:build-output` also asserts the page's DOM
+      contract (every `getElementById` id the bundle looks up exists in the built page), so a
+      renamed element cannot silently kill the calculator.
+    - ⚠️ **`pnpm verify:gpa` runs the `.ts` module directly** via Node's
+      `--experimental-strip-types`, so the harness exercises the real function rather than a
+      re-typed copy of the rules. Two consequences: the harness itself must be plain **`.mjs`**
+      (annotations in a `.mjs` are a syntax error — only `.ts` is stripped), and `gpa.ts` must stay
+      **erasable** (no enums, no namespaces, no parameter imports).
+    - **Also corrected:** the on-page rule text claimed a maximum bonus of 2.00 (now rendered from
+      the constants, so it cannot drift); `ঐচ্ছিক (৪র্থ/৫ম)` implied a 5th optional subject that does
+      not exist; and the marks input capped at 100, so the **200-mark combined Bangla and English**
+      papers could not be entered at all. Each row now carries its own total (১০০/২০০) and grading
+      is on the percentage.
+    - **Rounding: the sources disagree, and the disagreement is not hidden.** One states the board
+      *truncates* rather than rounding up; another's worked example rounds (`42 ÷ 9 = 4.666…`
+      reported as `4.67`). The module returns `rawGpa` unrounded and the page **shows it whenever
+      rounding moved the number**, so a reader whose exact figure is 4.6667 can see that instead of
+      being handed a rounded value presented as authoritative. The displayed GPA rounds to two
+      decimals, capped at 5.00.
+    - ⚠️ **Two counter-proof lessons, one of them new.** (a) All three bugs were re-introduced one at
+      a time and the harness went red each time with the right diagnostic. (b) **The DOM-contract
+      check was itself wrong first, and counter-proving it is how that was found:** it used
+      `bundle.includes('class="gpa-marks')`, which also matches `class="gpa-marks-2` — and a CSS
+      class selector matches whole names, so that rename really does break the query while the check
+      stayed green. It now compares **whole class tokens** extracted from the `class="…"`
+      attributes. **A check written to catch a silent failure is exactly the check that needs
+      counter-proving.**
+    - **S10's evidence file had recorded the wrong rule as the design** ("Optional subject's points
+      are capped at 2.0…"), which is why nobody questioned it. Corrected there, with the bug struck
+      through rather than deleted.
+    - Gates: biome 0 · typecheck 0 · `verify:gpa` all pass · astro-imports 130 · build **155 pages**
+      · build-output · links · apache — **all green**.
+
 - **Portal type: education portal** (2026-09-11) — domain `shikkha24.com`; general-news scope retired
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)
 - **Next.js pinned to 16.2.6+** (corrected by the audit)

@@ -73,6 +73,17 @@ jobs:
         # and clearer than failing inside the prerender.
         run: pnpm run verify:astro-imports
 
+      - name: Verify the GPA calculation
+        # The calculation is a pure module (`frontend/src/lib/gpa.ts`) with a
+        # harness over it. It has to run on every push: three wrong answers shipped
+        # while it was inline in a page `<script>`, because nothing could call it
+        # and therefore nothing could check it.
+        #
+        # Needs no build. `--experimental-strip-types` is what lets the `.mjs`
+        # harness import the real `.ts` module rather than a re-typed copy of the
+        # rules — a copy would only prove two implementations agree.
+        run: pnpm run verify:gpa
+
       # ── Frontend ────────────────────────────────────────────────────────────
       - name: Astro sync (generate content + env types)
         # `astro sync` writes .astro/types.d.ts, which tsconfig.json includes.
