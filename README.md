@@ -34,6 +34,7 @@ Production-grade, Bengali-first **education** news portal. Domain: **shikkha24.c
 | **`docs/testing-and-qa.md`** | Quality gates, test strategy, WCAG AA accessibility, browser/device matrix, Bengali render audit |
 | **`docs/assets-prompt.md`** | **AI visual assets** — Google Flow prompt library for every news type. Includes the hard rule that generated images must never contain text (Bengali conjuncts garble) and the ethics red lines on real events/people |
 | **`docs/image-optimization.md`** | **Image optimization** — AVIF+WebP via `<picture>`, responsive `srcset`, the `sizes` rule, zero-CLS dimensions, LCP `fetchpriority`, immutable caching. How to add new assets |
+| **`docs/gpa-calculator-landscape.md`** | **GPA/CGPA calculator landscape** — every grade-calculation tool found in Bangladesh and internationally: what each calculates, how it helps students, which are worth adopting, and how `/gpa` and `/cgpa` are positioned against them |
 | `docs/presentation-deck.html` | **Project presentation deck** for team/board approval — 18 slides, mobile-first, covers all aspects |
 | `docs/audit-third-party.md` | Independent adversarial audit of the docs and plans (2026-09-11) + remediation status |
 | `docs/data-sources.md` | Every live-data widget: provider, free-tier terms, rate limit, fallback |

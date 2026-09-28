@@ -11,6 +11,7 @@
 | What is left to do, section by section? | `.sps/task.md` |
 | What went wrong, and why? | `.sps/mistakes.md` + this file |
 | Section-by-section evidence | `.sps/section-todos/S*.md` |
+| **What grade calculators already exist, and how do ours compare?** | **`docs/gpa-calculator-landscape.md`** — BD + international landscape, and the positioning |
 
 ## Current Phase
 - **✅ CI REGRESSION FIXED (2026-09-20) — S13's publish guard had broken the seed, and therefore CI itself.** Found by re-running the audit rather than trusting this file: the handoff still said *"✅ CI IS GREEN on the runner"* (true 2026-09-15, **false from 2026-09-18**). The last CI push (`e2b6312`) failed at *Seed the CMS database* with `APIError: সংবাদ প্রকাশ করা যায় শুধু সম্পাদকের অনুমোদনের পর।` — the verbatim string from `guardPublishStatus`. **The chain:** `cms/src/seed/demo.ts` creates demo articles with `_status: 'published'`; S13 added `hooks/publish.ts`, which throws on any transition to `published` by a non-editor; `payload run` has **no session**, so the seed was rejected. **Why the first fix attempt failed (recorded so it is not retried):** `overrideAccess: true` does **not** reach a *collection-level* `beforeChange` hook — Payload forwards it to field-level hooks only (`dist/collections/operations/create.js` builds the collection-hook args from `{ collection, context, data, operation, originalDoc, req }`). The seed already passed `overrideAccess: true`, so the flag looked like the obvious marker and was not. What **is** forwarded is `context` — `createLocalReq` merges it onto `req.context`, which the collection hook receives. Fix: an exported `PROGRAMMATIC_CONTEXT` marker key in `hooks/publish.ts`; the seed passes `context: { [PROGRAMMATIC_CONTEXT]: true }`; the guard stands down for it. **Not attacker-controllable:** `req.context` for an HTTP request is initialised by Payload core and is never populated from a body, query or header (verified in the express/REST layer). **Counter-proved both directions on a FRESH database** (the local DB was already seeded, so it would have hidden this — M12): without the marker `seed:demo` exits 1 with the APIError; with it, exit 0 and 24 articles. **`verify:reporter` still passes** — "reporter cannot publish their own article" holds, because a reader session cannot set the context. Lesson added to the pile: a security hook that does not exempt programmatic writes will eventually break the seed, and CI is where it surfaces.
@@ -981,6 +982,34 @@ the host-disk usage alert.
       a reader to ignore the linter.
     - Gates: biome 0 · typecheck 0 · `verify:gpa` · `verify:cgpa` · astro-imports 135 · build
       **156 pages** · build-output · links (7964) · apache — **all green**.
+
+48. 📊 **GPA/CGPA calculator landscape researched → `docs/gpa-calculator-landscape.md`**
+    (2026-09-28, owner request). Catalogues the tools that already exist in Bangladesh and
+    internationally — name, region, what each calculates, how it helps students — and states which
+    are worth adopting. Headlines:
+    - **Very few tools cover both BD systems.** Most cover SSC/HSC *or* university, not both — which
+      is why the two calculators are separate pages rather than one tool with a toggle.
+    - **⚠️ The finding that shapes positioning: third-party calculators are not authorities on
+      someone else's regulations, and at least one is demonstrably wrong.** A widely-linked
+      calculator puts NSU's A at **95 marks**; the university's own policy says **93**. So the pitch
+      is not "more features", it is **verifiable correctness** — the rules are named, sourced and
+      asserted by a test.
+    - **Worth adopting (ranked, no commitment made):** previous-CGPA merge; target GPA / "what do I
+      need" (which can say a target is *impossible* — the most useful output available); the
+      with/without-4th-subject comparison; the retake/improvement rule (the new grade **replaces**
+      the old, which students act on).
+    - **⚠️ Explicitly NOT recommended: per-university percentage conversion.** It is essential in
+      India because employers ask for a percentage and each university defines its own formula. In
+      Bangladesh it is unnecessary — a university CGPA is already on a 4.00 maximum, so the correct
+      answer is "quote it as it is and state the scale". Copying the Indian model would invent a
+      problem.
+    - **The one real differentiator we lack** is `nucgpa.com`'s **pre-loaded syllabi per department**
+      — it eliminates the data entry that makes every other CGPA calculator tedious. It is also the
+      only option with an ongoing maintenance cost, so it needs an owner decision, not an
+      assumption.
+    - **Not competitors:** WES / ECE / Scholaro. Those are credential *evaluation* for study abroad —
+      a paid, official service answering "how is my degree read elsewhere". Pointing at them is more
+      useful than trying to replace them.
 
 - **Portal type: education portal** (2026-09-11) — domain `shikkha24.com`; general-news scope retired
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)
