@@ -36,7 +36,7 @@ message maps one-to-one onto this table.
 | 5 | Live TV | ✅ **Built** | S15 | `cms/src/collections/LiveStreams.ts`, `frontend/src/pages/live-tv.astro`, `frontend/src/components/MediaEmbed.astro` |
 | 6 | Online Voting / Poll System | ✅ **Built** | S8 | `cms/src/collections/Polls.ts`, `PollVotes.ts`, `cms/src/endpoints/poll-vote.ts`, `frontend/src/components/PollWidget.astro` |
 | 7a | Comment System | ✅ **Built** | S4 / S9 | `cms/src/collections/Comments.ts`, `cms/src/endpoints/comments.ts`, `frontend/src/components/CommentSection.astro` |
-| 7b | Reaction System | ⬜ **Not built** | S16 | — |
+| 7b | Reaction System | ✅ **Built** | S16 | `cms/src/collections/Reactions.ts`, `cms/src/endpoints/reactions.ts`, `frontend/src/components/ReactionBar.astro` |
 | 8 | Live Weather Update | ✅ **Built** | S3 | `frontend/src/lib/widgets.ts`, `frontend/src/components/HeaderWidgets.astro` |
 | 9a | নামাজের সময়সূচি (prayer times) | ✅ **Built** | S3 | `frontend/src/lib/prayer.ts` |
 | 9b | ইফতার ও সাহরির সময়সূচি | ✅ **Built** | S3 | same — Fajr = সাহরি ends, Maghrib = ইফতার |
@@ -240,16 +240,26 @@ generation would spend CI minutes on every reporter edit.
 - ⚠️ A demo live stream is seeded because the page **self-hides when the collection is
   empty**, which would otherwise leave the third-profile check vacuous.
 
-### S16 — Reader Reactions (request #7b)
+### S16 — Reader Reactions (request #7b) — ✅ **BUILT 2026-09-28**
 
-**Specified in `docs/feature-batch-2.md` §5.** Nothing built.
+**Specified in `docs/feature-batch-2.md` §5.** **Built and verified** — evidence in
+`.sps/section-todos/S16.md`.
 
 - `Reactions` collection: article, type (like/love/wow/sad/angry), reader,
   `fingerprint` (**hashed** IP+UA — never a raw IP).
-- Compound unique indexes so double-voting is rejected at the **database** level.
-- `POST /api/reactions/toggle` mounted **on the collection** (the
-  `/comments/submit` lesson).
-- Self-hiding island; counts read at **runtime**, never baked into static HTML.
+- Compound unique indexes so double-reacting is rejected at the **database** level.
+- `POST /api/reactions/toggle` mounted **on the collection** (the `/comments/submit`
+  lesson), plus `GET /api/reactions/counts`.
+- Self-hiding island; counts read at **runtime**, never baked into static HTML —
+  asserted by `verify:build-output`.
+- ⚠️ The collection's `read` is **not public**: a row holds a fingerprint, so the
+  aggregate is computed server-side and only five counts plus the caller's own
+  choice leave the CMS. `verify:reactions` asserts an anonymous read is refused.
+- ⚠️ **The counter-proof required a different method than expected.** Dropping the
+  index out-of-band cannot work — `payload run` re-applies the declared schema on
+  boot, recreating it before the harness executes. The honest counter-proof is to
+  remove the index from the **collection config**: the push then drops it, and the
+  harness reports `FAIL … a second row was created — the unique index is missing`.
 
 ### S17 — Photo Story & Video News (requests #10b, #10c)
 

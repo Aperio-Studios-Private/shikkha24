@@ -138,7 +138,7 @@ jobs:
           PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
           DATABASE_URI: file:./data/ci.db
         run: |
-          for h in media newsletter engagement push oauth rebuild reporter id-card; do
+          for h in media newsletter engagement push oauth rebuild reporter id-card reactions; do
             echo "── verify:$h ──"
             pnpm --filter @shikkha24/cms verify:$h
           done

@@ -791,6 +791,50 @@ the host-disk usage alert.
       backed up to `/tmp/payload-backup-*.db` first.**
 
 
+44. ✅ **S16 built — reader reactions** (2026-09-28, verified locally). Full detail in
+    `.sps/section-todos/S16.md`.
+    - **What shipped:** `Reactions` collection · `POST /api/reactions/toggle` +
+      `GET /api/reactions/counts` (both **collection-mounted**) · `ReactionBar.astro` island ·
+      `verify:reactions` (9/9) · a privacy-policy disclosure.
+    - ⚠️ **`Reactions.read` is NOT public — that is a privacy control.** A row holds a
+      `fingerprint`, so a public read would let anyone enumerate every fingerprint on an article.
+      The aggregate is computed server-side by the counts endpoint and only five counts plus the
+      caller's own choice leave the CMS.
+    - ⚠️ **Two compound unique indexes, and both are needed.** `(article, type, reader)` covers a
+      signed-in reader (the account survives a cookie wipe); `(article, type, fingerprint)` covers
+      an anonymous one. **SQLite treats `NULL` as distinct in a unique index**, so the reader index
+      cannot constrain an anonymous row at all — the fingerprint index carries that case.
+    - ⚠️ **The insert is deliberately not atomic, and the unique index is the control.** Two
+      concurrent toggles can both see "no existing row"; the index refusing the second is the
+      database doing its job, so the handler catches that and returns fresh counts rather than a
+      500.
+    - 🚨 **The counter-proof needed a different method, and this is the finding to keep.** Dropping
+      the index out-of-band with `sqlite3` **cannot** prove anything: `payload run` **re-applies the
+      declared schema on boot**, so the index was silently recreated before the harness ran and the
+      harness **PASSED with the index "dropped"** — a counter-proof that proved nothing. The honest
+      method is to remove the index from the **collection config**; the push then drops it for real
+      and the harness reports `FAIL … a second row was created — the unique index is missing`.
+      Restored byte-identical, re-ran, green. **Counter-prove a schema constraint via the config,
+      never via the database.**
+    - ⚠️ **`pagination: false` on the counts query is required.** Payload's `find` returns one page
+      by default, so counting `docs.length` without it silently caps the tally at the page size —
+      a wrong number that looks like a real one (trap 10A).
+    - ⚠️ **Payload *throws* `Forbidden`** when access is denied on `find`, rather than returning an
+      empty page. A harness asserting only `docs.length === 0` fails on the throw.
+    - ⚠️ **The vocabulary lives in three places** — `cms/src/lib/reactions.ts`,
+      `cms/src/collections/Reactions.ts` (admin labels), `frontend/src/lib/reactions.ts`. The CMS
+      cannot be imported from the frontend (`node:crypto` + Payload), and a shared package for five
+      strings is more machinery than the problem deserves. **Grepping for `angry` finds all three.**
+    - ⚠️ **Single-choice is an endpoint rule, not a database rule.** The spec's two indexes do not
+      make "one row per article per fingerprint" impossible, so a crafted request could record two
+      different types and inflate the counts slightly. Making it a DB rule needs two more unique
+      indexes, which the spec does not call for — recorded rather than added silently (rule 13).
+    - **Dependency (rule 8):** none added.
+    - Gates: biome 0 · typecheck 0 · astro-imports 121 · build **154 pages** (24 with a reaction
+      bar) · build-output (incl. the new "no baked counts" assertion) · links · apache ·
+      `verify:reactions` 9/9 · `verify:endpoints` — **all green**.
+
+
 - **Portal type: education portal** (2026-09-11) — domain `shikkha24.com`; general-news scope retired
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)
 - **Next.js pinned to 16.2.6+** (corrected by the audit)

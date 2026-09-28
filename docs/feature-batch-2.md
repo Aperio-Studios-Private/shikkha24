@@ -19,7 +19,7 @@
 | **S13** | Reporter verification + assignment + submission | ✅ **BUILT 2026-09-18** — see §2.5 |
 | **S14** | QR ID card + photocard | ✅ **BUILT 2026-09-28** — see §3 and `.sps/section-todos/S14.md` |
 | **S15** | Live TV | ✅ **BUILT 2026-09-28** — see §4 and `.sps/section-todos/S15.md` |
-| **S16** | Reader reactions | ⬜ Specified, not started |
+| **S16** | Reader reactions | ✅ **BUILT 2026-09-28** — see §5 and `.sps/section-todos/S16.md` |
 | **S17** | Photo story + video news | ⬜ Specified, not started |
 
 **Not covered by this batch but built in the same period:** the fact-check section

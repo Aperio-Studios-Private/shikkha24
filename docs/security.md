@@ -369,3 +369,31 @@ Apache, and the block was counter-proved by stripping it (the harness went red w
 The page answers **200** deliberately — a 404 is the outcome the rewrite exists to avoid — so it
 carries `noindex`; otherwise it would be an indexable soft-404.
 
+### 13.8 S16 — reaction fingerprints, and a non-public collection
+
+`Reactions` stores `article`, `type`, `reader` and a `fingerprint`. The fingerprint is a
+**salted HMAC-SHA256 of IP + user agent**, keyed with `PAYLOAD_SECRET` — never a raw IP, and
+never anything that could be joined back to a person. It mirrors `endpoints/poll-vote.ts`
+deliberately: two fingerprints for the same purpose would be two things to reason about.
+
+⚠️ **`Reactions.read` is editor-only, and that is a privacy control, not a preference.** A row
+holds a fingerprint, so a public read would let anyone enumerate every fingerprint on an article.
+The aggregate is computed server-side by `GET /api/reactions/counts`, which returns five counts
+and the caller's own choice and nothing else. `verify:reactions` asserts an anonymous read is
+refused.
+
+⚠️ **The write is whitelisted key by key.** The toggle runs with `overrideAccess: true` (there is
+no CMS user to run access control against), so the fingerprint is computed from the request and
+**never read from the body** — the same structural protection as §13.4.
+
+⚠️ **Dedupe is the database's job, not the UI's.** Two compound unique indexes reject a repeat
+reaction at the storage layer. That matters because the endpoint's read-then-write is not atomic:
+two concurrent toggles can both see "no existing row", and the index refusing the second insert
+is the only thing that holds. The handler catches that refusal and returns fresh counts rather
+than a 500, because it is the database working correctly, not a reader error.
+
+⚠️ **A counter-proof lesson worth keeping:** dropping the index out-of-band with `sqlite3` cannot
+prove the harness works — `payload run` re-applies the declared schema on boot and silently
+recreated it, so the harness passed with the index "dropped". Counter-prove a schema constraint
+by changing the **config**, so the push drops it for real.
+

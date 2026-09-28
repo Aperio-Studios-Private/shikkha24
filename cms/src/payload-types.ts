@@ -99,6 +99,7 @@ export interface Config {
     'push-subscriptions': PushSubscription;
     readers: Reader;
     'poll-votes': PollVote;
+    reactions: Reaction;
     users: User;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
@@ -139,6 +140,7 @@ export interface Config {
     'push-subscriptions': PushSubscriptionsSelect<false> | PushSubscriptionsSelect<true>;
     readers: ReadersSelect<false> | ReadersSelect<true>;
     'poll-votes': PollVotesSelect<false> | PollVotesSelect<true>;
+    reactions: ReactionsSelect<false> | ReactionsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
@@ -1452,6 +1454,27 @@ export interface PollVote {
   createdAt: string;
 }
 /**
+ * পাঠকের প্রতিক্রিয়া — সংখ্যা রানটাইমে পড়া হয়, তাই সংবাদ বদলালে রিবিল্ড লাগে না।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reactions".
+ */
+export interface Reaction {
+  id: number;
+  article: number | Article;
+  type: 'like' | 'love' | 'wow' | 'sad' | 'angry';
+  /**
+   * সোশ্যাল লগইন করা পাঠক (যদি থাকে)। কুকি মুছলেও অ্যাকাউন্ট একই থাকে।
+   */
+  reader?: (number | null) | Reader;
+  /**
+   * স্বয়ংক্রিয়ভাবে তৈরি — আইপি ও ব্রাউজার তথ্যের সল্টেড ওয়ান-ওয়ে হ্যাশ। কাঁচা আইপি কোথাও সংরক্ষণ করা হয় না।
+   */
+  fingerprint: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -1690,6 +1713,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'poll-votes';
         value: number | PollVote;
+      } | null)
+    | ({
+        relationTo: 'reactions';
+        value: number | Reaction;
       } | null)
     | ({
         relationTo: 'users';
@@ -2366,6 +2393,18 @@ export interface ReadersSelect<T extends boolean = true> {
 export interface PollVotesSelect<T extends boolean = true> {
   poll?: T;
   voterHash?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reactions_select".
+ */
+export interface ReactionsSelect<T extends boolean = true> {
+  article?: T;
+  type?: T;
+  reader?: T;
+  fingerprint?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -98,6 +98,11 @@ const reach = [
   ['GET', '/api/push/key'],
   ['GET', '/api/newsletter/status'],
   ['GET', '/api/oauth/providers'],
+  // S16. Both are collection-mounted — a root-mounted path whose first segment
+  // equals the collection slug would be swallowed by the collection router and
+  // answer 404, exactly as `/comments/submit` once did.
+  ['POST', '/api/reactions/toggle'],
+  ['GET', '/api/reactions/counts'],
 ] as const
 for (const [method, path] of reach) {
   const { status } = await call(method, path, method === 'POST' ? {} : undefined)
@@ -412,6 +417,84 @@ console.log('\n-- poll vote --')
     `status ${badArticle.status}`,
   )
   await badArticle.arrayBuffer()
+}
+
+/* ── S16: reactions (HTTP, with a real write and read-back) ───────────────── *
+ *
+ * Routing is the risk this file exists for, so the toggle is exercised end to
+ * end over HTTP: react, read the count back, toggle off, and assert the count
+ * returned to where it started. `verify:reactions` proves the *database* refuses
+ * a duplicate; this proves the URL serves the handler.
+ *
+ * ⚠️ Both requests carry the same `x-forwarded-for` and the same user agent, so
+ * they share one fingerprint — which is what makes "the caller's own choice"
+ * meaningful here rather than accidental.
+ */
+{
+  const article = (
+    await payload.find({
+      collection: 'articles',
+      where: { _status: { equals: 'published' } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+  ).docs[0]
+
+  if (!article) {
+    console.log('note  no published article — the reaction routes are untested')
+  } else {
+    const countsOf = (res: { json: Record<string, unknown> | null }, key: string): number =>
+      Number((res.json?.counts as Record<string, number> | undefined)?.[key] ?? -1)
+
+    const before = await call('GET', `/api/reactions/counts?article=${article.id}`)
+    check(
+      'GET /api/reactions/counts answers an aggregate',
+      before.status === 200 && countsOf(before, 'like') >= 0,
+      `status ${before.status}`,
+    )
+
+    const on = await call('POST', '/api/reactions/toggle', { article: article.id, type: 'like' })
+    check(
+      'POST /api/reactions/toggle records a reaction',
+      on.status === 200 && countsOf(on, 'like') === countsOf(before, 'like') + 1,
+      `${countsOf(before, 'like')} -> ${countsOf(on, 'like')}`,
+    )
+    check(
+      "the response reports the caller's own choice",
+      on.json?.mine === 'like',
+      String(on.json?.mine),
+    )
+
+    const off = await call('POST', '/api/reactions/toggle', { article: article.id, type: 'like' })
+    check(
+      'toggling the same reaction removes it',
+      off.status === 200 && countsOf(off, 'like') === countsOf(before, 'like'),
+      `${countsOf(on, 'like')} -> ${countsOf(off, 'like')}`,
+    )
+    check("the caller's choice is cleared", off.json?.mine === null, String(off.json?.mine))
+
+    // A filled honeypot answers like a success and writes nothing — an error
+    // would tell the bot which field caught it.
+    await call('POST', '/api/reactions/toggle', {
+      article: article.id,
+      type: 'love',
+      company: 'spam',
+    })
+    const after = await call('GET', `/api/reactions/counts?article=${article.id}`)
+    check(
+      'a filled honeypot writes nothing',
+      countsOf(after, 'love') === countsOf(before, 'love'),
+      `love ${countsOf(before, 'love')} -> ${countsOf(after, 'love')}`,
+    )
+
+    // An unknown type must be refused rather than stored under an arbitrary string.
+    const bad = await call('POST', '/api/reactions/toggle', {
+      article: article.id,
+      type: 'not-a-reaction',
+    })
+    check('an unknown reaction type is refused', bad.status === 400, `status ${bad.status}`)
+  }
 }
 
 /* ── Result ────────────────────────────────────────────────────────────────── */

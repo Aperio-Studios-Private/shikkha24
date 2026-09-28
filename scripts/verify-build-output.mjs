@@ -400,6 +400,42 @@ check(
     : `missing: ${missingHooks.join(', ')}`,
 )
 
+// ── 8. Reaction counts are NOT baked into the static HTML (S16) ──────────────
+/*
+ * The reaction counts are read at runtime, on the reader's first tap. Rendered at
+ * build time they would freeze until the next rebuild, so a reader's own reaction
+ * would appear to do nothing — the silent-staleness failure this static frontend
+ * has already been bitten by once (`.sps/handoff.md`, "the frontend is STATIC").
+ *
+ * The count box is **reserved and empty** in the markup; this asserts it stayed
+ * empty. It is deliberately an assertion about absence, so it cannot pass by
+ * finding the wrong thing.
+ *
+ * The non-vacuity guard is a **note, not a check**, because the bar self-hides
+ * when `PUBLIC_CMS_ORIGIN` is unset — a legitimate degraded build, and one that
+ * must not turn a gate red.
+ */
+const bakedCounts = []
+let reactionBars = 0
+for (const file of htmlFiles) {
+  const html = readFileSync(file, 'utf8')
+  if (html.includes('data-reaction-bar')) reactionBars += 1
+  for (const match of html.matchAll(/<span[^>]*data-reaction-count[^>]*>([\s\S]*?)<\/span>/g)) {
+    if (match[1].trim() !== '') bakedCounts.push(file.replace(`${DIST}/`, ''))
+  }
+}
+check(
+  'no reaction count is baked into the static HTML',
+  bakedCounts.length === 0,
+  bakedCounts.length === 0 ? '' : `counts rendered on: ${bakedCounts.slice(0, 3).join(', ')}`,
+)
+if (reactionBars === 0) {
+  console.log(
+    '      note: no page rendered a reaction bar — the islands self-hide when ' +
+      'PUBLIC_CMS_ORIGIN is unset, so the check above is vacuous in this build',
+  )
+}
+
 console.log(
   failures === 0
     ? '\nBuild output is deployable.\n'

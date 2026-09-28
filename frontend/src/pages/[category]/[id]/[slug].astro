@@ -33,6 +33,7 @@ import SponsoredLabel from '../../../components/SponsoredLabel.astro'
 import AdSlot from '../../../components/AdSlot.astro'
 import ContentBlockScripts from '../../../components/ContentBlockScripts.astro'
 import CommentSection from '../../../components/CommentSection.astro'
+import ReactionBar from '../../../components/ReactionBar.astro'
 import CategoryImage from '../../../components/CategoryImage.astro'
 import { countParagraphs, lexicalToHtml, lexicalToPlainText, splitHtmlAtParagraph } from '../../../lib/richtext'
 import { mediaUrl, resolveCmsImage } from '../../../lib/media'
@@ -449,6 +450,12 @@ const jsonLd = {
         </div>
 
         <AuthorCard author={author} publishedAt={article.publishedAt} />
+
+        {/* S16. After the byline and before the closing ad: a reader who has
+            finished the story is the one who can react to it. The control
+            self-hides when no CMS origin is configured, and it renders no counts
+            — those are read at runtime, on the reader's first tap. */}
+        <ReactionBar articleId={article.id} cmsOrigin={cmsOrigin} />
 
         <div class="mt-8 flex justify-center">
           <AdSlot position="articleBottom" width={728} height={90} />

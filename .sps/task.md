@@ -280,16 +280,22 @@
 - [x] Demo live stream seeded — ⚠️ this is the fixture that keeps the third-profile check non-vacuous
 - [x] S15 DoD evidence → `.sps/section-todos/S15.md` → **user approval pending**
 
-## S16 — Reader Reactions
+## S16 — Reader Reactions ✅ BUILT 2026-09-28
 *(reaction half of requested feature #7 — comments are already built)*
-- [ ] `Reactions` collection: `article`, `type`, `reader`, `fingerprint` (hashed IP+UA, **never** a raw IP)
-- [ ] Compound unique indexes — dedupe at the **DB** level
-- [ ] `POST /api/reactions/toggle` mounted **on the collection** (the `/comments/submit` lesson)
-- [ ] Per-IP rate limit + honeypot
-- [ ] Reaction bar island: self-hides without a CMS origin, accessible `radiogroup` + live region
-- [ ] ⚠️ Counts are read at **runtime** — never baked into static HTML
-- [ ] ⚠️ **Counter-proof:** two direct writes of the same reaction are rejected by the database
-- [ ] S16 DoD evidence → `.sps/section-todos/S16.md` → **user approval**
+- [x] `Reactions` collection: `article`, `type`, `reader`, `fingerprint` (hashed IP+UA, **never** a raw IP)
+- [x] Compound unique indexes — dedupe at the **DB** level
+  - [x] `(article, type, reader)` for a signed-in reader (the account survives a cookie wipe)
+  - [x] `(article, type, fingerprint)` for an anonymous one — SQLite treats `NULL` as distinct, so the reader index cannot constrain an anonymous row at all
+- [x] `POST /api/reactions/toggle` mounted **on the collection** (the `/comments/submit` lesson)
+  - [x] plus `GET /api/reactions/counts` — the aggregate, so the collection's `read` can stay **non-public** (a row holds a fingerprint)
+- [x] Per-IP rate limit + honeypot
+- [x] Reaction bar island: self-hides without a CMS origin, accessible `radiogroup` + live region
+- [x] ⚠️ Counts are read at **runtime** — never baked into static HTML (`verify:build-output` asserts it)
+- [x] ⚠️ **Counter-proof:** two direct writes of the same reaction are rejected by the database — `verify:reactions`, **9/9**, counter-proved by removing the index from the collection config
+  - [x] ⚠️ Dropping the index out-of-band **cannot** work: `payload run` re-applies the declared schema on boot, recreating it before the harness executes
+- [x] `verify:reactions` wired into CI; the toggle + counts routes asserted in `verify:endpoints`
+- [x] Privacy policy discloses the reaction fingerprint and the browser-local choice
+- [x] S16 DoD evidence → `.sps/section-todos/S16.md` → **user approval pending**
 
 ## S17 — Photo Story & Video News
 *(missing half of requested feature #10 — the gallery is already built)*

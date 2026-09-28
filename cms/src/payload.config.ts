@@ -30,6 +30,7 @@ import { Polls } from './collections/Polls'
 import { PollVotes } from './collections/PollVotes'
 import { PushSubscriptions } from './collections/PushSubscriptions'
 import { Quizzes } from './collections/Quizzes'
+import { Reactions } from './collections/Reactions'
 import { Readers } from './collections/Readers'
 import { ResultLinks } from './collections/ResultLinks'
 import { SavedDeadlines } from './collections/SavedDeadlines'
@@ -250,6 +251,7 @@ export default buildConfig({
     PushSubscriptions,
     Readers,
     PollVotes,
+    Reactions,
 
     // ── Administration ───────────────────────────────────────────────────────
     Users,
