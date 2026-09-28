@@ -31,6 +31,7 @@ import Breadcrumbs from '../../components/Breadcrumbs.astro'
 import VerificationBadge from '../../components/VerificationBadge.astro'
 import { resolveCmsImage } from '../../lib/media'
 import { formatBnBd } from '../../lib/bangla-date'
+import { getPublicCmsOrigin } from '../../lib/interactive'
 import {
   getSiteSettings,
   getCategories,
@@ -95,6 +96,24 @@ const validUntilLabel = reporter?.validUntil
   : null
 
 const isVerified = reporter?.verificationStatus === 'verified'
+
+/*
+ * The press card is rendered by the CMS, so its URL only exists once a CMS origin
+ * is configured.
+ *
+ * ⚠️ **Read through `getPublicCmsOrigin()`, never the raw env var.** The raw
+ * `import.meta.env.PUBLIC_CMS_ORIGIN` is `undefined` when unset, and `?? ''` then
+ * produced a **same-origin** `/api/idcard/…` path that the static host does not
+ * serve — a broken image and a broken download on every verified reporter's page.
+ * It passed locally because `frontend/.env` sets the variable, and failed only in
+ * CI, which leaves it unset deliberately so CMS-dependent controls self-hide.
+ *
+ * `null` here means the card section is not rendered at all, which is the
+ * established contract: a control that cannot work is worse than an absent one.
+ */
+const cmsOrigin = getPublicCmsOrigin()
+const cardImageUrl =
+  cmsOrigin && reporter?.reporterId ? `${cmsOrigin}/api/idcard/${reporter.reporterId}.png` : null
 ---
 
 <Layout
@@ -253,12 +272,12 @@ const isVerified = reporter?.verificationStatus === 'verified'
                * owner decided against a Graph API post, so there is no SDK, no
                * page token and no third-party request until the reader taps it.
                */
-              isVerified && reporter.reporterId && (
+              isVerified && cardImageUrl && (
                 <section class="mt-6 border-t border-rule pt-5 dark:border-dark-rule">
                   <h2 class="text-sm font-semibold text-ink dark:text-dark-ink">পরিচয়পত্র</h2>
                   <div class="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start">
                     <img
-                      src={`${import.meta.env.PUBLIC_CMS_ORIGIN?.replace(/\/$/, '') ?? ''}/api/idcard/${reporter.reporterId}.png?v=${new Date(reporter.validUntil ?? Date.now()).getTime()}`}
+                      src={`${cardImageUrl}?v=${new Date(reporter.validUntil ?? Date.now()).getTime()}`}
                       alt={`${reporter.nameBn}-এর পরিচয়পত্র`}
                       width="500"
                       height="800"
@@ -269,7 +288,7 @@ const isVerified = reporter?.verificationStatus === 'verified'
                     />
                     <div class="flex flex-col gap-2 text-sm">
                       <a
-                        href={`${import.meta.env.PUBLIC_CMS_ORIGIN?.replace(/\/$/, '') ?? ''}/api/idcard/${reporter.reporterId}.png`}
+                        href={cardImageUrl}
                         download={`${reporter.reporterId}-id-card.png`}
                         class="inline-flex h-9 w-fit items-center rounded-md border border-rule px-3 font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
                       >

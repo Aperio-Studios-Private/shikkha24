@@ -17,6 +17,8 @@
  * this page nothing. The owner decided Facebook is a share **button**, not a
  * Graph API post — no page token, no app review, no third-party request on load.
  */
+import { getPublicCmsOrigin } from '../lib/interactive'
+
 interface Props {
   url: string
   title: string
@@ -29,13 +31,22 @@ const encodedUrl = encodeURIComponent(url)
 const encodedTitle = encodeURIComponent(title)
 
 /**
- * The photocard URL is CMS-relative; it only becomes absolute when the CMS
- * origin is configured. An unset `PUBLIC_CMS_ORIGIN` hides the button rather than
- * emitting a link to a path the static host does not serve.
+ * The photocard URL is CMS-relative, so it is only usable once it has an origin.
+ *
+ * ⚠️ **Read through `getPublicCmsOrigin()`, never the raw env var.** The raw
+ * `import.meta.env.PUBLIC_CMS_ORIGIN` is `undefined` whenever it is unset, and
+ * `?? ''` then produced a **same-origin path the static host does not serve** —
+ * `/api/photocard/12.png` — which is a 404 in the reader's browser. It passed
+ * locally because `frontend/.env` sets the variable, and failed only in CI, which
+ * deliberately leaves it unset so CMS-dependent controls self-hide.
+ *
+ * `getPublicCmsOrigin()` is the established contract: it returns the configured
+ * origin, or the local `CMS_URL` during `astro dev`, or **`null`** — and `null`
+ * means the control is not rendered at all. A control that cannot work is worse
+ * than an absent one, because the reader blames themselves.
  */
-const cardUrl = cardPath
-  ? `${import.meta.env.PUBLIC_CMS_ORIGIN?.replace(/\/$/, '') ?? ''}${cardPath}`
-  : null
+const cmsOrigin = getPublicCmsOrigin()
+const cardUrl = cardPath && cmsOrigin ? `${cmsOrigin}${cardPath}` : null
 ---
 
 <div
