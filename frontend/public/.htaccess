@@ -93,6 +93,45 @@
   SetEnvIf Request_URI "^/[^/?#]+/(?!page/)[^/?#]+/[^/?#]+/?(\?.*)?$" SHIKKHA24_CSP_ARTICLE=1
 </IfModule>
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Route → internal rewrite (S14): an unknown reporter ID must not 404
+#
+# `/verify/<reporterId>` is built for **every ID that exists** — a static host
+# cannot emit a page for an ID nobody has created yet. An unknown or forged ID
+# would therefore reach Apache's generic 404, which reads as "the site is broken"
+# rather than "this credential is not active". A reader who has just scanned a
+# printed press card is precisely the person who must not get that answer, and a
+# scanned card that 404s looks forged.
+#
+# So any `/verify/<something>` that is not a real file or directory is served the
+# `not-found` page the same route already builds — `getStaticPaths` emits
+# `not-found` as a sentinel, and the page renders its "যাচাই করা যায়নি" state
+# whenever the lookup returns nothing. The reader's URL is unchanged; only the
+# body differs.
+#
+# ⚠️ The two `RewriteCond`s are what stop this from looping or from shadowing a
+# real card. A real `/verify/SHK-R-…/` is a **directory**, so `-d` matches and the
+# rule is skipped; `/verify/not-found/` is likewise a directory. Remove either
+# condition and every card silently redirects to the not-found page.
+#
+# ⚠️ The status stays **200**, deliberately. A 404 is the exact outcome this rule
+# exists to avoid; the page carries `noindex` so the soft-404 cannot be indexed.
+#
+# ⚠️ This is the first `mod_rewrite` use in this file, and the mechanism is
+# `SetEnvIf`-free — it runs in the URL-mapping phase, before the `Header`
+# directives above. `pnpm verify:apache` asserts it against a real Apache and
+# counter-proves it (a known ID must NOT be rewritten); do not change the
+# conditions without re-running it.
+# ─────────────────────────────────────────────────────────────────────────────
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^verify/[^/?#]+/?$ /verify/not-found/index.html [L]
+</IfModule>
+
 <IfModule mod_headers.c>
 
 # ─────────────────────────────────────────────────────────────────────────────

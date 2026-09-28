@@ -17,7 +17,7 @@
 | Section | Feature | Status |
 |---|---|---|
 | **S13** | Reporter verification + assignment + submission | ✅ **BUILT 2026-09-18** — see §2.5 |
-| **S14** | QR ID card + photocard | ⬜ Specified, not started |
+| **S14** | QR ID card + photocard | ✅ **BUILT 2026-09-28** — see §3 and `.sps/section-todos/S14.md` |
 | **S15** | Live TV | ⬜ Specified, not started |
 | **S16** | Reader reactions | ⬜ Specified, not started |
 | **S17** | Photo story + video news | ⬜ Specified, not started |

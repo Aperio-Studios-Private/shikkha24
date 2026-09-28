@@ -760,6 +760,48 @@ export async function getReporterBySlug(slug: string): Promise<CmsAuthor | null>
   return data?.docs?.[0] ?? null
 }
 
+/**
+ * A reporter by their stable `reporterId` — the target of the S14 QR code.
+ *
+ * The ID is looked up rather than the row id because a card **prints the ID**: a
+ * reader scans `SHK-R-2026-0003`, and the URL must be the thing they scanned.
+ * Every author with a `reporterId` gets a page, whatever their verification
+ * status — the verify route states the status honestly rather than 404ing, since
+ * a 404 on a scanned card looks like a broken site instead of an expired one.
+ */
+export async function getReporterByReporterId(reporterId: string): Promise<CmsAuthor | null> {
+  const data = await cmsFetch<{ docs?: CmsAuthor[] } | null>(
+    `/api/authors${qs({ limit: 1, depth: 1, 'where[reporterId][equals]': reporterId })}`,
+    null,
+  )
+  return data?.docs?.[0] ?? null
+}
+
+/** Every author with a `reporterId` — for the verify route's static paths. */
+export async function getAllReporterIds(): Promise<string[]> {
+  const limit = 200
+  let page = 1
+  let totalPages = 1
+  const ids: string[] = []
+
+  do {
+    const data = await cmsFetch<{
+      docs?: Array<{ reporterId?: string | null }>
+      totalPages?: number
+    } | null>(
+      `/api/authors${qs({ limit, page, depth: 0, 'where[reporterId][exists]': true })}`,
+      null,
+    )
+    for (const doc of data?.docs ?? []) {
+      if (doc.reporterId) ids.push(doc.reporterId)
+    }
+    totalPages = data?.totalPages ?? 1
+    page += 1
+  } while (page <= totalPages)
+
+  return ids
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
  * Fact checks (the "fact-check radar")
  *

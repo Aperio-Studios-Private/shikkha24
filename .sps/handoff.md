@@ -698,6 +698,50 @@ the host-disk usage alert.
     - **`sps-cms` reconciliation recorded** in `.sps/section-todos/S0.md`: the skill mandates a bespoke visual-builder CMS, but the approved plan mandates Payload CMS 3. Applied as *principles* inside Payload (100% admin-controllable surface, global settings, media security, round-trip proof) rather than as a replacement engine — replacing it would be plan drift (rule 13).
 
 
+42. ✅ **S14 built — QR reporter ID card + automatic photocard** (2026-09-28, verified locally).
+    ⚠️ **Provenance:** the code was found **uncommitted in the working tree** — no commit, no
+    memory entry, no evidence file. It was verified rather than trusted, and **two exit-gate
+    failures were found and fixed** (full detail in `.sps/section-todos/S14.md`):
+    - 🚨 **The "যাচাই করা যায়নি" state was unreachable in the built site.** `getStaticPaths`
+      returned only the IDs that exist, and a static build emits **only** those paths — so an
+      unknown ID reached Apache's generic 404, while the page's own header comment claimed the
+      opposite ("*an ID not in the CMS at all still renders the not-found state, because the
+      page is static and the route exists regardless*" — **false**). It was dead code that read
+      as covered. Fixed with a `not-found` **sentinel** in `getStaticPaths` plus the file's
+      **first `mod_rewrite` block** in `.htaccess`, and `noindex` (new `Layout` prop) because
+      the rewrite answers **200**. `verify:apache` asserts it **and counter-proves it**: the
+      block was stripped from both `.htaccess` copies and the harness went red with
+      `HTTP 404 — marker absent`.
+      ⚠️ Both `RewriteCond`s (`!-f`, `!-d`) are load-bearing — a real `/verify/SHK-R-…/` is a
+      **directory**, so `-d` skips the rule. Drop either and every card collapses into the
+      not-found state **while still returning 200**, which a status assertion alone misses.
+    - 🚨 **`bloodGroup` (spec §3.3) had been dropped** from both the collection and the card.
+      The string appeared **once in the entire repository — in the spec** — so nothing flagged
+      it. A spec line with no code reference is invisible to every existing gate.
+    - ⚠️ **Adding a Payload field requires `pnpm --filter @shikkha24/cms generate:types`.**
+      `cms/src/payload-types.ts` is generated, so `tsc` fails with
+      `Property 'bloodGroup' does not exist on type 'Author'` until it is re-run. The error
+      reads as a code defect, not as a stale artifact.
+    - **Dependency (rule 8):** `qrcode` **1.5.4**, exact pin, **MIT** — server-side QR → PNG
+      buffer, Node only (never the browser); `sharp` 0.35.4 was already installed and does the
+      compositing. `@types/qrcode` **1.5.6**, dev-only. No canvas native build, no paid service.
+    - **Bengali shaping was measured, not assumed.** An SVG `<text>` with an embedded
+      `@font-face` data URI is **ignored by librsvg** — its ink was byte-identical to a render
+      with no Bengali font at all. libvips's `text` input with an explicit `fontfile` loads the
+      vendored WOFF2 directly and bypasses fontconfig. Proof: the conjunct `ক্ষতি` renders ~40%
+      narrower than the same characters forced apart (`ক স তি`) — which is what correct
+      যুক্তাক্ষর shaping produces.
+    - **Two public-read endpoints**, deliberately: a card exists to be scanned by anyone, and it
+      draws only what `/reporters/:slug` already publishes. Email, verification note and
+      verifier are never drawn. `Cache-Control: max-age=86400` + `ETag` from `updatedAt`.
+    - CI now copies the Bengali font into the standalone bundle root — **Next does not trace
+      it**, exactly as it does not copy `.next/static`; without it the endpoint answers 503.
+      `verify:reporter` was also added to the CI harness loop (it had only ever been run by hand).
+    - Gates: biome 0 errors · typecheck 0 · `verify:astro-imports` 118 · build **153 pages**
+      (152 + the sentinel) · `verify:build-output` · `verify:links` (7257 links, 428 structured
+      URLs) · `verify:apache` · `verify:id-card` · `verify:endpoints` — **all green**.
+
+
 - **Portal type: education portal** (2026-09-11) — domain `shikkha24.com`; general-news scope retired
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)
 - **Next.js pinned to 16.2.6+** (corrected by the audit)

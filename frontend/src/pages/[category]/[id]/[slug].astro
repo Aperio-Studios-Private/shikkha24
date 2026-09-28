@@ -435,7 +435,11 @@ const jsonLd = {
             reader looking for one will look where the other is. The bookmark
             button needs no CMS origin: the list is browser-local. */}
         <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
-          <ShareRow url={canonical} title={article.title} />
+          <ShareRow
+            url={canonical}
+            title={article.title}
+            cardPath={`/api/photocard/${article.id}.png`}
+          />
           <BookmarkButton
             kind="article"
             id={article.id}

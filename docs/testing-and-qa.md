@@ -23,6 +23,7 @@
 | **Reporter access control + quick-draft whitelist** (`verify:reporter`) | Every CI run | Merge |
 | **Rebuild-notice placement** (`verify:rebuild-notice`) | Every CI run | Merge |
 | **Social URL validation** (`verify:social`) | Every CI run | Merge |
+| **Card determinism + QR target** (`verify:id-card`) | Every CI run | Merge |
 | CMS read/write paths (`verify:sync`, `verify:endpoints`) | Every CI run | Deploy |
 | `pnpm audit` | Every CI run | Policy in `docs/security.md` §9 |
 | Bengali render audit | Manual, per section | Section approval |

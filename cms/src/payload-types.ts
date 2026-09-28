@@ -509,6 +509,10 @@ export interface Author {
    */
   pressCardNo?: string | null;
   /**
+   * ঐচ্ছিক। প্রতিবেদকের পরিচয়পত্রে ছাপা হয় — বাংলাদেশের প্রেস কার্ডের প্রচলিত অংশ, জরুরি প্রয়োজনে।
+   */
+  bloodGroup?: ('A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-') | null;
+  /**
    * স্বয়ংক্রিয়ভাবে তৈরি (SHK-R-বর্ষ-ক্রম)। QR কার্ড ও যাচাইয়ের পাতায় ব্যবহৃত হয়।
    */
   reporterId?: string | null;
@@ -1806,6 +1810,7 @@ export interface AuthorsSelect<T extends boolean = true> {
   photo?: T;
   email?: T;
   pressCardNo?: T;
+  bloodGroup?: T;
   reporterId?: T;
   verificationStatus?: T;
   verifiedAt?: T;

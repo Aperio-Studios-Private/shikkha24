@@ -98,6 +98,25 @@ export const Authors: CollectionConfig = {
         description: 'ঐচ্ছিক। E-E-A-T সম্পাদকীয় দলের পাতায় যাচাইযোগ্য পরিচয় হিসেবে দেখানো হয়।',
       },
     },
+    {
+      name: 'bloodGroup',
+      type: 'select',
+      label: { en: 'Blood group', bn: 'রক্তের গ্রুপ' },
+      options: [
+        { label: 'A+', value: 'A+' },
+        { label: 'A−', value: 'A-' },
+        { label: 'B+', value: 'B+' },
+        { label: 'B−', value: 'B-' },
+        { label: 'AB+', value: 'AB+' },
+        { label: 'AB−', value: 'AB-' },
+        { label: 'O+', value: 'O+' },
+        { label: 'O−', value: 'O-' },
+      ],
+      admin: {
+        description:
+          'ঐচ্ছিক। প্রতিবেদকের পরিচয়পত্রে ছাপা হয় — বাংলাদেশের প্রেস কার্ডের প্রচলিত অংশ, জরুরি প্রয়োজনে।',
+      },
+    },
 
     /*
      * ── S13: verification ────────────────────────────────────────────────────

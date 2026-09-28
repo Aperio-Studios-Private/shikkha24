@@ -29,9 +29,9 @@ message maps one-to-one onto this table.
 
 | # | Feature requested | Status | Section | Where it lives |
 |---|---|---|---|---|
-| 1 | Automatic Photocard + Facebook Post | ⬜ **Not built** | S14 | — |
+| 1 | Automatic Photocard + Facebook Post | ✅ **Built** | S14 | `cms/src/lib/id-card.ts`, `cms/src/endpoints/id-card.ts`, `frontend/src/components/ShareRow.astro` |
 | 2 | Reporter Management & Verification | ✅ **Built** | S13 | `cms/src/collections/Authors.ts` (verification block), `frontend/src/pages/reporters/` |
-| 3 | QR Code Reporter ID Card | ⬜ **Not built** | S14 | — |
+| 3 | QR Code Reporter ID Card | ✅ **Built** | S14 | `cms/src/lib/id-card.ts` (QR + sharp), `frontend/src/pages/verify/[reporterId].astro` |
 | 4 | Reporter News Submit & Assignment | ✅ **Built** | S13 | `cms/src/collections/Assignments.ts`, `cms/src/endpoints/reporter.ts`, `cms/src/components/admin/ReporterWorkspace.tsx` |
 | 5 | Live TV | ⬜ **Not built** | S15 | — |
 | 6 | Online Voting / Poll System | ✅ **Built** | S8 | `cms/src/collections/Polls.ts`, `PollVotes.ts`, `cms/src/endpoints/poll-vote.ts`, `frontend/src/components/PollWidget.astro` |
@@ -193,17 +193,28 @@ state. Carries **no ad slot** — no approved `AD_POSITIONS` value fits it.
 
 ## 5. Not built — the remaining work
 
-### S14 — QR Reporter ID Card & Automatic Photocard (requests #1, #3)
+### S14 — QR Reporter ID Card & Automatic Photocard (requests #1, #3) — ✅ **BUILT 2026-09-28**
 
-**Specified in `docs/feature-batch-2.md` §3.** Nothing built.
+**Specified in `docs/feature-batch-2.md` §3.** **Built and verified.** Full evidence, the two
+exit-gate defects found, and the counter-proofs are in `.sps/section-todos/S14.md`.
 
-| Piece | Plan |
+Two defects were found only at verification time, and both are worth remembering:
+
+- 🚨 The **"যাচাই করা যায়নি" state was unreachable in the built site.** The page implemented
+  the branch and its comment claimed it worked, but a static build emits only the paths
+  `getStaticPaths` returns — an unknown ID reached Apache's 404. Fixed with a `not-found`
+  sentinel plus the file's **first `mod_rewrite` block**, `noindex`ed (it answers 200), and
+  counter-proved in `verify:apache` against a real Apache.
+- 🚨 **`bloodGroup` (spec §3.3) had been dropped** from both the collection and the card. It
+  appeared exactly once in the repository — in the spec — so nothing flagged it. Added.
+
+| Piece | Shipped as |
 |---|---|
-| Dependency | `qrcode` (MIT) + the already-installed `sharp` 0.35.4 |
-| Reporter ID card | `GET /api/idcard/:reporterId.png` — sharp-composited portrait, cached, `updatedAt`-versioned |
-| News photocard | `GET /api/photocard/:articleId.png` — square social card |
-| Verification route | `/verify/:reporterId` — **static**, 2 segments (no article-rule collision) |
-| Facebook | **Share button only** (owner decision) — no Graph API, no page token, no app review |
+| Dependency | `qrcode` 1.5.4 (MIT, exact pin) + `sharp` 0.35.4 — recorded in `.sps/handoff.md` (rule 8) |
+| Reporter ID card | `GET /api/idcard/:reporterId.png` — portrait 1000×1600, `Cache-Control: max-age=86400` + `ETag` from `updatedAt` |
+| News photocard | `GET /api/photocard/:articleId.png` — square 1200×1200, published articles only |
+| Verification route | `/verify/:reporterId` — static, 2 segments (no article-rule collision), with the unknown-ID state reachable |
+| Facebook | **Share button only** (owner decision) — `sharer.php`, no Graph API, no page token, no app review |
 
 ⚠️ Generation runs **server-side at the CMS**, not in the browser and not at build
 time — a browser cannot be trusted to render an unforgeable card, and build-time

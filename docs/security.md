@@ -319,3 +319,31 @@ counter-proved by injecting its removal. **All three in the same commit.**
 | `pnpm --filter @shikkha24/cms verify:social` | Social URL validation — **11/11** |
 | `pnpm verify:astro-imports` | `.astro` frontmatter is **not typechecked** here; every `lib/` export used must be imported |
 | `pnpm --filter @shikkha24/cms verify:rebuild-notice` | The rebuild notice appears on exactly the triggered configs — **10/10** |
+| `pnpm --filter @shikkha24/cms verify:id-card` | The generated cards are **byte-identical across two runs** (the cache/ETag contract) and the QR target is a built page |
+
+### 13.7 S14 — public-read card endpoints, and a rewrite that must not shadow a card
+
+**Two endpoints are public-read by design** (`cms/src/endpoints/id-card.ts`):
+
+| Endpoint | What it exposes | What it does **not** |
+|---|---|---|
+| `GET /api/idcard/:reporterId.png` | name, designation, reporter ID, press card no, blood group, validity, beat, photo | the author's `email`, `verificationNote`, `verifiedBy` — never drawn |
+| `GET /api/photocard/:articleId.png` | title, category, publish date, featured image | anything not already on the published article |
+
+A card exists to be **scanned by anyone**, and the data on it is exactly what
+`/reporters/:slug` already publishes — so these add no new disclosure. A malformed
+reporter ID answers **404** with a Bengali body, never a blank image; the photocard
+answers **404** for a draft, because a draft has no canonical URL to encode.
+
+⚠️ **The `.htaccess` `mod_rewrite` rule is security-relevant, not cosmetic.** It serves the
+`not-found` page for any `/verify/<id>` that is not a real file or directory — a static build
+cannot emit a page for an ID nobody has created yet, and a scanned card that 404s looks forged.
+Both `RewriteCond`s (`!-f`, `!-d`) are what keep it from shadowing a **real** card:
+`/verify/SHK-R-…/` is a **directory**, so `-d` skips the rule. Remove either condition and every
+card silently serves the not-found state **while still returning 200** — a failure no
+status-code assertion would catch. `verify:apache` asserts both directions against a real
+Apache, and the block was counter-proved by stripping it (the harness went red with `HTTP 404`).
+
+The page answers **200** deliberately — a 404 is the outcome the rewrite exists to avoid — so it
+carries `noindex`; otherwise it would be an indexable soft-404.
+

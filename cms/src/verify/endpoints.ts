@@ -347,6 +347,73 @@ console.log('\n-- poll vote --')
   }
 }
 
+/* ── S14: the card endpoints (HTTP-only) ──────────────────────────────────── *
+ *
+ * These are checked here rather than in `verify:id-card` because routing is
+ * what this harness exists for, and routing is the whole risk with these two:
+ * `/api/idcard/:x.png` lives under the API root, so a path collision with a
+ * collection slug would silently 404 every card the way `comments/submit` once
+ * did. `verify:id-card` proves the composition; this proves the URL serves it.
+ */
+{
+  const author = (
+    await payload.find({
+      collection: 'authors',
+      where: { reporterId: { exists: true } },
+      limit: 1,
+      overrideAccess: true,
+    })
+  ).docs[0]
+
+  if (!author?.reporterId) {
+    console.log('note  no author with a reporterId — the ID card route is untested')
+  } else {
+    const res = await fetch(`${BASE}/api/idcard/${author.reporterId}.png`)
+    check(
+      'GET /api/idcard/:reporterId.png serves a PNG',
+      res.status === 200 && res.headers.get('content-type') === 'image/png',
+      `status ${res.status}`,
+    )
+    check('the card is cached', (res.headers.get('cache-control') ?? '').includes('max-age=86400'))
+    check('the card is ETag-versioned', (res.headers.get('etag') ?? '').length > 0)
+    await res.arrayBuffer()
+  }
+
+  // A malformed reporter ID must answer 404, not a blank card or a 500.
+  const bad = await fetch(`${BASE}/api/idcard/not-an-id.png`)
+  check('a malformed reporter ID is refused', bad.status === 404, `status ${bad.status}`)
+  await bad.arrayBuffer()
+
+  const article = (
+    await payload.find({
+      collection: 'articles',
+      where: { _status: { equals: 'published' } },
+      limit: 1,
+      overrideAccess: true,
+    })
+  ).docs[0]
+
+  if (!article) {
+    console.log('note  no published article — the photocard route is untested')
+  } else {
+    const res = await fetch(`${BASE}/api/photocard/${article.id}.png`)
+    check(
+      'GET /api/photocard/:articleId.png serves a PNG',
+      res.status === 200 && res.headers.get('content-type') === 'image/png',
+      `status ${res.status}`,
+    )
+    await res.arrayBuffer()
+  }
+
+  const badArticle = await fetch(`${BASE}/api/photocard/999999999.png`)
+  check(
+    'an unknown article ID is refused',
+    badArticle.status === 404,
+    `status ${badArticle.status}`,
+  )
+  await badArticle.arrayBuffer()
+}
+
 /* ── Result ────────────────────────────────────────────────────────────────── */
 
 console.log(

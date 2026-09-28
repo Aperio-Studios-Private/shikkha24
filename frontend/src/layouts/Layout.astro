@@ -38,6 +38,15 @@ interface Props {
   jsonLd?: Record<string, unknown> | Record<string, unknown>[]
   /** Disable the mobile share bar on this page. */
   hideShareBar?: boolean
+  /**
+   * Emit `<meta name="robots" content="noindex">`.
+   *
+   * Used by `/verify/not-found`, the sentinel that `.htaccess` serves for an
+   * unknown reporter ID. That page answers **200** by design (a 404 is what the
+   * rewrite exists to avoid), so without this it would be a soft-404 that a
+   * crawler could index as real content.
+   */
+  noindex?: boolean
   /** Site settings (fetched at build time). */
   settings: CmsSiteSettings
   /** Navigation categories (fetched at build time). */
@@ -55,6 +64,7 @@ const {
   modifiedDate,
   jsonLd,
   hideShareBar = false,
+  noindex = false,
   settings,
   categories,
   footerPages = [],
@@ -138,6 +148,7 @@ const faviconUrl =
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
+    {noindex && <meta name="robots" content="noindex" />}
     <meta name="description" content={metaDescription} />
 
     {/* ── Fonts — preload the regular weight only ─────────────────────────

@@ -249,16 +249,21 @@
 - [x] **Social URL validation (CMS)** — `cms/src/lib/social-url.ts`; the field accepted the platforms' own homepages as if they were the newsroom's accounts (`verify:social` 11/11)
 - [x] **`Jobs` collection removed** — a strict subset of `Circulars`; job content remains publishable as an article or a circular
 
-## S14 — QR Reporter ID Card & Automatic Photocard
+## S14 — QR Reporter ID Card & Automatic Photocard ✅ BUILT 2026-09-28
 *(requested features #1 and #3)*
-- [ ] Add `qrcode` (MIT, exact pin) — justification + license recorded in `.sps/handoff.md` (rule 8)
-- [ ] `GET /api/idcard/:reporterId.png` — sharp-composited portrait card, public read, cached, `?v=<updatedAt>` versioned
-- [ ] `GET /api/photocard/:articleId.png` — sharp-composited square card
-- [ ] ⚠️ Photocard headline wrapping uses `formatBnBd()` — the timezone contract applies to generated images too
-- [ ] Static `/verify/[reporterId]` route (2 segments — no article-rule collision), with an explicit **"যাচাই করা যায়নি"** state
-- [ ] Facebook **share button** only (`sharer.php`) + PNG download link — no Graph API, no page token
-- [ ] ⚠️ **Counter-proof:** the same card generated twice is byte-identical; the QR resolves to a live `/verify/:id`
-- [ ] S14 DoD evidence → `.sps/section-todos/S14.md` → **user approval**
+> ⚠️ The bulk of this section was found **uncommitted** on 2026-09-28 (no commit, no memory
+> note, no evidence). Verified; two exit-gate failures found and fixed (D1 the not-found state
+> was unreachable, D2 `bloodGroup` dropped) — see `.sps/section-todos/S14.md`.
+- [x] Add `qrcode` (MIT, exact pin) — justification + license recorded in `.sps/handoff.md` (rule 8)
+- [x] `GET /api/idcard/:reporterId.png` — sharp-composited portrait card, public read, cached, ETag-versioned by `updatedAt`
+- [x] `GET /api/photocard/:articleId.png` — sharp-composited square card; published articles only
+- [x] ⚠️ Photocard headline wrapping uses `formatBnBd()` — the timezone contract applies to generated images too
+- [x] Static `/verify/[reporterId]` route (2 segments — no article-rule collision), with an explicit **"যাচাই করা যায়নি"** state
+  - [x] 🚨 **D1 fixed:** that state was **unreachable** — a static build emits only `getStaticPaths` paths, so an unknown ID hit Apache's 404. Now a `not-found` sentinel + a `.htaccess` `mod_rewrite` rule, `noindex`, counter-proved in `verify:apache`
+- [x] 🚨 **D2 fixed:** `bloodGroup` (spec §3.3) was missing from the collection **and** the card — added
+- [x] Facebook **share button** only (`sharer.php`) + PNG download link — no Graph API, no page token
+- [x] ⚠️ **Counter-proof:** the same card generated twice is byte-identical; the QR resolves to a live `/verify/:id`
+- [x] S14 DoD evidence → `.sps/section-todos/S14.md` → **user approval pending**
 
 ## S15 — Live TV
 *(requested feature #5)*

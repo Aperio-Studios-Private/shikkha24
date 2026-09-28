@@ -80,6 +80,7 @@ const REQUIRED_MODULES = [
   ['mime', 'content types'],
   ['headers', 'every Header directive in the .htaccess — without it the file is inert'],
   ['setenvif', 'the SetEnvIf route dispatch — without it no page gets a relaxed CSP'],
+  ['rewrite', 'the S14 `/verify/` unknown-ID rewrite — without it a scanned card 404s'],
   ['unixd', 'privilege handling'],
 ]
 
@@ -480,6 +481,55 @@ try {
     }
   }
   check('editorial and redirect routes stay strict', loose.length === 0, loose.join(', '))
+
+  // ── 5b. The `/verify/` unknown-ID rewrite (S14) ───────────────────────────
+  //
+  // A static build emits `/verify/<id>` only for IDs that exist, so an unknown or
+  // forged ID reaches the rewrite. The exit gate is explicit — it must render the
+  // "যাচাই করা যায়নি" state, **not** a 404 — so the *status* is asserted and not
+  // just the body: remove the rule and Apache answers 404, which turns this red.
+  //
+  // The counter-proof is the real reporter below. The rule is skipped whenever
+  // `REQUEST_FILENAME` is a real directory, so a known ID must NOT be rewritten.
+  // Drop either `RewriteCond` and every card collapses into the not-found state
+  // **while still returning 200** — which the status assertion alone would miss.
+  const NOT_FOUND_MARKER = 'যাচাই করা যায়নি'
+
+  const unknown = await httpGet(port, '/verify/SHK-R-2026-9999/')
+  check(
+    'an unknown reporter ID renders the not-found state, not a 404',
+    unknown.status === 200 && unknown.body.includes(NOT_FOUND_MARKER),
+    `HTTP ${unknown.status}${unknown.body.includes(NOT_FOUND_MARKER) ? '' : ' — marker absent'}`,
+  )
+
+  const verifyDir = join(DIST, 'verify')
+  const knownIds = existsSync(verifyDir)
+    ? readdirSync(verifyDir).filter((name) => name !== 'not-found')
+    : []
+  if (knownIds.length === 0) {
+    // Guard the vacuous pass: with no real card built there is nothing to
+    // counter-prove against, and a green run would mean nothing.
+    check(
+      'a real reporter page exists to counter-prove the rewrite',
+      false,
+      'dist/verify/ holds no reporter directory — seed an author with a reporterId',
+    )
+  } else {
+    const realId = knownIds[0]
+    const real = await httpGet(port, `/verify/${realId}/`)
+    check(
+      `a known reporter ID is NOT rewritten (${realId})`,
+      real.status === 200 && !real.body.includes(NOT_FOUND_MARKER),
+      `HTTP ${real.status}${real.body.includes(NOT_FOUND_MARKER) ? ' — served the not-found state' : ''}`,
+    )
+  }
+
+  const sentinel = await httpGet(port, '/verify/not-found/')
+  check(
+    'the not-found sentinel is noindex (it answers 200, so it is otherwise indexable)',
+    sentinel.status === 200 && /<meta name="robots" content="noindex"/.test(sentinel.body),
+    `HTTP ${sentinel.status}`,
+  )
 
   // ── 6. Cache rules ────────────────────────────────────────────────────────
   const asset = routes.length

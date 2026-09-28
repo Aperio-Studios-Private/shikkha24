@@ -1,6 +1,6 @@
 ---
 /**
- * Share row — social share, copy link, and print.
+ * Share row — social share, copy link, print, and the S14 social card.
  *
  * Share links are plain `<a href>` to each network's share endpoint. No SDK, no
  * third-party script: a Facebook SDK would cost ~100 KB and put a third party on
@@ -9,15 +9,33 @@
  * The print button is a real `window.print()` — a print stylesheet (see
  * `PrintStyles.astro`) makes the output readable, and journalists and students
  * genuinely print admission notices and result sheets.
+ *
+ * ## The social card (S14)
+ *
+ * `cardPath` links to the CMS's on-demand photocard PNG. It is a **plain link**,
+ * not an `<img>`: the card is only fetched when a reader taps it, so it costs
+ * this page nothing. The owner decided Facebook is a share **button**, not a
+ * Graph API post — no page token, no app review, no third-party request on load.
  */
 interface Props {
   url: string
   title: string
+  /** A CMS-relative photocard path, e.g. `/api/photocard/12.png`. */
+  cardPath?: string | null
 }
 
-const { url, title } = Astro.props
+const { url, title, cardPath } = Astro.props
 const encodedUrl = encodeURIComponent(url)
 const encodedTitle = encodeURIComponent(title)
+
+/**
+ * The photocard URL is CMS-relative; it only becomes absolute when the CMS
+ * origin is configured. An unset `PUBLIC_CMS_ORIGIN` hides the button rather than
+ * emitting a link to a path the static host does not serve.
+ */
+const cardUrl = cardPath
+  ? `${import.meta.env.PUBLIC_CMS_ORIGIN?.replace(/\/$/, '') ?? ''}${cardPath}`
+  : null
 ---
 
 <div
@@ -73,6 +91,21 @@ const encodedTitle = encodeURIComponent(title)
   >
     প্রিন্ট
   </button>
+
+  {
+    cardUrl ? (
+      <a
+        href={cardUrl}
+        target="_blank"
+        rel="noopener"
+        class="inline-flex h-9 items-center gap-1.5 rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
+        aria-label="সোশ্যাল কার্ড দেখুন এবং সংরক্ষণ করুন"
+        title="সোশ্যাল কার্ড দেখুন এবং সংরক্ষণ করুন"
+      >
+        কার্ড
+      </a>
+    ) : null
+  }
 </div>
 
 <script>

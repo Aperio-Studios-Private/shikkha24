@@ -1,0 +1,220 @@
+---
+/**
+ * QR verification landing — `/verify/:reporterId`.
+ *
+ * ## What this page is for
+ *
+ * The S14 ID card prints a QR encoding this URL. A reader who scans it arrives
+ * here and sees the credential's **current** state. That is the entire purpose:
+ * a printed card cannot be updated, but the page behind it can, so a suspended
+ * or expired card is caught now rather than trusted forever.
+ *
+ * ## Two path segments, deliberately
+ *
+ * `/verify/:reporterId` is 2 segments. The article CSP rule in `.htaccess`
+ * matches **exactly three**, so this route cannot collide with it — the same
+ * structural reasoning that kept `/reporters/:slug` safe (`.sps/handoff.md`
+ * M15: an exclusion list that overlapped a real route silently dropped AdSense
+ * from every article in that section).
+ *
+ * ## It never 404s a scanned ID
+ *
+ * The page is reachable by QR and by direct link. An unknown ID renders a clear
+ * "যাচাই করা যায়নি" state — never a blank page, never a stack of nothing —
+ * because a 404 on a scanned card reads as "the site is broken" rather than the
+ * honest "this credential is not active".
+ *
+ * ⚠️ **A static build only emits the paths `getStaticPaths` returns, so an
+ * unknown ID would have reached Apache's generic 404** — the `not-found` branch
+ * below was unreachable in the built site. It is now reached two ways: the
+ * `not-found` sentinel emitted below, and the `.htaccess` rewrite that serves it
+ * for any `/verify/<id>` that is not a real directory. Both are asserted by
+ * `pnpm verify:apache`.
+ *
+ * ⚠️ **A newly verified reporter's page appears at the next build.** The CMS
+ * already triggers a debounced rebuild on change, so the lag is bounded and
+ * recorded rather than silent.
+ */
+import Layout from '../../layouts/Layout.astro'
+import VerificationBadge from '../../components/VerificationBadge.astro'
+import { resolveCmsImage } from '../../lib/media'
+import { formatBnBd } from '../../lib/bangla-date'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  getAllReporterIds,
+  getReporterByReporterId,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../../lib/cms'
+
+/*
+ * ⚠️ `getStaticPaths` is hoisted to module scope and cannot see a frontmatter
+ * `const` — only imports. Anything it calls must be imported (`.sps/handoff.md`).
+ */
+export async function getStaticPaths() {
+  const ids = await getAllReporterIds().catch(() => [])
+  /*
+   * `not-found` is a **sentinel**, not a reporter. A static build can only emit
+   * pages for IDs that exist, so the `.htaccess` rewrite points every
+   * `/verify/<unknown-id>` at this one path; `getReporterByReporterId` then
+   * returns nothing and the page renders its "যাচাই করা যায়নি" state.
+   *
+   * A real reporter can never collide with it: `reporterId` is hook-generated as
+   * `SHK-R-YYYY-NNNN` (`cms/src/hooks/reporterId.ts`), never free-form text.
+   *
+   * ⚠️ The literal is inline because `getStaticPaths` is hoisted to module scope
+   * and cannot see a frontmatter `const` — only imports (`.sps/handoff.md`).
+   */
+  return [...ids, 'not-found'].map((reporterId) => ({ params: { reporterId } }))
+}
+
+const { reporterId } = Astro.params
+
+const [settings, categories, footerPages, reporter] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getReporterByReporterId(reporterId ?? '').catch(() => null),
+])
+
+const photo = reporter
+  ? resolveCmsImage(
+      (reporter.photo ?? null) as Parameters<typeof resolveCmsImage>[0],
+      reporter.nameBn,
+    )
+  : null
+
+const validUntilLabel = reporter?.validUntil
+  ? formatBnBd(reporter.validUntil, { day: 'numeric', month: 'long', year: 'numeric' })
+  : null
+
+const isExpired = reporter?.validUntil ? new Date(reporter.validUntil).getTime() < Date.now() : false
+const status = reporter?.verificationStatus ?? null
+---
+
+<Layout
+  title={reporter ? `${reporter.nameBn} — পরিচয়পত্র যাচাই` : 'পরিচয়পত্র যাচাই'}
+  description={
+    reporter
+      ? `${reporter.nameBn} — শিক্ষা২৪ প্রতিবেদক। আইডি ${reporter.reporterId ?? ''}।`
+      : 'শিক্ষা২৪ প্রতিবেদক পরিচয়পত্র যাচাই।'
+  }
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+  noindex={!reporter}
+>
+  <div class="container-page py-8">
+    <div class="mx-auto max-w-2xl">
+      <h1 class="mb-2 text-2xl font-bold text-ink dark:text-dark-ink">পরিচয়পত্র যাচাই</h1>
+      <p class="mb-6 text-base text-ink-soft dark:text-dark-ink-soft">
+        নিচের তথ্য শিক্ষা২৪-এর অফিসিয়াল রেকর্ড থেকে নেওয়া।
+      </p>
+
+      {
+        !reporter ? (
+          <div class="rounded-lg border border-rule bg-surface-raised p-6 dark:border-dark-rule dark:bg-dark-surface-raised">
+            <div class="flex items-center gap-3">
+              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-xl text-brand-red dark:bg-red-900/30">
+                ✕
+              </span>
+              <div>
+                <p class="font-semibold text-ink dark:text-dark-ink">যাচাই করা যায়নি</p>
+                <p class="text-sm text-ink-soft dark:text-dark-ink-soft">
+                  এই আইডির কোনো প্রতিবেদক পাওয়া যায়নি। কার্ডটি সঠিক নয় অথবা বাতিল হয়েছে।
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div class="overflow-hidden rounded-lg border border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-surface-raised">
+            <div class="border-b border-rule p-6 dark:border-dark-rule">
+              <div class="flex items-center gap-5">
+                {photo ? (
+                  <img
+                    src={photo.src}
+                    srcset={photo.srcset}
+                    width={photo.width}
+                    height={photo.height}
+                    alt={photo.alt}
+                    class="h-24 w-24 shrink-0 rounded-full object-cover"
+                    loading="eager"
+                  />
+                ) : (
+                  <div class="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-rule text-3xl text-ink-soft dark:bg-dark-rule dark:text-dark-ink-soft">
+                    {reporter.nameBn.charAt(0)}
+                  </div>
+                )}
+                <div class="min-w-0">
+                  <p class="text-xl font-bold text-ink dark:text-dark-ink">{reporter.nameBn}</p>
+                  {reporter.designation ? (
+                    <p class="text-sm text-ink-soft dark:text-dark-ink-soft">{reporter.designation}</p>
+                  ) : null}
+                  <div class="mt-2">
+                    <VerificationBadge status={reporter.verificationStatus ?? 'unverified'} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <dl class="divide-y divide-rule dark:divide-dark-rule">
+              <div class="flex items-center justify-between gap-4 p-4">
+                <dt class="text-sm text-ink-soft dark:text-dark-ink-soft">প্রতিবেদক আইডি</dt>
+                <dd class="font-mono text-sm font-medium text-ink dark:text-dark-ink">
+                  {reporter.reporterId ?? '—'}
+                </dd>
+              </div>
+              {reporter.pressCardNo ? (
+                <div class="flex items-center justify-between gap-4 p-4">
+                  <dt class="text-sm text-ink-soft dark:text-dark-ink-soft">প্রেস কার্ড নম্বর</dt>
+                  <dd class="text-sm font-medium text-ink dark:text-dark-ink">{reporter.pressCardNo}</dd>
+                </div>
+              ) : null}
+              {validUntilLabel ? (
+                <div class="flex items-center justify-between gap-4 p-4">
+                  <dt class="text-sm text-ink-soft dark:text-dark-ink-soft">মেয়াদ শেষ</dt>
+                  <dd
+                    class:list={[
+                      'text-sm font-medium',
+                      isExpired
+                        ? 'text-brand-red'
+                        : 'text-ink dark:text-dark-ink',
+                    ]}
+                  >
+                    {validUntilLabel}
+                    {isExpired ? ' (মেয়াদোত্তীর্ণ)' : ''}
+                  </dd>
+                </div>
+              ) : null}
+              {reporter.beat && reporter.beat.length > 0 ? (
+                <div class="flex items-center justify-between gap-4 p-4">
+                  <dt class="text-sm text-ink-soft dark:text-dark-ink-soft">বিট</dt>
+                  <dd class="text-right text-sm font-medium text-ink dark:text-dark-ink">
+                    {reporter.beat.join(', ')}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          </div>
+        )
+      }
+
+      {
+        reporter && status !== 'verified' ? (
+          <p class="mt-4 rounded-md bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
+            ⚠️ এই পরিচয়পত্রটি বর্তমানে সক্রিয় যাচাইকৃত নয়। কার্ডের তথ্য ব্যবহার করার আগে শিক্ষা২৪
+            সম্পাদকালয়ের সাথে যোগাযোগ করুন।
+          </p>
+        ) : null
+      }
+
+      <p class="mt-6 text-sm text-ink-soft dark:text-dark-ink-soft">
+        এই তথ্যের কোনো প্রশ্ন থাকলে{' '}
+        <a href="/contact" class="font-medium text-brand-red hover:underline">যোগাযোগ</a> পাতায়
+        জানান।
+      </p>
+    </div>
+  </div>
+</Layout>

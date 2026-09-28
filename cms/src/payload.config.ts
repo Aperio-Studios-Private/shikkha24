@@ -39,6 +39,7 @@ import { Users } from './collections/Users'
 import { citizenSubmitEndpoint } from './endpoints/citizen'
 // NOTE: the comment endpoint is intentionally NOT imported here — it mounts on
 // the Comments collection, not at the API root. See the `endpoints` block below.
+import { cardEndpoints } from './endpoints/id-card'
 import { newsletterEndpoints } from './endpoints/newsletter'
 import { oauthEndpoints } from './endpoints/oauth'
 import { pushEndpoints } from './endpoints/push'
@@ -185,6 +186,9 @@ export default buildConfig({
     citizenSubmitEndpoint,
     ...pushEndpoints,
     reporterQuickDraftEndpoint,
+    // S14: on-demand card images. Public read — a card is meant to be scanned by
+    // anyone, and draws only what /reporters/:slug already publishes.
+    ...cardEndpoints,
   ],
 
   collections: [

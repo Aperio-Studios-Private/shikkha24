@@ -125,12 +125,20 @@ jobs:
         # half needs a listener at DEPLOY_WEBHOOK_URL, so it is skipped rather than
         # failed when that is unset — correct here, where there is nothing to call.
         #
+        # `verify:reporter` was written at S13 and ran only by hand until now —
+        # the one harness that asserts a reporter cannot publish their own story
+        # is exactly the one that must run on every push.
+        #
+        # `verify:id-card` (S14) asserts the generated cards are deterministic —
+        # byte-identical across two runs — which is what the card's
+        # `Cache-Control` + ETag contract depends on.
+        #
         # The loop stops at the first failure (`bash -e`), and the echo names it.
         env:
           PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
           DATABASE_URI: file:./data/ci.db
         run: |
-          for h in media newsletter engagement push oauth rebuild; do
+          for h in media newsletter engagement push oauth rebuild reporter id-card; do
             echo "── verify:$h ──"
             pnpm --filter @shikkha24/cms verify:$h
           done
@@ -267,6 +275,10 @@ jobs:
         #      NOT .next/standalone/server.js.
         #   2. Next does NOT copy .next/static into the bundle — the deploy must.
         #      Without it the admin loads but every asset 404s.
+        #   3. The Bengali card font (S14) is not traced by Next either. The card
+        #      endpoints read it relative to the bundle root at runtime, so it is
+        #      copied beside the app exactly like .next/static above. Without it
+        #      /api/idcard/:id.png answers 503 rather than rendering tofu.
         run: |
           set -euo pipefail
           ROOT=cms/.next/standalone
@@ -276,6 +288,8 @@ jobs:
           fi
           mkdir -p "$ROOT/cms/.next/static"
           cp -R cms/.next/static/. "$ROOT/cms/.next/static/"
+          mkdir -p "$ROOT/cms/fonts"
+          cp assets/fonts/vendor/solaimanlipi-400.woff2 assets/fonts/vendor/solaimanlipi-700.woff2 "$ROOT/cms/fonts/"
           mb=$(du -sm "$ROOT" | cut -f1)
           echo "standalone bundle = ${mb} MB (target 300-600 MB)"
           echo "Measured at S0 on this exact stack: 114 MB."
