@@ -130,6 +130,7 @@ Two pairs were merged to avoid two of your own pages competing for the same quer
 | N4 | **Institution directory** — public and private universities/colleges with profiles | Evergreen SEO surface; underpins internal linking across every other feature. | High | **Starter set** — public universities + top private, marked "growing" |
 | N5 | **Exam routine & syllabus hub** | Recurring, high-intent, low-maintenance. Shares the dated-events model with N2. | Low | Full |
 | N6 | **GPA / grade calculator** — SSC/HSC GPA from marks | Genuinely useful, attracts links, zero backend. | Low | Full |
+| N6b | **CGPA calculator** — university CGPA from credits and grades *(added 2026-09-28)* | The university counterpart, and a different system: 4.00 scale, credit-weighted, and an F is *included* rather than zeroing the result. Bangladeshi universities do not share one grade table, so the scale is a choice (UGC / private) rather than an assumption. | Low | Full |
 | N7 | **Deadline reminders** — reader saves a deadline, receives a push notification | Converts one-off search traffic into a returning audience. Reuses the push + bookmark infrastructure already planned. | Medium | Full |
 | N8 | **Circular tracker** — education + BCS/job circulars | High volume, editorially maintainable, and now squarely in scope. | Medium | Full |
 | N9 | **District-first opportunities** — local scholarships, admission news, district exam centres | No competitor personalises education by district. Reuses the district-first homepage already planned. | Medium | Full |

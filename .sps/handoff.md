@@ -937,6 +937,51 @@ the host-disk usage alert.
     - Gates: biome 0 · typecheck 0 · `verify:gpa` all pass · astro-imports 130 · build **155 pages**
       · build-output · links · apache — **all green**.
 
+47. ✅ **CGPA calculator added as a second, separate tool — and the two are different systems**
+    (2026-09-28, owner request). Not a section; it extends S10's N6.
+    - **Why a separate page and not a mode on `/gpa`.** They are not two views of one thing.
+      `/gpa` is the **school-leaving 5.00 scale** (A+ = 5.00, an F in a compulsory subject zeroes
+      the result). `/cgpa` is the **university 4.00 scale** (A+ = 4.00, marks weighted by credit
+      hours, and **an F is a 0.00 that is included** rather than annihilating the average). A single
+      page with a toggle would invite exactly the mix-up this split prevents — and mixing the two
+      scales is the most common mistake on a Bangladeshi application.
+    - ⚠️ **The F rule is the trap, and it is the opposite of the school one.** Copying the school
+      rule would tell a student who failed one course that their CGPA is **0.00** when it may be
+      comfortably above 3.00. `verify:cgpa` asserts both the value and the credits staying in the
+      denominator, and the counter-proof applies the school rule deliberately to confirm the
+      harness catches it.
+    - ⚠️ **Bangladeshi universities do NOT share one grade table**, so the scale is a choice the
+      reader makes, never an assumption. Two verified presets:
+      - **UGC / public + National University** — quarter-point 4.00 scale, pass at **40%**.
+        Three independent sources agree exactly.
+      - **Private-university `+/-` variant** — pass at **60%**, and 75 marks is an **A (3.75)** at
+        one and a **C (2.00)** at the other.
+      ⚠️ **The second was taken from North South University's own published grading policy, and it
+      disagreed with a third-party calculator** — which put A at 95 marks where the university says
+      **93**. Third-party calculators are not authorities on someone else's regulations. The page
+      names the scale in use, prints where it came from, and tells the reader to check their own
+      policy.
+    - **Inputs:** one table — course, credits, grade, optional semester. The result gives the
+      **CGPA**, the degree class, credit/point totals, **and a per-term GPA breakdown**, so one
+      table answers both "what is my CGPA" and "what did I get last semester".
+    - **I and W grades are excluded** from the CGPA (they are not offered as options), matching the
+      policy; a genuine 0.00 is reported as `0`, which is a different state from "nothing entered".
+    - **Counter-proved three ways:** the school F rule, assuming a single scale, and dropping the
+      failed course from the denominator — each turned the harness red with the right diagnostic.
+    - ⚠️ **The harness caught two of MY OWN wrong expectations first** (a mis-stated denominator,
+      and reading 75% as C+ when the NSU band is 73–76 = C). Worth keeping: writing the expectation
+      down is where a misunderstanding surfaces, which is the point of the exercise.
+    - `verify:build-output`'s DOM-contract check was **generalised to both pages** and now reads the
+      selectors from each page's own bundle. ⚠️ It also had to learn that a class selector may be
+      satisfied by the **page markup** (a class the script queries but does not create, like the
+      scale radios) as well as by the bundle's own injected markup.
+    - ⚠️ **`biome.json` gained one override**: `noUselessLoneBlockStatements` is off for
+      `scripts/verify-*.mjs`. The `{ }` scoping blocks in those linear harnesses are deliberate and
+      keep the section names short; seven "info" diagnostics of the same kind is noise that trains
+      a reader to ignore the linter.
+    - Gates: biome 0 · typecheck 0 · `verify:gpa` · `verify:cgpa` · astro-imports 135 · build
+      **156 pages** · build-output · links (7964) · apache — **all green**.
+
 - **Portal type: education portal** (2026-09-11) — domain `shikkha24.com`; general-news scope retired
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)
 - **Next.js pinned to 16.2.6+** (corrected by the audit)

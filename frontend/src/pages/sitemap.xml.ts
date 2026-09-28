@@ -102,6 +102,9 @@ export const GET: APIRoute = async () => {
     { loc: '/exams', priority: '0.7', changefreq: 'daily' },
     { loc: '/archive', priority: '0.4', changefreq: 'weekly' },
     { loc: '/gpa', priority: '0.3', changefreq: 'yearly' },
+    // The university counterpart to `/gpa` — a different scale and a different
+    // rule for a failed course, so a separate page rather than a mode.
+    { loc: '/cgpa', priority: '0.3', changefreq: 'yearly' },
     // S15. Listed whether or not a stream is configured: the route exists and
     // shows the schedule, and a live-broadcast URL is high-intent on the day it
     // matters. `changefreq: daily` because a stream can start at any hour.

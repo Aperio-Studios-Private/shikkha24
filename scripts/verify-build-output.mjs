@@ -484,87 +484,104 @@ if (reactionBars === 0) {
   )
 }
 
-// ── 9. The GPA calculator's DOM contract (N6) ────────────────────────────────
+// ── 9. The calculators' DOM contract (N6 + the CGPA tool) ────────────────────
 /*
- * The calculator binds to elements by id and by class. A renamed id in the markup
+ * Both calculators bind to elements by id and by class. A renamed id in the markup
  * — or a typo in the script — makes `getElementById(…)` return `null`, and the
  * non-null assertion that satisfies TypeScript disappears at runtime, so the page
  * throws before it renders anything.
  *
- * That is the failure class this page already demonstrated: its calculation was
- * unverifiable, and nothing checked that the wiring was even intact. The rules now
- * live in `frontend/src/lib/gpa.ts` with `verify:gpa` over them; this is the other
- * half — that the module is actually connected to the page.
+ * That is the failure class `/gpa` already demonstrated: its calculation was
+ * unverifiable, and nothing checked the wiring was even intact. The rules now live
+ * in `frontend/src/lib/gpa.ts` and `lib/cgpa.ts` with `verify:gpa` / `verify:cgpa`
+ * over them; this is the other half — that the modules are actually connected.
  *
- * The ids are read **from the built bundle**, not restated here, so the check
- * cannot drift from the code it checks.
+ * The selectors are read **from the built bundle**, not restated here, so the check
+ * cannot drift from the code it checks. Adding a calculator means adding its slug.
  */
-{
-  const gpaPage = join(DIST, 'gpa', 'index.html')
-  if (!existsSync(gpaPage)) {
-    console.log('      note: no /gpa page in this build — the DOM contract check is skipped')
-  } else {
-    const gpaHtml = readFileSync(gpaPage, 'utf8')
-    const bundles = [...gpaHtml.matchAll(/src="(\/_astro\/gpa\.astro[^"]*\.js)"/g)].map((m) => m[1])
+const CALCULATOR_PAGES = [
+  { slug: 'gpa', label: 'GPA' },
+  { slug: 'cgpa', label: 'CGPA' },
+]
 
-    const requiredIds = new Set()
-    const requiredClasses = new Set()
-    let bundleSource = ''
-    for (const src of bundles) {
-      const bundlePath = join(DIST, src)
-      if (!existsSync(bundlePath)) continue
-      const js = readFileSync(bundlePath, 'utf8')
-      bundleSource += js
-      for (const match of js.matchAll(/getElementById\([`'"]([^`'"]+)[`'"]\)/g)) {
-        requiredIds.add(match[1])
-      }
-      for (const match of js.matchAll(/querySelector(?:All)?\([`'"]\.([a-z-]+)[`'"]\)/g)) {
-        requiredClasses.add(match[1])
-      }
+/** Every class token inside every `class="…"` attribute of some markup. */
+function classTokensOf(markup) {
+  const tokens = new Set()
+  for (const match of markup.matchAll(/class="([^"]*)"/g)) {
+    for (const token of match[1].split(/\s+/)) {
+      if (token) tokens.add(token)
     }
-
-    const missingIds = [...requiredIds].filter((id) => !gpaHtml.includes(`id="${id}"`))
-    check(
-      'every element the GPA calculator looks up by id exists in the built page',
-      requiredIds.size > 0 && missingIds.length === 0,
-      requiredIds.size === 0
-        ? 'no getElementById ids found in the GPA bundle — the check is vacuous'
-        : missingIds.length > 0
-          ? `missing: ${missingIds.join(', ')}`
-          : `${requiredIds.size} id(s) checked`,
-    )
-
-    /*
-     * The per-row classes are injected into the DOM by the script itself, so they
-     * cannot be asserted against the page. They are asserted against the bundle
-     * instead: a rename that updated the query but not the injected markup (or the
-     * reverse) leaves a selector matching nothing, which is silent.
-     *
-     * ⚠️ The comparison is on **whole class tokens**, not substrings. A plain
-     * `includes('class="gpa-marks')` also matches `class="gpa-marks-2` — and a CSS
-     * class selector matches whole names, so that rename genuinely breaks the
-     * query while the check stays green. (Found by counter-proving this check: the
-     * first version passed with the class deliberately renamed.)
-     */
-    const classTokens = new Set()
-    for (const match of bundleSource.matchAll(/class="([^"]*)"/g)) {
-      for (const token of match[1].split(/\s+/)) {
-        if (token) classTokens.add(token)
-      }
-    }
-
-    const gpaClasses = [...requiredClasses].filter((name) => name.startsWith('gpa-'))
-    const missingClasses = gpaClasses.filter((name) => !classTokens.has(name))
-    check(
-      'every GPA class the script queries is one the script also creates',
-      gpaClasses.length > 0 && missingClasses.length === 0,
-      gpaClasses.length === 0
-        ? 'no gpa- class selectors found in the bundle — the check is vacuous'
-        : missingClasses.length > 0
-          ? `never created: ${missingClasses.join(', ')}`
-          : `${gpaClasses.length} class selector(s) checked`,
-    )
   }
+  return tokens
+}
+
+for (const { slug, label } of CALCULATOR_PAGES) {
+  const pagePath = join(DIST, slug, 'index.html')
+  if (!existsSync(pagePath)) {
+    console.log(`      note: no /${slug} page in this build — its DOM contract check is skipped`)
+    continue
+  }
+
+  const html = readFileSync(pagePath, 'utf8')
+  const bundles = [
+    ...html.matchAll(new RegExp(`src="(\\/_astro\\/${slug}\\.astro[^"]*\\.js)"`, 'g')),
+  ].map((match) => match[1])
+
+  const requiredIds = new Set()
+  const requiredClasses = new Set()
+  let bundleSource = ''
+  for (const src of bundles) {
+    const bundlePath = join(DIST, src)
+    if (!existsSync(bundlePath)) continue
+    const js = readFileSync(bundlePath, 'utf8')
+    bundleSource += js
+    for (const match of js.matchAll(/getElementById\([`'"]([^`'"]+)[`'"]\)/g)) {
+      requiredIds.add(match[1])
+    }
+    // Capture the whole selector, then pull `.name` out of it — a querySelector can
+    // be `input.cgpa-scale:checked`, and a regex anchored on a leading dot misses it.
+    for (const match of js.matchAll(/querySelector(?:All)?\([`'"]([^`'"]+)[`'"]\)/g)) {
+      for (const cls of match[1].matchAll(/\.([a-z][a-z0-9-]*)/g)) requiredClasses.add(cls[1])
+    }
+  }
+
+  const missingIds = [...requiredIds].filter((id) => !html.includes(`id="${id}"`))
+  check(
+    `every element the ${label} calculator looks up by id exists in the built page`,
+    requiredIds.size > 0 && missingIds.length === 0,
+    requiredIds.size === 0
+      ? `no getElementById ids found in the ${slug} bundle — the check is vacuous`
+      : missingIds.length > 0
+        ? `missing: ${missingIds.join(', ')}`
+        : `${requiredIds.size} id(s) checked`,
+  )
+
+  /*
+   * A class selector must match something that actually exists. Two sources, and
+   * both are needed: the **page** for classes the script queries but does not
+   * create (`cgpa-scale`, the radios it reads), and the **bundle** for the per-row
+   * classes the script injects itself.
+   *
+   * ⚠️ The comparison is on **whole class tokens**, not substrings. A plain
+   * `includes('class="gpa-marks')` also matches `class="gpa-marks-2` — and a CSS
+   * class selector matches whole names, so that rename genuinely breaks the query
+   * while the check stays green. (Found by counter-proving this check: the first
+   * version passed with the class deliberately renamed.)
+   */
+  const knownClasses = classTokensOf(html)
+  for (const token of classTokensOf(bundleSource)) knownClasses.add(token)
+
+  const ownClasses = [...requiredClasses].filter((name) => name.startsWith(`${slug}-`))
+  const missingClasses = ownClasses.filter((name) => !knownClasses.has(name))
+  check(
+    `every ${label} class the script queries exists somewhere it can match`,
+    ownClasses.length > 0 && missingClasses.length === 0,
+    ownClasses.length === 0
+      ? `no ${slug}- class selectors found in the bundle — the check is vacuous`
+      : missingClasses.length > 0
+        ? `matches nothing: ${missingClasses.join(', ')}`
+        : `${ownClasses.length} class selector(s) checked`,
+  )
 }
 
 console.log(

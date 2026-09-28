@@ -48,6 +48,15 @@ const scale = GRADES.map((grade) => ({
   <div class="container-page py-6">
     <Breadcrumbs items={[{ label: 'জিপিএ ক্যালকুলেটর', href: '/gpa' }]} />
 
+    <nav class="mb-4 flex flex-wrap gap-2 text-sm" aria-label="ক্যালকুলেটর">
+      <span class="rounded-md border border-brand-red px-3 py-1.5 font-medium text-brand-red" aria-current="page">
+        জিপিএ — এসএসসি/এইচএসসি
+      </span>
+      <a href="/cgpa" class="rounded-md border border-rule px-3 py-1.5 text-ink-muted hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink-muted">
+        সিজিপিএ — বিশ্ববিদ্যালয়
+      </a>
+    </nav>
+
     <header class="mb-6 border-b-2 border-brand-red pb-3">
       <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">জিপিএ ক্যালকুলেটর</h1>
       <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">

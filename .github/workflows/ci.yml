@@ -84,6 +84,14 @@ jobs:
         # rules — a copy would only prove two implementations agree.
         run: pnpm run verify:gpa
 
+      - name: Verify the CGPA calculation
+        # The university counterpart. It guards two mistakes that are easy to make
+        # and both produce a confident wrong number: applying the *school* rule for
+        # an F (which would report 0.00 for a student who failed one course but is
+        # otherwise above 3.00), and assuming one grading scale when Bangladeshi
+        # universities use several.
+        run: pnpm run verify:cgpa
+
       # ── Frontend ────────────────────────────────────────────────────────────
       - name: Astro sync (generate content + env types)
         # `astro sync` writes .astro/types.d.ts, which tsconfig.json includes.

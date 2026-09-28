@@ -42,5 +42,17 @@
       "quoteStyle": "single",
       "semicolons": "asNeeded"
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["scripts/verify-*.mjs"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noUselessLoneBlockStatements": "off"
+          }
+        }
+      }
+    }
+  ]
 }

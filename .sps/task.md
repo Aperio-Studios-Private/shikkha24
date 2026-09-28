@@ -155,6 +155,14 @@
 - [x] **N5** Exam routine & syllabus hub (shares the N2 data model) — `/exams`
 - [x] **N6** GPA / grade calculator (SSC/HSC, client-side, zero backend) — `/gpa` (flag-gated)
   - [x] 🚨 **Corrected 2026-09-28.** Three wrong answers had shipped: the 4th-subject bonus was `min(GP, 2)` instead of `max(0, GP − 2)` (an A+ 4th subject earned 2.00, not 3.00); an F in a compulsory subject did not zero the result; and the letter grade was looked up against the **marks** boundaries, so **every** result read **এফ**. Root cause: the calculation was inline in a page `<script>`, so nothing could call it. Now `frontend/src/lib/gpa.ts` + `pnpm verify:gpa` (in `pnpm verify` and CI). See `.sps/section-todos/S10.md` → N6.
+- [x] **N6b — CGPA calculator** (university, credit-weighted) — `/cgpa` *(added 2026-09-28)*
+  - [x] `frontend/src/lib/cgpa.ts` — a pure module, separate from `gpa.ts` because it is a **different system**, not a different view: 4.00 scale, marks weighted by credit hours, and **an F is included as 0.00** rather than zeroing the result
+  - [x] **Two verified scales**, chosen by the reader: UGC/public + National University (three sources agree), and the private-university `+/-` variant taken from **NSU's own published grading policy** — which disagreed with a third-party calculator on where A starts (93 vs 95)
+  - [x] Per-term GPA **and** cumulative CGPA, so one table answers both questions
+  - [x] `pnpm verify:cgpa` (60+ checks incl. two published worked examples), in `pnpm verify` and CI
+  - [x] ⚠️ Counter-proved: applying the **school** F rule, assuming one scale, and dropping the failed course from the denominator each turn the harness red
+  - [x] Both calculators cross-linked, in the header and footer nav, and in the sitemap
+  - [x] `verify:build-output` asserts the DOM contract of **both** pages from their built bundles
 - [x] **N8** Circular tracker (education + BCS/job circulars) — `/circulars`
 - [x] **N9** District-first opportunities — district filter on `/deadlines`
 - [x] **N10** Study-abroad country guides — starter set: UK, USA, Canada, Australia, Malaysia, Japan, South Korea, Germany — `/study-abroad` + `[slug]`

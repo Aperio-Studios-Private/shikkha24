@@ -1,0 +1,360 @@
+---
+/**
+ * CGPA calculator — the university tool, alongside `/gpa` (SSC/HSC).
+ *
+ * ## Why this is a separate page and not a mode on `/gpa`
+ *
+ * The two are different systems, not two views of one. `/gpa` is the
+ * **school-leaving 5.00 scale** where A+ is 5.00 and an F in a compulsory subject
+ * zeroes the result. This is the **university 4.00 scale** where A+ is 4.00, marks
+ * are weighted by credit hours, and an F is a 0.00 that is *included* in the
+ * average rather than annihilating it.
+ *
+ * A single page with a toggle would invite exactly the confusion this split
+ * prevents — and the two are already the most common mix-up on a Bangladeshi
+ * application.
+ *
+ * ## The scale is a choice, never an assumption
+ *
+ * Bangladesh's universities do not share one table. The UGC scale (public
+ * universities and the National University) passes at 40%; the `+/-` scale used by
+ * private universities passes at 60%, and 75 marks is an A at one and a C at the
+ * other. Both are verified — the second from **North South University's own
+ * published grading policy**, which disagreed with a third-party calculator that
+ * put A at 95 instead of 93.
+ *
+ * So the reader picks, the page says which scale is in use and where it came from,
+ * and it tells them to check their own university's policy. See `lib/cgpa.ts`.
+ */
+import Layout from '../layouts/Layout.astro'
+import Breadcrumbs from '../components/Breadcrumbs.astro'
+import { isEnabled } from '../lib/feature-flags'
+import { CGPA_SCALES } from '../lib/cgpa'
+import { toBnDigits } from '../lib/bangla-date'
+import { getSiteSettings, getCategories, getFooterPages, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../lib/cms'
+
+/*
+ * The same flag as `/gpa`: the calculators are one family, and a device class
+ * that misbehaves on one is very likely to misbehave on the other.
+ */
+if (!isEnabled('gpaCalculator')) {
+  return Astro.redirect('/404')
+}
+
+const [settings, categories, footerPages] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+])
+
+/** Each scale's band table, rendered server-side so it reads without JavaScript. */
+const scaleTables = CGPA_SCALES.map((scale) => ({
+  id: scale.id,
+  labelBn: scale.labelBn,
+  sourceBn: scale.sourceBn,
+  max: toBnDigits(scale.max.toFixed(2)),
+  rows: scale.bands.map((band) => ({
+    range: band.minPercent === 0 ? '৪০-এর কম' : `${toBnDigits(band.minPercent)}+`,
+    label: band.label,
+    point: toBnDigits(band.point.toFixed(2)),
+  })),
+  classes: scale.classes.map((entry) => ({
+    range: `${toBnDigits(entry.min.toFixed(2))}+`,
+    labelBn: entry.labelBn,
+  })),
+}))
+---
+
+<Layout title="সিজিপিএ ক্যালকুলেটর" description="বিশ্ববিদ্যালয়ের সিজিপিএ ক্যালকুলেটর — ক্রেডিট ও গ্রেড থেকে সিজিপিএ।"
+  settings={settings} categories={categories} footerPages={footerPages}>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'সিজিপিএ ক্যালকুলেটর', href: '/cgpa' }]} />
+
+    <nav class="mb-4 flex flex-wrap gap-2 text-sm" aria-label="ক্যালকুলেটর">
+      <a href="/gpa" class="rounded-md border border-rule px-3 py-1.5 text-ink-muted hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink-muted">
+        জিপিএ — এসএসসি/এইচএসসি
+      </a>
+      <span class="rounded-md border border-brand-red px-3 py-1.5 font-medium text-brand-red" aria-current="page">
+        সিজিপিএ — বিশ্ববিদ্যালয়
+      </span>
+    </nav>
+
+    <header class="mb-6 border-b-2 border-brand-red pb-3">
+      <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">সিজিপিএ ক্যালকুলেটর</h1>
+      <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">
+        প্রতিটি কোর্সের ক্রেডিট ও গ্রেড দিন — সেমিস্টার জিপিএ ও সিজিপিএ দেখুন।
+      </p>
+    </header>
+
+    <noscript>
+      <p class="rounded-md border border-rule bg-surface-raised p-4 text-center text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
+        এই ক্যালকুলেটরটি ব্যবহার করতে জাভাস্ক্রিপ্ট প্রয়োজন।
+      </p>
+    </noscript>
+
+    <div id="cgpa-calc" class="hidden">
+      <fieldset class="mb-4 rounded-lg border border-rule bg-surface-raised p-4 dark:border-dark-rule dark:bg-dark-raised">
+        <legend class="px-1 text-sm font-semibold text-ink dark:text-dark-ink">আপনার বিশ্ববিদ্যালয়ের গ্রেডিং স্কেল</legend>
+        <div class="flex flex-col gap-2 sm:flex-row sm:gap-6">
+          {scaleTables.map((scale, index) => (
+            <label class="flex items-start gap-2 text-sm text-ink dark:text-dark-ink">
+              <input
+                type="radio"
+                name="cgpa-scale"
+                value={scale.id}
+                class="cgpa-scale mt-1 h-4 w-4 shrink-0"
+                checked={index === 0}
+              />
+              <span>{scale.labelBn}</span>
+            </label>
+          ))}
+        </div>
+        <p id="cgpa-scale-source" class="mt-2 text-xs text-ink-subtle dark:text-dark-ink-muted"></p>
+      </fieldset>
+
+      <div class="mb-4 rounded-lg border border-rule bg-surface-raised p-4 text-sm leading-relaxed text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
+        <p class="font-semibold text-ink dark:text-dark-ink">হিসাবের নিয়ম</p>
+        <ul class="mt-2 list-disc space-y-1 pl-5">
+          <li>
+            সিজিপিএ = <strong>Σ (গ্রেড পয়েন্ট × ক্রেডিট) ÷ Σ (ক্রেডিট)</strong> — অর্থাৎ ক্রেডিটভিত্তিক
+            গড়, সাধারণ গড় নয়। ৪ ক্রেডিটের কোর্স ২ ক্রেডিটের কোর্সের দ্বিগুণ হিসাব পায়।
+          </li>
+          <li>
+            <strong>এফ গ্রেড বাদ পড়ে না।</strong> ০.০০ হিসেবে যোগ হয় এবং কোর্সের ক্রেডিট হর-এ থেকে যায় —
+            তাই একটি এফ সিজিপিএ অনেকটা নামিয়ে দেয়, কিন্তু শূন্য করে না।
+          </li>
+          <li>সেমিস্টার/বর্ষ আলাদা করলে প্রতিটির জিপিএ দেখা যাবে; সব মিলিয়ে সিজিপিএ।</li>
+          <li>
+            শিক্ষা বোর্ডের এসএসসি/এইচএসসি পদ্ধতি আলাদা — সেখানে ৫.০০ স্কেল এবং একটি এফ পুরো ফলাফল
+            শূন্য করে। সেটির জন্য <a href="/gpa" class="text-brand-red hover:underline">জিপিএ ক্যালকুলেটর</a> ব্যবহার করুন।
+          </li>
+        </ul>
+      </div>
+
+      <table class="w-full border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-rule dark:border-dark-rule">
+            <th class="p-2 text-left text-ink dark:text-dark-ink">কোর্স</th>
+            <th class="p-2 text-left text-ink dark:text-dark-ink">ক্রেডিট</th>
+            <th class="p-2 text-left text-ink dark:text-dark-ink">গ্রেড</th>
+            <th class="p-2 text-left text-ink dark:text-dark-ink">সেমিস্টার</th>
+          </tr>
+        </thead>
+        <tbody id="cgpa-rows"></tbody>
+      </table>
+
+      <button id="cgpa-add-row" type="button"
+        class="mt-3 rounded-md border border-rule px-3 py-1.5 text-sm text-ink hover:bg-surface-raised dark:border-dark-rule dark:text-dark-ink dark:hover:bg-dark-raised">
+        + আরও কোর্স
+      </button>
+
+      <div class="mt-6 rounded-lg border-2 border-brand-red/20 bg-brand-red/5 p-4 dark:border-brand-red/30 dark:bg-brand-red/10">
+        <p class="text-sm text-ink-muted dark:text-dark-ink-muted">আপনার সিজিপিএ</p>
+        <p id="cgpa-result" class="font-headline text-3xl font-bold text-brand-red">—</p>
+        <p id="cgpa-class" class="mt-1 text-sm text-ink dark:text-dark-ink"></p>
+        <p id="cgpa-totals" class="mt-2 text-xs text-ink-muted dark:text-dark-ink-muted"></p>
+        <div id="cgpa-terms" class="mt-3"></div>
+        <p id="cgpa-fail" class="mt-3 hidden rounded-md bg-brand-red/10 p-3 text-sm font-medium text-brand-red"></p>
+      </div>
+
+      {scaleTables.map((scale) => (
+        <details class="cgpa-scale-table mt-4 text-sm" data-scale={scale.id} open={scale.id === scaleTables[0]?.id}>
+          <summary class="cursor-pointer text-ink-muted dark:text-dark-ink-muted">
+            গ্রেড সারণি — {scale.labelBn}
+          </summary>
+          <table class="mt-3 w-full border-collapse text-sm">
+            <thead>
+              <tr class="border-b border-rule dark:border-dark-rule">
+                <th class="p-2 text-left text-ink dark:text-dark-ink">নম্বর (%)</th>
+                <th class="p-2 text-left text-ink dark:text-dark-ink">গ্রেড</th>
+                <th class="p-2 text-left text-ink dark:text-dark-ink">পয়েন্ট</th>
+              </tr>
+            </thead>
+            <tbody>
+              {scale.rows.map((row) => (
+                <tr class="border-b border-rule dark:border-dark-rule">
+                  <td class="p-2 text-ink dark:text-dark-ink">{row.range}</td>
+                  <td class="p-2 text-ink dark:text-dark-ink">{row.label}</td>
+                  <td class="p-2 text-ink dark:text-dark-ink">{row.point}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p class="mt-2 text-xs text-ink-subtle dark:text-dark-ink-muted">{scale.sourceBn}</p>
+          <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
+            শ্রেণি: {scale.classes.map((entry) => `${entry.range} — ${entry.labelBn}`).join(' · ')}
+          </p>
+          <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
+            আই (অসম্পূর্ণ) ও ডব্লিউ (প্রত্যাহার) গ্রেড সিজিপিএ-তে ধরা হয় না — ওই কোর্সগুলো যোগ করবেন না।
+          </p>
+        </details>
+      ))}
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { CGPA_SCALES, classFor, computeCgpa, scaleById } from '../lib/cgpa'
+  import { toBnDigits } from '../lib/bangla-date'
+
+  const tbody = document.getElementById('cgpa-rows')!
+  const result = document.getElementById('cgpa-result')!
+  const classLabel = document.getElementById('cgpa-class')!
+  const totals = document.getElementById('cgpa-totals')!
+  const termsBox = document.getElementById('cgpa-terms')!
+  const failBox = document.getElementById('cgpa-fail')!
+  const sourceNote = document.getElementById('cgpa-scale-source')!
+  const calc = document.getElementById('cgpa-calc')!
+  calc.classList.remove('hidden')
+
+  const COURSES = ['বাংলা', 'ইংরেজি', 'গণিত', 'পদার্থবিজ্ঞান', 'রসায়ন', 'হিসাববিজ্ঞান', 'ব্যবস্থাপনা']
+
+  let rowCount = 0
+
+  /** The currently selected scale. */
+  function currentScale() {
+    const picked = document.querySelector<HTMLInputElement>('input.cgpa-scale:checked')
+    return scaleById(picked?.value ?? 'ugc')
+  }
+
+  /**
+   * Fill a row's grade select from the current scale.
+   *
+   * `preferLabel` keeps the reader's choice across a scale change where the same
+   * letter exists in both — and returns `false` when it does not, so the caller can
+   * say so rather than silently clearing a grade.
+   */
+  function fillGrades(select: HTMLSelectElement, preferLabel?: string): boolean {
+    const scale = currentScale()
+    const previous = preferLabel ?? select.value
+    select.innerHTML =
+      '<option value="">—</option>' +
+      scale.bands
+        .map((band) => `<option value="${band.point}">${band.label} (${toBnDigits(band.point.toFixed(2))})</option>`)
+        .join('')
+    const kept = [...select.options].some((option) => option.value === previous)
+    select.value = kept ? previous : ''
+    return kept
+  }
+
+  function addRow() {
+    rowCount++
+    const tr = document.createElement('tr')
+    tr.className = 'border-b border-rule dark:border-dark-rule'
+    const idx = rowCount
+    tr.innerHTML = `
+      <td class="p-2">
+        <input type="text" class="cgpa-name w-full rounded border border-rule bg-transparent px-2 py-1 text-ink dark:border-dark-rule dark:text-dark-ink" placeholder="${COURSES[(idx - 1) % COURSES.length]}" aria-label="কোর্সের নাম" />
+      </td>
+      <td class="p-2">
+        <input type="number" class="cgpa-credits w-20 rounded border border-rule bg-transparent px-2 py-1 text-ink dark:border-dark-rule dark:text-dark-ink" min="0" step="0.5" placeholder="৩" aria-label="ক্রেডিট" />
+      </td>
+      <td class="p-2">
+        <select class="cgpa-grade rounded border border-rule bg-transparent px-2 py-1 text-ink dark:border-dark-rule dark:text-dark-ink" aria-label="গ্রেড"></select>
+      </td>
+      <td class="p-2">
+        <input type="text" class="cgpa-term w-16 rounded border border-rule bg-transparent px-2 py-1 text-ink dark:border-dark-rule dark:text-dark-ink" placeholder="১" aria-label="সেমিস্টার বা বর্ষ" />
+      </td>
+    `
+    tbody.appendChild(tr)
+    fillGrades(tr.querySelector<HTMLSelectElement>('.cgpa-grade')!)
+    tr.querySelector('.cgpa-credits')!.addEventListener('input', recalc)
+    tr.querySelector('.cgpa-grade')!.addEventListener('change', recalc)
+    tr.querySelector('.cgpa-term')!.addEventListener('input', recalc)
+  }
+
+  function recalc() {
+    const rows = [...tbody.querySelectorAll('tr')]
+    const courses = rows.map((row) => ({
+      credits: Number.parseFloat(row.querySelector<HTMLInputElement>('.cgpa-credits')!.value),
+      point: Number.parseFloat(row.querySelector<HTMLSelectElement>('.cgpa-grade')!.value),
+      term: row.querySelector<HTMLInputElement>('.cgpa-term')!.value,
+    }))
+
+    const outcome = computeCgpa(courses)
+
+    if (outcome.cgpa === null) {
+      result.textContent = '—'
+      classLabel.textContent = ''
+      totals.textContent = ''
+      termsBox.innerHTML = ''
+      failBox.classList.add('hidden')
+      return
+    }
+
+    const scale = currentScale()
+    result.textContent = `${toBnDigits(outcome.cgpa.toFixed(2))} / ${toBnDigits(scale.max.toFixed(2))}`
+
+    const klass = classFor(scale, outcome.cgpa)
+    classLabel.textContent = klass ? `শ্রেণি: ${klass}` : ''
+
+    totals.textContent =
+      `মোট ক্রেডিট ${toBnDigits(outcome.totalCredits.toFixed(2))} · ` +
+      `মোট পয়েন্ট ${toBnDigits(outcome.totalPoints.toFixed(2))}`
+
+    /*
+     * The per-term breakdown is only meaningful when more than one term is in use —
+     * with a single unnamed term it would just restate the CGPA.
+     */
+    if (outcome.terms.length > 1) {
+      termsBox.innerHTML =
+        '<ul class="space-y-1 text-sm text-ink dark:text-dark-ink">' +
+        outcome.terms
+          .map(
+            (term) =>
+              `<li>${term.term === '—' ? 'অন্যান্য' : `সেমিস্টার ${term.term}`} — জিপিএ ` +
+              `${toBnDigits(term.gpa.toFixed(2))} <span class="text-xs text-ink-muted dark:text-dark-ink-muted">` +
+              `(${toBnDigits(term.credits.toFixed(2))} ক্রেডিট)</span></li>`,
+          )
+          .join('') +
+        '</ul>'
+    } else {
+      termsBox.innerHTML = ''
+    }
+
+    if (outcome.failedCourses > 0) {
+      failBox.textContent =
+        `${toBnDigits(outcome.failedCourses)}টি কোর্সে এফ আছে — ০.০০ পয়েন্ট হিসেবে ধরা হয়েছে, ` +
+        'কিন্তু কোর্সটি ক্লিয়ার করতে আবার পরীক্ষা দিতে হবে।'
+      failBox.classList.remove('hidden')
+    } else {
+      failBox.classList.add('hidden')
+    }
+  }
+
+  document.getElementById('cgpa-add-row')!.addEventListener('click', () => addRow())
+
+  for (const radio of document.querySelectorAll<HTMLInputElement>('input.cgpa-scale')) {
+    radio.addEventListener('change', () => {
+      const scale = currentScale()
+      sourceNote.textContent = `ব্যবহৃত স্কেল: ${scale.labelBn} — ${scale.sourceBn}`
+
+      // Show the matching band table, hide the other.
+      for (const table of document.querySelectorAll<HTMLDetailsElement>('.cgpa-scale-table')) {
+        table.open = table.dataset.scale === scale.id
+      }
+
+      /*
+       * Re-fill every row's grades from the new scale. A grade whose letter does
+       * not exist in the new scale is cleared — and the reader is told, because a
+       * silently emptied grade select looks like a bug.
+       */
+      let cleared = 0
+      for (const select of tbody.querySelectorAll<HTMLSelectElement>('.cgpa-grade')) {
+        if (!fillGrades(select) && select.value === '') cleared += 1
+      }
+      if (cleared > 0) {
+        sourceNote.textContent +=
+          ` — নতুন স্কেলে না থাকায় ${toBnDigits(cleared)}টি গ্রেড মুছে গেছে, আবার বেছে নিন।`
+      }
+      recalc()
+    })
+  }
+
+  for (let i = 0; i < 6; i++) addRow()
+
+  // Paint the source note for the default scale on load.
+  const initial = currentScale()
+  sourceNote.textContent = `ব্যবহৃত স্কেল: ${initial.labelBn} — ${initial.sourceBn}`
+  recalc()
+</script>
