@@ -55,6 +55,35 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 /**
+ * A required environment variable — or a loud failure at boot.
+ *
+ * ⚠️ **Why this exists.** The config used to read
+ * `process.env.PAYLOAD_SECRET || ''` and `process.env.DATABASE_URI || ''`, so a
+ * deployment that forgot either started anyway with an **empty string**. Payload
+ * signs its auth tokens with `secret`; an empty signing key is a *known* signing
+ * key, and anyone who reads the source knows it. That is not a degraded mode, it
+ * is an open door — and it fails silently, which is the worst way.
+ *
+ * `lib/signed-token.ts` already throws when the secret is missing, so the reader
+ * session and OAuth features failed loudly. Payload's own auth did not, and that
+ * asymmetry is exactly the kind of thing nobody notices until it is exploited.
+ *
+ * Failing at boot is the honest behaviour: the process does not start, the
+ * message names the variable and says where to look, and no request is ever
+ * served by a misconfigured instance.
+ */
+function requireEnv(name: string, why: string): string {
+  const value = process.env[name]?.trim()
+  if (!value) {
+    throw new Error(
+      `[payload.config] ${name} is not set — the CMS will not start. ${why} ` +
+        'Copy cms/.env.example to cms/.env and fill it in (agent rule 11: the real .env is never committed).',
+    )
+  }
+  return value
+}
+
+/**
  * Origins allowed to call this API from a browser.
  *
  * Payload's default is to allow every origin. That was fine while nothing but
@@ -272,7 +301,12 @@ export default buildConfig({
    * article body gets a different instance from everything else.
    */
   editor: defaultEditor,
-  secret: process.env.PAYLOAD_SECRET || '',
+  // Signs every auth token and reader session. An empty value is a known key —
+  // see `requireEnv`. `lib/signed-token.ts` throws on the same condition.
+  secret: requireEnv(
+    'PAYLOAD_SECRET',
+    'It signs auth tokens, reader sessions and OAuth state; an empty value would let anyone mint a session.',
+  ),
 
   // Bengali admin UI. Payload ships no Bengali locale; `src/i18n/bn.ts` writes one.
   // The key is the BCP-47 tag `bn-BD` (Bangladesh), not a bare `bn`.
@@ -287,7 +321,12 @@ export default buildConfig({
 
   db: sqliteAdapter({
     client: {
-      url: process.env.DATABASE_URI || '',
+      // An empty URL would leave the adapter pointed at nothing. This file holds
+      // the entire editorial archive, so a silent default is not an option.
+      url: requireEnv(
+        'DATABASE_URI',
+        'It is the path to the SQLite file that holds the whole editorial archive.',
+      ),
     },
   }),
 
