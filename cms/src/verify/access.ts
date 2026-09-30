@@ -269,6 +269,31 @@ check(
   denied(evaluate(get('assignments'), 'read', 'anonymous')),
 )
 
+// ── 7. CORS — the other access boundary ─────────────────────────────────────
+/*
+ * `cors`/`csrf` decide which browser origins may call this API at all. The
+ * production allow-list must be exactly the site origin: a localhost entry there
+ * means a page served from the reader's own machine can call the API with their
+ * cookies attached.
+ */
+console.log('\n-- CORS / CSRF allow-list --')
+const cors = (payload.config.cors ?? []) as string[]
+const localhostEntries = cors.filter((origin) => /localhost|127\.0\.0\.1/.test(origin))
+const isProduction = process.env.NODE_ENV === 'production'
+
+check(
+  'the site origin is always allowed',
+  cors.some((origin) => origin.includes('shikkha24.com')),
+  cors.join(', '),
+)
+check(
+  isProduction
+    ? 'production allows NO localhost origin'
+    : 'development allows the Astro dev server (so `astro dev` can call the API)',
+  isProduction ? localhostEntries.length === 0 : cors.some((o) => o.includes('4321')),
+  `NODE_ENV=${process.env.NODE_ENV ?? 'unset'} · localhost: ${localhostEntries.join(', ') || 'none'}`,
+)
+
 console.log(
   failures === 0
     ? `\nAll access checks passed (${payload.config.collections.length} collections).\n`

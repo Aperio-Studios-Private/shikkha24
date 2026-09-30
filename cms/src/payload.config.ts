@@ -97,9 +97,19 @@ function requireEnv(name: string, why: string): string {
  */
 const ALLOWED_ORIGINS = [
   process.env.PUBLIC_SITE_URL || 'https://shikkha24.com',
-  // Local development: the Astro dev server, plus the CMS's own origin.
-  'http://localhost:4321',
-  'http://localhost:3000',
+  /*
+   * ⚠️ Local development only. These were unconditional until 2026-09-30, so a
+   * production deployment also trusted `http://localhost:4321` and
+   * `http://localhost:3000` — meaning a page served from a reader's own machine
+   * could call this API with their cookies attached. Narrow, but the whole point
+   * of an explicit allow-list is that it is explicit.
+   *
+   * `NODE_ENV` is `production` under `next start` (which is how DianaHost runs it)
+   * and `development` under `next dev`, so the switch follows the deployment.
+   */
+  ...(process.env.NODE_ENV === 'production'
+    ? []
+    : ['http://localhost:4321', 'http://localhost:3000']),
 ]
 
 /**
