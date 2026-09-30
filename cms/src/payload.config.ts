@@ -183,7 +183,7 @@ export default buildConfig({
       },
       /*
        * ⚠️ A view nothing links to is a view nobody finds. The dashboard lists
-       * 31 collections and neither `assignments` nor this workspace would be
+       * 33 collections and neither `assignments` nor this workspace would be
        * discoverable from it, so it gets two entry points: the conventional nav
        * slot, and a card in the dashboard body.
        *
