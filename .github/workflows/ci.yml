@@ -152,12 +152,25 @@ jobs:
         # byte-identical across two runs — which is what the card's
         # `Cache-Control` + ETag contract depends on.
         #
+        # ⚠️ `verify:access` runs FIRST and is the reason this list exists. A CMS
+        # audit on 2026-09-30 found six authorisation holes — four critical, one of
+        # them letting any account delete the whole media library — while every gate
+        # here was green. `403`/`Forbidden` appeared zero times in `src/verify/`.
+        # That harness now asserts, for every collection and every role, who may do
+        # what; it is hermetic (it reads the config, writes nothing), so it costs
+        # seconds and needs no fixtures.
+        #
+        # ⚠️ `endpoints`, `social` and `rebuild-notice` were **missing from this
+        # loop** until 2026-09-30 even though `docs/testing-and-qa.md` listed them as
+        # "Every CI run" — the table was documenting a gate that did not exist. They
+        # are included now, and the table matches this list.
+        #
         # The loop stops at the first failure (`bash -e`), and the echo names it.
         env:
           PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
           DATABASE_URI: file:./data/ci.db
         run: |
-          for h in media newsletter engagement push oauth rebuild reporter id-card reactions; do
+          for h in access media endpoints newsletter engagement push oauth rebuild rebuild-notice reporter id-card reactions social; do
             echo "── verify:$h ──"
             pnpm --filter @shikkha24/cms verify:$h
           done

@@ -21,6 +21,7 @@
     "seed:demo": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/demo-run.ts",
     "seed:demo:purge": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/demo-purge.ts",
     "verify:media": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/media.ts",
+    "verify:access": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/access.ts",
     "verify:endpoints": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/endpoints.ts",
     "verify:newsletter": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/newsletter.ts",
     "verify:engagement": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/engagement.ts",

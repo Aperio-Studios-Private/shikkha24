@@ -26,9 +26,23 @@
 | **Social URL validation** (`verify:social`) | Every CI run | Merge |
 | **Card determinism + QR target** (`verify:id-card`) | Every CI run | Merge |
 | **Reaction dedupe at the database** (`verify:reactions`) | Every CI run | Merge |
-| CMS read/write paths (`verify:sync`, `verify:endpoints`) | Every CI run | Deploy |
+| **🔒 Access matrix — every collection × role × operation** (`verify:access`) | Every CI run | Merge |
+| **Media upload rules** (`verify:media`) | Every CI run | Merge |
+| **Newsletter signup + tokens** (`verify:newsletter`) | Every CI run | Merge |
+| **Comments, polls, citizen submissions** (`verify:engagement`) | Every CI run | Merge |
+| **Push subscription flow** (`verify:push`) | Every CI run | Merge |
+| **OAuth state + reader creation** (`verify:oauth`) | Every CI run | Merge |
+| **Rebuild trigger debounce** (`verify:rebuild`) | Every CI run | Merge |
+| **Endpoint behaviour** (`verify:endpoints`) | Every CI run | Merge |
+| CMS read/write paths (`verify:sync`) | Every CI run | Deploy |
 | `pnpm audit` | Every CI run | Policy in `docs/security.md` §9 |
 | Bengali render audit | Manual, per section | Section approval |
+
+⚠️ **This table is a claim about CI, and it has been wrong.** Until 2026-09-30 it listed
+`verify:endpoints`, `verify:social` and `verify:rebuild-notice` as "Every CI run" while none of
+the three were in the workflow's harness loop — the gate did not exist. The list above now matches
+`.github/workflows/ci.yml` exactly. **When adding a harness, add it to the loop in the same
+commit**; a gate that is only documented is not a gate.
 | Device / browser matrix | Manual, at S12 and after major UI changes | Launch |
 | Restore drill | Manual, pre-launch + every 6 months | Launch (`docs/backup-and-recovery.md`) |
 
