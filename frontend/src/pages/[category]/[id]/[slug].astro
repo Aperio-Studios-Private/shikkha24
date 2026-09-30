@@ -151,6 +151,28 @@ const category =
  * hard-coded 1200×675 box this page used to reserve.
  */
 const photo = resolveCmsImage(article.featuredImage, article.title)
+
+/**
+ * The social preview image — the featured photo when there is one, otherwise this
+ * article's own branded card.
+ *
+ * ⚠️ **Why the card is the fallback, not the default.** `Layout` already falls
+ * back to the site-wide `/og-default.png`, so an article with no featured image
+ * used to share as the same generic picture as every other one. S14's photocard is
+ * a per-article 1200×1200 image — the featured photo darkened, with the headline,
+ * category and site name over it — and `lib/id-card.ts` calls it "built for
+ * Facebook" because the sharer scrapes this very tag.
+ *
+ * The featured photo still wins when it exists: it is the real journalism, and the
+ * card is a composite of it anyway.
+ *
+ * ⚠️ **`cmsOrigin` is what makes this safe.** Without it the URL would be a
+ * same-origin `/api/…` path, and the static host serves no `/api/` — the exact
+ * defect that shipped in the S14 share links and only surfaced in CI. `null` here
+ * means the page keeps the working `/og-default.png`.
+ */
+const socialImage =
+  photo?.src ?? (cmsOrigin ? `${cmsOrigin}/api/photocard/${article.id}.png` : undefined)
 const categoryImage = getCategoryImage(category?.slug)
 
 const published = article.publishedAt
@@ -282,7 +304,7 @@ const imageGalleryLd =
   title={article.title}
   description={article.excerpt ?? undefined}
   canonical={canonical}
-  ogImage={photo?.src ?? undefined}
+  ogImage={socialImage}
   publishDate={article.publishedAt ?? undefined}
   modifiedDate={article.updatedAt ?? article.publishedAt ?? undefined}
   jsonLd={imageGalleryLd ? [jsonLd, imageGalleryLd] : jsonLd}
