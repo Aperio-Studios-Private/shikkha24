@@ -216,7 +216,8 @@ export const Authors: CollectionConfig = {
      *
      * `editorialField`, not `editorField`: a reporter may keep their own beat and
      * district current (they are the one who knows), but the collection-level
-     * `update: isSelfOrAdmin` still confines them to their own document.
+     * `update: isOwnAuthorProfileOrEditor` still confines them to their own
+     * document.
      */
     {
       name: 'joiningDate',

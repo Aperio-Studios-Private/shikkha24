@@ -154,12 +154,59 @@ export const anyone: Access = () => true
 /** Nobody except via override — used for collections written by server code. */
 export const noOne: Access = () => false
 
-/** Authenticated user, or only their own document. */
-export const isSelfOrAdmin: Access = ({ req }) => {
-  if (hasRole(req.user, 'superAdmin')) return true
-  const id = (req.user as RoleBearingUser | null)?.id
-  if (!id) return false
-  return { id: { equals: id } }
+/**
+ * The session's id — but only when the session belongs to `collection`.
+ *
+ * `req.user.collection` is set by the auth strategy that resolved the session:
+ * `'users'` for a staff account, `'readers'` for a social login. Checking it is
+ * what stops one collection's ids being compared against another's, which is the
+ * single mistake behind three separate defects in this codebase.
+ */
+function sessionIdIn(user: unknown, collection: string): string | number | null {
+  const session = user as (RoleBearingUser & { collection?: string }) | null
+  if (!session?.id) return null
+  if (session.collection !== collection) return null
+  return session.id
+}
+
+/**
+ * The session's own document, or a Super Admin's view of everything.
+ *
+ * ## ⚠️ Why this takes a collection, and why it used to be wrong
+ *
+ * This was `isSelfOrAdmin`, a bare `Access` that returned
+ * `{ id: { equals: req.user.id } }`. That reads as "my own row" and is only true
+ * when the session's collection **is** the collection being accessed. It is not
+ * true in general, and the difference is exploitable rather than cosmetic:
+ *
+ * `users` and `readers` both have integer primary keys starting at 1. A **reader**
+ * with id 1 therefore matched **user** id 1 under the old rule, and because
+ * `users.read`/`users.update` used it, a reader session could read a staff
+ * account — including `email`, `phone` and `roles` — and **write** to it. Since
+ * `email` is the login identity and password reset sends to it, changing a staff
+ * email was a route to account takeover. Proven 2026-09-30 with a reader session:
+ *
+ *   GET   /api/users/1  → 200  {"nameBn":"Shahidul Islam","roles":["superAdmin"],…}
+ *   PATCH /api/users/1  → 400  (validation — i.e. access had already been granted)
+ *   PATCH /api/users/1  {email:"…"} → 400 naming the email field: the field is writable
+ *
+ * Requiring the collection makes the mistake unrepresentable: the caller must
+ * state which collection's ids it is comparing, and a session from anywhere else
+ * is denied before any id is looked at.
+ *
+ * The same root cause produced the `authors` defect (fixed 2026-09-18) and the
+ * relation-owned defect in `bookmarks`/`saved-deadlines`/`push-subscriptions`
+ * (fixed 2026-09-30) — see `isOwnReaderRowOrSuperAdmin`.
+ */
+export function isSelfIn(collection: 'users' | 'readers'): Access {
+  return ({ req }) => {
+    if (hasRole(req.user, 'superAdmin')) return true
+
+    const id = sessionIdIn(req.user, collection)
+    if (id === null) return false
+
+    return { id: { equals: id } }
+  }
 }
 
 /**
@@ -187,10 +234,36 @@ export const isOwnAuthorProfileOrEditor: Access = ({ req }) => {
   return { id: { equals: authorId } }
 }
 
+/**
+ * Access for a collection whose ownership is a **relation to `readers`** — the
+ * `reader` field — rather than the document id.
+ *
+ * ⚠️ **`isSelfOrAdmin` must not be used on these collections.** It returns
+ * `{ id: { equals: <user id> } }`, which filters on the row's **primary key**. On
+ * `bookmarks`, `saved-deadlines` and `push-subscriptions` the owner is the
+ * `reader` column, so that rule asks "is this row's id the same number as my
+ * reader id?" — a question with no relationship to ownership. The effect is that
+ * a reader's **own rows are invisible** and any row that happens to share their
+ * numeric id is returned instead.
+ *
+ * This is the third variant of one mistake, after `authors` (fixed 2026-09-18)
+ * and `users` (fixed 2026-09-30): **an id comparison is only meaningful when the
+ * session's collection is the collection being accessed.**
+ *
+ * Super Admin still sees everything, which is what the admin panel needs.
+ */
+export const isOwnReaderRowOrSuperAdmin: Access = ({ req }) => {
+  if (hasRole(req.user, 'superAdmin')) return true
+
+  const readerId = sessionIdIn(req.user, 'readers')
+  if (readerId === null) return false
+
+  return { reader: { equals: readerId } }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Field-level access
 // ─────────────────────────────────────────────────────────────────────────────
-
 /** Field is editable only by Super Admin / Editor-in-Chief. */
 export const editorInChiefField: FieldAccess = ({ req }) =>
   hasRole(req.user, 'superAdmin', 'editorInChief')

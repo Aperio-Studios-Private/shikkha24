@@ -18,7 +18,7 @@ import { readCookie } from '../lib/signed-token'
  *
  * `lib/reader-session.ts` mints a signed cookie; this strategy reads it and
  * loads the reader it names. That lookup has to run with `overrideAccess: true`,
- * because `readers.read` is `isSelfOrAdmin` — a rule that needs `req.user`, which
+ * because `readers.read` is `isSelfIn('readers')` — a rule that needs `req.user`, which
  * is precisely what we are computing. Asking access control to authorise its own
  * input is circular.
  *

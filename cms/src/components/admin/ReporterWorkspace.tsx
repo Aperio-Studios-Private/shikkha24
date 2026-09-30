@@ -93,8 +93,8 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
    * code one.
    *
    * `overrideAccess: false` with `user` keeps the real rule in play —
-   * `Users.read` is `isSelfOrAdmin`, so reading one's own record is allowed and
-   * nothing else is.
+   * `Users.read` is `isSelfIn('users')`, so reading one's own record is allowed
+   * and nothing else is.
    */
   const userDoc = user?.id
     ? await req.payload

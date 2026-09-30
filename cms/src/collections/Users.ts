@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { hasRole, isSelfOrAdmin, isSuperAdmin, ROLE_LABELS, ROLES } from '../access/roles'
+import { hasRole, isSelfIn, isSuperAdmin, ROLE_LABELS, ROLES } from '../access/roles'
 
 /**
  * Users — the editorial team's login accounts, and the root of the RBAC model.
@@ -38,14 +38,52 @@ export const Users: CollectionConfig = {
   access: {
     // Only Super Admin may list or create accounts.
     create: isSuperAdmin,
-    read: isSelfOrAdmin,
-    update: isSelfOrAdmin,
+    /*
+     * ⚠️ `isSelfIn('users')` — the argument is the fix, not decoration.
+     *
+     * This was `isSelfOrAdmin`, which returned `{ id: { equals: req.user.id } }`
+     * for any session. `users` and `readers` both number their rows from 1, so a
+     * **reader** with id 1 matched **user** id 1: a reader session could read a
+     * staff account (email, phone, roles) and write to it. See `isSelfIn` for the
+     * runtime evidence and the account-takeover path it opened.
+     */
+    read: isSelfIn('users'),
+    update: isSelfIn('users'),
     delete: isSuperAdmin,
     // Only Super Admin can reach the admin panel at all.
     admin: ({ req }) =>
       hasRole(req.user, 'superAdmin', 'editorInChief', 'sectionEditor', 'reporter', 'adManager'),
   },
   fields: [
+    /**
+     * Overrides Payload's base auth `email` field to attach access control.
+     *
+     * ⚠️ **`email` is the login identity, so changing it is an escalation step.**
+     * Password reset sends to this address, so an attacker who can rewrite a staff
+     * email can request a reset and receive it. That is the second half of the
+     * reader-session defect this collection was fixed for on 2026-09-30: the
+     * collection rule now denies the session outright, and this field rule keeps
+     * the escalation closed even if that rule is ever loosened again.
+     *
+     * Restricted to Super Admin for the same reason `roles` is — the two fields
+     * that decide *who you are* and *what you may do* should not be self-service.
+     * `type`, `required` and `unique` are restated because declaring the field
+     * replaces Payload's base definition rather than merging with it.
+     */
+    {
+      name: 'email',
+      type: 'email',
+      required: true,
+      unique: true,
+      label: { en: 'Email', bn: 'ইমেইল' },
+      admin: {
+        description: 'লগইনের ঠিকানা। শুধু সুপার অ্যাডমিন পরিবর্তন করতে পারেন।',
+      },
+      access: {
+        create: ({ req }) => hasRole(req.user, 'superAdmin'),
+        update: ({ req }) => hasRole(req.user, 'superAdmin'),
+      },
+    },
     {
       name: 'nameBn',
       type: 'text',

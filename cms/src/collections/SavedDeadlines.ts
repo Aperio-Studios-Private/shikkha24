@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isSelfOrAdmin, isSuperAdmin } from '../access/roles'
+import { isOwnReaderRowOrSuperAdmin, isSuperAdmin, noOne } from '../access/roles'
 
 /**
  * Saved Deadlines — backs N7, deadline reminders.
@@ -22,10 +22,19 @@ export const SavedDeadlines: CollectionConfig = {
     description: 'পাঠকের সেভ করা সময়সীমা ও রিমাইন্ডার।',
   },
   access: {
-    // A reader sees and manages only their own saved items.
-    create: isSelfOrAdmin,
-    read: isSelfOrAdmin,
-    update: isSelfOrAdmin,
+    /*
+     * ⚠️ The generated create route is closed, for the same reason as
+     * `Bookmarks`: ownership is the `reader` relation, and a `Where` returned from
+     * `create` is merely truthy — it authorises the write without constraining the
+     * owner. The reminder sweep and the future sync write through the local API
+     * with `overrideAccess`, which is where the `reader` value is set from the
+     * session.
+     */
+    create: noOne,
+    // A reader sees and manages only their own saved items — matched on the
+    // `reader` relation, NOT on the row id. See `isOwnReaderRowOrSuperAdmin`.
+    read: isOwnReaderRowOrSuperAdmin,
+    update: isOwnReaderRowOrSuperAdmin,
     delete: isSuperAdmin,
   },
   fields: [

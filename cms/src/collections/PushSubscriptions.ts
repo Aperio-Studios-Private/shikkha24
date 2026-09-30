@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isSelfOrAdmin, isSuperAdmin } from '../access/roles'
+import { isSuperAdmin, noOne } from '../access/roles'
 
 /**
  * Push subscriptions — one row per browser that opted in.
@@ -45,7 +45,19 @@ export const PushSubscriptions: CollectionConfig = {
     description: 'ব্রাউজারভিত্তিক পুশ সাবস্ক্রিপশন ও সময়সীমার রিমাইন্ডার।',
   },
   access: {
-    create: isSelfOrAdmin,
+    /*
+     * ⚠️ The generated create route is closed. A subscription is written by
+     * `/api/push/*`, which acts on the endpoint string the browser presents and
+     * writes through the local API with `overrideAccess` — so this route is not
+     * the way in, and leaving it open only widened the surface.
+     *
+     * It previously used `isSelfOrAdmin`, which was wrong twice over: a `Where`
+     * returned from `create` is merely truthy (so it authorised everyone
+     * authenticated), and it filtered on the row id rather than the `reader`
+     * relation. `reader` is optional here by design — a subscription is per
+     * browser and needs no account — so "the owner" is not even always a reader.
+     */
+    create: noOne,
     // A capability URL: seeing it is enough to send to that browser.
     read: isSuperAdmin,
     update: isSuperAdmin,

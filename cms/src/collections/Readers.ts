@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isSelfOrAdmin, isSuperAdmin } from '../access/roles'
+import { isSelfIn, isSuperAdmin } from '../access/roles'
 import { readerSessionStrategy } from '../auth/reader-strategy'
 
 /**
@@ -57,8 +57,12 @@ export const Readers: CollectionConfig = {
   },
   access: {
     create: () => true, // signup via a social provider
-    read: isSelfOrAdmin,
-    update: isSelfOrAdmin,
+    // A reader session may read and edit its OWN row — and only a reader session,
+    // because `isSelfIn('readers')` requires the session to belong to this
+    // collection. A staff account is denied here rather than matching a reader row
+    // by a coincidentally equal id.
+    read: isSelfIn('readers'),
+    update: isSelfIn('readers'),
     delete: isSuperAdmin,
   },
   fields: [

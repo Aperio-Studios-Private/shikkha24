@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
+import { isEditorial, isSuperAdminOrEditorInChief } from '../access/roles'
 import { checkUploadQuota } from '../lib/media-quota'
 
 /**
@@ -82,6 +83,28 @@ export const Media: CollectionConfig = {
   access: {
     // Media is publicly readable — it is the site's image origin.
     read: () => true,
+    /*
+     * ⚠️ **These three rules are not optional.** Until 2026-09-30 this collection
+     * defined only `read`, and Payload's default for an undefined rule is
+     * `Boolean(user)` — "any authenticated account", not "anyone" and certainly
+     * not "any editor". So **any reader account** (obtainable through the
+     * unauthenticated signup that existed at the time) could upload, rewrite and
+     * **delete the entire image library**, on a host plan where the media
+     * directory shares 2 GB with the app and the database.
+     *
+     * Proven before the fix, with a reader session:
+     *   DELETE /api/media/999999 → 404   (not 403 — access was granted, row absent)
+     *   PATCH  /api/media/999999 → 404
+     *   POST   /api/media        → 400   (validation ran, so access had passed)
+     *
+     * It was invisible because no harness asserted access *denial* — see
+     * `src/verify/access.ts`, added with this fix.
+     */
+    create: isEditorial,
+    update: isEditorial,
+    // Deleting an image a published article still points at is destructive, so it
+    // takes an editor — the same gate every other content collection uses.
+    delete: isSuperAdminOrEditorInChief,
   },
   fields: [
     {

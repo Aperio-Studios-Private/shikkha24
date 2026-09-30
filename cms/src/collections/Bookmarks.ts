@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isSelfOrAdmin, isSuperAdmin } from '../access/roles'
+import { isOwnReaderRowOrSuperAdmin, isSuperAdmin, noOne } from '../access/roles'
 
 /**
  * Reader bookmarks — one row per saved item, owned by the reader who saved it.
@@ -38,10 +38,23 @@ export const Bookmarks: CollectionConfig = {
     description: 'পাঠকের সেভ করা সংবাদ ও সময়সীমা।',
   },
   access: {
-    // A reader sees and manages only their own bookmarks.
-    create: isSelfOrAdmin,
-    read: isSelfOrAdmin,
-    update: isSelfOrAdmin,
+    /*
+     * ⚠️ The generated create route is closed. Ownership lives in the `reader`
+     * relation, and a `create` rule **cannot express "set this field to me"** — a
+     * `Where` returned from `create` is simply truthy, so it would authorise the
+     * write while doing nothing to constrain the `reader` value. A reader could
+     * then file bookmarks into someone else's list.
+     *
+     * When the CMS sync is built it will be an endpoint that writes through the
+     * local API with `overrideAccess` and sets `reader` from the session — the
+     * same shape as `/api/comments/submit` and `/api/push/*`. That is the
+     * project's established pattern for a public write, not this route.
+     */
+    create: noOne,
+    // A reader sees and manages only their own bookmarks — matched on the
+    // `reader` relation, NOT on the row id. See `isOwnReaderRowOrSuperAdmin`.
+    read: isOwnReaderRowOrSuperAdmin,
+    update: isOwnReaderRowOrSuperAdmin,
     delete: isSuperAdmin,
   },
   fields: [

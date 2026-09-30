@@ -607,6 +607,9 @@ export interface User {
   phone?: string | null;
   updatedAt: string;
   createdAt: string;
+  /**
+   * লগইনের ঠিকানা। শুধু সুপার অ্যাডমিন পরিবর্তন করতে পারেন।
+   */
   email: string;
   resetPasswordToken?: string | null;
   resetPasswordExpiration?: string | null;
