@@ -1113,6 +1113,53 @@ the host-disk usage alert.
       `/admin/reporter` browser check is still open), rate limiting under real load, and the
       production CSP/hosting interaction.
 
+51. ✅ **T12 — the dependency advisories fixed, and S11's auto OG images done** (2026-09-30). CI is
+    **green on all 29 steps** including `Dependency audit`.
+    - **The advisories were new, not caused here.** `pnpm audit --audit-level=high` began failing on a
+      lockfile that had **passed two days earlier**. `undici` (TLS validation bypass in BalancedPool;
+      WebSocket-subprotocol DoS) and `nodemailer` (addressparser ReDoS), both transitive via Payload.
+    - ⚠️ **Upstream has not fixed either.** Verified, not assumed: the latest `payload@3.90.2` still
+      pins `undici: 7.29.0`, and the latest `@payloadcms/email-nodemailer@3.90.2` still declares
+      `nodemailer: ^9.1.1`. An override is the only fix.
+    - ⚠️ **Scoping the override matters more than the override.** `undici` exists **twice** here:
+      `7.29.0` via Payload (vulnerable) and `8.10.2` via Astro's `unifont` (not vulnerable). A bare
+      `undici: 7.29.1` would drag **Astro's copy backwards a major version**. The key is
+      `'undici@7.29.0'` — the exact vulnerable version — so it hits only what needs it and stops
+      applying by itself once upstream moves. **Overrides live in `pnpm-workspace.yaml`** (pnpm 10+),
+      not `package.json`. Result: 20 vulns (3 high) → 7 (0 high); the gate exits 0.
+    - ⚠️ **Two things I got wrong, both caught by checking rather than assuming.**
+      (a) A web search claimed nodemailer 10 relicensed to **EUPL-1.1** — **false**: npm and the
+      published tarball both report **MIT-0** for 9.1.1 and 10.0.6. That claim would have blocked a
+      correct fix. (b) nodemailer 10 **is** a real break, just not a runtime one: its v10.0.0 notes
+      list exactly one breaking change ("Node.js 20 or newer"), so it was called safe — and CI's CMS
+      typecheck failed with `'auth' does not exist in type 'SMTPConnectionOptions'`. v10 moved `auth`
+      from the *connection* options to `SMTPTransport.Options`, and Payload types `transportOptions`
+      as the former. **Fixed by building the options object as a value, not an inline literal** — the
+      excess-property check only applies to fresh literals. Payload passes `transportOptions` straight
+      to `createTransport`, which has always accepted `auth`: an upstream type narrower than the
+      function it describes.
+    - ⚠️ **The sandbox cannot install — `sandbox-build-traps` Trap 9.** `pnpm install` dies with
+      `CODEBUDDY_BROKER_DENY EEXIST` on the store's project symlink, or **hangs indefinitely** (10 min
+      observed). `--lockfile-only` hits it too. **The working sequence: `rm -f` the stale symlink and
+      run the install in the SAME command**, so the single `registerProject` call creates it fresh.
+      Never run two pnpm invocations at once. `node_modules` therefore still holds the old versions
+      locally — **CI installs from the lockfile, so CI is where the new versions are exercised.**
+    - **Verification without an install:** the published tarball was downloaded and inspected (dual
+      ESM/CJS `exports`, `createTransport` on both), then a focused type test with the project's own
+      `tsc` proved the new shape passes against v10's real types — with a `@ts-expect-error` guard on
+      the old inline form so the test is **not vacuous**.
+    - ✅ **S11 auto OG images** — the last agent-doable item of the 26 open ones (25 are owner-only,
+      production-only, or approvals). ⚠️ **`satori` was never needed**: S14 already ships
+      `GET /api/photocard/:articleId.png`, a 1200×1200 sharp-composed card with the headline over a
+      darkened featured image, which `lib/id-card.ts` calls "built for Facebook" *because the sharer
+      scrapes the OG image*. The gap was **wiring** — articles without a featured image fell back to
+      the generic `/og-default.png`, and **all 24 demo articles are in that state**. Now the featured
+      photo wins when present, otherwise the article's own card, guarded on `cmsOrigin` so an unset
+      origin keeps the working default rather than emitting a same-origin `/api/…` path (the S14
+      defect). Verified: card renders 200/`image/png`/1200×1200 with ETag + 24h cache; both `og:image`
+      and `twitter:image` point at it; `/about` and friends keep `og-default.png`; `verify:links`
+      passes in both builds.
+
 - **Portal type: education portal** (2026-09-11) — domain `shikkha24.com`; general-news scope retired
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)
 - **Next.js pinned to 16.2.6+** (corrected by the audit)
