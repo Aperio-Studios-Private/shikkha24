@@ -125,19 +125,42 @@ const ALLOWED_ORIGINS = [
  * `email` entirely instead makes Payload log messages to the console, which is
  * the honest behaviour for an unconfigured install.
  */
+/**
+ * SMTP transport options, built as a **value** rather than an inline literal.
+ *
+ * ⚠️ Not a style preference — it is what keeps this typechecking against
+ * nodemailer 10, which the security override pins. Payload types
+ * `transportOptions` as `SMTPConnection.Options`, and nodemailer 10 moved `auth`
+ * off that type: it now lives on `SMTPTransport.Options`, which is what
+ * `createTransport` actually takes. An inline object literal is
+ * excess-property-checked, so `auth` is rejected with TS2353 even though the
+ * value is correct.
+ *
+ * `@payloadcms/email-nodemailer` passes `transportOptions` **straight to**
+ * `nodemailer.createTransport(...)` (verified in its `dist/index.js`), and that
+ * function has always accepted `auth`. So this is an upstream type narrower than
+ * the function it describes, not a real incompatibility. Assigning a value
+ * instead of a literal skips the excess-property check while `host`, `port` and
+ * `secure` are still type-checked.
+ *
+ * Building it here also means `auth` is absent rather than `undefined` when
+ * SMTP_USER is unset, which is the same thing to nodemailer and clearer to read.
+ */
+const smtpTransportOptions = {
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT || 465),
+  // Implicit TLS on 465 (the default here); STARTTLS on 587.
+  secure: process.env.SMTP_SECURE !== 'false',
+  ...(process.env.SMTP_USER
+    ? { auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD ?? '' } }
+    : {}),
+}
+
 const emailConfig = isMailConfigured()
   ? nodemailerAdapter({
       defaultFromAddress: process.env.SMTP_FROM_EMAIL ?? '',
       defaultFromName: process.env.SMTP_FROM_NAME || 'শিক্ষা২৪',
-      transportOptions: {
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT || 465),
-        // Implicit TLS on 465 (the default here); STARTTLS on 587.
-        secure: process.env.SMTP_SECURE !== 'false',
-        auth: process.env.SMTP_USER
-          ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD ?? '' }
-          : undefined,
-      },
+      transportOptions: smtpTransportOptions,
     })
   : undefined
 
