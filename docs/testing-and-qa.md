@@ -33,16 +33,23 @@
 | **Push subscription flow** (`verify:push`) | Every CI run | Merge |
 | **OAuth state + reader creation** (`verify:oauth`) | Every CI run | Merge |
 | **Rebuild trigger debounce** (`verify:rebuild`) | Every CI run | Merge |
-| **Endpoint behaviour** (`verify:endpoints`) | Every CI run | Merge |
-| CMS read/write paths (`verify:sync`) | Every CI run | Deploy |
+| CMS read/write paths (`verify:sync`) **and** endpoint behaviour (`verify:endpoints`) | Every CI run — needs a **live CMS** | Deploy |
 | `pnpm audit` | Every CI run | Policy in `docs/security.md` §9 |
 | Bengali render audit | Manual, per section | Section approval |
 
 ⚠️ **This table is a claim about CI, and it has been wrong.** Until 2026-09-30 it listed
 `verify:endpoints`, `verify:social` and `verify:rebuild-notice` as "Every CI run" while none of
-the three were in the workflow's harness loop — the gate did not exist. The list above now matches
-`.github/workflows/ci.yml` exactly. **When adding a harness, add it to the loop in the same
-commit**; a gate that is only documented is not a gate.
+the three ran anywhere in the workflow — the gate was documented but did not exist. All three run
+now, and the table matches the workflow.
+
+⚠️ **Two harnesses need a live HTTP server and cannot join the local-API loop:** `verify:endpoints`
+and `verify:sync`. They run under `with-cms.sh` in their own step. Adding either to the
+`for h in …` loop fails with `ECONNREFUSED` — a mistake worth naming, because it was made and
+caught while adding `verify:access`.
+
+**When adding a harness, add it to the workflow in the same commit**, to the loop or to the
+with-CMS step depending on whether it makes HTTP requests. A gate that is only documented is not a
+gate.
 | Device / browser matrix | Manual, at S12 and after major UI changes | Launch |
 | Restore drill | Manual, pre-launch + every 6 months | Launch (`docs/backup-and-recovery.md`) |
 

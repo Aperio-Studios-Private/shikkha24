@@ -160,17 +160,23 @@ jobs:
         # what; it is hermetic (it reads the config, writes nothing), so it costs
         # seconds and needs no fixtures.
         #
-        # ⚠️ `endpoints`, `social` and `rebuild-notice` were **missing from this
-        # loop** until 2026-09-30 even though `docs/testing-and-qa.md` listed them as
-        # "Every CI run" — the table was documenting a gate that did not exist. They
-        # are included now, and the table matches this list.
+        # ⚠️ `endpoints` and `sync` are NOT in this loop: they make real HTTP
+        # requests, so they need a live server, which this step does not have.
+        # They run in "Verify CMS read and write paths" below, under `with-cms.sh`.
+        # Adding `endpoints` here would fail the loop with ECONNREFUSED.
+        #
+        # ⚠️ `endpoints`, `social` and `rebuild-notice` were **missing from CI
+        # entirely** until 2026-09-30 even though `docs/testing-and-qa.md` listed
+        # them as "Every CI run" — the table was documenting a gate that did not
+        # exist. `social` and `rebuild-notice` are hermetic, so they join this loop;
+        # `endpoints` joins the with-CMS step. The table now matches both.
         #
         # The loop stops at the first failure (`bash -e`), and the echo names it.
         env:
           PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
           DATABASE_URI: file:./data/ci.db
         run: |
-          for h in access media endpoints newsletter engagement push oauth rebuild rebuild-notice reporter id-card reactions social; do
+          for h in access media newsletter engagement push oauth rebuild rebuild-notice reporter id-card reactions social; do
             echo "── verify:$h ──"
             pnpm --filter @shikkha24/cms verify:$h
           done
