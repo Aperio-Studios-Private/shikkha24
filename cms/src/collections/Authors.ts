@@ -102,6 +102,18 @@ export const Authors: CollectionConfig = {
       name: 'bloodGroup',
       type: 'select',
       label: { en: 'Blood group', bn: 'রক্তের গ্রুপ' },
+      /*
+       * ⚠️ Not public. `authors.read` is `anyone`, so without this the blood group
+       * of every reporter was readable by an anonymous caller — medical data with
+       * no public consumer. The frontend never renders it (checked: `bloodGroup`
+       * appears nowhere in `frontend/src`), and the press card, which *does* print
+       * it, is composed server-side by `/api/idcard/:id.png` with
+       * `overrideAccess: true`, so hiding it here cannot blank the card.
+       *
+       * `editorialField`, not `authenticatedField`: the newsroom needs it on the
+       * staff record, a reader account has no business with it.
+       */
+      access: { read: editorialField },
       options: [
         { label: 'A+', value: 'A+' },
         { label: 'A−', value: 'A-' },
