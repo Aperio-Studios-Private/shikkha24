@@ -20,6 +20,42 @@ allowBuilds:
   esbuild: true
   sharp: true
 
+# ── Security overrides (pnpm 10+ reads these from THIS file, not package.json) ─
+#
+# Transitive dependencies pinned forward past a published advisory **because
+# upstream has not moved yet**. Both entries were added on 2026-09-30 after
+# `pnpm audit --audit-level=high` began failing on a lockfile that had passed two
+# days earlier — the advisories are new, the dependency graph is not.
+#
+# ⚠️ **Scoped to the exact vulnerable version, deliberately.**
+# `undici` exists twice in this tree: 7.29.0 via Payload (vulnerable) and 8.10.2
+# via Astro's `unifont` (not vulnerable). A bare `undici: 7.29.1` would drag
+# Astro's copy **backwards a major version**. The `@version` key targets only the
+# instance that needs it, and stops applying by itself once upstream ships a
+# fixed release — which is the behaviour we want.
+#
+# ⚠️ **Both entries are temporary.** Delete them when Payload moves on. Verified
+# 2026-09-30: the latest `payload@3.90.2` still pins `undici: 7.29.0` and the
+# latest `@payloadcms/email-nodemailer@3.90.2` still declares `nodemailer: ^9.1.1`,
+# so no released version of either fixes these.
+#
+# Review notes (agent rule 8 — licence confirmed for each):
+#   undici 7.29.1   — MIT.  Patch within 7.x. Clears GHSA-w293-vg96-wgc3 (TLS
+#                     certificate validation bypass in BalancedPool) and the
+#                     WebSocket-subprotocol DoS advisory.
+#   nodemailer 10.0.6 — MIT-0. A MAJOR bump against the adapter's `^9.1.1`, so it
+#                     was checked rather than assumed: v10.0.0's only documented
+#                     breaking change is "Node.js 20 or newer is required" — it is
+#                     a TypeScript/ESM rewrite, and the release notes explicitly
+#                     keep the CommonJS entry point and the transporter types
+#                     compatible. This project requires Node >=20.9 (CMS) and
+#                     >=22.12 (frontend). Clears GHSA-v53p-9fqp-m79j (addressparser
+#                     ReDoS). The SMTP path is inactive until SMTP is configured,
+#                     so the runtime exposure was nil either way.
+overrides:
+  'undici@7.29.0': 7.29.1
+  'nodemailer@9.1.1': 10.0.6
+
 # pnpm 11 enforces a minimum package age as supply-chain protection. The stack
 # pins exact versions verified against the live registry (agent rule 8), so
 # these are deliberately excluded from that gate rather than floated.

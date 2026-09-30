@@ -4,6 +4,10 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  undici@7.29.0: 7.29.1
+  nodemailer@9.1.1: 10.0.6
+
 importers:
 
   .:
@@ -3025,9 +3029,9 @@ packages:
   node-mock-http@1.0.5:
     resolution: {integrity: sha512-KQyt/wLjG3TAc7DOUhpqWzgd4ERxR80JOlTK5VE5R1S12IaPVN5qkj4klBce9HPG1Njuup4Sb5bljaT34lIyjw==}
 
-  nodemailer@9.1.1:
-    resolution: {integrity: sha512-izw9mVKFix6YSnC9eLgV6g1opl9DUlRio9ZNcq+Wu9Ujn2UwF+8Nl0B8nz22kEC+CTZCvinkxwJ0DeFbb6NwcQ==}
-    engines: {node: '>=6.0.0'}
+  nodemailer@10.0.6:
+    resolution: {integrity: sha512-2u7OHvEQVVGvPo9Yhw/eN3xMO2Gnj2U2fGDP0BDpnRwJR//65AfGRQDiJqxix28gFRBvMqi2USA13x6RrfWuGg==}
+    engines: {node: '>=20.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -3575,8 +3579,8 @@ packages:
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
-  undici@7.29.0:
-    resolution: {integrity: sha512-IDxfleLmmbSskfWSUATiN1nfn2rDuvnMOqb5CWR92iIfojA0Ud+ulOAAEQ57LPr9rWmsreUyf5lwyao+7GNNVw==}
+  undici@7.29.1:
+    resolution: {integrity: sha512-RYONW2MeafgYlkVOKYKkA/Ag7BmXqgIWCa8t1m0JcxrQg9pI9lEqRhAOruOBCbAohOa/gkCF+iPi9hrgvTzu6Q==}
     engines: {node: '>=20.18.1'}
 
   undici@8.10.2:
@@ -4973,7 +4977,7 @@ snapshots:
 
   '@payloadcms/email-nodemailer@3.89.0(payload@3.89.0(graphql@16.14.2)(typescript@7.0.2))':
     dependencies:
-      nodemailer: 9.1.1
+      nodemailer: 10.0.6
       payload: 3.89.0(graphql@16.14.2)(typescript@7.0.2)
 
   '@payloadcms/graphql@3.89.0(graphql@16.14.2)(payload@3.89.0(graphql@16.14.2)(typescript@7.0.2))(typescript@7.0.2)':
@@ -6671,7 +6675,7 @@ snapshots:
 
   node-mock-http@1.0.5: {}
 
-  nodemailer@9.1.1: {}
+  nodemailer@10.0.6: {}
 
   normalize-path@3.0.0: {}
 
@@ -6802,7 +6806,7 @@ snapshots:
       sanitize-filename: 1.6.3
       ts-essentials: 10.0.3(typescript@7.0.2)
       tsx: 4.22.4
-      undici: 7.29.0
+      undici: 7.29.1
       uuid: 13.0.2
       ws: 8.21.3
     transitivePeerDependencies:
@@ -7298,7 +7302,7 @@ snapshots:
 
   undici-types@6.21.0: {}
 
-  undici@7.29.0: {}
+  undici@7.29.1: {}
 
   undici@8.10.2: {}
 
