@@ -180,7 +180,12 @@
   - Category: `CollectionPage` + `BreadcrumbList` + `ItemList`
   - Layout `jsonLd` prop now accepts array of objects
 - [x] **`llms.txt`** — created at `/llms.txt`, describes portal structure for AI search crawlers
-- [ ] **Auto OG images** — dynamic per-article OG image generation (deferred; needs a build-time image library like `satori` + `sharp`)
+- [x] **Auto OG images** — ✅ **2026-09-30**, and the approach changed from the one written here.
+  - ~~dynamic per-article OG image generation (deferred; needs a build-time image library like `satori` + `sharp`)~~
+  - ⚠️ **`satori` was never needed.** S14 already ships `GET /api/photocard/:articleId.png` — a 1200×1200 branded card composed with `sharp` at the CMS, using the featured image as a darkened background with the headline, category and site name overlaid. `lib/id-card.ts` describes it as *"built for Facebook"* precisely because "Facebook's sharer scrapes the page's OG image".
+  - So the remaining work was never generation; it was **wiring**. Articles with a featured image already passed it as `og:image`; articles **without** one fell back to the generic `/og-default.png`. They now fall back to their own card.
+  - Zero new dependencies, no build-time cost (the CMS renders on demand and caches with an ETag), and the card was already covered by `verify:id-card`'s determinism check.
+  - ⚠️ The card URL needs a CMS origin. With `PUBLIC_CMS_ORIGIN` unset the page falls back to `/og-default.png` rather than emitting a same-origin `/api/…` path the static host cannot serve — the S8 self-hide rule, and the exact defect that broke the S14 card links.
 - [ ] **Google Publisher Center registration** — owner action
 - [ ] E-E-A-T pages — **blocked on the owner** supplying Trade Licence, TIN, Ministry of Information registration
 - [x] **URL architecture implemented:** `/:category/:id/:slug` + shortlink `/a/:id` for social sharing. Legacy `/article/:slug` → 301 redirect. Shared `articleUrl()` helper in `lib/url.ts`. 500-cap pagination fix in `getAllArticlePaths()`. Commit `a20f0df`.
