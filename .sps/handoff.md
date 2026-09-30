@@ -1160,6 +1160,62 @@ the host-disk usage alert.
       and `twitter:image` point at it; `/about` and friends keep `og-default.png`; `verify:links`
       passes in both builds.
 
+52. 📋 **University Directory — approved, S18–S21 planned, NOT STARTED** (2026-09-30). Owner asked
+    for a directory of universities and colleges with 7 browse categories and 13 profile fields, and
+    asked to be interviewed first. **Spec: `docs/university-directory.md`.** Plan and field list:
+    `.sps/task.md` → "S18–S21".
+    - ⚠️ **It EXTENDS S10's N4, it is not a new feature.** `/institutions` + `/institutions/[slug]`
+      already exist with 5 seeded rows and a thin model. Read the existing collection before writing
+      a new one.
+    - ⚠️ **The data survey changed the requested scope, and this is the important finding.** The
+      owner asked for *"full listing including all NU colleges"*. The site is **Bengali-only**; the
+      NU college list is **English-only**. Measured on 2026-09-30:
+      - **Wikidata** (CC0): 272 universities, **271 with Bengali names**, 178 with official websites,
+        217 with inception years — the only source that solves the Bengali-name problem.
+      - **GitHub `bangladesh-education-datasets`**: 216 universities, **English only**, CC BY-SA 4.0,
+        `specialization` has two casings (`Agricultural Science` **and** `Agricultural science`),
+        ~20 one-off values and **25 nulls**, and its sections include *Proposed universities* — so a
+        wholesale import would publish pages for universities that do not exist. **Do not import it.**
+      - **NU College Portal** (official): **2,274** colleges (602 govt / 1,692 non-govt),
+        **zero Bengali names**, no district field, and its data endpoint needs a **CSRF token**.
+      - **No source** has faculties, departments, admission information, tuition/fees, important
+        links or contact. Those are per-institution editorial work, full stop.
+      → Owner chose **Option A, two-tier**: seed every institution with a Bengali name (~271
+      universities + Wikidata's higher-ed set), then build the rich profile editorially starting with
+      the ~55 public universities.
+    - ⚠️ **A query of mine reported "0 Bengali labels" and was WRONG** — a bug in how I read the
+      label service. The direct aggregate said **271 of 272**. Checking the aggregate rather than
+      trusting my own first query is what caught it.
+    - **Three model decisions (owner):** **two axes** — `type` (public/private/nu-college/madrasa)
+      and `discipline` (general/engineering/medical/agricultural/islamic/…) — so the 7 browse
+      categories are **filters over them** and BUET appears under both Public and Engineering;
+      **automatic article linkage** via `Articles.university`; **hybrid profile fields with a visible
+      "সর্বশেষ যাচাই" date**. Imported rows are **`isVerified: false`** — the badge means "a person
+      checked this".
+    - ⚠️ **Fees: exact figure per programme, and the mitigations are mandatory.** The owner chose
+      exact figures over a range. A stale figure looks authoritative in a way a missing one does not,
+      so `tuitionFees[].verifiedAt` is **`required`** (a fee cannot be saved without a date), a source
+      link points at the university's own fee page, and the academic year is part of the row.
+    - 🚨 **S18 WAS STARTED AND DELIBERATELY REVERTED — read before resuming.** The model changes were
+      written and passed biome + typecheck + astro-imports. **The Payload schema push then HUNG** —
+      4+ minutes, twice, including after clearing the WAL — instead of applying them, so the code
+      expected columns the database did not have. The six changed files were reverted
+      (`Institutions.ts`, `Articles.ts`, `payload-types.ts`, `lib/education.ts`, both institution
+      pages) and the tree is back to the last verified commit. **The database was never damaged** —
+      still 5 institutions with the original columns — and it was backed up first.
+      **Resume by making the schema change and PROVING the push completes before building on it.**
+      The trap is `sandbox-build-traps` Trap 14 / the drizzle stale-index trap; the fix belongs in
+      that skill, not in this feature.
+    - ⚠️ **Two breaking details to remember when S18 resumes:** `address` **moves into the `contact`
+      group** (a page still reading `institution.address` renders nothing, not an error, because
+      `.astro` frontmatter is not typechecked), and the frontend's `TYPE_LABELS` was **duplicated
+      verbatim** in the index and profile pages while still listing the removed `college` value —
+      extract it to one shared source.
+    - ⚠️ **Known gap: "Notice" has no category.** Of the four requested article groups, three map
+      cleanly onto the existing 8 categories (news → `education-news`/`university`; admission
+      circular → `admission`; result → `exams-results`). A distinct Notice group needs either a 9th
+      category — a plan amendment — or acceptance that notices appear under news.
+
 - **Portal type: education portal** (2026-09-11) — domain `shikkha24.com`; general-news scope retired
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)
 - **Next.js pinned to 16.2.6+** (corrected by the audit)

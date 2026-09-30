@@ -64,6 +64,7 @@ These were not in the owner's list. Each has a reason for existing.
 | Reporter quick-draft endpoint | ✅ **Built** | `cms/src/endpoints/reporter.ts` | The generated `POST /api/articles` accepts every writable field; the mobile form must not. |
 | `safeExternalUrl` (shared URL-scheme guard) | ✅ **Built** | `frontend/src/lib/url.ts` | One implementation instead of three — three copies of a security check is three chances to drift. |
 | Social URL validation (CMS) | ✅ **Built** | `cms/src/lib/social-url.ts` | The field accepted the platforms' own homepages as if they were the newsroom's accounts. |
+| **University Directory** (7 browse categories, 13 profile fields) | 📋 **Approved, not started** | Spec `docs/university-directory.md`; plan `.sps/task.md` → S18–S21 | Owner request, 2026-09-30. **Extends S10's N4** rather than adding a feature — `/institutions` already exists. ⚠️ The requested scope (all 2,274 NU colleges) is not achievable on a Bengali-only site, because that list exists only in English; the owner chose a two-tier scope instead. |
 
 ---
 

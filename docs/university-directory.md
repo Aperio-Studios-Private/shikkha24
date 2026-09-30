@@ -1,7 +1,29 @@
 # University Directory — specification
 
-**Status:** ✅ **APPROVED 2026-09-30** — scope and model decided (§6). Building S18.
+**Status:** ✅ **APPROVED 2026-09-30** — scope and model decided (§6). 🚧 **S18 not started** (§0).
 **Requested:** 2026-09-30 · **Supersedes:** the N4 "institution directory" starter set (S10)
+
+---
+
+## 0. Where this stands — read this first
+
+**Nothing is built.** The repository is at the last verified commit, and the CMS boots and passes
+its gates. The section plan and the exact field list are in `.sps/task.md` → "S18–S21".
+
+⚠️ **S18 was started and then deliberately reverted.** The model changes were written and passed
+lint and typecheck, but the **Payload schema push hung** — 4+ minutes, twice, including after
+clearing the WAL — instead of applying them, leaving the code expecting columns the database did not
+have. A repository where every CMS boot hangs is worse than one where S18 has not begun, so the six
+changed files were reverted. **The database was never damaged**: it still holds its 5 institutions
+and its original columns, and it was backed up before the attempt.
+
+**Resume by making the schema change and proving the push completes before building on it.** The
+trap is documented in `sandbox-build-traps`; if the push hangs again, the fix is in that skill, not
+in this feature.
+
+Everything below is the design. It is complete and approved — only the implementation is outstanding.
+
+---
 
 > ⚠️ **Read §3 before §4.** The data survey found that the originally requested scope — *"full
 > listing including all NU colleges"* — is **not fully achievable**, for a reason specific to this

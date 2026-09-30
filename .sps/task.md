@@ -327,3 +327,60 @@
 - [x] ⚠️ **Counter-proved:** stripping the `/video` tag and the article profile's Facebook hosts turned both gates red, naming the exact defect
 - [x] Fixtures seeded: one video per provider (YouTube **and** Facebook) + a 4-frame photo story
 - [x] S17 DoD evidence → `.sps/section-todos/S17.md` → **user approval pending**
+
+---
+
+## S18–S21 — University Directory ✅ APPROVED 2026-09-30 · 🚧 NOT STARTED
+
+**Spec: `docs/university-directory.md`** (approved — scope and model decided, §6). This **extends**
+S10's N4 institution directory; it is not a new feature. `/institutions` and `/institutions/[slug]`
+already exist with 5 seeded rows.
+
+### ⚠️ S18 was started and then deliberately reverted — read this before restarting it
+
+The model changes were written, linted and typechecked clean. **The Payload schema push then hung**
+(4+ minutes, twice, including after clearing the WAL) instead of applying them, leaving the code
+expecting columns the database did not have. That is the documented drizzle trap, and a repo where
+every CMS boot hangs is worse than a repo where S18 has not begun — so the six changed files were
+reverted and the tree is back to the last verified commit.
+
+**Nothing was lost.** The design is in the spec and the field list is below. Resume by making the
+schema change and **verifying the push completes before writing anything on top of it**.
+
+### What S18 must do (the model)
+
+- [ ] `Institutions.type` → `public` | `private` | `nu-college` | `madrasa` (ownership)
+- [ ] `Institutions.discipline` (new) → `general` | `engineering` | `medical` | `agricultural` | `islamic` | `science-technology` | `other`
+  - ⚠️ **Two axes, not one category.** The seven browse categories are **filters over them**: Public = `type:public`; Engineering = `discipline:engineering`. A single exclusive category would hide BUET from "Public Universities", which is the browse path students actually use.
+- [ ] `acronym` · `faculties` (array: name, departments array) · `admissionInfo` (label/value rows) · `admissionUrl` · `tuitionFees` (programme, amount, period, academicYear, note, sourceUrl, **`verifiedAt` required**) · `importantLinks` · `contact` group (address, phone, email, mapUrl)
+  - ⚠️ **`address` moves into `contact`.** That is a breaking rename for the frontend, and `.astro` frontmatter is not typechecked — so a page still reading `institution.address` renders nothing rather than erroring.
+  - ⚠️ **`tuitionFees[].verifiedAt` is `required` on purpose.** The owner chose exact figures over a range; a stale figure looks authoritative, so the date cannot be skipped by a hurried editor.
+- [ ] `isVerified` · `lastVerifiedAt` · `dataSource` · `wikidataId` (import de-duplication)
+- [ ] `Articles.university` → relationship to `institutions`, indexed, optional
+  - ⚠️ The **only** entry point for the news linkage. The profile queries this field, so publishing an article updates the profile with no second job.
+- [ ] Extend `verify:access`; regenerate types; **verify the schema push completes**
+
+### S19 — the import (seeded, re-runnable)
+
+- [ ] One **Wikidata SPARQL query** (CC0) — never a scrape, no per-page requests, no CSRF workaround
+- [ ] **Bengali name is required.** This site is Bengali-only and the NU college list exists **only in English** (2,274 records, zero Bengali names) — that is why the original "all NU colleges" scope was not achievable
+- [ ] Normalise `discipline` against a fixed list (the GitHub dataset has `Agricultural Science` **and** `Agricultural science`, ~20 one-off values, 25 nulls)
+- [ ] **Exclude** *Proposed* / *International* / *Off-campus* entries — the GitHub dataset would otherwise publish pages for universities that do not exist
+- [ ] De-duplicate against the existing 5 rows and on `wikidataId`
+- [ ] Imported rows are **`isVerified: false`** — the badge means "a person checked this"
+- [ ] Report: counts in, counts rejected and why, spot-checked
+
+### S20 — frontend
+
+- [ ] The **7-category navigation**, each a filter over the two axes
+- [ ] Profile sections: faculties, departments, admission, fees (with the visible **"সর্বশেষ যাচাই"** date next to every fee), important links, contact
+- [ ] ⚠️ Sections that do not apply are **hidden, not empty** — a NU-affiliated college has no faculty list
+- [ ] The **article linkage**, grouped by the article's own category
+  - ⚠️ **Known gap: "Notice" has no category of its own.** The site has 8 categories; three of the four requested groups map cleanly (news → `education-news`/`university`; admission circular → `admission`; result → `exams-results`). A distinct Notice group needs either a 9th category — a plan amendment — or acceptance that notices appear under news.
+- [ ] JSON-LD (`CollegeOrUniversity` + `ItemList`), sitemap, internal links
+
+### S21 — Tier-2 authoring
+
+- [ ] The admin experience for filling a rich profile
+- [ ] The first ~10 public universities filled in as the worked example
+
