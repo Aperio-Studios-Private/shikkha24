@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { hasRole, isSuperAdminOrEditorInChief } from '../access/roles'
+import { hasRole, isSuperAdminOrEditorInChief, noOne } from '../access/roles'
 
 /**
  * Newsletter subscribers — **self-hosted**, per the owner's decision.
@@ -44,10 +44,23 @@ export const NewsletterSubscribers: CollectionConfig = {
       'নিউজলেটার গ্রাহক তালিকা — সম্পূর্ণ নিজস্ব, তৃতীয় পক্ষের নয়। ডাবল অপ্ট-ইন নিশ্চিত হওয়ার পর সক্রিয় হয়।',
   },
   access: {
-    // Signup goes through `/api/newsletter/subscribe`, not this collection's
-    // generated create route — see `src/endpoints/newsletter.ts`. The `create`
-    // rule stays permissive only so that endpoint's local-API call can write.
-    create: () => true,
+    /*
+     * ⚠️ **Closed.** This used to be `() => true` with the note "the `create` rule
+     * stays permissive only so that endpoint's local-API call can write" — but
+     * `/api/newsletter/subscribe` writes with **`overrideAccess: true`**, so the
+     * permissive rule was never needed by anything and only opened the generated
+     * route.
+     *
+     * The hole it left, proven 2026-09-30 with an anonymous request:
+     *   POST /api/newsletter-subscribers {"email":"…","isActive":true}
+     *     → 201, is_active = 1
+     * i.e. **double opt-in bypassed entirely** — arbitrary addresses enrolled as
+     * fully confirmed, which the site would then mail. `endpoints/newsletter.ts`
+     * opens with the sentence "POST /api/newsletter-subscribers would let anyone
+     * write any field, including `isActive: true` — skipping double opt-in
+     * entirely"; that sentence was true of the code it was describing.
+     */
+    create: noOne,
     read: ({ req }) => hasRole(req.user, 'superAdmin', 'editorInChief'),
     update: ({ req }) => hasRole(req.user, 'superAdmin', 'editorInChief'),
     delete: isSuperAdminOrEditorInChief,
@@ -68,6 +81,20 @@ export const NewsletterSubscribers: CollectionConfig = {
       index: true,
       label: { en: 'Active', bn: 'সক্রিয়' },
       admin: { description: 'ডাবল অপ্ট-ইন নিশ্চিত হওয়ার পর সক্রিয় হয়।' },
+      /*
+       * ⚠️ Field-level guard as well as the closed `create` route above — the same
+       * two-layer shape as `roles` on `users` and `isApproved` on `comments`.
+       *
+       * `isActive` is the flag that decides whether a campaign may mail this
+       * address, so it is precisely the field a caller must never set for
+       * themselves. The two endpoints that legitimately flip it — confirm and
+       * unsubscribe — write with `overrideAccess: true`, which bypasses field
+       * access, so they are unaffected. An editor may still correct a row by hand.
+       */
+      access: {
+        create: ({ req }) => hasRole(req.user, 'superAdmin', 'editorInChief'),
+        update: ({ req }) => hasRole(req.user, 'superAdmin', 'editorInChief'),
+      },
     },
     {
       name: 'subscribedAt',

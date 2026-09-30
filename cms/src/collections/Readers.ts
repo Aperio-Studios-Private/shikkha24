@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isSelfIn, isSuperAdmin } from '../access/roles'
+import { isSelfIn, isSuperAdmin, noOne } from '../access/roles'
 import { readerSessionStrategy } from '../auth/reader-strategy'
 
 /**
@@ -56,7 +56,24 @@ export const Readers: CollectionConfig = {
     strategies: [readerSessionStrategy],
   },
   access: {
-    create: () => true, // signup via a social provider
+    /*
+     * ⚠️ **Closed.** This was `() => true` — "signup via a social provider" — but a
+     * permissive `create` on a collection does not mean "the signup flow may write
+     * here"; it means **anyone may write here, unauthenticated and unthrottled**,
+     * through the generated `POST /api/readers`. Proven 2026-09-30:
+     *
+     *   POST /api/readers {"displayName":"x"} → 201
+     *   …five more → 201, 201, 201, 201, 201 in 222 ms
+     *
+     * That was the entry point for the whole audit: a reader account is enough to
+     * satisfy Payload's `Boolean(user)` default, which is how an anonymous stranger
+     * could reach Media (T1) and the colliding `users` row (T2).
+     *
+     * The only legitimate creator is the OAuth callback, and it already writes with
+     * `overrideAccess: true` (`endpoints/oauth.ts` → `upsertReader`), so it is
+     * unaffected by this rule. A future account-linking flow would do the same.
+     */
+    create: noOne,
     // A reader session may read and edit its OWN row — and only a reader session,
     // because `isSelfIn('readers')` requires the session to belong to this
     // collection. A staff account is denied here rather than matching a reader row

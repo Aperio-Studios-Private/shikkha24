@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { hasRole, isSuperAdminOrEditorInChief } from '../access/roles'
+import { hasRole, isSuperAdminOrEditorInChief, noOne } from '../access/roles'
 import { commentSubmitEndpoint } from '../endpoints/comments'
 
 /**
@@ -31,7 +31,24 @@ export const Comments: CollectionConfig = {
       if (hasRole(req.user, 'superAdmin', 'editorInChief', 'sectionEditor')) return true
       return { isApproved: { equals: true } }
     },
-    create: () => true, // readers submit
+    /*
+     * ⚠️ **Closed.** This was `() => true` — "readers submit" — but readers do not
+     * submit *here*. They submit to `/api/comments/submit`, which is the whole
+     * point of that endpoint: it rate-limits, runs the honeypot, whitelists the
+     * fields key by key, and forces `isApproved: false`. The endpoint writes with
+     * **`overrideAccess: true`**, so the permissive collection rule was never
+     * needed by it.
+     *
+     * What it did instead was leave `POST /api/comments` open to anyone, with none
+     * of those protections: unthrottled insertion and a floodable moderation queue.
+     * Proven 2026-09-30 — an anonymous POST reached validation (400) rather than
+     * being refused (403).
+     *
+     * The damage was bounded by `isApproved` being field-protected, so a forged
+     * comment could not self-publish; that is a second, independent control, and
+     * this route should not have been relying on it.
+     */
+    create: noOne,
     update: isSuperAdminOrEditorInChief, // only moderators change state
     delete: isSuperAdminOrEditorInChief,
   },
