@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@payloadcms/db-sqlite": "3.89.0",
-    "@payloadcms/email-nodemailer": "3.89.0",
+    "@payloadcms/email-nodemailer": "3.90.2",
     "@payloadcms/next": "3.89.0",
     "@payloadcms/richtext-lexical": "3.89.0",
     "@payloadcms/translations": "3.89.0",
