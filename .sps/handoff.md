@@ -1043,6 +1043,76 @@ the host-disk usage alert.
       hypothesis; the runner is the evidence.* A harness that quietly reads a developer's `.env`
       passes on every machine that has one, and fails only where it matters.
 
+50. 🚨 **The CMS had six authorisation holes, four critical — all fixed 2026-09-30.** Owner asked
+    for an in-depth audit of whether the CMS works correctly, then a complete TODO list fixed one at
+    a time with verification after each. **It did not work correctly**, and every existing gate was
+    green throughout.
+    - ⚠️ **THE SYSTEMIC FINDING, and the reason to read this item:** `403` and `Forbidden` appeared
+      **zero times** across `cms/src/verify/*.ts`. The suite tested the *custom* endpoints
+      thoroughly and **never once asserted that a generated REST route refuses the wrong caller**.
+      That is how six holes shipped. The fix is `verify:access` (below), and it is the most valuable
+      artefact here.
+    - ⚠️ **Payload's default for an undefined rule is `Boolean(user)`** — "any authenticated
+      account", not "anyone". Verified in `payload@3.89.0/dist/auth/defaultAccess.js`. A collection
+      that defines only `read` is therefore **not** read-only; it is write-open to every logged-in
+      account. **State all four rules explicitly, always.**
+    - **The holes** (each proven with a real request *before* being fixed):
+      - **C1 `media`** — only `read` defined, so create/update/delete fell to the default.
+        `DELETE /api/media/999999` → **404, not 403**. Any account could wipe the image library, on a
+        2 GB plan shared with the app and the database.
+      - **C2 `users`** — `isSelfOrAdmin` compared a **document** id to the **user** id, and `users`
+        and `readers` both number from 1. A reader session got `GET /api/users/1` → **200** with
+        nameBn, `roles:["superAdmin"]` and phone, and `PATCH … {email}` was **granted** (400 naming
+        the email field). Since email is the login identity and reset sends to it, that was an
+        **account-takeover path**.
+      - **C3 `newsletter-subscribers`** — `create: () => true`, justified as "so the endpoint's
+        local-API call can write". **That was false**: the endpoint uses `overrideAccess: true`. An
+        anonymous `POST` with `isActive: true` → **201, is_active=1** — **double opt-in bypassed**.
+      - **C4 `readers`** — `create: () => true` → 201, then five more in **222 ms**. This was the
+        entry point for C1 and C2.
+      - **H1 `bookmarks` / `saved-deadlines` / `push-subscriptions`** — `isSelfOrAdmin` filtered on
+        `id`, but ownership is the **`reader` relation**. A reader's own rows were invisible and a
+        foreign row sharing their numeric id was returned instead.
+      - **M `comments`** — `create: () => true` bypassed `/api/comments/submit`'s rate limit,
+        honeypot and whitelist. Bounded by `isApproved` being field-protected.
+    - ✅ **`isSelfOrAdmin` is now `isSelfIn('users' | 'readers')`** — the caller must name the
+      collection whose ids it compares, so the mistake is **unrepresentable**. That single root
+      cause produced three separate defects: `authors` (2026-09-18), `users`, and the relation-owned
+      three. A new `isOwnReaderRowOrSuperAdmin` covers the relation-owned case.
+    - ✅ **`verify:access`** asserts, for every collection and role: all four rules stated explicitly
+      (this is what would have caught Media); `create` returns a strict **boolean, never a Where** (a
+      Where from `create` is merely truthy, so it authorises while constraining nothing); anonymous
+      denied every write everywhere; a reader denied every write except its own rows, **asserted to
+      scope on the owning column** — naming the column is the point, since the old bookmarks rule
+      returned a Where that a truthiness check would have accepted. Hermetic: reads the config,
+      writes nothing, runs in seconds.
+    - ⚠️ **A collection edit needs a CMS RESTART.** Next.js does not reload the Payload config, so the
+      first T5 verification "failed" against a stale server. Every verification after that restarted
+      first.
+    - ⚠️ **A counter-proof that "passes" on a crash is not a counter-proof.** The first bookmarks
+      mutation referenced an unimported helper, so the harness *crashed* — non-zero exit, **zero FAIL
+      lines** — and the script called it a catch. It now treats "non-zero with no named assertion" as
+      a failure. Each defect was reintroduced and the harness went red naming the right assertion.
+    - ⚠️ **Caught while proving rather than assuming:** adding `verify:endpoints` to the CI local-API
+      loop would have **turned CI red** — that loop boots Payload in-process with no HTTP listener and
+      the harness makes real requests (`ECONNREFUSED`). It was already correctly placed in the
+      with-CMS step. **Two harnesses need a live server: `verify:endpoints` and `verify:sync`.**
+    - ⚠️ **The gate table was documenting gates that did not exist.** `docs/testing-and-qa.md` listed
+      `verify:endpoints`, `verify:social` and `verify:rebuild-notice` as "Every CI run" while none ran
+      anywhere in the workflow. All three run now and the table matches.
+    - **Also fixed:** `requireEnv()` for `PAYLOAD_SECRET`/`DATABASE_URI` (an empty signing secret is a
+      *known* signing key — `lib/signed-token.ts` already threw, Payload's own auth did not); the
+      localhost origins removed from the production CORS allow-list; the env template's duplicated
+      `PUBLIC_SITE_URL` and its wrong description of `PUBLIC_CMS_ORIGIN` (it called it the build-time
+      origin — that is `CMS_URL`, the exact confusion this file warns about); a stale collection
+      count; and `authors.bloodGroup`, which was anonymous-readable with no public consumer.
+    - **Final state:** root `pnpm verify` exit **0** · 12 harnesses in the CI loop pass with **no
+      server** · the with-CMS step (sync + endpoints) exit 0 · the 27-check HTTP access matrix ALL
+      PASS · database restored to its exact pre-audit counts · 8 commits (`990ab97` … `58724b9`).
+    - ⚠️ **Not covered:** the admin UI itself (Payload admin views hydrate client-side — the S13
+      `/admin/reporter` browser check is still open), rate limiting under real load, and the
+      production CSP/hosting interaction.
+
 - **Portal type: education portal** (2026-09-11) — domain `shikkha24.com`; general-news scope retired
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)
 - **Next.js pinned to 16.2.6+** (corrected by the audit)
