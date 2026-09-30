@@ -1,12 +1,12 @@
 # University Directory — specification
 
-**Status:** 📋 **PROPOSED — awaiting owner approval.** No code written.
+**Status:** ✅ **APPROVED 2026-09-30** — scope and model decided (§6). Building S18.
 **Requested:** 2026-09-30 · **Supersedes:** the N4 "institution directory" starter set (S10)
 
-> ⚠️ **Read §3 before §4.** The data survey found that the requested scope — *"full listing
-> including all NU colleges"* — is **not fully achievable**, for a reason that is specific to this
-> site: **the site is Bengali-only, and the NU college list exists only in English.** The numbers
-> are below. §4 gives the options; nothing is built until one is chosen.
+> ⚠️ **Read §3 before §4.** The data survey found that the originally requested scope — *"full
+> listing including all NU colleges"* — is **not fully achievable**, for a reason specific to this
+> site: **the site is Bengali-only, and the NU college list exists only in English.** The numbers are
+> below, and §6 records the scope that was chosen instead.
 
 ---
 
@@ -134,18 +134,26 @@ data stays current instead of ageing like the GitHub file.
 
 ---
 
-## 6. Open decisions
+## 6. Decisions taken (2026-09-30)
 
-1. **Which scope** — A (two-tier), B (universities only, deep), C (thin NU colleges, advised
-   against), or D (A now, NU later). **This blocks S18.**
-2. **NU-affiliated colleges** — do they need their own `type`, given they have no faculties and
-   their profiles are inherently thin? (Proposed: yes, `type: 'nu-college'`, with the profile
-   sections that do not apply hidden rather than empty.)
-3. **Logo** — Wikidata has few. Do we want logos at all at Tier 1, or leave them to Tier 2?
-4. **`isVerified`** — what does it mean now that data is imported? (Proposed: *verified* = a human
-   has checked it, and imported rows start **unverified**, so the badge keeps its meaning.)
-5. **Fees** — display a figure, a range, or a link to the university's own fee page? (Proposed:
-   a range plus a link and a date; a single precise figure implies an accuracy we cannot maintain.)
+| # | Question | Decision |
+|---|---|---|
+| 1 | **Scope** | ✅ **Option A — two-tier.** Seed every institution with a Bengali name (~271 universities + Wikidata's higher-ed set), then build the rich profile editorially starting with the ~55 public universities. |
+| 2 | **NU-affiliated colleges** | `type: 'nu-college'`, with profile sections that do not apply **hidden rather than empty** — a college has no faculty list. |
+| 3 | **Logo at Tier 1** | Leave to Tier 2. Wikidata's logo coverage is thin, and a missing logo is better than a wrong one. |
+| 4 | **`isVerified`** | ✅ **Imported rows start unverified.** The badge keeps meaning *"a person checked this"* — which is the only claim worth making on a directory students act on. |
+| 5 | **Fees** | ✅ **Exact figure per programme**, structured (programme + amount + period + academic year + source link + verified date). |
+
+⚠️ **The fee decision carries a known risk and it is being accepted deliberately.** An exact figure
+is the most useful thing a student can see when comparing universities, and it is also the thing that
+goes wrong first: universities revise fees, and a stale number is worse than no number because it
+looks authoritative. The mitigations are therefore **not optional**:
+
+- the **"সর্বশেষ যাচাই" date renders next to every fee**, always — never a bare figure;
+- a **source link** field points at the university's own fee page, so a reader can confirm;
+- the **academic year** is part of the row, so a 2026 figure is visibly a 2026 figure;
+- a fee row **cannot be saved without a date**, enforced in the collection, so the safeguard cannot
+  be skipped by a hurried editor.
 
 ---
 
