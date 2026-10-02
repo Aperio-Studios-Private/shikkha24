@@ -41,8 +41,7 @@
   // Text scale — set by the text resizer, applied here so it survives a reload
   // without a visible reflow.
   var scale = localStorage.getItem('shikkha24-text-scale')
-  // biome-ignore lint/style/useTemplate: ES5 — this file is not transpiled.
   if (scale === '1.1' || scale === '1.2') {
-    document.documentElement.style.fontSize = parseFloat(scale) * 100 + '%'
+    document.documentElement.style.fontSize = `${parseFloat(scale) * 100}%`
   }
 })()

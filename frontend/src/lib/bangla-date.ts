@@ -89,16 +89,24 @@ export function toBanglaDate(date: Date = new Date()): BanglaDate {
   if (isGregorianLeap(startYear + 1)) days[10] = 31
 
   let monthIndex = 0
-  while (monthIndex < 11 && remaining > days[monthIndex]!) {
-    remaining -= days[monthIndex]!
+  while (monthIndex < 11) {
+    const monthDays = days[monthIndex]
+    if (monthDays === undefined || remaining <= monthDays) break
+    remaining -= monthDays
     monthIndex++
+  }
+
+  const monthName = BN_MONTH_NAMES[monthIndex]
+  const weekday = BN_WEEKDAYS[today.getDay()]
+  if (monthName === undefined || weekday === undefined) {
+    throw new Error('Unable to format Bengali calendar date')
   }
 
   return {
     year: banglaYear,
-    monthName: BN_MONTH_NAMES[monthIndex]!,
+    monthName,
     day: remaining,
-    weekday: BN_WEEKDAYS[today.getDay()]!,
+    weekday,
   }
 }
 

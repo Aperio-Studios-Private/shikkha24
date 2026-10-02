@@ -67,13 +67,14 @@ export function getNextPrayer(times: PrayerTimes, now: Date = new Date()): NextP
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
 
   for (const name of PRAYER_NAMES) {
-    const minutes = parseTime(times[name])
+    const time = times[name]
+    const minutes = parseTime(time)
     if (minutes === null) continue
     if (minutes >= nowMinutes) {
       return {
         name,
         label: PRAYER_LABELS_BN[name],
-        time: times[name]!,
+        time,
         minutesUntil: minutes - nowMinutes,
         isTomorrow: false,
       }
@@ -83,11 +84,13 @@ export function getNextPrayer(times: PrayerTimes, now: Date = new Date()): NextP
   // Everything today has passed → tomorrow's Fajr.
   const fajr = parseTime(times.fajr)
   if (fajr === null) return null
+  const fajrTime = times.fajr
+  if (fajrTime === undefined) return null
 
   return {
     name: 'fajr',
     label: PRAYER_LABELS_BN.fajr,
-    time: times.fajr!,
+    time: fajrTime,
     minutesUntil: 24 * 60 - nowMinutes + fajr,
     isTomorrow: true,
   }

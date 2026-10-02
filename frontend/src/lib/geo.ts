@@ -62,7 +62,9 @@ export const PRAYER_CACHE_MS = 6 * 60 * 60 * 1000
 export const WEATHER_CACHE_MS = 60 * 60 * 1000
 
 export function getDefaultLocation(): Location {
-  return { ...CITIES[DEFAULT_INDEX]!, source: 'default' }
+  const city = CITIES[DEFAULT_INDEX]
+  if (city === undefined) throw new Error('Default location is not configured')
+  return { ...city, source: 'default' }
 }
 
 /** Restore a previously chosen or detected location. */
