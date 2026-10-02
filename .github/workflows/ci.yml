@@ -120,9 +120,21 @@ jobs:
         # Locally the directory always exists, so the omission only ever shows up
         # on a runner: `ConnectionFailed("Unable to open connection to local
         # database ./data/ci.db: 14")`, where 14 is SQLITE_CANTOPEN.
+        #
+        # ⚠️ `DB_PUSH=true` is REQUIRED here since dadaca7 made the SQLite schema
+        # push opt-in (`push: process.env.DB_PUSH === 'true'` in payload.config.ts).
+        # Without it the seed runs against an empty schema and dies on the first
+        # table: `SQLITE_ERROR: no such table: levels`. That is what failed CI run
+        # 37012800533, and the same error breaks the production seed.
+        #
+        # It is safe HERE and only here: `file:./data/ci.db` is a throwaway file
+        # created fresh on every runner, and the push is a no-op once the schema
+        # matches. It is deliberately NOT set for the CMS runtime or any deploy
+        # step — production must never alter its own schema implicitly.
         env:
           PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
           DATABASE_URI: file:./data/ci.db
+          DB_PUSH: 'true'
         run: |
           # `data/` holds the SQLite archive, `data/media/` the upload library.
           # Both are gitignored, so a fresh checkout has neither — and neither
