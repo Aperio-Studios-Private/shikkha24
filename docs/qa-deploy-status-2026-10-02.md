@@ -144,33 +144,62 @@ the branch that actually deploys to production.
 
 ---
 
-## 6. Deploy blockers on DianaHost
+## 6. Deploy status — PARKED by owner (2026-10-02)
 
-| # | Blocker | Status |
+**Deployment work is paused. This section is a resume point, not a work list.**
+
+State left behind, clean and green:
+
+| Item | State |
+|---|---|
+| `main` | pushed, clean, CI `37019764650` **success** |
+| `agents/deploy-project-dianahost-ssh-key` | pushed, clean, CI `37016011953` **success**, both artifacts produced |
+| Branch divergence | merged to convergence — same deps, same guards |
+
+Resolved since the first draft of this document:
+- ✅ **CI 37012800533** — root-caused and fixed (`DB_PUSH=true` on the seed step); run `37016011953` is green.
+- ✅ **`.sps/handoff.md` destroyed on the deploy branch** — restored from `main` (181 KB, not the 16-byte stub). Re-scanned the whole tip: **0 corrupt files**.
+- ✅ **Branches** — 3 worktrees reduced to 2, both healthy; the stale `.kilo` worktree removed; the unborn-HEAD worktree repaired.
+- ✅ **Security advisories** — Next.js RCE (critical) + 3 devalue (high) were fixed on the deploy branch only; backported to `main` with a matching lockfile.
+
+Still outstanding whenever deployment resumes:
+
+| # | Blocker | Note |
 |---|---|---|
-| 1 | CI artifact not produced (run 37012800533 failed) | 🔴 fix `DB_PUSH` in CI |
-| 2 | Production DB empty, no schema; `payload migrate` is a no-op (no migrations dir) | 🔴 needs `DB_PUSH=true` once, then remove |
-| 3 | External SSH `b201.serverdiana.com:22` → connection refused | 🟡 **auto-deploy cannot be configured.** Manual cPanel upload only. |
-| 4 | First Super Admin not yet created | ⬜ after schema + seed succeed |
-| 5 | `PUBLIC_CMS_ORIGIN` / CSP `connect-src` still a placeholder host | ⬜ must match the real CMS hostname exactly |
-| 6 | `DEPLOY_WEBHOOK_URL` unset → no auto-rebuild on publish | ⬜ publishing stays manual until set |
-| 7 | No working backup (`backup-db.yml` fails daily; SSH not granted) | 🔴 **no backup of any kind exists** |
+| 1 | Production DB empty, no schema; `payload migrate` is a no-op (no migrations dir) | needs `DB_PUSH=true` **once**, then remove |
+| 2 | External SSH `b201.serverdiana.com:22` → connection refused | **auto-deploy cannot be configured**; cPanel File Manager only |
+| 3 | First Super Admin not yet created | after schema + seed succeed |
+| 4 | `PUBLIC_CMS_ORIGIN` / CSP `connect-src` is a placeholder host | must match the real CMS hostname exactly, or AdSense breaks silently |
+| 5 | `DEPLOY_WEBHOOK_URL` unset | publishing stays a manual rebuild until set |
+| 6 | No working backup (`backup-db.yml` fails daily; SSH not granted) | **no backup of any kind exists** |
 
-**Safety constraints observed:** no `git reset --hard`, no force-push, no secret
-values requested or displayed, no files deleted without approval.
+**Safety constraints observed throughout:** no `git reset --hard`, no force-push, no
+secret values requested or displayed, no files deleted without approval.
 
 ---
 
-## 7. Recommended next actions, in order
+## 7. QA work queue
 
-1. Fix `DB_PUSH=true` on the CI seed step → re-run CI → confirm green.
-2. Restore `.sps/handoff.md` on the deploy branch from `main`.
-3. Merge `main` → deploy branch (brings F-04 + the prior session's work).
-4. Document `DB_PUSH` in `cms/.env.example` with a production warning.
-5. Confirm DianaHost SSH, or commit to manual cPanel uploads.
-6. Initialise the production schema, seed, remove `DB_PUSH`, restart once.
-7. Create the first Super Admin; verify `/admin` and `/api/articles?limit=1`.
-8. Set `PUBLIC_CMS_ORIGIN` and the CSP host to the real CMS domain.
+The audit findings in §5 stand. Ordering, with what each needs:
+
+**1. F-01 (High) — pagination caps.** Self-contained; no owner input needed.
+Highest value of the remaining set because the failure is silent and
+time-based: archive URLs begin returning 404 at ~50 days of publishing.
+
+**2. F-13 (High) — `X-Forwarded-For` trust.** **Blocked on one owner
+answer:** does the DianaHost proxy append to or overwrite the inbound
+`X-Forwarded-For`? The correct fix differs — "trust the last hop" if it
+appends, "ignore the header, use the socket address" if the origin is
+directly reachable. Everything else about the fix is already determined.
+
+**3. F-05 (Medium)** reaction counts; **4. F-02 (Medium)** five orphaned
+harnesses, including `verify-cms-sync` which the feature register already
+claims as a gate; **5. F-16 (Medium)** Lighthouse automation.
+
+**6. F-06 / F-08 / F-14 / F-03 / F-18** — all small and self-contained.
+
+**Owner decisions:** F-07 (cookie consent — legal call first), F-17
+(corrections policy page + Trade Licence/TIN/Ministry numbers).
 
 ---
 
@@ -184,4 +213,7 @@ values requested or displayed, no files deleted without approval.
 - The `main`-vs-deploy-branch comparison and the CI failure analysis were both
   re-derived from the repository and the GitHub API, not taken from the handoff
   message.
+- Two further CI failures were found and fixed after this document's first
+  draft (the dependency audit, then `--frozen-lockfile`); both are recorded in
+  `.sps/handoff.md`.
 
