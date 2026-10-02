@@ -271,6 +271,52 @@ export async function cmsFetch<T>(path: string, fallback: T): Promise<T> {
   return request
 }
 
+/**
+ * Every document of a collection, walking **all** pages.
+ *
+ * ## Why this exists
+ *
+ * Payload caps `limit`, and a single capped request is the mechanism behind
+ * a whole family of silent-truncation bugs: a listing that quietly stops
+ * growing, and — worse for a static build — a `getStaticPaths` source that
+ * quietly stops generating routes, turning already-linked pages into 404s.
+ * Every cap in this file has been a real defect at some point, which is why
+ * the loop now lives here once instead of being re-implemented per call site.
+ *
+ * `cmsFetch` already de-duplicates concurrent requests by path, and each page
+ * is a distinct path, so this costs one request per page and no extra memory
+ * beyond the documents themselves.
+ *
+ * ⚠️ `where` and `sort` are passed through untouched, so a caller that needs
+ * a different total-count shape should keep using `cmsFetch` directly.
+ *
+ * @param path   Collection path, e.g. `/api/tags`.
+ * @param params Extra query parameters (sort, where, …).
+ * @returns Every matching document, in page order. Empty on a CMS outage —
+ *               the same never-fail contract as `cmsFetch`.
+ */
+export async function fetchAllPages<T>(
+  path: string,
+  params: Record<string, string | number | boolean | undefined> = {},
+): Promise<T[]> {
+  const limit = 200
+  let page = 1
+  let totalPages = 1
+  const all: T[] = []
+
+  do {
+    const data = await cmsFetch<{ docs?: T[]; totalPages?: number } | null>(
+      `${path}${qs({ ...params, limit, page })}`,
+      null,
+    )
+    all.push(...(data?.docs ?? []))
+    totalPages = data?.totalPages ?? 1
+    page++
+  } while (page <= totalPages)
+
+  return all
+}
+
 /** Site settings global. Falls back to the owner-confirmed defaults. */
 export async function getSiteSettings(): Promise<CmsSiteSettings> {
   const data = await cmsFetch<{ siteName?: string } | null>(
@@ -665,14 +711,37 @@ export async function getArticleBySlug(slug: string): Promise<CmsFullArticle | n
  * The old version had `limit: 500` and no pagination — past 500 published
  * articles the sitemap silently stopped growing. Now paginates through
  * the full result set using Payload's `page` + `limit` parameters.
+ *
+ * ## Why this returns `publishedAt`
+ *
+ * The sitemap needs each article's publish date for `lastmod`, and used
+ * to get it from a **second** call — `getArticles({ limit: 500 })` — which
+ * was capped and not paginated. Past 500 articles the path list stayed
+ * complete while the date map stopped growing, so every older article
+ * silently emitted a `<url>` with no `lastmod` at all.
+ *
+ * Carrying the date here removes that second request and the skew with
+ * it: one paginated call is now the single source for both the paths and
+ * their dates, so the two cannot disagree.
  */
 export async function getAllArticlePaths(): Promise<
-  Array<{ slug: string; id: number | string; categorySlug?: string }>
+  Array<{
+    slug: string
+    id: number | string
+    categorySlug?: string
+    /** ISO publish date, or null. Drives the sitemap's `lastmod`. */
+    publishedAt?: string | null
+  }>
 > {
   const limit = 500
   let page = 1
   let totalPages = 1
-  const all: Array<{ slug: string; id: number | string; categorySlug?: string }> = []
+  const all: Array<{
+    slug: string
+    id: number | string
+    categorySlug?: string
+    publishedAt?: string | null
+  }> = []
 
   do {
     const data = await cmsFetch<{
@@ -680,6 +749,7 @@ export async function getAllArticlePaths(): Promise<
         slug: string
         id: number | string
         category?: { slug?: string } | number | null
+        publishedAt?: string | null
       }>
       totalPages?: number
     } | null>(
@@ -696,7 +766,12 @@ export async function getAllArticlePaths(): Promise<
       const categorySlug =
         doc.category && typeof doc.category === 'object' ? doc.category.slug : undefined
       if (doc.slug) {
-        all.push({ slug: doc.slug, id: doc.id, categorySlug })
+        all.push({
+          slug: doc.slug,
+          id: doc.id,
+          categorySlug,
+          publishedAt: doc.publishedAt ?? null,
+        })
       }
     }
     totalPages = data?.totalPages ?? 1
@@ -771,16 +846,11 @@ export async function getAuthor(author: CmsFullArticle['author']): Promise<CmsAu
  * "মেয়াদোত্তীর্ণ" marker. The template decides how to present it.
  */
 export async function getVerifiedReporters(): Promise<CmsAuthor[]> {
-  const data = await cmsFetch<{ docs?: CmsAuthor[] } | null>(
-    `/api/authors${qs({
-      limit: 200,
-      depth: 1,
-      sort: 'nameBn',
-      'where[verificationStatus][equals]': 'verified',
-    })}`,
-    null,
-  )
-  return data?.docs ?? []
+  return fetchAllPages<CmsAuthor>('/api/authors', {
+    depth: 1,
+    sort: 'nameBn',
+    'where[verificationStatus][equals]': 'verified',
+  })
 }
 
 /** A single reporter by slug, for the public profile route. */
@@ -992,13 +1062,13 @@ export async function getAuthorBySlug(slug: string): Promise<CmsAuthor | null> {
  * Distinct from `getTagBySlug`: this is the *listing* side, and a static build
  * has to know every slug up front. Sorted by name so the archive index reads in
  * a stable order rather than whatever the database returns.
+ *
+ * ⚠️ Paginated. This feeds `getStaticPaths`, so a capped fetch does not merely
+ * truncate a list — it stops generating routes, and every tag past the cap
+ * becomes a 404 that is still linked from the site.
  */
 export async function getTags(): Promise<CmsTag[]> {
-  const data = await cmsFetch<{ docs?: CmsTag[] } | null>(
-    `/api/tags${qs({ limit: 200, sort: 'nameBn' })}`,
-    null,
-  )
-  return data?.docs ?? []
+  return fetchAllPages<CmsTag>('/api/tags', { sort: 'nameBn' })
 }
 
 /**
@@ -1008,11 +1078,7 @@ export async function getTags(): Promise<CmsTag[]> {
  * internal staff records, which is what makes a public profile page possible.
  */
 export async function getAuthors(): Promise<CmsAuthor[]> {
-  const data = await cmsFetch<{ docs?: CmsAuthor[] } | null>(
-    `/api/authors${qs({ limit: 200, sort: 'nameBn' })}`,
-    null,
-  )
-  return data?.docs ?? []
+  return fetchAllPages<CmsAuthor>('/api/authors', { sort: 'nameBn' })
 }
 
 /** One entry per year/month that actually has articles. */
@@ -1029,22 +1095,49 @@ export interface ArchiveBucket {
  *
  * Not a separate collection — deriving means the archive can never disagree
  * with what is actually published.
+ *
+ * ## ⚠️ Why this paginates
+ *
+ * This used to fetch `limit: 1000` in one request and count from the first
+ * page. Past 1,000 published articles the oldest months were **silently
+ * dropped**, and because this one function feeds BOTH the archive navigation
+ * and the archive's sitemap entries, the effect was that already-published
+ * archive URLs stopped being generated — so `/archive/2026-08` would go 404
+ * while still being linked from inside the site and listed in the sitemap.
+ *
+ * At the approved publishing velocity of 15–40 articles a day that threshold
+ * arrives in **25–67 days** of operation, so this was a matter of weeks, not
+ * months. It now walks every page, exactly as `getAllArticlePaths` does.
  */
 export async function getArchiveBuckets(): Promise<ArchiveBucket[]> {
-  const data = await cmsFetch<{ docs?: Array<{ publishedAt?: string | null }> } | null>(
-    `/api/articles${qs({
-      limit: 1000,
-      depth: 0,
-      sort: '-publishedAt',
-      'where[_status][equals]': 'published',
-    })}`,
-    null,
-  )
+  const limit = 1000
+  let page = 1
+  let totalPages = 1
+  const published: Array<string | null> = []
+
+  do {
+    const data = await cmsFetch<{
+      docs?: Array<{ publishedAt?: string | null }>
+      totalPages?: number
+    } | null>(
+      `/api/articles${qs({
+        limit,
+        page,
+        depth: 0,
+        sort: '-publishedAt',
+        'where[_status][equals]': 'published',
+      })}`,
+      null,
+    )
+    for (const doc of data?.docs ?? []) published.push(doc.publishedAt ?? null)
+    totalPages = data?.totalPages ?? 1
+    page++
+  } while (page <= totalPages)
 
   const counts = new Map<string, number>()
-  for (const doc of data?.docs ?? []) {
-    if (!doc.publishedAt) continue
-    const key = getDhakaYearMonth(doc.publishedAt)
+  for (const publishedAt of published) {
+    if (!publishedAt) continue
+    const key = getDhakaYearMonth(publishedAt)
     counts.set(key, (counts.get(key) ?? 0) + 1)
   }
 
@@ -1122,11 +1215,8 @@ export async function getPageBySlug(slug: string): Promise<CmsPageFull | null> {
 
 /** Every page slug — for the /page/[slug] routes. */
 export async function getAllPageSlugs(): Promise<string[]> {
-  const data = await cmsFetch<{ docs?: Array<{ slug: string }> } | null>(
-    `/api/pages${qs({ limit: 100 })}`,
-    null,
-  )
-  return (data?.docs ?? []).map((doc) => doc.slug).filter(Boolean)
+  const docs = await fetchAllPages<{ slug: string }>('/api/pages')
+  return docs.map((doc) => doc.slug).filter(Boolean)
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

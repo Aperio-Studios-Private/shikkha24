@@ -4,7 +4,6 @@ import {
   getAllArticlePaths,
   getAllPageSlugs,
   getArchiveBuckets,
-  getArticles,
   getAuthors,
   getCategories,
   getTags,
@@ -59,7 +58,6 @@ export const GET: APIRoute = async () => {
   const [
     articlePaths,
     pageSlugs,
-    articles,
     categories,
     institutionSlugs,
     studyAbroadSlugs,
@@ -69,8 +67,6 @@ export const GET: APIRoute = async () => {
   ] = await Promise.all([
     getAllArticlePaths().catch(() => []),
     getAllPageSlugs().catch(() => []),
-    // Fetched only for the publish dates; the path list above stays canonical.
-    getArticles({ limit: 500 }).catch(() => []),
     getCategories().catch(() => FALLBACK_CATEGORIES),
     getAllInstitutionSlugs().catch(() => []),
     getAllStudyAbroadSlugs().catch(() => []),
@@ -79,9 +75,17 @@ export const GET: APIRoute = async () => {
     getArchiveBuckets().catch(() => []),
   ])
 
-  /** slug → publish date, so each article carries its own accurate `lastmod`. */
+  /**
+   * slug → publish date, so each article carries its own accurate `lastmod`.
+   *
+   * ⚠️ Built from `articlePaths` rather than a second `getArticles()` call.
+   * That call was capped at 500 rows and not paginated, while
+   * `getAllArticlePaths` paginates — so past 500 articles the paths stayed
+   * complete but the dates stopped, and every older article silently lost
+   * its `lastmod`. One paginated source means the two cannot disagree.
+   */
   const publishedOn = new Map(
-    articles.map((article) => [article.slug, toDate(article.publishedAt)]),
+    articlePaths.map((article) => [article.slug, toDate(article.publishedAt)]),
   )
 
   /**
