@@ -55,6 +55,7 @@ allowBuilds:
 overrides:
   'undici@7.29.0': 7.29.1
   'nodemailer@9.1.1': 10.0.6
+  'devalue@5.9.2': 5.9.4
 
 # pnpm 11 enforces a minimum package age as supply-chain protection. The stack
 # pins exact versions verified against the live registry (agent rule 8), so

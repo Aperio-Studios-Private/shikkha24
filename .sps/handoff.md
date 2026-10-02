@@ -11,6 +11,12 @@
 - **Fix applied:** Added `include-hidden-files: true` to the CMS artifact upload
   step in `.github/workflows/ci.yml`. A fresh successful CI run is required
   before uploading the CMS to DianaHost.
+- **Security follow-up:** The first two manual CI runs were blocked by current
+  advisories: Next.js `16.3.5` was updated to the already CI-validated
+  `16.3.6`, then Astro's transitive `devalue@5.9.2` was pinned to patched
+  `5.9.4` through `pnpm-workspace.yaml`. `devalue` is MIT-licensed. Local
+  `pnpm audit --audit-level=high` now reports no high or critical findings;
+  the remaining 7 low/moderate findings are unchanged.
 
 ## Documentation index — where to look
 
