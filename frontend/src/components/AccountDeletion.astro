@@ -1,0 +1,159 @@
+---
+/**
+ * "Delete my account" — the reader's own erasure.
+ *
+ * ## It renders nothing unless a reader is signed in
+ *
+ * The section starts `hidden` and is only revealed after `GET /api/oauth/me`
+ * answers with a reader. A signed-out reader sees nothing at all, which is the S8
+ * rule the other islands follow: a control that cannot work is **absent**, not
+ * present-and-broken.
+ *
+ * ## Why it is two steps
+ *
+ * The action is irreversible and there is no undo. A single button next to
+ * "clear bookmarks" would eventually be pressed by accident, so the first press
+ * only reveals the confirmation — and the confirmation names what will go.
+ *
+ * ## What the reader is told
+ *
+ * The copy states exactly what is deleted and what is kept, because "delete my
+ * account" is otherwise a promise a reader has to take on faith. Comments are
+ * **anonymised, not removed** — they are part of the public record — and that is
+ * said plainly rather than discovered afterwards.
+ *
+ * ⚠️ The copy must stay in step with `cms/src/endpoints/account.ts`. If that
+ * handler's behaviour changes, this paragraph is wrong.
+ */
+import { isEnabled } from '../lib/feature-flags'
+import { getPublicCmsOrigin } from '../lib/interactive'
+
+/** Needs a CMS to call and the login flag on — otherwise there is no account. */
+const enabled = isEnabled('socialLogin') && getPublicCmsOrigin() !== null
+---
+
+{
+  enabled && (
+    <section
+      data-account-deletion
+      hidden
+      class="mt-8 rounded-md border border-rule bg-surface-raised p-4 dark:border-dark-rule dark:bg-dark-raised"
+    >
+      <h2 class="font-headline text-base font-semibold text-ink dark:text-dark-ink">
+        অ্যাকাউন্ট ও তথ্য মুছে ফেলা
+      </h2>
+      <p class="mt-2 text-sm leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+        আপনার অ্যাকাউন্ট, সংরক্ষিত তালিকা, সময়সীমা ও পুশ সাবস্ক্রিপশন মুছে যাবে। আপনার দেওয়া
+        মন্তব্যগুলো থেকে যাবে, তবে আপনার নাম ও ইমেইল সরিয়ে ফেলা হবে।
+      </p>
+
+      <div class="mt-3 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          data-account-delete-start
+          class="min-h-12 rounded-md border border-brand-red px-4 text-sm font-semibold text-brand-red"
+        >
+          আমার অ্যাকাউন্ট মুছুন
+        </button>
+
+        <span data-account-delete-confirm hidden class="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            data-account-delete-yes
+            class="min-h-12 rounded-md bg-brand-red px-4 text-sm font-semibold text-white"
+          >
+            হ্যাঁ, সব মুছে ফেলুন
+          </button>
+          <button
+            type="button"
+            data-account-delete-cancel
+            class="min-h-12 rounded-md border border-rule px-4 text-sm font-medium text-ink-muted dark:border-dark-rule dark:text-dark-ink-muted"
+          >
+            বাতিল
+          </button>
+        </span>
+      </div>
+
+      <p
+        data-account-delete-status
+        role="status"
+        class="mt-2 min-h-5 text-sm text-ink-muted dark:text-dark-ink-muted"
+      >
+      </p>
+    </section>
+  )
+}
+
+<script>
+  import { clearBookmarks } from '../lib/bookmarks'
+  import { forgetBookmarkSync } from '../lib/bookmark-sync'
+  import { getPublicCmsOrigin } from '../lib/interactive'
+
+  const section = document.querySelector<HTMLElement>('[data-account-deletion]')
+  const origin = getPublicCmsOrigin()
+
+  if (section && origin) {
+    const start = section.querySelector<HTMLButtonElement>('[data-account-delete-start]')
+    const confirmRow = section.querySelector<HTMLElement>('[data-account-delete-confirm]')
+    const yes = section.querySelector<HTMLButtonElement>('[data-account-delete-yes]')
+    const cancel = section.querySelector<HTMLButtonElement>('[data-account-delete-cancel]')
+    const status = section.querySelector<HTMLElement>('[data-account-delete-status]')
+
+    /** Is a reader signed in? The section stays hidden when they are not. */
+    fetch(`${origin}/api/oauth/me`, { credentials: 'include' })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { reader?: unknown } | null) => {
+        if (body?.reader) section.hidden = false
+      })
+      .catch(() => {
+        // No session, no CMS, or a flaky connection — stay hidden.
+      })
+
+    start?.addEventListener('click', () => {
+      if (confirmRow) confirmRow.hidden = false
+      start.hidden = true
+      yes?.focus()
+    })
+
+    cancel?.addEventListener('click', () => {
+      if (confirmRow) confirmRow.hidden = true
+      if (start) start.hidden = false
+      if (status) status.textContent = ''
+    })
+
+    yes?.addEventListener('click', async () => {
+      if (yes.disabled) return
+      yes.disabled = true
+      if (status) status.textContent = 'মুছে ফেলা হচ্ছে…'
+
+      try {
+        const response = await fetch(`${origin}/api/readers/delete-account`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          // The server requires this exact string; see `endpoints/account.ts`.
+          body: JSON.stringify({ confirm: 'DELETE' }),
+        })
+
+        if (!response.ok) {
+          if (status) status.textContent = 'মুছে ফেলা যায়নি। আবার চেষ্টা করুন।'
+          yes.disabled = false
+          return
+        }
+
+        /*
+         * The server copy is gone, so the browser copy must go too — leaving it
+         * would show a "saved" list on a page whose account no longer exists, and
+         * the sync marker would suppress the next account's first merge.
+         */
+        clearBookmarks()
+        forgetBookmarkSync()
+        if (status) status.textContent = 'আপনার তথ্য মুছে ফেলা হয়েছে।'
+        window.setTimeout(() => window.location.assign('/'), 1200)
+      } catch {
+        if (status) status.textContent = 'মুছে ফেলা যায়নি। আবার চেষ্টা করুন।'
+        yes.disabled = false
+      }
+    })
+  }
+</script>

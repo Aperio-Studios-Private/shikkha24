@@ -1,7 +1,9 @@
 import { createHmac } from 'node:crypto'
 import type { Endpoint, PayloadRequest } from 'payload'
 
+import { clientIp } from '../lib/http'
 import { rateLimit } from '../lib/rate-limit'
+import { requirePayloadSecret } from '../lib/signed-token'
 
 /**
  * How many vote attempts one IP may make per minute.
@@ -161,13 +163,6 @@ export const pollVoteEndpoint: Endpoint = {
   },
 }
 
-/** Best-effort client IP. Passenger passes it via x-forwarded-for (first entry). */
-function clientIp(req: PayloadRequest): string {
-  const forwarded = req.headers.get('x-forwarded-for')
-  if (forwarded) return forwarded.split(',')[0]?.trim() || 'unknown'
-  return req.headers.get('x-real-ip') ?? 'unknown'
-}
-
 /**
  * Salted, one-way voter fingerprint.
  *
@@ -175,11 +170,13 @@ function clientIp(req: PayloadRequest): string {
  * from a leaked database, and so the same reader hashes differently anywhere
  * else. Deliberately excludes anything that would let the row be joined back to
  * a person.
+ *
+ * ⚠️ Keyed with the required secret, **never a literal fallback** — see
+ * `requirePayloadSecret`. This hash is the whole duplicate-vote guard, so a
+ * published key would let anyone cast unlimited distinct votes.
  */
 function hashVoter(ip: string, userAgent: string): string {
-  return createHmac('sha256', process.env.PAYLOAD_SECRET || 'shikkha24-poll')
-    .update(`${ip}|${userAgent}`)
-    .digest('hex')
+  return createHmac('sha256', requirePayloadSecret()).update(`${ip}|${userAgent}`).digest('hex')
 }
 
 function isExpired(expiresAt: unknown): boolean {

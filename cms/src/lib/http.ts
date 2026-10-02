@@ -20,17 +20,26 @@ import type { PayloadRequest } from 'payload'
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 /**
- * Best-effort client IP.
+ * Best-effort client IP from raw headers.
  *
  * On DianaHost, Passenger passes the client IP via `x-forwarded-for`. The first
  * entry is the real client address. `x-real-ip` is a fallback set by some
  * reverse proxies. There is no Cloudflare-specific header (Cloudflare removed
  * 2026-09-14).
+ *
+ * ⚠️ Takes `Headers` rather than a `PayloadRequest` so **Next middleware can use
+ * the same implementation** — it has a request but not a Payload request, and a
+ * second copy of this rule would be a second thing to get wrong.
  */
-export function clientIp(req: PayloadRequest): string {
-  const forwarded = req.headers.get('x-forwarded-for')
+export function ipFromHeaders(headers: Headers): string {
+  const forwarded = headers.get('x-forwarded-for')
   if (forwarded) return forwarded.split(',')[0]?.trim() || 'unknown'
-  return req.headers.get('x-real-ip') ?? 'unknown'
+  return headers.get('x-real-ip') ?? 'unknown'
+}
+
+/** The client IP for a Payload request. */
+export function clientIp(req: PayloadRequest): string {
+  return ipFromHeaders(req.headers)
 }
 
 /**

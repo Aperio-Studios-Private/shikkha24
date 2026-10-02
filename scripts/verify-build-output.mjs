@@ -27,6 +27,10 @@
  *   7. **`search-init.js` still has the markup it sorts.** It reorders the date
  *      filter in the DOM, so it depends on Pagefind's *internal* class names —
  *      and if those are renamed the sort dies silently.
+ *   8. **The build is not thin.** `lib/cms.ts` is deliberately built so a CMS
+ *      outage cannot fail the build — which means a dead CMS yields a *green*
+ *      build holding a fraction of the pages, and the deploy then `rsync
+ *      --delete`s them off the live site. See section 3a.
  *
  * Run after `pnpm build`: node scripts/verify-build-output.mjs
  */
@@ -103,6 +107,111 @@ check(
   articlePages.length > 0,
   `${articlePages.length} found`,
 )
+
+// ── 3a. The build is not THIN ────────────────────────────────────────────────
+/**
+ * A "thin build" is a build that succeeded while holding almost no content.
+ *
+ * `lib/cms.ts` is built so a CMS outage **cannot** fail the build — a hard
+ * requirement, because a throwing build would take the whole newsroom offline
+ * at the worst possible moment. Every helper degrades to a documented fallback
+ * and warns instead. That is correct, and it has one sharp edge: a dead CMS
+ * produces a **green** build containing a fraction of the pages.
+ *
+ * The deploy step then runs `rsync --delete`, so a thin build does not merely
+ * fail to publish — it **deletes every article the live site currently has**,
+ * and Google re-indexes the loss. This is the single most destructive failure
+ * mode in the pipeline, and the one most likely to happen at the worst time,
+ * because a CMS outage and a scheduled rebuild are independent events.
+ *
+ * ## Why the old `length > 0` was not a guard
+ *
+ * It asserted that *at least one* article page exists. A build with 25 article
+ * pages passes it exactly as comfortably as one with 2,000. The check read as
+ * protection and provided none — which is the specific trap
+ * `docs/feature-register.md` §7 warns about ("a check that is vacuous").
+ *
+ * ## The two-tier assertion
+ *
+ * 1. **Exact, when a CMS is configured** (`CMS_URL` set): ask the CMS how many
+ *    articles it has published and require the build to contain at least that
+ *    many article pages. Self-calibrating — it stays correct as the archive
+ *    grows, and it needs no number to be maintained by hand. This is the tier
+ *    that matters, because `CMS_URL` is set on the deploy path and unset on
+ *    the CI path.
+ * 2. **A floor, when no CMS is configured.** CI builds against a seeded local
+ *    CMS that is not running by the time this gate executes, so there is
+ *    nothing to ask. `THIN_BUILD_MIN_ARTICLE_PAGES` is a deliberately low
+ *    absolute floor: it only has to distinguish "a real build" from "a build
+ *    that fetched nothing", and a low floor cannot produce a false failure as
+ *    the archive grows.
+ *
+ * ⚠️ **A configured-but-unreachable CMS FAILS. It does not fall back to the
+ * floor.** Falling back would be exactly the silence this check exists to
+ * remove: the deploy path has a CMS URL, so an unreachable one means the
+ * content fetch is suspect, and the safe answer is to stop rather than to
+ * `rsync --delete` a site on the strength of a guess.
+ */
+
+/** Article pages below this with no CMS to compare against = a thin build. */
+const THIN_BUILD_MIN_ARTICLE_PAGES = 10
+
+/** Milliseconds to wait on the CMS before calling it unreachable. */
+const CMS_PROBE_TIMEOUT_MS = 5000
+
+/**
+ * How many articles the CMS says are published, or `null` when no CMS is
+ * configured.
+ *
+ * `limit=1` with `depth=0` — this reads `totalDocs` only. Asking for a
+ * thousand documents to learn a count would be the wrong trade on a 2 GB host.
+ */
+async function publishedArticleCount() {
+  const base = (process.env.CMS_URL || '').trim().replace(/\/$/, '')
+  if (!base) return null
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), CMS_PROBE_TIMEOUT_MS)
+  try {
+    const response = await fetch(
+      `${base}/api/articles?limit=1&depth=0&where[_status][equals]=published`,
+      { signal: controller.signal },
+    )
+    if (!response.ok) return { error: `the CMS answered HTTP ${response.status}` }
+    const body = await response.json()
+    const total = Number(body?.totalDocs)
+    if (!Number.isFinite(total) || total < 0) {
+      return { error: 'the CMS response carried no usable totalDocs' }
+    }
+    return { total }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+const cmsCount = await publishedArticleCount()
+
+if (cmsCount && 'error' in cmsCount) {
+  check(
+    'the CMS is reachable for the thin-build check (CMS_URL is set)',
+    false,
+    `${cmsCount.error} — refusing to certify a build whose content fetch is suspect`,
+  )
+} else if (cmsCount) {
+  check(
+    'every published article reached the build (thin-build guard)',
+    articlePages.length >= cmsCount.total,
+    `${articlePages.length} article page(s) built, CMS reports ${cmsCount.total} published`,
+  )
+} else {
+  check(
+    'the build is above the thin-build floor (no CMS_URL to compare against)',
+    articlePages.length >= THIN_BUILD_MIN_ARTICLE_PAGES,
+    `${articlePages.length} article page(s), floor ${THIN_BUILD_MIN_ARTICLE_PAGES}`,
+  )
+}
 
 const legacyStubs = htmlFiles.filter((f) => f.includes('/article/'))
 check(

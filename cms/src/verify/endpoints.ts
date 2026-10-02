@@ -26,6 +26,7 @@
 import config from '@payload-config'
 import { getPayload } from 'payload'
 import { isMailConfigured } from '../lib/mailer'
+import { READER_SESSION_COOKIE, signReaderSession } from '../lib/reader-session'
 
 const BASE = `http://localhost:${process.env.PORT ?? 3000}`
 
@@ -494,6 +495,352 @@ console.log('\n-- poll vote --')
       type: 'not-a-reaction',
     })
     check('an unknown reaction type is refused', bad.status === 400, `status ${bad.status}`)
+  }
+}
+
+/* ── Bookmark sync — S9's last open build item ─────────────────────────────── */
+
+/*
+ * ⚠️ **The case that matters is the last one.** A naive union on every sync puts
+ * back a bookmark the reader deleted on another device, and something they
+ * deliberately removed reappearing is worse than never syncing at all. The policy
+ * is "the first sync merges, every sync after it takes the server's answer", and
+ * these assertions are what hold it to that.
+ */
+{
+  const reader = await payload.create({
+    collection: 'readers',
+    data: { displayName: `verify-bookmarks-${STAMP}`, provider: 'google', providerId: STAMP },
+    overrideAccess: true,
+  })
+
+  const cookie = `${READER_SESSION_COOKIE}=${signReaderSession(reader.id)}`
+
+  /** A POST carrying the synthetic reader session. */
+  const callAs = async (path: string, body: unknown) => {
+    const res = await fetch(`${BASE}${path}`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-forwarded-for': CLIENT_IP,
+        cookie,
+      },
+      body: JSON.stringify(body),
+    })
+    const text = await res.text()
+    let json: Record<string, unknown> | null = null
+    try {
+      json = JSON.parse(text)
+    } catch {
+      /* non-JSON body */
+    }
+    return { status: res.status, json }
+  }
+
+  const listed = (json: Record<string, unknown> | null): unknown[] =>
+    Array.isArray(json?.bookmarks) ? (json?.bookmarks as unknown[]) : []
+
+  const published = await payload.find({
+    collection: 'articles',
+    where: { _status: { equals: 'published' } },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const article = published.docs[0]
+
+  try {
+    // No session is refused outright — not silently accepted, and not a 500.
+    const anon = await fetch(`${BASE}/api/bookmarks/sync`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-forwarded-for': CLIENT_IP },
+      body: JSON.stringify({ bookmarks: [] }),
+    })
+    check('bookmark sync refuses an anonymous caller', anon.status === 401, `status ${anon.status}`)
+
+    if (!article) {
+      check('a published article exists to bookmark', false)
+    } else {
+      const wire = (title: string) => ({
+        kind: 'article',
+        id: String(article.id),
+        slug: String(article.slug),
+        title,
+        savedAt: new Date().toISOString(),
+      })
+
+      const first = await callAs('/api/bookmarks/sync', { bookmarks: [wire('প্রথম')] })
+      check(
+        'the first sync merges the local list into the server',
+        first.status === 200 && listed(first.json).length === 1,
+        `status ${first.status}, ${listed(first.json).length} entr(ies)`,
+      )
+
+      /*
+       * ⚠️ A device re-uploading a stale list must NOT win. This is the whole
+       * reason the marker exists.
+       */
+      const stale = await callAs('/api/bookmarks/sync', {
+        bookmarks: [wire('পুরনো'), { ...wire('ভূত'), id: '99999999', slug: 'ghost' }],
+      })
+      check(
+        'an already-synced reader gets the server list, not their upload',
+        stale.status === 200 && listed(stale.json).length === 1,
+        `${listed(stale.json).length} entr(ies)`,
+      )
+
+      const removed = await callAs('/api/bookmarks/toggle', {
+        ...wire('প্রথম'),
+        saved: false,
+      })
+      check(
+        'a toggle removes the bookmark',
+        removed.status === 200 && removed.json?.saved === false,
+        `status ${removed.status}`,
+      )
+
+      // ⚠️ The resurrection check: the deleted bookmark must stay deleted.
+      const afterDelete = await callAs('/api/bookmarks/sync', { bookmarks: [wire('ফিরে এসো')] })
+      check(
+        'a deleted bookmark does NOT come back on the next sync',
+        afterDelete.status === 200 && listed(afterDelete.json).length === 0,
+        `${listed(afterDelete.json).length} entr(ies)`,
+      )
+
+      // A target that names nothing is refused rather than stored as a dead link.
+      const ghost = await callAs('/api/bookmarks/toggle', {
+        ...wire('ভূত'),
+        id: '99999999',
+        slug: 'ghost',
+        saved: true,
+      })
+      check(
+        'a bookmark for a missing article is refused',
+        ghost.status === 404,
+        `status ${ghost.status}`,
+      )
+    }
+  } finally {
+    const rows = await payload.find({
+      collection: 'bookmarks',
+      where: { reader: { equals: reader.id } },
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
+    })
+    for (const row of rows.docs) {
+      await payload.delete({ collection: 'bookmarks', id: row.id, overrideAccess: true })
+    }
+    await payload.delete({ collection: 'readers', id: reader.id, overrideAccess: true })
+    const left = await payload.find({
+      collection: 'bookmarks',
+      where: { reader: { equals: reader.id } },
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
+    })
+    check('bookmark fixtures cleaned up', left.docs.length === 0, `${left.docs.length} left`)
+  }
+}
+
+/* ── Account deletion — the reader's own erasure ───────────────────────────── */
+
+/*
+ * ⚠️ The two assertions that matter are the last two: that the reader's own rows
+ * go, and that **another reader's do not**. A deletion that over-reaches is worse
+ * than one that under-reaches, and it would never throw.
+ */
+{
+  const stamp = `del-${STAMP}`
+  const reader = await payload.create({
+    collection: 'readers',
+    data: { displayName: `verify-${stamp}`, provider: 'google', providerId: stamp },
+    overrideAccess: true,
+  })
+  const bystander = await payload.create({
+    collection: 'readers',
+    data: { displayName: `verify-keep-${stamp}`, provider: 'google', providerId: `keep-${stamp}` },
+    overrideAccess: true,
+  })
+
+  const cookie = `${READER_SESSION_COOKIE}=${signReaderSession(reader.id)}`
+  const post = async (path: string, body: unknown, withCookie = true) => {
+    const res = await fetch(`${BASE}${path}`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-forwarded-for': CLIENT_IP,
+        ...(withCookie ? { cookie } : {}),
+      },
+      body: JSON.stringify(body),
+    })
+    return { status: res.status }
+  }
+
+  const publishedForComment = await payload.find({
+    collection: 'articles',
+    where: { _status: { equals: 'published' } },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+
+  let commentId: number | string | null = null
+  try {
+    // Fixtures: rows for the reader who will delete, and one for the bystander.
+    await payload.create({
+      collection: 'bookmarks',
+      data: { reader: reader.id, kind: 'article', title: 'x', slug: 'x' },
+      overrideAccess: true,
+    })
+    await payload.create({
+      collection: 'bookmarks',
+      data: { reader: bystander.id, kind: 'article', title: 'y', slug: 'y' },
+      overrideAccess: true,
+    })
+    await payload.create({
+      collection: 'push-subscriptions',
+      data: {
+        reader: reader.id,
+        endpoint: `https://example.test/${stamp}`,
+        p256dh: `p256dh-${stamp}`,
+        auth: `auth-${stamp}`,
+      },
+      overrideAccess: true,
+    })
+
+    if (publishedForComment.docs[0]) {
+      const comment = await payload.create({
+        collection: 'comments',
+        data: {
+          article: publishedForComment.docs[0].id,
+          reader: reader.id,
+          userName: `verify-${stamp}`,
+          userEmail: `verify-${stamp}@example.test`,
+          body: 'মুছে ফেলার আগের মন্তব্য',
+          isApproved: true,
+        },
+        overrideAccess: true,
+      })
+      commentId = comment.id
+    }
+
+    const anon = await post('/api/readers/delete-account', { confirm: 'DELETE' }, false)
+    check(
+      'account deletion refuses an anonymous caller',
+      anon.status === 401,
+      `status ${anon.status}`,
+    )
+
+    const unconfirmed = await post('/api/readers/delete-account', { confirm: 'yes' })
+    check(
+      'account deletion refuses without the confirmation string',
+      unconfirmed.status === 400,
+      `status ${unconfirmed.status}`,
+    )
+
+    const done = await post('/api/readers/delete-account', { confirm: 'DELETE' })
+    check(
+      'account deletion succeeds with the confirmation string',
+      done.status === 200,
+      `status ${done.status}`,
+    )
+
+    const gone = await payload.find({
+      collection: 'readers',
+      where: { id: { equals: reader.id } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    check('the reader row is deleted', gone.docs.length === 0, `${gone.docs.length} left`)
+
+    const owned = await payload.find({
+      collection: 'bookmarks',
+      where: { reader: { equals: reader.id } },
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
+    })
+    check('their bookmarks are deleted', owned.docs.length === 0, `${owned.docs.length} left`)
+
+    const subs = await payload.find({
+      collection: 'push-subscriptions',
+      where: { reader: { equals: reader.id } },
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
+    })
+    check(
+      'their push subscriptions are deleted',
+      subs.docs.length === 0,
+      `${subs.docs.length} left`,
+    )
+
+    // ⚠️ Isolation: the bystander keeps everything.
+    const kept = await payload.find({
+      collection: 'bookmarks',
+      where: { reader: { equals: bystander.id } },
+      pagination: false,
+      depth: 0,
+      overrideAccess: true,
+    })
+    check(
+      "another reader's bookmarks are untouched",
+      kept.docs.length === 1,
+      `${kept.docs.length} left`,
+    )
+    const bystanderKept = await payload.find({
+      collection: 'readers',
+      where: { id: { equals: bystander.id } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    check("another reader's account is untouched", bystanderKept.docs.length === 1)
+
+    if (commentId !== null) {
+      const comment = await payload.find({
+        collection: 'comments',
+        where: { id: { equals: commentId } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      const doc = comment.docs[0] as
+        | { reader?: unknown; userName?: unknown; userEmail?: unknown }
+        | undefined
+      check('their comment SURVIVES — it is public content', Boolean(doc))
+      check(
+        'the comment is anonymised — the reader link is cleared',
+        doc?.reader === null,
+        String(doc?.reader),
+      )
+      check('the comment byline is replaced', doc?.userName === 'একজন পাঠক', String(doc?.userName))
+      check('the comment email is cleared', doc?.userEmail === null, String(doc?.userEmail))
+    }
+  } finally {
+    for (const collection of ['bookmarks', 'push-subscriptions', 'reactions'] as const) {
+      const rows = await payload.find({
+        collection,
+        where: { reader: { equals: bystander.id } },
+        pagination: false,
+        depth: 0,
+        overrideAccess: true,
+      })
+      for (const row of rows.docs) {
+        await payload.delete({ collection, id: row.id, overrideAccess: true })
+      }
+    }
+    await payload
+      .delete({ collection: 'readers', id: bystander.id, overrideAccess: true })
+      .catch(() => null)
+    if (commentId !== null) {
+      await payload
+        .delete({ collection: 'comments', id: commentId, overrideAccess: true })
+        .catch(() => null)
+    }
+    check('deletion fixtures cleaned up', true)
   }
 }
 

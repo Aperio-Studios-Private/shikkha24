@@ -6,7 +6,14 @@ Production-grade, Bengali-first **education** news portal. Domain: **shikkha24.c
 > 🌍 দেশ-বিদেশের শিক্ষার সর্বশেষ খবর ও সুযোগ
 > 📚 শিক্ষার খবর, সুযোগ ও সম্ভাবনা—এক ঠিকানায়।
 
-**Status: planning approved — PRE-BUILD. Nothing has been built yet. Do not build until the owner says "go" for S0.**
+**Status: BUILT — S0→S21 complete and verified.** See `.sps/task.md` for the section
+checklist and `.sps/handoff.md` for the current state. What remains before launch is
+**owner actions only** (credentials, DNS, SMTP, and the production-only measurements) —
+they are listed as gates below and in `.sps/task.md`.
+
+> 🔐 **Deploying? Read [Secrets — read this before deploying](#secrets--read-this-before-deploying) first.**
+> Three values were previously hardcoded in source and are still recoverable from git
+> history; one of them means `PAYLOAD_SECRET` should be rotated before you go live.
 
 ## Documentation map
 
@@ -43,6 +50,50 @@ Production-grade, Bengali-first **education** news portal. Domain: **shikkha24.c
 | `docs/competitive-analysis.md` | ⚠️ **OBSOLETE as a build input** — general-news competitor set. Reference only |
 | `docs/stack-research.md` | Stack research notes (versions verified 2026-09-11) |
 | `docs/task-checklist-original.md` | Original 198-item checklist from plan approval. Archive only |
+
+## Secrets — read this before deploying
+
+**No secret is committed to this repository.** Every credential is read from an
+environment variable at runtime; `.env` is git-ignored (root `.gitignore` plus a
+per-workspace copy) and only `.env.example` is tracked. `cms/.env.example` and
+`frontend/.env.example` list every variable the code reads, with placeholders.
+
+### ⚠️ Rotate these if you deployed from a commit before 2026-10-01
+
+Three values were previously **hardcoded in source** and remain recoverable from
+git history. They have been removed from the working tree — but **removing them
+does not un-publish them**, and anyone who cloned this repository before that date
+has them.
+
+| Was hardcoded | Where it was | What to do |
+|---|---|---|
+| `'shikkha24-reactions'` | `cms/src/lib/reactions.ts` — the fallback HMAC key for the reaction-dedupe fingerprint | **Rotate `PAYLOAD_SECRET`.** If any deployment ever started with it unset, every fingerprint from that period was keyed with a published constant, so reaction counts could have been forged by anyone who read the source. |
+| `'shikkha24-poll'` | `cms/src/endpoints/poll-vote.ts` — the same fallback, for the poll duplicate-vote guard | Same rotation. Poll tallies recorded in such a period are not trustworthy. |
+| `'Verify-admin-1234'`, `'Verify-rep-1234'` | `cms/src/verify/reporter.ts` — passwords for harness fixtures, **one of them a superAdmin** | **Search every database a harness has ever run against for leftover `verify-*@example.test` users and delete them.** They are now created with a random per-run password, but an old crashed run may have left a live admin account. |
+
+⚠️ **`PAYLOAD_SECRET` is the one that matters.** It signs reader sessions, OAuth
+state, reaction fingerprints and poll-voter hashes. Rotating it invalidates every
+outstanding reader session — which is the intended effect, not a side effect.
+
+⚠️ **Rotating `PAYLOAD_SECRET` also changes every stored fingerprint and voter
+hash.** Old `reactions` and `poll-votes` rows keep their old hashes, so a reader
+may be able to react once more to an article they had already reacted to. That is
+harmless, and it is the correct trade against a forgeable key.
+
+### The rules this repository follows
+
+- A required secret is read through a helper that **throws when it is missing** —
+  `requireEnv()` in `cms/src/payload.config.ts`, `requirePayloadSecret()` in
+  `cms/src/lib/signed-token.ts`. There is deliberately **no fallback value**: a
+  predictable default is worse than a process that refuses to start.
+- **Astro exposes only `PUBLIC_`-prefixed variables to the browser.** Nothing
+  secret may use that prefix. `NEXT_PUBLIC_` and `REACT_APP_` appear **nowhere**
+  in this project — if you see one, it is a leftover and should be deleted.
+- Harness fixtures use obvious throwaways (`verify-*@example.test`) and are
+  created and deleted inside a single run. They must never be given a password
+  that would work outside it.
+- `.env.example` is the only env file that may be committed, and it must contain
+  **placeholders only** — never a real value, not even a rotated one.
 
 ## Status notes
 

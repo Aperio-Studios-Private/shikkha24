@@ -25,8 +25,23 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
  * `state` would be a valid reader session and vice versa.
  */
 
-/** Default signing key. Rotation invalidates every outstanding token at once. */
-function signingKey(): string {
+/**
+ * The secret everything in this CMS signs with — or a loud failure.
+ *
+ * ⚠️ **There is deliberately no fallback.** An earlier revision of
+ * `lib/reactions.ts` and `endpoints/poll-vote.ts` keyed their HMACs with
+ * `PAYLOAD_SECRET || <a hardcoded string>`. Those literals are named in the
+ * README's rotation table and are still recoverable from git history, and while
+ * `payload.config.ts` also refuses to boot without the variable — which makes the
+ * fallback unreachable today — a predictable signing key is exactly the kind of
+ * thing a later refactor revives by accident. A fingerprint keyed with a
+ * published constant is forgeable: reaction counts and poll tallies could be
+ * stuffed by anyone who read the source.
+ *
+ * Exported rather than duplicated so there is **one** place that decides what
+ * signs things, and one place to fail.
+ */
+export function requirePayloadSecret(): string {
   const secret = process.env.PAYLOAD_SECRET
   if (!secret) {
     // Failing loudly beats signing with a fallback. A predictable key would let
@@ -50,7 +65,9 @@ interface TokenEnvelope {
 }
 
 function digest(context: string, payload: string): string {
-  return createHmac('sha256', signingKey()).update(`${context}.${payload}`).digest('base64url')
+  return createHmac('sha256', requirePayloadSecret())
+    .update(`${context}.${payload}`)
+    .digest('base64url')
 }
 
 /**

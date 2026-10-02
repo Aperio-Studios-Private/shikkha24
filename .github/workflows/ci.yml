@@ -92,6 +92,17 @@ jobs:
         # universities use several.
         run: pnpm run verify:cgpa
 
+      - name: Verify the bookmark merge policy
+        # Bookmark sync reconciles a list the reader owns on two devices, and every
+        # wrong answer here is SILENT data loss — a save that disappears, or a
+        # bookmark the reader deleted coming back. Neither throws and neither shows
+        # up in a build, so the policy gets a harness of its own.
+        #
+        # This is the browser half (the pending-queue replay). The server's half —
+        # "first sync merges, every sync after that takes the server's answer" — is
+        # asserted over HTTP by `verify:endpoints` in the with-CMS step below.
+        run: pnpm run verify:bookmarks
+
       # ── Frontend ────────────────────────────────────────────────────────────
       - name: Astro sync (generate content + env types)
         # `astro sync` writes .astro/types.d.ts, which tsconfig.json includes.
@@ -253,8 +264,9 @@ jobs:
 
       - name: Verify build output
         # Asserts the dist directory is well-formed: sitemaps present and populated,
-        # no inline scripts, no stale URL prefixes, correct page count. Catches
-        # a thin build (dead CMS → green exit code but missing pages).
+        # no inline scripts, no stale URL prefixes, and — since 2026-10-02 — that
+        # the build is not THIN. No CMS_URL here, so it applies the absolute floor
+        # rather than comparing against a live CMS count.
         run: pnpm run verify:build-output
 
       - name: Verify internal links

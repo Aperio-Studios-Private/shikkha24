@@ -1,4 +1,6 @@
-import { signToken, verifyToken } from './signed-token'
+import type { PayloadRequest } from 'payload'
+
+import { readCookie, signToken, verifyToken } from './signed-token'
 
 /**
  * The reader session cookie a social login leaves behind.
@@ -78,4 +80,22 @@ export function readerSessionSetCookie(token: string): string {
 /** The `Set-Cookie` value that clears a session — used on logout. */
 export function readerSessionClearCookie(): string {
   return `${READER_SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`
+}
+
+/**
+ * The session's reader id as a number, or `null` when there is no session.
+ *
+ * ⚠️ The token carries the id as a **string** (it is signed, not typed) and the
+ * relationship columns are numeric, so it is parsed and range-checked rather than
+ * cast. A token that somehow held a non-numeric id yields `null` — which every
+ * caller treats as "anonymous", never as "reader 0".
+ *
+ * Shared rather than re-implemented per endpoint: this is the one place that
+ * decides who a request is, and two copies would be two chances to disagree.
+ */
+export function readerIdFromRequest(req: PayloadRequest): number | null {
+  const id = verifyReaderSession(readCookie(req.headers.get('cookie'), READER_SESSION_COOKIE))
+  if (!id) return null
+  const numeric = Number(id)
+  return Number.isInteger(numeric) && numeric > 0 ? numeric : null
 }

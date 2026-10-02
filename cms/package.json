@@ -20,6 +20,7 @@
     "seed": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/run.ts",
     "seed:demo": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/demo-run.ts",
     "seed:demo:purge": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/demo-purge.ts",
+    "seed:universities": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/universities-run.ts",
     "verify:media": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/media.ts",
     "verify:access": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/access.ts",
     "verify:endpoints": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/endpoints.ts",

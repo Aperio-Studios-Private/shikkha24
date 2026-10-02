@@ -70,26 +70,74 @@ export async function getPublishedResults(limit = 50): Promise<CmsResultLink[]> 
   return data?.docs ?? []
 }
 
-/* ── Institutions (N4) ─────────────────────────────────────────── */
+/* ── Institutions (N4, extended by S18) ────────────────────────── */
+
+/** The `contact` group — S18 moved `address` in here. */
+export interface CmsInstitutionContact {
+  address?: string | null
+  phone?: string | null
+  email?: string | null
+  mapUrl?: string | null
+}
+
+export interface CmsInstitutionFaculty {
+  name?: string
+  departments?: Array<{ name?: string }> | null
+}
+
+/** A fee row. `verifiedAt` is required by the CMS — never render `amount` without it. */
+export interface CmsInstitutionFee {
+  programme?: string
+  amount?: string
+  period?: string | null
+  academicYear?: string
+  note?: string | null
+  sourceUrl?: string | null
+  verifiedAt?: string | null
+}
 
 export interface CmsInstitution {
   id: number | string
   nameBn: string
   nameEn?: string | null
+  acronym?: string | null
   slug: string
+  /** Ownership axis — `public` | `private` | `nu-college` | `madrasa`. */
   type?: string | null
+  /** Subject axis — separate from `type`; an institution can be both. */
+  discipline?: string | null
   levelOffered?: Array<{ nameBn?: string; slug?: string } | number> | null
   district?: { nameBn?: string; slug?: string } | number | null
   established?: number | null
   website?: string | null
   logo?: CmsMedia | number | null
-  address?: string | null
+  /**
+   * ⚠️ **S18 moved `address` into this group.** A page still reading
+   * `institution.address` renders nothing rather than erroring, because `.astro`
+   * frontmatter is not typechecked.
+   */
+  contact?: CmsInstitutionContact | null
   description?: unknown
+  faculties?: CmsInstitutionFaculty[] | null
+  admissionInfo?: Array<{ label?: string; value?: string }> | null
+  admissionUrl?: string | null
+  tuitionFees?: CmsInstitutionFee[] | null
+  importantLinks?: Array<{ label?: string; url?: string }> | null
   isVerified?: boolean | null
+  lastVerifiedAt?: string | null
+  dataSource?: string | null
+  wikidataId?: string | null
 }
 
-/** All institutions, name-sorted. */
-export async function getInstitutions(limit = 200): Promise<CmsInstitution[]> {
+/**
+ * All institutions, name-sorted.
+ *
+ * ⚠️ The default is a **cap, not a page size** — the index renders what it is
+ * given, and S19's import put 724 rows behind it. It is deliberately above the
+ * current count so nothing is silently hidden; S20 replaces this with real
+ * filtering over the two axes, at which point the number stops being a guess.
+ */
+export async function getInstitutions(limit = 1000): Promise<CmsInstitution[]> {
   const q = new URLSearchParams({ limit: String(limit), depth: '2', sort: 'nameBn' })
   const data = await cmsFetch<{ docs?: CmsInstitution[] } | null>(`/api/institutions?${q}`, null)
   return data?.docs ?? []
@@ -106,14 +154,69 @@ export async function getInstitutionBySlug(slug: string): Promise<CmsInstitution
   return data?.docs?.[0] ?? null
 }
 
-/** Every institution slug — for `/institutions/[slug]` routes. */
+/**
+ * Every institution slug — for `/institutions/[slug]` routes.
+ *
+ * ⚠️ **Paginated, and that is the whole point.** A single `limit: 200` request
+ * silently produced 200 pages for 724 institutions, with a green build and no
+ * warning — the same shape as the `getAllArticleSlugs()` 500-cap defect. A
+ * static build only emits the paths `getStaticPaths` returns, so a capped list
+ * is a directory that is two-thirds missing rather than an error.
+ */
 export async function getAllInstitutionSlugs(): Promise<string[]> {
-  const q = new URLSearchParams({ limit: '200' })
-  const data = await cmsFetch<{ docs?: Array<{ slug: string }> } | null>(
-    `/api/institutions?${q}`,
-    null,
-  )
-  return (data?.docs ?? []).map((d) => d.slug).filter(Boolean)
+  const limit = 500
+  let page = 1
+  let totalPages = 1
+  const all: string[] = []
+
+  do {
+    const data = await cmsFetch<{
+      docs?: Array<{ slug: string }>
+      totalPages?: number
+    } | null>(
+      `/api/institutions?${new URLSearchParams({ limit: String(limit), page: String(page) })}`,
+      null,
+    )
+    for (const doc of data?.docs ?? []) {
+      if (doc.slug) all.push(doc.slug)
+    }
+    totalPages = data?.totalPages ?? 1
+    page++
+  } while (page <= totalPages)
+
+  return all
+}
+
+/** A published article linked to an institution. */
+export interface CmsInstitutionArticle {
+  id: number | string
+  title: string
+  slug: string
+  excerpt?: string | null
+  publishedAt?: string | null
+  category?: { nameBn?: string; slug?: string } | number | null
+}
+
+/**
+ * Published articles linked to one institution, newest first.
+ *
+ * ⚠️ The link is `Articles.university` — the profile queries it rather than the
+ * institution holding a list. So publishing a story is the whole job: there is no
+ * second editing step, and the two cannot disagree about what belongs here.
+ */
+export async function getInstitutionArticles(
+  institutionId: number | string,
+  limit = 30,
+): Promise<CmsInstitutionArticle[]> {
+  const q = new URLSearchParams({
+    'where[university][equals]': String(institutionId),
+    'where[_status][equals]': 'published',
+    limit: String(limit),
+    depth: '1',
+    sort: '-publishedAt',
+  })
+  const data = await cmsFetch<{ docs?: CmsInstitutionArticle[] } | null>(`/api/articles?${q}`, null)
+  return data?.docs ?? []
 }
 
 /* ── Circulars (N8) ────────────────────────────────────────────── */

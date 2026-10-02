@@ -1,5 +1,7 @@
 import { createHmac } from 'node:crypto'
 
+import { requirePayloadSecret } from './signed-token'
+
 /**
  * The reaction vocabulary, and the one-way fingerprint that dedupes it.
  *
@@ -41,11 +43,14 @@ export function isReactionType(value: unknown): value is ReactionType {
  *
  * Deliberately excludes anything that would let the row be joined back to a
  * person, and deliberately the same shape as the poll-voter hash.
+ *
+ * ⚠️ Keyed with the required secret, **never a literal fallback** — see
+ * `requirePayloadSecret`. A fingerprint keyed with a published constant is
+ * forgeable, and this value is the only thing stopping one caller from casting
+ * unlimited "unique" reactions.
  */
 export function reactionFingerprint(ip: string, userAgent: string): string {
-  return createHmac('sha256', process.env.PAYLOAD_SECRET || 'shikkha24-reactions')
-    .update(`${ip}|${userAgent}`)
-    .digest('hex')
+  return createHmac('sha256', requirePayloadSecret()).update(`${ip}|${userAgent}`).digest('hex')
 }
 
 /** Every reaction type at zero — the shape a counts response always has. */

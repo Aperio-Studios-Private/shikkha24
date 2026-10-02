@@ -1,27 +1,57 @@
 # University Directory — specification
 
-**Status:** ✅ **APPROVED 2026-09-30** — scope and model decided (§6). 🚧 **S18 not started** (§0).
+**Status:** ✅ **APPROVED 2026-09-30** — scope and model decided (§6). ✅ **S18, S19 and S20 BUILT**; S21's admin experience is built and its **authoring is owner work** (§0).
 **Requested:** 2026-09-30 · **Supersedes:** the N4 "institution directory" starter set (S10)
 
 ---
 
 ## 0. Where this stands — read this first
 
-**Nothing is built.** The repository is at the last verified commit, and the CMS boots and passes
-its gates. The section plan and the exact field list are in `.sps/task.md` → "S18–S21".
+✅ **S18 (the model), S19 (the import) and S20 (the frontend) are built.** S21's admin experience is
+built; its **authoring half is owner work**, because every remaining field is one no source carries.
+The section plan and the exact field list are in `.sps/task.md` → "S18–S21".
 
-⚠️ **S18 was started and then deliberately reverted.** The model changes were written and passed
-lint and typecheck, but the **Payload schema push hung** — 4+ minutes, twice, including after
-clearing the WAL — instead of applying them, leaving the code expecting columns the database did not
-have. A repository where every CMS boot hangs is worse than one where S18 has not begun, so the six
-changed files were reverted. **The database was never damaged**: it still holds its 5 institutions
-and its original columns, and it was backed up before the attempt.
+**What shipped:** the two-axis model · a re-runnable Wikidata import (CC0, one query) that created
+**724 institutions** and rejected 216 with named reasons · profile sections with a mandatory
+**সর্বশেষ যাচাই** date on every fee · the news linkage · JSON-LD · a hub whose categories are filters
+over the two axes.
 
-**Resume by making the schema change and proving the push completes before building on it.** The
-trap is documented in `sandbox-build-traps`; if the push hangs again, the fix is in that skill, not
-in this feature.
+⚠️ **Two findings that changed what could be built:**
 
-Everything below is the design. It is complete and approved — only the implementation is outstanding.
+1. **Wikidata carries no discipline.** 706 of the 724 imported rows have none, so §2.1's
+   "seven browse categories, each a filter over the two axes" could not be built as written — a
+   discipline-based navigation would have had four categories holding 0–7 entries. The owner chose
+   **"best practice"**, so the nav is the ownership axis (4 populated categories) with the discipline
+   axis as a second filter row that appears only where it has data.
+2. **The seven categories are never named**, here or anywhere else. §2.1 gives the *shape* (a filter
+   over an axis) and one example each, not a list. If a specific list existed in the original
+   request, it is not in the repository.
+
+⚠️ **A third of §2.1's promise is still unrealised, and it is not a code problem.** "Engineering =
+`discipline:engineering`" needs someone to fill `discipline` in. Until S21 does, the engineering
+browse path is a filter with 7 entries.
+
+### ⚠️ The earlier "hung schema push" was misdiagnosed — read before blaming the database
+
+S18 was started on 2026-09-30 and reverted when the **Payload schema push appeared to hang** (4+
+minutes, twice, including after clearing the WAL). **The push was never the problem.**
+`pnpm run` in that environment triggers pnpm 11's pre-run dependency check, which shells out to
+`pnpm install` — and that either failed with `CODEBUDDY_BROKER_DENY EEXIST` or **hung indefinitely**
+(10 minutes observed). Running the Payload CLI **directly**, with the dependency check disabled,
+completes the push in seconds.
+
+Two separate things were being conflated, and they have different triggers:
+
+| Failure | Trigger | Fix |
+|---|---|---|
+| `pnpm install` hangs / `EEXIST` | **any** `pnpm run` in this sandbox | run the Payload CLI directly with `--config.verify-deps-before-run=false` |
+| `index … already exists` (drizzle) | a **pre-existing** DB whose schema predates the change | drop the named index and retry, until it converges |
+
+⚠️ **A fresh database pushes cleanly and is idempotent** (verified by booting one twice), so CI —
+which seeds a fresh `ci.db` — was never at risk. Only an existing archive needs the iterate-and-retry
+treatment.
+
+Everything below is the design. §1–§7 are complete and approved; §2 is now implemented.
 
 ---
 
@@ -94,9 +124,14 @@ Four candidate sources were fetched and inspected on 2026-09-30. This is what th
    publish pages for universities that do not exist.
 4. ⚠️ **The dataset is ~20 months stale** (`last_updated: 2025-01-27`), and the university count has
    already moved (216 there vs 272 in Wikidata).
-5. ⚠️ **No source has any of the rich profile fields.** Faculties, departments, admission
-   information, tuition/fees, important links and contact exist in **none** of them. They are
-   per-institution editorial work, full stop.
+5. ⚠️ **Faculties and departments ARE partly sourced — measured 2026-10-01, correcting this
+   document's earlier claim.** Wikidata carries `P527` (has part) for **64** of the 940 BD
+   higher-education items, and of those parts **58 are typed `faculty`, 41 with a Bengali label**,
+   holding **179 Bengali-labelled departments**. That is not "no source" — it is thin, uneven coverage
+   concentrated in the large public universities (Dhaka 12 faculties, Rajshahi 10, BUET 5), which is
+   exactly where the worked example starts. **S19 imports it.**
+   Admission information, tuition/fees, important links and a real contact block remain in **no**
+   source. Those are per-institution editorial work, full stop.
 6. ✅ **Wikidata is CC0** — no attribution or share-alike obligation, unlike the Wikipedia-derived
    file. Where the two disagree, **prefer Wikidata**, and take only *facts* from either (names,
    dates, locations are not copyrightable; prose is, and we will not copy any).
@@ -185,4 +220,72 @@ looks authoritative. The mitigations are therefore **not optional**:
   Wikidata, stale, and includes proposed universities.
 - Scrape the NU portal past its CSRF check for district data.
 - Publish English-named pages on a Bengali-only site.
-- Guess a fee, a faculty list or a department list for any institution.
+- Guess a fee, a faculty list or a department list for any institution. **Importing a sourced list is
+  not guessing** — see §8 — but filling in a gap from the institution's *name* is, and it is wrong
+  (§8.2).
+
+---
+
+## 8. What the source actually carries — measured 2026-10-01, and the decisions that followed
+
+Written after the import ran, because three things this document asserted or assumed turned out to be
+false once there was data to check them against.
+
+### 8.1 Faculties and departments are partly sourced (§3.1.5 corrected)
+
+Wikidata's `P527` (has part) covers **64** of the 940 BD higher-education items. Of those parts,
+**58 are typed `faculty` (41 with a Bengali label)** and they carry **179 Bengali-labelled
+departments**. Coverage is thin and concentrated: Dhaka 12 faculties, Rajshahi 10, Chittagong 10,
+BUET 5, Agricultural 6, Barishal 6.
+
+**Decision: the import takes them.** They are facts from a CC0 source, they carry Bengali names, and
+they land exactly where the worked example starts. ⚠️ They arrive **partial** — Dhaka has more than
+12 faculties — so they are imported **unverified**, and the profile page says so (§8.3).
+
+### 8.2 `discipline` is author-only, and the obvious automation is provably wrong
+
+This is the feature's largest remaining gap: **706 of 724 imported rows have no `discipline`**, so
+§2.1's "Engineering = `discipline:engineering`" browse path is a filter with 7 entries.
+
+Two automations were tested and **both were rejected on the evidence**:
+
+- **From the institution's name.** A conservative keyword rule (`মেডিকেল` → medical, `প্রকৌশল` /
+  `ইঞ্জিনিয়ারিং` / `টেকনোলজি` → engineering, `কৃষি` → agricultural, …) would classify 77 more rows —
+  and it files **বাংলাদেশ ইউনিভার্সিটি অব বিজনেস অ্যান্ড টেকনোলজি** (a *business* university) as
+  engineering, and **ইসলামিয়া কলেজ** (a general degree college) as Islamic. It is wrong for exactly
+  the institutions whose names carry two subjects.
+- **From the institution's own faculties.** A university with a Faculty of Engineering is not an
+  engineering university — Dhaka has one. Deriving `discipline` from parts would file Dhaka as
+  engineering.
+
+`discipline` answers *what an institution primarily is*, and **no source states that**. It is a
+judgement, so it stays with the editor. The nav is built to survive its absence (§8.4).
+
+### 8.3 Unverified rows now say so on the page
+
+`isVerified` previously only added a ✓ when true, which made its absence ambiguous — a reader could
+not tell "checked" from "never looked at". Every unverified profile now prints **যাচাই করা হয়নি** in
+the same badge row, so an imported partial faculty list cannot pass for a checked one.
+
+### 8.4 The navigation is filters over the two axes, on the hub
+
+§2.1 asks for "the 7-category navigation, each a filter over the two axes". ⚠️ **The seven are never
+enumerated — not here, not anywhere in the repository.** §2.1 gives the *shape* and one example per
+axis, not a list. Asked directly, the owner chose **"best practice"**.
+
+The data then ruled out the obvious reading: with 706 of 724 rows lacking a discipline, a
+discipline-based navigation would have had four categories holding **0–7 entries** each.
+
+**Decision:** the nav is the **ownership axis** — four categories, all populated
+(সরকারি 56 · বেসরকারি 112 · জাতীয় বিশ্ববিদ্যালয় অধিভুক্ত কলেজ 554 · মাদ্রাসা 3) — plus a
+**discipline filter row that renders only where it has data**. A filter matching nothing is honest; a
+nav category matching nothing is a dead end.
+
+The categories are **filters on `/institutions`, not separate routes**, and that is a CSP constraint
+rather than a preference: `.htaccess` tags *any* three-segment path `SHIKKHA24_CSP_ARTICLE`, which
+grants video framing a listing has no use for, and the file forbids fixing that with an enumeration of
+reserved roots (`/study-abroad` is the cautionary tale). `/institutions/<type>` would also collide
+with `/institutions/[slug]`.
+
+⚠️ **If the original request had a specific list of seven, it is not in the repository and should be
+written here.**

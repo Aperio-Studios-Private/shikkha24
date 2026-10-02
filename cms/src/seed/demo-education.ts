@@ -11,6 +11,7 @@ import type { Payload } from 'payload'
 interface SlugAgnosticPayload {
   find(args: Record<string, unknown>): Promise<{ docs: Array<Record<string, unknown>> }>
   create(args: Record<string, unknown>): Promise<Record<string, unknown>>
+  update(args: Record<string, unknown>): Promise<Record<string, unknown>>
 }
 
 export interface EducationReport {
@@ -140,6 +141,7 @@ const INSTITUTIONS = [
     nameEn: 'University of Dhaka',
     slug: 'demo-du',
     type: 'public',
+    discipline: 'general',
     levelSlugs: ['undergraduate', 'postgraduate'],
     districtSlug: 'dhaka',
     established: 1921,
@@ -153,6 +155,7 @@ const INSTITUTIONS = [
     nameEn: 'BUET',
     slug: 'demo-buet',
     type: 'public',
+    discipline: 'engineering',
     levelSlugs: ['undergraduate', 'postgraduate'],
     districtSlug: 'dhaka',
     established: 1912,
@@ -166,6 +169,7 @@ const INSTITUTIONS = [
     nameEn: 'University of Rajshahi',
     slug: 'demo-ru',
     type: 'public',
+    discipline: 'general',
     levelSlugs: ['undergraduate', 'postgraduate'],
     districtSlug: 'rajshahi',
     established: 1953,
@@ -179,6 +183,7 @@ const INSTITUTIONS = [
     nameEn: 'North South University',
     slug: 'demo-nsu',
     type: 'private',
+    discipline: 'general',
     levelSlugs: ['undergraduate', 'postgraduate'],
     districtSlug: 'dhaka',
     established: 1992,
@@ -192,6 +197,7 @@ const INSTITUTIONS = [
     nameEn: 'BRAC University',
     slug: 'demo-bracu',
     type: 'private',
+    discipline: 'general',
     levelSlugs: ['undergraduate', 'postgraduate'],
     districtSlug: 'dhaka',
     established: 2001,
@@ -201,6 +207,74 @@ const INSTITUTIONS = [
     desc: 'ব্র্যাক বিশ্ববিদ্যালয়।',
   },
 ]
+
+/**
+ * A demo institution carrying a **full Tier-2 profile**.
+ *
+ * ⚠️ S20's profile sections are each gated on their own data, so with nothing
+ * carrying fees, faculties or links they render nowhere — and a section that
+ * never renders is a section nothing verifies. The fee table matters most: it
+ * prints the mandatory **সর্বশেষ যাচাই** date, and that guarantee is the entire
+ * reason `tuitionFees[].verifiedAt` is `required`.
+ *
+ * The name is deliberately fictional. The other demo institutions carried **real**
+ * names (ঢাকা বিশ্ববিদ্যালয়), which is exactly why S19's import had to adopt
+ * them; throwaway data must not shadow a real institution a second time.
+ *
+ * These fees are invented sample figures on a university that does not exist.
+ * They must never be copied onto a real institution — `docs/university-directory.md`
+ * §7 forbids guessing a fee.
+ */
+const RICH_PROFILE = {
+  slug: 'demo-rich-profile',
+  nameBn: 'ডেমো নমুনা বিশ্ববিদ্যালয়',
+  nameEn: 'Demo Sample University',
+  type: 'private',
+  discipline: 'engineering',
+  levelSlugs: ['undergraduate', 'postgraduate'],
+  districtSlug: 'dhaka',
+  established: 2005,
+  website: 'https://example.edu',
+  address: 'নমুনা সড়ক, ঢাকা-১২১২',
+  phone: '+৮৮০ ১০০০-০০০০০০',
+  email: 'info@example.edu',
+  mapUrl: 'https://example.edu/map',
+  desc: 'ডেমো প্রোফাইল — S20-এর প্রতিটি সেকশন পরীক্ষা করার জন্য। প্রকৃত প্রতিষ্ঠান নয়।',
+  faculties: [
+    {
+      name: 'প্রকৌশল অনুষদ',
+      departments: [{ name: 'কম্পিউটার বিজ্ঞান ও প্রকৌশল' }, { name: 'তড়িৎ ও ইলেকট্রনিক প্রকৌশল' }],
+    },
+    { name: 'ব্যবসায় প্রশাসন অনুষদ', departments: [{ name: 'হিসাববিজ্ঞান' }] },
+  ],
+  admissionInfo: [
+    { label: 'আবেদনের সময়', value: 'মে–জুন' },
+    { label: 'ভর্তি পরীক্ষা', value: 'জুলাই' },
+  ],
+  admissionUrl: 'https://example.edu/admission',
+  tuitionFees: [
+    {
+      programme: 'বিএসসি প্রকৌশল',
+      amount: '১,২০,০০০',
+      period: 'per-year',
+      academicYear: '২০২৬',
+      sourceUrl: 'https://example.edu/fees',
+      verifiedAt: '2026-09-30',
+    },
+    {
+      programme: 'এমবিএ',
+      amount: '৮০,০০০',
+      period: 'per-semester',
+      academicYear: '২০২৬',
+      note: 'ভর্তি ফি অন্তর্ভুক্ত নয়',
+      verifiedAt: '2026-09-30',
+    },
+  ],
+  importantLinks: [
+    { label: 'ভর্তি পাতা', url: 'https://example.edu/admission' },
+    { label: 'একাডেমিক ক্যালেন্ডার', url: 'https://example.edu/calendar' },
+  ],
+}
 
 const CIRCULARS = [
   {
@@ -420,25 +494,119 @@ export async function seedDemoEducation(payload: Payload): Promise<EducationRepo
     )
   }
 
+  /*
+   * ⚠️ Institutions are matched on slug **or Bengali name**, not on slug alone.
+   *
+   * S19's Wikidata import **adopts** a row whose Bengali name already exists and
+   * **re-slugs** it — because `demo-purge` deletes `demo-` institutions, and a row
+   * that has become real data must not be deleted with the throwaway content it
+   * was created as. A slug-only lookup therefore misses the adopted row and
+   * creates a second copy of a real university.
+   */
+  const institutionIds = new Map<string, unknown>()
   for (const i of INSTITUTIONS) {
-    await seedOne(
-      'institutions',
-      { slug: { equals: i.slug } },
-      {
+    const existing = await db.find({
+      collection: 'institutions',
+      where: { or: [{ slug: { equals: i.slug } }, { nameBn: { equals: i.nameBn } }] },
+      limit: 1,
+      overrideAccess: true,
+    })
+    if (existing.docs.length > 0) {
+      institutionIds.set(i.slug, existing.docs[0].id)
+      continue
+    }
+    const created = await db.create({
+      collection: 'institutions',
+      data: {
         nameBn: i.nameBn,
         nameEn: i.nameEn,
         slug: i.slug,
         type: i.type,
+        discipline: i.discipline,
         levelOffered: i.levelSlugs.map((s) => levelIds.get(s)),
         district: districtIds.get(i.districtSlug),
         established: i.established,
         website: i.website,
-        address: i.address,
+        // S18 moved `address` into the `contact` group.
+        contact: { address: i.address },
         isVerified: i.isVerified,
         description: body(i.desc),
       },
-      'institutions',
-    )
+      overrideAccess: true,
+    })
+    institutionIds.set(i.slug, created.id)
+    report.institutions++
+  }
+
+  // The rich-profile fixture — see `RICH_PROFILE` for why it exists.
+  const richExisting = await db.find({
+    collection: 'institutions',
+    where: {
+      or: [{ slug: { equals: RICH_PROFILE.slug } }, { nameBn: { equals: RICH_PROFILE.nameBn } }],
+    },
+    limit: 1,
+    overrideAccess: true,
+  })
+  if (richExisting.docs.length === 0) {
+    await db.create({
+      collection: 'institutions',
+      data: {
+        nameBn: RICH_PROFILE.nameBn,
+        nameEn: RICH_PROFILE.nameEn,
+        slug: RICH_PROFILE.slug,
+        type: RICH_PROFILE.type,
+        discipline: RICH_PROFILE.discipline,
+        levelOffered: RICH_PROFILE.levelSlugs.map((s) => levelIds.get(s)),
+        district: districtIds.get(RICH_PROFILE.districtSlug),
+        established: RICH_PROFILE.established,
+        website: RICH_PROFILE.website,
+        contact: {
+          address: RICH_PROFILE.address,
+          phone: RICH_PROFILE.phone,
+          email: RICH_PROFILE.email,
+          mapUrl: RICH_PROFILE.mapUrl,
+        },
+        faculties: RICH_PROFILE.faculties,
+        admissionInfo: RICH_PROFILE.admissionInfo,
+        admissionUrl: RICH_PROFILE.admissionUrl,
+        tuitionFees: RICH_PROFILE.tuitionFees,
+        importantLinks: RICH_PROFILE.importantLinks,
+        isVerified: false,
+        description: body(RICH_PROFILE.desc),
+      },
+      overrideAccess: true,
+    })
+    report.institutions++
+  }
+
+  /*
+   * Link a few demo articles to an institution, so the profile page's news
+   * linkage is actually exercised. `Articles.university` is the only entry point
+   * for that relationship, so with no linked article the whole section is
+   * unrendered — and an unrendered section is an unverified one.
+   */
+  const ARTICLE_LINKS: Array<[article: string, institution: string]> = [
+    ['demo-admission-circular-dhaka', 'demo-du'],
+    ['demo-admission-medical-2027', 'demo-du'],
+    ['demo-admission-engineering-2027', 'demo-buet'],
+  ]
+  for (const [articleSlug, institutionSlug] of ARTICLE_LINKS) {
+    const institutionId = institutionIds.get(institutionSlug)
+    if (!institutionId) continue
+    const article = await db.find({
+      collection: 'articles',
+      where: { slug: { equals: articleSlug } },
+      limit: 1,
+      overrideAccess: true,
+    })
+    const doc = article.docs[0]
+    if (!doc || doc.university) continue
+    await db.update({
+      collection: 'articles',
+      id: doc.id,
+      data: { university: institutionId },
+      overrideAccess: true,
+    })
   }
 
   for (const c of CIRCULARS) {

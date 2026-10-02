@@ -25,6 +25,8 @@
  */
 import Layout from '../layouts/Layout.astro'
 import Breadcrumbs from '../components/Breadcrumbs.astro'
+import BookmarkSync from '../components/BookmarkSync.astro'
+import AccountDeletion from '../components/AccountDeletion.astro'
 import { isEnabled } from '../lib/feature-flags'
 import {
   getSiteSettings,
@@ -96,6 +98,12 @@ const enabled = isEnabled('bookmarks')
             এখনো কিছু সংরক্ষণ করা হয়নি। যেকোনো সংবাদের পাশে ☆ চিহ্নে চাপ দিয়ে সংরক্ষণ করুন।
           </p>
 
+          {/*
+            The sync island. This page is where the first sync happens — see
+            `lib/bookmark-sync.ts` for why it runs here and not on every page.
+          */}
+          <BookmarkSync />
+
           <div class="mt-6 flex flex-wrap items-center gap-3">
             <button
               type="button"
@@ -111,6 +119,12 @@ const enabled = isEnabled('bookmarks')
             >
             </p>
           </div>
+
+          {/*
+            Renders nothing unless a reader is signed in — it asks the CMS who the
+            session names and stays hidden otherwise.
+          */}
+          <AccountDeletion />
         </>
       )
     }

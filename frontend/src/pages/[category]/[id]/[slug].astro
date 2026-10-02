@@ -25,6 +25,7 @@ import AuthorCard from '../../../components/AuthorCard.astro'
 import RelatedArticles from '../../../components/RelatedArticles.astro'
 import ShareRow from '../../../components/ShareRow.astro'
 import BookmarkButton from '../../../components/BookmarkButton.astro'
+import BookmarkSync from '../../../components/BookmarkSync.astro'
 import ReadingProgress from '../../../components/ReadingProgress.astro'
 import CorrectionNotice from '../../../components/CorrectionNotice.astro'
 import ArticleAudio from '../../../components/ArticleAudio.astro'
@@ -536,6 +537,9 @@ const imageGalleryLd =
             title={article.title}
           />
         </div>
+
+        {/* Renders no markup — it mirrors bookmark changes to the CMS (S9). */}
+        <BookmarkSync />
 
         <AuthorCard author={author} publishedAt={article.publishedAt} />
 

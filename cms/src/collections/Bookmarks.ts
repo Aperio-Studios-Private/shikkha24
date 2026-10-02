@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
 import { isOwnReaderRowOrSuperAdmin, isSuperAdmin, noOne } from '../access/roles'
+import { bookmarkEndpoints } from '../endpoints/bookmarks'
 
 /**
  * Reader bookmarks — one row per saved item, owned by the reader who saved it.
@@ -37,6 +38,14 @@ export const Bookmarks: CollectionConfig = {
     defaultColumns: ['reader', 'kind', 'createdAt'],
     description: 'পাঠকের সেভ করা সংবাদ ও সময়সীমা।',
   },
+  /*
+   * `/api/bookmarks/sync` and `/api/bookmarks/toggle` — the S9 sync half.
+   *
+   * ⚠️ Collection endpoints, so the paths are relative and are matched **before**
+   * the generated routes. At the API root, `/api/bookmarks/sync` would be read as
+   * "collection `bookmarks`, document id `sync`" and never reach the handler.
+   */
+  endpoints: bookmarkEndpoints,
   access: {
     /*
      * ⚠️ The generated create route is closed. Ownership lives in the `reader`
@@ -92,6 +101,32 @@ export const Bookmarks: CollectionConfig = {
       index: true,
       label: { en: 'Deadline', bn: 'সময়সীমা' },
       admin: { condition: (_data, siblingData) => siblingData?.kind === 'deadline' },
+    },
+    /*
+     * ⚠️ **The title and slug are a deliberate denormalisation, and the sync
+     * cannot work without them.**
+     *
+     * A reader who signs in on a second device has no local list at all — that is
+     * the entire point of syncing — so the server must be able to hand back
+     * something renderable. Storing only the relationship id would force the
+     * client to resolve every bookmark through the articles API before it could
+     * draw the list, one round trip per device per load.
+     *
+     * The cost is accepted: a retitled article keeps the title the reader saved.
+     * That is arguably what a bookmark *should* show, and it is strictly better
+     * than a list that cannot be rendered.
+     */
+    {
+      name: 'title',
+      type: 'text',
+      label: { en: 'Saved title', bn: 'সংরক্ষিত শিরোনাম' },
+      admin: { readOnly: true, description: 'সংরক্ষণের সময়ের শিরোনাম।' },
+    },
+    {
+      name: 'slug',
+      type: 'text',
+      label: { en: 'Saved slug', bn: 'সংরক্ষিত স্লাগ' },
+      admin: { readOnly: true, description: 'সংরক্ষণের সময়ের স্লাগ।' },
     },
   ],
   timestamps: true,

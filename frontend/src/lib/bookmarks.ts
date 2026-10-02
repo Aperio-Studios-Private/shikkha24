@@ -140,6 +140,17 @@ export function clearBookmarks(): void {
 }
 
 /**
+ * Replace the whole list in one go.
+ *
+ * The sync receives the server's list and must be able to install it without
+ * firing one change event per entry — `addBookmark` in a loop would dispatch up
+ * to `MAX_ENTRIES` events and re-render the list once per entry.
+ */
+export function replaceBookmarks(entries: BookmarkEntry[]): void {
+  write(entries)
+}
+
+/**
  * The URL an entry points at.
  *
  * Articles use the shortlink `/a/:id` — the bookmark stores only the id and

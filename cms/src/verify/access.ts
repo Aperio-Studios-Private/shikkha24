@@ -269,7 +269,125 @@ check(
   denied(evaluate(get('assignments'), 'read', 'anonymous')),
 )
 
-// ── 7. CORS — the other access boundary ─────────────────────────────────────
+// ── 7. S18 — the institution directory model ────────────────────────────────
+/*
+ * The directory is a **public** surface with **editorial** writes, so the access
+ * rules are the same shape as any other content collection — asserted anyway,
+ * because `verify:access` exists precisely because "the shape looks fine" was
+ * wrong six times.
+ *
+ * The rest of this section asserts **model contracts** rather than access: the
+ * two axes must stay two fields, and a fee row must not be saveable without the
+ * date it was checked. Those are invisible to an access rule and would otherwise
+ * be unverified — `docs/university-directory.md` §6 makes the fee date
+ * mandatory, so it is asserted as a config fact, not left to discipline.
+ */
+console.log('\n-- S18: the institution directory model --')
+
+type AnyField = Record<string, unknown> & { name?: string; fields?: AnyField[] }
+
+/**
+ * The fields at the collection's own level.
+ *
+ * ⚠️ **Tabs are presentational, so a field inside one is still a top-level
+ * field.** `institutions` moved its ~25 fields into tabs at S21 to make the admin
+ * usable; a lookup that did not descend into them would report every S18 field as
+ * missing and the harness would fail for the wrong reason.
+ */
+function ownFields(fields: unknown): AnyField[] {
+  if (!Array.isArray(fields)) return []
+  const out: AnyField[] = []
+  for (const entry of fields as AnyField[]) {
+    if (entry.type === 'tabs') {
+      for (const tab of (entry.tabs as AnyField[] | undefined) ?? []) {
+        out.push(...ownFields(tab.fields))
+      }
+    } else {
+      out.push(entry)
+    }
+  }
+  return out
+}
+
+/** Top-level lookup — `contact.address` must NOT satisfy a search for `address`. */
+const topField = (collection: CollectionConfig, name: string): AnyField | undefined =>
+  ownFields(collection.fields).find((f) => f.name === name)
+
+/** Recursive lookup, for the group and array sub-fields S18 added. */
+const findField = (fields: unknown, name: string): AnyField | undefined => {
+  for (const entry of ownFields(fields)) {
+    if (entry.name === name) return entry
+    const hit = findField(entry.fields, name)
+    if (hit) return hit
+  }
+  return undefined
+}
+
+const institutions = get('institutions')
+check('institutions: read stays public', allowed(evaluate(institutions, 'read', 'anonymous')))
+check(
+  'institutions: anonymous denied create',
+  denied(evaluate(institutions, 'create', 'anonymous')),
+)
+check(
+  'institutions: reporter ALLOWED create',
+  allowed(evaluate(institutions, 'create', 'reporter')),
+)
+check('institutions: reporter denied delete', denied(evaluate(institutions, 'delete', 'reporter')))
+check(
+  'institutions: editorInChief ALLOWED delete',
+  allowed(evaluate(institutions, 'delete', 'editorInChief')),
+)
+
+/*
+ * ⚠️ The two axes must stay TWO fields. Collapsing them into one exclusive
+ * category would hide BUET from "Public Universities" — the browse path students
+ * use most (`docs/university-directory.md` §2.1).
+ */
+const typeField = topField(institutions, 'type')
+const typeValues =
+  (typeField?.options as Array<{ value: string }> | undefined)?.map((o) => o.value) ?? []
+check(
+  'institutions.type is the ownership axis',
+  JSON.stringify(typeValues) === JSON.stringify(['public', 'private', 'nu-college', 'madrasa']),
+  typeValues.join(',') || 'no options',
+)
+check('institutions.discipline is a SEPARATE field', Boolean(topField(institutions, 'discipline')))
+check('the removed `college` value is gone', !typeValues.includes('college'))
+
+/*
+ * ⚠️ The fee guard. The owner chose an exact figure per programme over a range;
+ * a stale figure *looks* authoritative in a way a missing one does not, so a fee
+ * row cannot be saved without the date it was checked. `required: true` is the
+ * whole safeguard — a UI hint would not be one.
+ */
+const fees = topField(institutions, 'tuitionFees')
+const verifiedAt = findField(fees?.fields, 'verifiedAt')
+check('tuitionFees[].verifiedAt exists', Boolean(verifiedAt))
+check('tuitionFees[].verifiedAt is REQUIRED', verifiedAt?.required === true)
+
+/*
+ * `address` moved into the `contact` group. A page still reading
+ * `institution.address` renders **nothing** rather than erroring, because
+ * `.astro` frontmatter is not typechecked — so the shape is asserted here.
+ */
+check('top-level `address` is gone', !topField(institutions, 'address'))
+check(
+  'contact.address exists',
+  Boolean(findField(topField(institutions, 'contact')?.fields, 'address')),
+)
+
+/*
+ * The news linkage is the **only** entry point for the article↔institution
+ * relationship, and it must not widen article access — `articles` keeps its own
+ * `publishedOrEditor` read rule, which is asserted above.
+ */
+const university = topField(get('articles'), 'university')
+check('articles.university → institutions', university?.relationTo === 'institutions')
+check('articles.university is optional', university?.required !== true)
+check('articles.university is indexed', university?.index === true)
+
+// ── 8. CORS — the other access boundary ─────────────────────────────────────
 /*
  * `cors`/`csrf` decide which browser origins may call this API at all. The
  * production allow-list must be exactly the site origin: a localhost entry there

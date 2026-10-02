@@ -37,11 +37,16 @@
 | What is the S13–S17 specification? | `docs/feature-batch-2.md` |
 | What is the build order and the gates? | `.sps/plan.md` |
 | What is left to do, section by section? | `.sps/task.md` |
+| **What is the QA audit + deploy status right now?** | **`docs/qa-deploy-status-2026-10-02.md`** — the 18 audit findings, the failed CI run, the branch defects, and the ordered deploy blockers |
 | What went wrong, and why? | `.sps/mistakes.md` + this file |
 | Section-by-section evidence | `.sps/section-todos/S*.md` |
 | **What grade calculators already exist, and how do ours compare?** | **`docs/gpa-calculator-landscape.md`** — BD + international landscape, and the positioning |
 
 ## Current Phase
+- **🔴 CI RUN 37012800533 FAILED — the deploy branch cannot produce an artifact (2026-10-02).** Failed at `Seed the CMS database` in 54s: `SQLITE_ERROR: no such table: levels`. **Root cause confirmed, not guessed:** `dadaca7 "fix(cms): opt in to SQLite schema push"` made the schema push conditional — `push: process.env.DB_PUSH === 'true'` — and **`DB_PUSH` is set nowhere in CI**. On `main` there is no `push:` key at all, so Payload auto-creates the schema and the seed works; on the branch it does not. **This is the same error the DianaHost handoff reports for `npm run seed`, so the branch broke BOTH the CI artifact and the production seed — one root cause, two failures.** Fix: `DB_PUSH=true` on the seed step only (throwaway `file:./data/ci.db`, never the runtime). `DB_PUSH` is also undocumented in `cms/.env.example` and should be added with a production warning. **Not yet applied — awaiting approval.** Full analysis: `docs/qa-deploy-status-2026-10-02.md`.
+- **🔴 `.sps/handoff.md` IS DESTROYED ON THE DEPLOY BRANCH (2026-10-02).** The same commit `dadaca7` replaced **1,493 lines of project memory with a 16-byte file** whose entire content is the literal text `@.sps/handoff.md`. Verified: the deploy tip's handoff is 0 lines and contains **zero** occurrences of "dianahost" — the whole deployment history is gone from that branch. **Blast radius checked by scanning every blob at the tip: only this one file is corrupt** (`frontend/src/styles/global.css` looks like a match but is valid CSS starting `@import`, byte-identical to main). Note `cms/src/payload.config.ts` was *also* destroyed by `dadaca7` (16,619 → 26 bytes) and was correctly restored by `3bec83e`, whose only real change to it is the intended 2-line `DB_PUSH` opt-in — so the corruption pattern hit two files and only one was fixed. **Fix: `git checkout main -- .sps/handoff.md` on the branch.** ⚠️ **Lesson: the same `@<path>` corruption destroyed two files in one commit and CI did not catch either** — the seed failed for an unrelated-looking reason, and the 0-byte handoff passed every gate. A file whose entire body is a bare `@path` is never valid content.
+- **✅ GIT INDEX CORRUPTION REPAIRED (2026-10-02) — no work was lost.** Symptom: `git diff` died with `fatal: unable to read 9f25340…`, so **nothing could be committed at all**. **Diagnosis (do not re-derive):** not a shallow clone, not a partial clone, no alternates, no in-progress rebase/merge, no stale lock files. The index pointed at **54 blobs that no longer existed in the object store** (of 393 entries) — a *partial* object deletion, almost certainly the sandbox bulk-delete guard documented above (threshold 50/turn) catching a git maintenance operation. `git log` and `git log --oneline` still worked, so the damage was invisible until you diffed. **Repair, in order (all non-destructive):** 1. backed up `.git/index` and the 3 divergent working-tree files to `/tmp/newsportal-gitbackup/` **before touching anything**; 2. proved recoverability first — **51 of the 54 missing blobs were byte-identical to the working tree** (`git hash-object <file>` == the index hash), so they were rewritten with `git hash-object -w`; 3. the 3 that differed were files **edited after being staged**, so `git add` on them (index should match the working tree — that is the desired state, not a loss); 4. `git write-tree` then succeeded, proving every index object was readable; 5. rebuilt the stale index cache-tree (derived data only) via `read-tree HEAD` + re-stage. **Also cleared:** 24 stale `origin/dependabot/*` remote-tracking refs (branches deleted upstream). **Remaining `fsck` noise is cosmetic and was deliberately left alone:** ~214 invalid reflog entries and ~30 dead commits referenced by the commit-graph — all *unreachable* history. **Verified every reachable commit is intact** (`git rev-list --all` → 0 missing), `HEAD == origin/main == ad217c5`, 377 files in the HEAD tree, `git status`/`diff`/`log` all functional. **Lesson:** after any bulk git operation in this sandbox, run `git fsck --connectivity-only` — a partial object deletion fails *silently* on every read command until you actually diff.
+- **✅ F-04 FIXED — the thin-build guard the docs promised but never had (2026-10-02).** The most destructive latent failure in the pipeline, found by audit. `docs/feature-register.md` §7 standing rule 1 has said *"A green build is not a full build… Assert the page count"* since 2026-09-18, and `.github/workflows/ci.yml` claimed the step *"Catches a thin build (dead CMS → green exit code but missing pages)"* — **but no such assertion existed.** The only check was `articlePages.length > 0`, which a 25-page build passes exactly as comfortably as a 2,000-page one. `htmlFiles.length` appeared solely in `console.log`. **Why it mattered:** `lib/cms.ts` is deliberately built so a CMS outage *cannot* fail the Astro build, and `deploy.yml` then runs `rsync --delete` — so a CMS blip during a rebuild would **delete every published article from the live site** and Google would re-index the loss. **Fix (`scripts/verify-build-output.mjs` §3a), two tiers:** with `CMS_URL` set (**deploy path**) ask the CMS for its published-article count and require the build to hold at least that many article pages — exact and self-calibrating as the archive grows; with no `CMS_URL` (**CI path**) apply a low absolute floor (10) that cannot false-fail. **A configured-but-unreachable CMS FAILS rather than falling back** — falling back would recreate exactly the silence the check exists to remove. **`deploy.yml` also had to pass `CMS_URL` to the verify step** (it was set only on the *build* step), otherwise the exact tier would never have run in production. **Counter-proved all four branches** (project rule: a check never seen to fail is not evidence) — thin build now exits 1, healthy build passes, no-CMS floor passes, unreachable CMS exits 1.
 - **✅ CI REGRESSION FIXED (2026-09-20) — S13's publish guard had broken the seed, and therefore CI itself.** Found by re-running the audit rather than trusting this file: the handoff still said *"✅ CI IS GREEN on the runner"* (true 2026-09-15, **false from 2026-09-18**). The last CI push (`e2b6312`) failed at *Seed the CMS database* with `APIError: সংবাদ প্রকাশ করা যায় শুধু সম্পাদকের অনুমোদনের পর।` — the verbatim string from `guardPublishStatus`. **The chain:** `cms/src/seed/demo.ts` creates demo articles with `_status: 'published'`; S13 added `hooks/publish.ts`, which throws on any transition to `published` by a non-editor; `payload run` has **no session**, so the seed was rejected. **Why the first fix attempt failed (recorded so it is not retried):** `overrideAccess: true` does **not** reach a *collection-level* `beforeChange` hook — Payload forwards it to field-level hooks only (`dist/collections/operations/create.js` builds the collection-hook args from `{ collection, context, data, operation, originalDoc, req }`). The seed already passed `overrideAccess: true`, so the flag looked like the obvious marker and was not. What **is** forwarded is `context` — `createLocalReq` merges it onto `req.context`, which the collection hook receives. Fix: an exported `PROGRAMMATIC_CONTEXT` marker key in `hooks/publish.ts`; the seed passes `context: { [PROGRAMMATIC_CONTEXT]: true }`; the guard stands down for it. **Not attacker-controllable:** `req.context` for an HTTP request is initialised by Payload core and is never populated from a body, query or header (verified in the express/REST layer). **Counter-proved both directions on a FRESH database** (the local DB was already seeded, so it would have hidden this — M12): without the marker `seed:demo` exits 1 with the APIError; with it, exit 0 and 24 articles. **`verify:reporter` still passes** — "reporter cannot publish their own article" holds, because a reader session cannot set the context. Lesson added to the pile: a security hook that does not exempt programmatic writes will eventually break the seed, and CI is where it surfaces.
 - **⚠️ `backup-db.yml` has failed every day since 2026-09-15 (5 straight) at "Prepare SSH key" — this is expected, not a bug.** DianaHost SSH is on-demand and not yet granted, so `DIANAHOST_SSH_KEY` is unset. The workflow fails *loudly* by design ("the archive is unprotected"). Consequence to keep in view: **there is no working backup of any kind right now**, and each failure spends private-repo CI minutes.
 - **✅ Doc drift corrected (2026-09-20):** `docs/seo-plan.md` still flagged `getAllArticleSlugs()` as capped at 500/unfixed — it was fixed in S11 (`getAllArticlePaths()` paginates); the warning is now marked fixed. `.sps/task.md` S2 still named Hind Siliguri + Noto Sans Bengali — replaced by the SolaimanLipi-only decision. (Two more known-but-cosmetic: the feature register still calls the logo a "placeholder" when it is supplied and rendering — only "is it final" is open; and the `docs/image-optimization.md` §2 markup example still shows a `.jpg` fallback `<img>`, stale next to the `fallbackFormat="webp"` fix.)
@@ -1243,6 +1248,205 @@ the host-disk usage alert.
       cleanly onto the existing 8 categories (news → `education-news`/`university`; admission
       circular → `admission`; result → `exams-results`). A distinct Notice group needs either a 9th
       category — a plan amendment — or acceptance that notices appear under news.
+
+53. ✅ **S18 — the university directory model, BUILT** (2026-09-30, commit `519c5b4`). Extends S10's
+    N4 starter set per `docs/university-directory.md` §2. No access rule changed.
+    - 🚨 **THE 2026-09-30 "HUNG SCHEMA PUSH" WAS MISDIAGNOSED, and this is the session's most
+      valuable finding.** The push was never the problem. **`pnpm run` triggers pnpm 11's pre-run
+      dependency check**, which shells out to `pnpm install` — and in this sandbox that either dies
+      with `CODEBUDDY_BROKER_DENY EEXIST` or **hangs indefinitely** (10 min observed). The earlier
+      session read that hang as a drizzle failure and reverted six working files.
+      **Run the Payload CLI directly instead** —
+      `node_modules/.bin/payload run <script>` with `--config.verify-deps-before-run=false` — and the
+      push completes in seconds. A `pnpm` shim that injects that flag makes `pnpm run`, the nested
+      calls inside the project's own scripts, and `with-cms.sh` all work unchanged.
+    - ⚠️ **The drizzle stale-index trap is real, but it is a different failure with a different
+      trigger.** It bites a **pre-existing** database whose schema predates the change: the push
+      re-emits `CREATE INDEX` for indexes that already exist (`articles_title_idx`, then
+      `_articles_v_parent_idx`, …), so it converges only over repeated attempts — drop the named
+      index and retry, as MEMORY trap 4 says. **A fresh database pushes cleanly AND is idempotent**,
+      verified by booting one twice. So CI (which seeds a fresh `ci.db`) was never at risk.
+    - **Two decisions taken while implementing, both against the obvious choice:**
+      (a) **`wikidataId` is indexed but NOT `unique`.** Payload does **not** coerce `''` to `null`
+      for a text field (read in `payload/dist/fields/hooks/beforeValidate/promise.js`), so a unique
+      index would reject the **second** institution saved by hand with a blank ID — and S21 authors
+      the first ten by hand. Proven: two blank-ID rows both save. De-duplication belongs to S19.
+      (b) **`address` was preserved, not dropped.** The rename to `contact.address` was applied as a
+      real `ALTER TABLE … RENAME COLUMN` before the push, so all five seeded addresses survived;
+      `DROP COLUMN` would have taken them with it.
+    - **The two axes are two fields on purpose.** `type` (ownership) and `discipline` (subject); the
+      seven browse categories are *filters over them*. One exclusive category would file BUET either
+      as Public or as Engineering — either way it disappears from one of the two searches students
+      actually use.
+    - **The fee guard is proven, not asserted.** `tuitionFees[].verifiedAt` is `required`; creating a
+      fee row without it is refused with *"Tuition fees 1 > Verified on"*.
+    - **`verify:access` gained 15 assertions** on the model *contracts* (two axes stay two fields,
+      `college` gone, `address` off the top level, fee date `required`) — things an access rule
+      cannot express, asserted as config facts in the harness that already exists.
+    - **Frontend kept green by the model change:** `CmsInstitution` updated,
+      `institution.address` → `institution.contact.address` (visible block **and** JSON-LD), and the
+      duplicated label map extracted to `frontend/src/lib/institution-labels.ts` — the two copies had
+      drifted and still listed the removed `college` value.
+    - **Evidence:** schema push completes (columns/tables/indexes verified in SQLite) · **20/20**
+      round-trip checks over the real local API · lint 0 errors · typecheck clean ·
+      `verify:astro-imports` 139 exports · `verify:access` 0 FAIL (38 collections) · build **156
+      pages** · `verify:build-output` / `verify:links` (7964 links) / `verify:apache` exit 0 · the
+      12-harness CI loop and the with-CMS `sync` + `endpoints` step all pass · database left at its
+      exact prior counts (5 institutions, 24 articles, no strays).
+    - **Next:** S19 (the re-runnable Wikidata import, CC0, one query, no scraping), S20 (the 7-category
+      navigation + profile sections + JSON-LD), S21 (Tier-2 authoring, first ~10 public universities).
+
+54. ✅ **S19, S20 and S21's admin experience — the university directory is live** (2026-10-01,
+    commits `d423ca1`, `bcd868a`, `d0180b5`, `02dcbb5`). **724 institutions** in the directory.
+    - **S19 — the import (`d423ca1`).** One Wikidata SPARQL query (CC0), re-runnable: a second run
+      reports 712 unchanged and writes nothing. 940 candidates → 719 created, 5 adopted, **216
+      rejected with named reasons**. Three rules were wrong before the data corrected them, and each
+      is worth keeping:
+      - ⚠️ The candidate set is `university` + `college` subclasses, **not** the broad
+        `P31/P279* Q38723` walk — that returns 1,283 items including **52 government girls' high
+        schools, 44 schools and 14 cadet colleges**.
+      - ⚠️ **A BD "School and College" is classed by Wikidata as a bare `college`.** 43 were imported
+        before a name check existed. The check must match `স্কুল` and the **full** `উচ্চ বিদ্যালয়` —
+        a bare `বিদ্যালয়` matches `বিশ্ববিদ্যালয়` and would delete the whole university listing.
+      - ⚠️ **University of Rajshahi is tagged `open-access publisher`** alongside `public university`.
+        While both sat in one "not higher education" set the publisher tag won and **a major public
+        university disappeared from the directory**. The fix was the *order* of the checks: a stated
+        ownership now beats a loose tag. Found by spot-checking the output, not by reading the code.
+      - **De-duplication needs two keys.** `wikidataId` catches a re-run; the Bengali name catches a
+        row already present under another identity. The demo placeholders were **real institutions**
+        (`demo-du` *is* ঢাকা বিশ্ববিদ্যালয়), so a name match is **adopted**, not duplicated. ⚠️ An
+        adopted row is **re-slugged** when its slug carries the demo marker — `seed:demo:purge`
+        deletes `demo-` institutions, so a row that has become real data would otherwise be deleted
+        with the throwaway content it was created as.
+      - ⚠️ **The import exposed a silent cap.** `getAllInstitutionSlugs()` asked for `limit: 200`, so
+        a green build emitted 200 pages for 724 institutions and **524 did not exist** — the same
+        shape as the `getAllArticleSlugs()` 500-cap defect. It now paginates.
+      - ⚠️ **Not in CI or `pnpm seed`** — it is the one seed that needs the public internet, and a job
+        that fails when Wikidata is slow is a gate that lies about the code.
+    - **S20 — the frontend (`bcd868a`, `d0180b5`).** Profile sections (faculties + departments,
+      admission, fees, links, contact), all **hidden when empty**; the fee table's mandatory
+      **সর্বশেষ যাচাই** column and source link; the news linkage reading `Articles.university` and
+      grouping by the article's own category; `CollegeOrUniversity` JSON-LD with a real
+      `PostalAddress`.
+      - ⚠️ **The navigation is filters on the hub, and that is a CSP decision.** `.htaccess` tags ANY
+        three-segment path `SHIKKHA24_CSP_ARTICLE`, which grants video framing a listing has no use
+        for; the file's own comment forbids an enumeration of reserved roots (the `/study-abroad`
+        lesson), and the only structural escape hatch is a middle `page/`. `/institutions/<type>`
+        would also collide with `/institutions/[slug]`. So the CSP is untouched.
+      - ⚠️ **Two fixture problems, both of which would have shipped silently.** (a) The demo seed
+        looked institutions up **by slug alone**, but S19 re-slugs an adopted row — so re-running
+        `seed:demo` would have created a **second copy of a real university**; it now matches on slug
+        **or** Bengali name. (b) Every section is gated on its data, so with nothing carrying fees or
+        faculties they rendered **nowhere** — and a section that never renders is a section nothing
+        verifies. Added `demo-rich-profile`, a deliberately fictional institution.
+    - **S21 — the admin experience (`02dcbb5`).** Three tabs, split by the *work*: পরিচিতি ও যোগাযোগ ·
+      বিস্তারিত প্রোফাইল · যাচাই ও সূত্র.
+      - ⚠️ **Tabs are presentational, and that was proven rather than assumed:**
+        `payload generate:types` output is **byte-identical** before and after.
+      - ⚠️ **`verify:access` would have gone red for the wrong reason.** It looked fields up with a
+        flat `collection.fields.find`, which does not descend into tabs — so every S18 field would
+        have read as missing and the suite would have failed while the model was intact. `ownFields()`
+        now treats a field inside a tab as a top-level field.
+      - The collection hit 351 lines, so the fields moved to `lib/institution-fields.ts` (298).
+    - 🚧 **WHAT IS STILL OPEN, and why it is not an agent task:**
+      - **The first ~10 public universities with real profiles.** Every remaining field — faculties,
+        departments, admission rules, fees — is one **no source carries**, and
+        `docs/university-directory.md` §7 forbids guessing them. The import supplies 56 public
+        universities to start from; the authoring is the newsroom's.
+      - ⚠️ **Wikidata carries no discipline, so 706 of 724 rows have none.** §2.1's
+        "Engineering = `discipline:engineering`" browse path is a filter with **7 entries** until
+        someone fills the field in. This is the largest remaining gap in the feature.
+      - ⚠️ **The "7 categories" are never enumerated in any doc.** §2.1 gives the shape and one
+        example per axis, not a list. The owner chose **"best practice"** when asked, so the nav ships
+        as the ownership axis (4 populated categories, 3–554) plus a discipline filter row that
+        renders only where it has data. If the original request had a specific seven, they are not in
+        the repository.
+    - **Evidence:** build **876 pages** · lint 0 errors · typecheck clean · `verify:astro-imports` 142
+      exports · `verify:build-output` exit 0 (**0 executable inline scripts**) · `verify:links` exit 0
+      (876 pages, 57,063 links) · `verify:apache` **26/26** on a real Apache · `verify:access` 0 FAIL ·
+      18/18 profile checks on the built page · the import re-runs as a no-op · database integrity ok.
+    - ⚠️ **`verify:apache` cannot run on the full tree in this sandbox.** Its `cpSync` of 876 pages
+      exceeds the brokered filesystem's limit and dies **before any assertion**
+      (`CODEBUDDY_BROKER_OUTCOME_UNKNOWN`). It was verified on a reduced tree that still contains
+      institution routes (152 routes, all correct profiles). **CI has no broker, so the full run is
+      unaffected there** — but locally, expect to reduce the tree first.
+
+55. ✅ **S21 completed as far as an agent honestly can — faculties imported, `discipline` proven
+    author-only** (2026-10-01, commit `b8b2115`). Follow-up to item 54.
+    - ⚠️ **This repo asserted twice that no source carries faculties or departments. Measured, that
+      was false.** Wikidata's `P527` covers 64 of the 940 BD higher-education items, and **58 of those
+      parts are typed `faculty` — 41 with a Bengali label — holding 179 Bengali-labelled departments**.
+      Coverage sits exactly where the worked example starts: **Rajshahi 11, Chittagong 10, Dhaka 8,
+      Barishal 6, Agricultural 4, BUET 1**. The import now takes them in the same single query,
+      filtered to Bengali-labelled `faculty` parts. **Before writing "no source has X", query the
+      source** — the assumption had been carried through two documents and a code comment.
+    - ⚠️ **The lists are partial, and a short list reads as a complete one.** BUET shows **1** faculty
+      because only one of its five has a Bengali name. The profile page therefore prints
+      **"তথ্যসূত্র: উইকিডেটা — তালিকাটি অসম্পূর্ণ হতে পারে।"** under that heading, gated on the
+      **provenance** (`dataSource` mentions Wikidata) rather than on `isVerified` alone — otherwise a
+      hand-authored unverified profile would carry a false attribution.
+    - ⚠️ **`discipline` is author-only, and both automations are provably wrong** (spec §8.2). This
+      matters because it is the feature's largest gap — 706 of 724 rows have none, so
+      "Engineering = `discipline:engineering`" is a 7-entry filter:
+      - **From the name**: a conservative keyword rule recovers 77 rows and files **বাংলাদেশ
+        ইউনিভার্সিটি অব বিজনেস অ্যান্ড টেকনোলজি** (a *business* university) as engineering, and
+        **ইসলামিয়া কলেজ** (a general degree college) as Islamic. It is wrong precisely for the
+        institutions whose names carry two subjects.
+      - **From the institution's own faculties**: Dhaka has a Faculty of Engineering. It is not an
+        engineering university.
+      `discipline` answers what an institution *primarily is*. No source states that, so it is a
+      judgement and stays with the editor. **Do not "fix" this with a heuristic.**
+    - **`isVerified` now prints its negative case** (**যাচাই করা হয়নি**). It used to add a ✓ when true
+      and nothing otherwise, so "a person checked this" and "nobody has looked" were indistinguishable
+      — which is the whole claim the field exists to make.
+    - ⚠️ **Import idempotency needed a fix.** Payload gives array sub-rows a fresh `id` on every read,
+      so comparing a `faculties` array against the stored one made **every** row look modified. The
+      change check now strips `id` before comparing: a second run reports **0 created, 0 updated, 724
+      unchanged**.
+    - ⚠️ **Still not done, now for a stated reason:** fees and admission rules. No source carries them,
+      scraping is forbidden, and §7 forbids inventing them — so **the fee table renders only on the
+      demo fixture** in this build. That is the honest state, not an oversight, and it is the one
+      thing the owner must fill before the directory is genuinely useful.
+
+56. ✅ **S9's last open build item — bookmark → CMS sync — BUILT** (2026-10-01). S9 is now genuinely
+    complete; every remaining item in it is an owner action.
+    - **What was deferred, and why it was right to defer it.** The note said a naive union re-adds a
+      bookmark deleted on another device, and that "something the reader deleted reappearing is worse
+      than never syncing". That is exactly right, and it is why the policy is the feature.
+    - **The policy, as built:** *first sync merges* (the local list is then an **independent** list,
+      not a stale copy — this carries the bookmarks saved before signing in); *every sync after that
+      takes the server's answer*; and *a local change whose push failed outranks the server*, because
+      a save made while signed out is an intent the server has not heard yet.
+    - ⚠️ **The marker is on the READER (`readers.bookmarksSyncedAt`), not in local storage.** A
+      per-device marker would let a device that had lost its storage re-upload a stale list and
+      resurrect the deletion — the exact bug the policy exists to prevent. It is also **not writable
+      by the reader**: flipping it back to "never synced" would do the same thing deliberately.
+    - ⚠️ **`bookmarks.title` / `bookmarks.slug` are a deliberate denormalisation.** A reader signing
+      in on a second device has **no local list at all** — that is the point of syncing — so the
+      server must return something renderable. Storing only the relationship id would force the client
+      to resolve every bookmark through the articles API before it could draw the list. The cost is
+      that a retitled article keeps the title the reader saved, which is arguably what a bookmark
+      should show.
+    - ⚠️ **The endpoints are mounted on the collection, not at the API root.** `/api/bookmarks/sync`
+      at the root would be parsed as "collection `bookmarks`, document id `sync`" and 404 forever —
+      the `/api/comments/submit` lesson (`docs/security.md` §13.4).
+    - ⚠️ **The island is on the article page and `/bookmarks` only, not in the layout**, and it makes
+      no request unless the reader has synced before, has local bookmarks, or is on `/bookmarks`. An
+      anonymous reader browsing articles never calls the CMS — a script that runs on every page for a
+      feature most readers never use is a cost paid by everyone for the few.
+    - **Two harnesses, and one honest gap.**
+      - `verify:endpoints` — **7 checks over HTTP**: an anonymous caller gets 401; the first sync
+        merges; **an already-synced reader's stale upload is ignored**; a toggle removes; **a deleted
+        bookmark does NOT come back on the next sync**; a missing article is refused with 404; the
+        fixtures clean up.
+      - `verify:bookmarks` (new, in `pnpm verify` and CI) — **11 checks** on the pure merge policy in
+        `frontend/src/lib/bookmark-merge.ts`, run against the real module the way `verify:gpa` runs
+        against the real GPA module.
+      - ⚠️ **The island's own `fetch`/`localStorage` glue has no behavioural test.** This project has
+        no browser harness, so it is verified by construction plus the build and CSP gates. **That is
+        the weakest link in the feature and it is stated rather than implied.**
+    - **Still owner-only in S9:** the VAPID pair, the OAuth apps, account linking, the send tokens,
+      SMTP credentials, and the host-disk alert. None is code.
 
 - **Portal type: education portal** (2026-09-11) — domain `shikkha24.com`; general-news scope retired
 - Stack: Astro 7.3 + Payload CMS 3 + SQLite → PostgreSQL (Strapi rejected)

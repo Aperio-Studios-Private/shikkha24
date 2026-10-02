@@ -134,7 +134,14 @@
 - [x] **Newsletter** — self-built subscriber list + campaign module. **Double opt-in**, **one-click unsubscribe**, **hard per-hour send cap enforced in code**. ✅ `verify:newsletter` 29/29. The campaign is a **resumable batch**, not a loop — cPanel truncates silently past its cap.
 - [x] **Comments** — approved-comment list + submission form on the article page, moderation-gated, escaped, rate-limited. ✅ `verify:engagement` 22/22. The generated REST route could do none of the three guards, so `POST /api/comments/submit` was added and the form repointed.
 - [x] **Bookmarks** — articles and deadlines. ✅ Browser-local half built (`/bookmarks`, `BookmarkButton`, `lib/bookmarks.ts`) — works with **no account at all**.
-  - [ ] ⚠️ **CMS sync when signed in — NOT BUILT.** This is the one open S9 build item. The auth layer it needed now exists (see social login below), so it is unblocked — but the merge policy needs a decision first, not code: a naive union re-adds a bookmark deleted on another device, so it needs a "the server is authoritative after the first upload" marker. Raised for the owner in `.sps/section-todos/S9.md` rather than guessed at.
+  - [x] **CMS sync when signed in — BUILT 2026-10-01.** The policy the note asked for is implemented and asserted:
+    - **First sync merges**, because the local list is then an *independent* list, not a stale copy — that is what carries bookmarks saved before signing in.
+    - **Every sync after that takes the server's answer.** ⚠️ A naive union would put back a bookmark deleted on another device, and something a reader deliberately removed reappearing is worse than never syncing at all.
+    - The marker lives on the **reader** (`readers.bookmarksSyncedAt`), not in local storage — a per-device marker would let a device that lost its storage re-upload a stale list and resurrect the deletion.
+    - ⚠️ **A local change whose push failed outranks the server.** A save made while signed out, or on a flaky connection, is an intent the server has not heard yet; dropping it would lose it silently. Those are queued and replayed on top of the server list.
+    - `POST /api/bookmarks/sync` and `POST /api/bookmarks/toggle` — collection endpoints, because a root path whose first segment is a collection slug is shadowed by the generated route (`/api/comments/submit`).
+    - ⚠️ `bookmarks.title` / `bookmarks.slug` are a deliberate denormalisation: a reader signing in on a second device has no local list at all, so the server must hand back something renderable.
+    - Verified by `verify:endpoints` over HTTP (**7 checks**, including that a deleted bookmark does **not** come back) and by `verify:bookmarks` (**11 checks** on the pure merge policy). ⚠️ The island's own fetch/localStorage glue has no behavioural test — the project has no browser harness; it is verified by construction and by the CSP/build gates.
 - [x] **Citizen journalism submission** — form + collection, moderation-gated and rate-limited. ✅ Built.
 - [x] **Push notifications + N7 deadline reminders** — Web Push, **self-generated VAPID keys**, a service worker, a subscription endpoint, the save-a-deadline flow. Self-hiding when unconfigured. ✅ `verify:push` 22/22.
 - [x] **Social login** — Meta + Google OAuth behind a flag, browser-local fallback retained. No button rendered that cannot work. ✅ `verify:oauth` 46/46. Readers have **no password** at all (`disableLocalStrategy`), and `email` is optional + non-unique because it is an attribute, not an identity.
@@ -330,57 +337,97 @@
 
 ---
 
-## S18–S21 — University Directory ✅ APPROVED 2026-09-30 · 🚧 NOT STARTED
+## S18–S21 — University Directory ✅ S18 · S19 · S20 BUILT · S21 admin built, authoring is owner work
 
 **Spec: `docs/university-directory.md`** (approved — scope and model decided, §6). This **extends**
 S10's N4 institution directory; it is not a new feature. `/institutions` and `/institutions/[slug]`
 already exist with 5 seeded rows.
 
-### ⚠️ S18 was started and then deliberately reverted — read this before restarting it
+### ✅ S18 built 2026-09-30 — and the earlier "hung push" was misdiagnosed
 
-The model changes were written, linted and typechecked clean. **The Payload schema push then hung**
-(4+ minutes, twice, including after clearing the WAL) instead of applying them, leaving the code
-expecting columns the database did not have. That is the documented drizzle trap, and a repo where
-every CMS boot hangs is worse than a repo where S18 has not begun — so the six changed files were
-reverted and the tree is back to the last verified commit.
+The 2026-09-30 revert (below) blamed the Payload schema push. **The push was not the problem.**
+`pnpm run` in this sandbox triggers pnpm 11's pre-run dependency check, which shells out to
+`pnpm install` — and that either dies with `CODEBUDDY_BROKER_DENY EEXIST` or **hangs indefinitely**
+(10 minutes observed, twice). Running the Payload CLI **directly**, with
+`--config.verify-deps-before-run=false`, completes the push in seconds.
 
-**Nothing was lost.** The design is in the spec and the field list is below. Resume by making the
-schema change and **verifying the push completes before writing anything on top of it**.
+The **drizzle stale-index trap is real but separate**, and it only bites a **pre-existing** database
+whose schema predates the change: the push re-emits `CREATE INDEX` for indexes that already exist, so
+it converges over repeated attempts (drop the named index, retry). A **fresh** database pushes
+cleanly *and* is idempotent — verified by booting one twice.
 
-### What S18 must do (the model)
+### What S18 must do (the model) — ✅ all done
 
-- [ ] `Institutions.type` → `public` | `private` | `nu-college` | `madrasa` (ownership)
-- [ ] `Institutions.discipline` (new) → `general` | `engineering` | `medical` | `agricultural` | `islamic` | `science-technology` | `other`
+- [x] `Institutions.type` → `public` | `private` | `nu-college` | `madrasa` (ownership)
+- [x] `Institutions.discipline` (new) → `general` | `engineering` | `medical` | `agricultural` | `islamic` | `science-technology` | `other`
   - ⚠️ **Two axes, not one category.** The seven browse categories are **filters over them**: Public = `type:public`; Engineering = `discipline:engineering`. A single exclusive category would hide BUET from "Public Universities", which is the browse path students actually use.
-- [ ] `acronym` · `faculties` (array: name, departments array) · `admissionInfo` (label/value rows) · `admissionUrl` · `tuitionFees` (programme, amount, period, academicYear, note, sourceUrl, **`verifiedAt` required**) · `importantLinks` · `contact` group (address, phone, email, mapUrl)
-  - ⚠️ **`address` moves into `contact`.** That is a breaking rename for the frontend, and `.astro` frontmatter is not typechecked — so a page still reading `institution.address` renders nothing rather than erroring.
-  - ⚠️ **`tuitionFees[].verifiedAt` is `required` on purpose.** The owner chose exact figures over a range; a stale figure looks authoritative, so the date cannot be skipped by a hurried editor.
-- [ ] `isVerified` · `lastVerifiedAt` · `dataSource` · `wikidataId` (import de-duplication)
-- [ ] `Articles.university` → relationship to `institutions`, indexed, optional
+  - Both axes + their Bengali labels live in `cms/src/lib/institution-options.ts`, so the S19 import normalises against the same list the collection validates.
+- [x] `acronym` · `faculties` (array: name, departments array) · `admissionInfo` (label/value rows) · `admissionUrl` · `tuitionFees` (programme, amount, period, academicYear, note, sourceUrl, **`verifiedAt` required**) · `importantLinks` · `contact` group (address, phone, email, mapUrl)
+  - ⚠️ **`address` moved into `contact`.** That is a breaking rename for the frontend, and `.astro` frontmatter is not typechecked — so a page still reading `institution.address` renders nothing rather than erroring. Both institution pages were updated (visible block **and** JSON-LD).
+  - ⚠️ **`tuitionFees[].verifiedAt` is `required` on purpose.** Proven: creating a fee row without it is refused with *"Tuition fees 1 > Verified on"*.
+- [x] `isVerified` · `lastVerifiedAt` · `dataSource` · `wikidataId` (import de-duplication)
+  - ⚠️ **`wikidataId` is indexed but deliberately NOT `unique`.** Payload does **not** coerce `''` to `null` for a text field, so a unique index would reject the **second** institution saved by hand with a blank ID — and S21 authors the first ten by hand. Proven: two blank-ID rows both save. De-duplication belongs to the S19 import.
+- [x] `Articles.university` → relationship to `institutions`, indexed, optional
   - ⚠️ The **only** entry point for the news linkage. The profile queries this field, so publishing an article updates the profile with no second job.
-- [ ] Extend `verify:access`; regenerate types; **verify the schema push completes**
+- [x] Extend `verify:access` (15 assertions on the model contracts); regenerate types; **verify the schema push completes**
 
-### S19 — the import (seeded, re-runnable)
+**Evidence (commit `519c5b4`):** schema push completes and the new columns/tables/indexes are
+verified in SQLite · **20/20** round-trip checks over the real local API (incl. the fee-date guard and
+two blank-`wikidataId` rows) · lint 0 errors · typecheck clean · `verify:astro-imports` 139 exports ·
+`verify:access` **0 FAIL** (38 collections) · build **156 pages** (not a thin build) ·
+`verify:build-output` / `verify:links` (7964 links) / `verify:apache` all exit 0 · the 12-harness CI
+loop and the with-CMS `sync` + `endpoints` step all pass · database left at its exact prior counts.
 
-- [ ] One **Wikidata SPARQL query** (CC0) — never a scrape, no per-page requests, no CSRF workaround
-- [ ] **Bengali name is required.** This site is Bengali-only and the NU college list exists **only in English** (2,274 records, zero Bengali names) — that is why the original "all NU colleges" scope was not achievable
-- [ ] Normalise `discipline` against a fixed list (the GitHub dataset has `Agricultural Science` **and** `Agricultural science`, ~20 one-off values, 25 nulls)
-- [ ] **Exclude** *Proposed* / *International* / *Off-campus* entries — the GitHub dataset would otherwise publish pages for universities that do not exist
-- [ ] De-duplicate against the existing 5 rows and on `wikidataId`
-- [ ] Imported rows are **`isVerified: false`** — the badge means "a person checked this"
-- [ ] Report: counts in, counts rejected and why, spot-checked
+### The 2026-09-30 revert, for the record
 
-### S20 — frontend
+The model changes were written, linted and typechecked clean, then reverted after the push appeared
+to hang (4+ minutes, twice, including after clearing the WAL) — a repo where every CMS boot hangs is
+worse than one where S18 has not begun. The database was never damaged and it was backed up first.
+The cause is now understood (see above), and S18 was rebuilt on top of a **proven** push.
 
-- [ ] The **7-category navigation**, each a filter over the two axes
-- [ ] Profile sections: faculties, departments, admission, fees (with the visible **"সর্বশেষ যাচাই"** date next to every fee), important links, contact
-- [ ] ⚠️ Sections that do not apply are **hidden, not empty** — a NU-affiliated college has no faculty list
-- [ ] The **article linkage**, grouped by the article's own category
-  - ⚠️ **Known gap: "Notice" has no category of its own.** The site has 8 categories; three of the four requested groups map cleanly (news → `education-news`/`university`; admission circular → `admission`; result → `exams-results`). A distinct Notice group needs either a 9th category — a plan amendment — or acceptance that notices appear under news.
-- [ ] JSON-LD (`CollegeOrUniversity` + `ItemList`), sitemap, internal links
+### S19 — the import (seeded, re-runnable) ✅ BUILT 2026-10-01 (`d423ca1`)
 
-### S21 — Tier-2 authoring
+- [x] One **Wikidata SPARQL query** (CC0) — never a scrape, no per-page requests, no CSRF workaround
+- [x] **Bengali name is required.** This site is Bengali-only and the NU college list exists **only in English** (2,274 records, zero Bengali names) — that is why the original "all NU colleges" scope was not achievable
+- [x] Normalise `discipline` against a fixed list — the imported class labels map onto the same `INSTITUTION_DISCIPLINES` the collection validates against
+- [x] **Exclude** *Proposed* / *International* entries, and the schools the broad "higher education" walk drags in
+  - ⚠️ The candidate set is `university` + `college` subclasses, **not** `P31/P279* Q38723` — that walk returns 1,283 items including 52 government girls' high schools, 44 schools and 14 cadet colleges
+  - ⚠️ A BD **"School and College" is classed by Wikidata as a bare `college`**, so the class list cannot separate it from a degree college: 43 came through before the name check. The check matches `স্কুল` and the FULL `উচ্চ বিদ্যালয়` — a bare `বিদ্যালয়` matches `বিশ্ববিদ্যালয়` and would delete the entire university listing
+  - ⚠️ **University of Rajshahi is tagged `open-access publisher`** alongside `public university`. While both sat in one "not higher education" set the publisher tag won and a major public university vanished. A stated ownership now beats a loose tag
+- [x] De-duplicate against the existing rows and on `wikidataId`
+  - ⚠️ **Two keys, because either alone is wrong.** `wikidataId` catches a re-run; the Bengali name catches a row already present under another identity. The demo placeholders were REAL institutions (`demo-du` *is* ঢাকা বিশ্ববিদ্যালয়), so a name match is **adopted**, not duplicated — 5 adopted
+  - ⚠️ An adopted row is **re-slugged** when its slug carries the demo marker: `seed:demo:purge` deletes `demo-` institutions, so a row that is now real data would otherwise be deleted with the throwaway content it was created as
+- [x] Imported rows are **`isVerified: false`** — the badge means "a person checked this"
+- [x] Report: counts in, counts rejected and why, spot-checked
+  - **940 candidates → 719 created, 5 adopted, 216 rejected with named reasons.** 724 institutions: 554 nu-college, 111 private, 56 public, 3 madrasa. 0 duplicate names, 0 schools, 0 verified, 0 missing slugs. Re-running is a no-op (712 unchanged)
+  - ⚠️ **Not in CI or `pnpm seed`** — it is the one seed that needs the public internet, and a job that fails when Wikidata is slow is a gate that lies about the code
+- [x] **Also fixed:** `getAllInstitutionSlugs()` asked for `limit: 200`, so a green build emitted 200 pages for 724 institutions and 524 simply did not exist. It now paginates
+- [x] **Data gap for the owner:** 706 of 724 rows have **no discipline** — Wikidata does not carry one. S21 authors them
 
-- [ ] The admin experience for filling a rich profile
-- [ ] The first ~10 public universities filled in as the worked example
+### S20 — frontend ✅ BUILT 2026-10-01 (`bcd868a`, `d0180b5`)
+
+- [x] The navigation — **filters over the two axes, on the hub**, not separate routes
+  - ⚠️ **This is a CSP decision, not a shortcut.** `.htaccess` tags ANY three-segment path `SHIKKHA24_CSP_ARTICLE`, which grants video framing a listing has no use for; the file's own comment forbids fixing that with an enumeration of reserved roots (the `/study-abroad` lesson), and the only structural escape hatch is a middle `page/`. `/institutions/<type>` would also collide with `/institutions/[slug]`
+  - ⚠️ **The 7 categories are not named anywhere in the docs**, and the data rules out the obvious reading: 706 of 724 rows have no discipline, so a discipline-based nav would have four categories holding 0–7 entries. The owner chose **"best practice"**, so the nav is the ownership axis (4 populated categories: 3–554) plus a discipline filter row that renders only where it has data. Counts: সব ৭২৫ · সরকারি ৫৬ · বেসরকারি ১১২ · এনইউ কলেজ ৫৫৪ · মাদ্রাসা ৩ · প্রকৌশল ৭ · চিকিৎসা ৫ · ইসলামি ৭
+- [x] Profile sections: faculties, departments, admission, fees (with the visible **"সর্বশেষ যাচাই"** date next to every fee), important links, contact
+- [x] ⚠️ Sections that do not apply are **hidden, not empty** — a NU-affiliated college has no faculty list
+- [x] The **article linkage**, grouped by the article's own category
+  - ⚠️ **Known gap: "Notice" has no category of its own.** The site has 8 categories; three of the four requested groups map cleanly (news → `education-news`/`university`; admission circular → `admission`; result → `exams-results`). A distinct Notice group needs either a 9th category — a plan amendment — or acceptance that notices appear under news. **The linkage groups by the article's own category, so notices appear under whatever they are filed in — no code change is blocked on this**
+- [x] JSON-LD (`CollegeOrUniversity` + `ItemList`), sitemap, internal links
+- [x] ⚠️ **Two fixture problems found and fixed, both of which would have shipped silently**
+  - The demo seed looked institutions up **by slug alone**, but S19 re-slugs an adopted row (`demo-du` → `university-of-dhaka`) — so re-running `seed:demo` would have created a **second copy of a real university**. It now matches on slug **or** Bengali name
+  - Every profile section is gated on its data, so with nothing carrying fees or faculties they rendered **nowhere** — and a section that never renders is a section nothing verifies. Added `demo-rich-profile`, a deliberately fictional institution with a full Tier-2 profile
+- [x] Performance: 724 cards is 771 KB of HTML but **44 KB gzipped**, and every card carries `content-visibility: auto`
+
+### S21 — Tier-2 authoring ⚙️ ADMIN BUILT · FACULTIES IMPORTED 2026-10-01 (`02dcbb5`, `b8b2115`) · ⏳ AUTHORING IS OWNER WORK
+
+- [x] The admin experience for filling a rich profile
+  - Three **tabs**, split by the work not the schema: পরিচিতি ও যোগাযোগ · বিস্তারিত প্রোফাইল · যাচাই ও সূত্র
+  - ⚠️ **Proven presentational:** `payload generate:types` output is byte-identical before and after
+  - ⚠️ `verify:access` had to learn to descend into tabs — a flat `collection.fields.find` would have reported every S18 field as missing and failed the suite while the model was intact
+  - The collection hit 351 lines, so the fields moved to `lib/institution-fields.ts` (298); the collection is 74
+- [x] **Faculties and departments IMPORTED** — the claim that no source carries them was **measured and found false** (spec §8.1). Wikidata's `P527` gives 58 `faculty`-typed parts (41 with a Bengali name) and 179 Bengali-labelled departments, concentrated in the big public universities: **Rajshahi 11 · Chittagong 10 · Dhaka 8 · Barishal 6 · Agricultural 4 · BUET 1**. Taken in the same single query, filtered to Bengali-labelled `faculty` parts
+  - ⚠️ The lists are **partial** and a short list reads as a complete one (BUET shows 1 of 5). The profile page prints **"তথ্যসূত্র: উইকিডেটা — তালিকাটি অসম্পূর্ণ হতে পারে।"** under that heading, gated on the *provenance* not on `isVerified`
+  - ⚠️ `isVerified` now prints its **negative** case (**যাচাই করা হয়নি**) — its absence was ambiguous, so "checked" and "nobody looked" read the same
+- [ ] **OWNER: `discipline`, plus admission information and fees.** ⚠️ `discipline` is **author-only**, and both automations were tested and rejected on evidence (spec §8.2): a keyword rule files *Bangladesh University of Business and Technology* as engineering, and deriving from faculties files Dhaka as engineering because it has one. `discipline` answers what an institution *primarily is* — a judgement no source states. Fees and admission rules exist in no source, scraping is forbidden, and §7 forbids inventing them, so the fee table renders only on the demo fixture until an editor fills real ones
 
