@@ -17,6 +17,11 @@
   `5.9.4` through `pnpm-workspace.yaml`. `devalue` is MIT-licensed. Local
   `pnpm audit --audit-level=high` now reports no high or critical findings;
   the remaining 7 low/moderate findings are unchanged.
+- **Deployment packaging follow-up:** The first CMS bundle booted with HTTP 503
+  because Next required `@swc/helpers/_/_interop_require_default`, but the
+  standalone trace omitted the transitive package. `@swc/helpers@0.5.23` is
+  now an explicit CMS runtime dependency (MIT-licensed) so the next standalone
+  artifact includes it.
 
 ## Documentation index — where to look
 

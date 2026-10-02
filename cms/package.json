@@ -42,6 +42,7 @@
     "@payloadcms/richtext-lexical": "3.89.0",
     "@payloadcms/translations": "3.89.0",
     "@payloadcms/ui": "3.89.0",
+    "@swc/helpers": "0.5.23",
     "cross-env": "7.0.3",
     "dotenv": "16.4.7",
     "graphql": "16.14.2",
