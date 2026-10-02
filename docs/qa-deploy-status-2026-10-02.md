@@ -115,10 +115,16 @@ the branch that actually deploys to production.
   behaviour** before the correct fix can be chosen.
 
 ### P1 — this month
-- **F-01 (High)** Four hardcoded pagination caps in `frontend/src/lib/cms.ts`
-  (500 / 1000 / 200 / 200) silently truncate. Worst: the sitemap's `lastmod` map
-  stops at 500 articles (**~25 days** at 20/day) and `getArchiveBuckets` stops at
-  1000 (**~50 days**), after which existing archive URLs return 404.
+- **F-01 (High)** ✅ **FIXED** (`8242adb`). Four capped, un-paginated fetches in
+  `frontend/src/lib/cms.ts`. `getArchiveBuckets` was the worst — `limit: 1000`,
+  feeding both archive navigation and sitemap entries, so past 1,000 articles
+  (25–67 days at the approved velocity) old months vanished and their URLs 404'd
+  while still being linked. `getTags`/`getAuthors` (200), `getAllPageSlugs` (100)
+  and `getVerifiedReporters` (200) were the same failure mode. The sitemap
+  `lastmod` skew is gone too: `getAllArticlePaths` now returns `publishedAt`, so
+  one paginated call feeds both paths and dates and they cannot disagree. Verified
+  by CI run `37022621167` (green, both artifacts) and by exercising the loop
+  against a 3-page result set (201 docs collected where a capped call gives 200).
 - **F-05 (Medium)** `cms/src/endpoints/reactions.ts:81` — reaction counts are a
   full table scan per request; viral traffic hits a 2 GB host.
 - **F-16 (Medium)** Lighthouse / Core Web Vitals gates are declared in
@@ -182,24 +188,45 @@ secret values requested or displayed, no files deleted without approval.
 
 The audit findings in §5 stand. Ordering, with what each needs:
 
-**1. F-01 (High) — pagination caps.** Self-contained; no owner input needed.
-Highest value of the remaining set because the failure is silent and
-time-based: archive URLs begin returning 404 at ~50 days of publishing.
-
-**2. F-13 (High) — `X-Forwarded-For` trust.** **Blocked on one owner
+**1. F-13 (High) — `X-Forwarded-For` trust.** **Blocked on one owner
 answer:** does the DianaHost proxy append to or overwrite the inbound
 `X-Forwarded-For`? The correct fix differs — "trust the last hop" if it
 appends, "ignore the header, use the socket address" if the origin is
 directly reachable. Everything else about the fix is already determined.
 
-**3. F-05 (Medium)** reaction counts; **4. F-02 (Medium)** five orphaned
-harnesses, including `verify-cms-sync` which the feature register already
-claims as a gate; **5. F-16 (Medium)** Lighthouse automation.
+**2. F-02 (Medium)** five orphaned harnesses, including `verify-cms-sync`
+which the feature register already claims as a gate.
 
-**6. F-06 / F-08 / F-14 / F-03 / F-18** — all small and self-contained.
+**3. F-05 (Medium)** reaction counts; **4. F-16 (Medium)** Lighthouse
+automation.
+
+**5. F-06 / F-08 / F-14 / F-03 / F-18** — all small and self-contained.
 
 **Owner decisions:** F-07 (cookie consent — legal call first), F-17
 (corrections policy page + Trade Licence/TIN/Ministry numbers).
+
+**Done:** F-04 (thin-build guard) and F-01 (pagination caps). Both green in CI.
+
+---
+
+## 7a. What CI verified, and what it could not
+
+Three findings in this session were only provable by a real CI run, because
+**`pnpm` is not on PATH in the editing environment** — `scripts/with-cms.sh`
+cannot start the CMS, so no local build is possible. Recorded so it is not
+mistaken for an oversight:
+
+| Check | How it was actually verified |
+|---|---|
+| F-04, four branches | Stub CMS on `:59998` returning a chosen `totalDocs`; drove each branch and watched it pass or exit 1 |
+| F-01, pagination loop | Loop executed directly against a 3-page result set (201 docs collected; a capped call returns 200) |
+| F-01, end to end | CI `37022621167` — green, both artifacts |
+| `DB_PUSH` fix | Ran the seed locally against both configs; then CI `37016011953` green |
+| Dependency audit | CI — flagged a real critical (Next.js RCE) that only the deploy branch had fixed |
+
+The lesson is the same one the project already records: **a check that has
+never been seen to fail is not evidence**, and the strongest available
+substitute here is a real CI run rather than a local approximation.
 
 ---
 
