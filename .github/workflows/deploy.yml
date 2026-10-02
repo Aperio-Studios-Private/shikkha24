@@ -130,6 +130,18 @@ jobs:
           pnpm run verify:apache
 
       - name: Verify build output
+        # ⚠️ `CMS_URL` is set here on purpose, and this is the whole point of the
+        # step. Without it the thin-build guard can only apply an absolute floor.
+        # With it, the guard asks the CMS how many articles are published and
+        # requires the build to contain at least that many article pages — the
+        # exact, self-calibrating check.
+        #
+        # This must run BEFORE the `rsync --delete` below. A CMS outage at rebuild
+        # time does not fail the Astro build (`lib/cms.ts` is deliberately built
+        # so it cannot), so without this the deploy would delete every article
+        # the live site currently has and Google would re-index the loss.
+        env:
+          CMS_URL: ${{ secrets.CMS_URL }}
         run: pnpm run verify:build-output
 
       - name: Verify internal links

@@ -64,7 +64,7 @@ These were not in the owner's list. Each has a reason for existing.
 | Reporter quick-draft endpoint | ✅ **Built** | `cms/src/endpoints/reporter.ts` | The generated `POST /api/articles` accepts every writable field; the mobile form must not. |
 | `safeExternalUrl` (shared URL-scheme guard) | ✅ **Built** | `frontend/src/lib/url.ts` | One implementation instead of three — three copies of a security check is three chances to drift. |
 | Social URL validation (CMS) | ✅ **Built** | `cms/src/lib/social-url.ts` | The field accepted the platforms' own homepages as if they were the newsroom's accounts. |
-| **University Directory** (7 browse categories, 13 profile fields) | 📋 **Approved, not started** | Spec `docs/university-directory.md`; plan `.sps/task.md` → S18–S21 | Owner request, 2026-09-30. **Extends S10's N4** rather than adding a feature — `/institutions` already exists. ⚠️ The requested scope (all 2,274 NU colleges) is not achievable on a Bengali-only site, because that list exists only in English; the owner chose a two-tier scope instead. |
+| **University Directory** (7 browse categories, 13 profile fields) | 🚧 **S18–S20 built; S21 authoring is owner work** | Spec `docs/university-directory.md`; plan `.sps/task.md` → S18–S21 | Owner request, 2026-09-30. **Extends S10's N4** rather than adding a feature — `/institutions` already exists. ⚠️ The requested scope (all 2,274 NU colleges) is not achievable on a Bengali-only site, because that list exists only in English; the owner chose a two-tier scope instead. **The model, the Wikidata import (724 institutions) and the frontend all shipped.** ⚠️ Wikidata carries **no discipline**, so 706 of 724 rows have none and the discipline filters are thin until S21 authors them. The "7 categories" were never enumerated in any doc — the nav ships as the ownership axis plus a discipline filter, per the owner's "best practice" call. |
 
 ---
 
@@ -317,7 +317,7 @@ Every claim in this document is backed by a runnable check.
 |---|---|---|
 | `pnpm verify:astro-imports` | Every `lib/` export used in `.astro` frontmatter is imported — `.astro` frontmatter is **not typechecked** here | 116 exports |
 | `pnpm verify:links` | Every internal `href`/`src` resolves to a built file | 6,900+ links |
-| `pnpm verify:build-output` | Sitemaps, no inline scripts, page count, favicon, CSP hooks | deployable |
+| `pnpm verify:build-output` | Sitemaps, no inline scripts, **thin-build guard**, favicon, CSP hooks | deployable |
 | `pnpm verify:apache` | **A real Apache** over the real `dist/` — status codes, header counts, per-page CSP profile | 18/18 |
 | `pnpm verify:search-init` | The date-filter reorder runs against a DOM | 8 behaviours |
 | `pnpm --filter @shikkha24/cms verify:reporter` | Reporter access control **and** the quick-draft whitelist | 32/32 |
@@ -330,6 +330,13 @@ Every claim in this document is backed by a runnable check.
 
 1. **A green build is not a full build.** With no reachable CMS the frontend
    exits 0 and emits ~34 pages instead of ~149. Assert the **page count**.
+   **Now enforced** (2026-10-02, F-04): `verify:build-output` §3a asks the CMS
+   for its published-article count when `CMS_URL` is set and requires the build
+   to contain at least that many article pages; with no CMS it applies an
+   absolute floor. Until then the rule was written here but never implemented —
+   the only assertion was `articlePages.length > 0`, which a 25-page build passes
+   exactly as comfortably as a 2,000-page one. The deploy path then
+   `rsync --delete`s whatever the thin build produced.
 2. **A route nothing generates has never run.** Fixtures must cover every branch
    the route can take.
 3. **A harness that reimplements the mechanism is not evidence.**
