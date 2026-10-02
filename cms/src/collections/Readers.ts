@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { isSelfIn, isSuperAdmin, noOne } from '../access/roles'
 import { readerSessionStrategy } from '../auth/reader-strategy'
+import { deleteAccountEndpoint } from '../endpoints/account'
 
 /**
  * Readers — reader accounts, kept strictly separate from `Users`.
@@ -82,6 +83,16 @@ export const Readers: CollectionConfig = {
     update: isSelfIn('readers'),
     delete: isSuperAdmin,
   },
+  /*
+   * `/api/readers/delete-account` — the reader's own erasure, so the privacy
+   * policy's promise is something a reader can exercise without writing an email.
+   *
+   * ⚠️ A **collection** endpoint, so the path is relative and is matched before
+   * the generated routes. At the API root, `/readers/delete-account` would be read
+   * as "collection `readers`, document id `delete-account`" and never reach the
+   * handler (the `/api/comments/submit` lesson).
+   */
+  endpoints: [deleteAccountEndpoint],
   fields: [
     /**
      * Overrides Payload's base auth `email` field, which is `required: true` and
@@ -147,6 +158,26 @@ export const Readers: CollectionConfig = {
         },
         { name: 'keys', type: 'json', label: { en: 'Keys', bn: 'কী' } },
       ],
+    },
+    {
+      name: 'bookmarksSyncedAt',
+      type: 'date',
+      label: { en: 'Bookmarks synced on', bn: 'বুকমার্ক সিঙ্কের তারিখ' },
+      admin: {
+        readOnly: true,
+        description:
+          'প্রথম সিঙ্কের সময় স্বয়ংক্রিয়ভাবে বসে। খালি থাকলে সার্ভার জানে না — তখন লোকাল তালিকা যোগ করা হয়; একবার বসলে সার্ভারই চূড়ান্ত।',
+      },
+      /*
+       * ⚠️ **The merge-policy marker, and it must not be writable by the reader.**
+       *
+       * A reader who could set this could flip their own account back to
+       * "never synced", and the next sync would union a stale local list into the
+       * server's — resurrecting bookmarks they had deleted on another device,
+       * which is the exact failure the policy exists to prevent. Only the sync
+       * endpoint sets it, through the local API with `overrideAccess`.
+       */
+      access: { update: () => false },
     },
   ],
   timestamps: true,

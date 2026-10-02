@@ -30,7 +30,13 @@ const [settings, categories, footerPages] = await Promise.all([
 
 const contact = settings.contact ?? {}
 const socialEntries = Object.entries(settings.social ?? {}).filter(([, url]) => !!url)
-const hasContact = Boolean(contact.email || contact.phone || contact.address)
+const emails = [
+  { key: contact.email, label: 'ইমেইল (সাধারণ)', desc: 'সাধারণ যোগাযোগের জন্য' },
+  { key: contact.newsEmail, label: 'খবর জমা দিন', desc: 'পাঠকের পাঠানো খবর ও তথ্যের জন্য' },
+  { key: contact.editorEmail, label: 'সম্পাদকীয়', desc: 'সম্পাদকীয় দলের সাথে যোগাযোগ' },
+  { key: contact.adsEmail, label: 'বিজ্ঞাপন', desc: 'বিজ্ঞাপন ও স্পন্সরশিপ সংক্রান্ত' },
+].filter((e) => !!e.key)
+const hasContact = Boolean(contact.email || contact.newsEmail || contact.editorEmail || contact.adsEmail || contact.phone || contact.address)
 ---
 
 <Layout
@@ -60,16 +66,17 @@ const hasContact = Boolean(contact.email || contact.phone || contact.address)
         </p>
       ) : (
         <dl class="mt-6 grid gap-4 sm:grid-cols-2">
-          {contact.email && (
+          {emails.map((entry) => (
             <div class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
-              <dt class="text-sm font-medium text-ink-muted dark:text-dark-ink-muted">ইমেইল</dt>
+              <dt class="text-sm font-medium text-ink-muted dark:text-dark-ink-muted">{entry.label}</dt>
               <dd class="mt-1 text-base">
-                <a href={`mailto:${contact.email}`} class="text-brand-red hover:underline">
-                  {contact.email}
+                <a href={`mailto:${entry.key}`} class="text-brand-red hover:underline">
+                  {entry.key}
                 </a>
               </dd>
+              <dd class="mt-0.5 text-xs text-ink-subtle dark:text-dark-ink-muted">{entry.desc}</dd>
             </div>
-          )}
+          ))}
 
           {contact.phone && (
             <div class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">

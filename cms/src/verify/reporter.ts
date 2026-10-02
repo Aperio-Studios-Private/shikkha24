@@ -30,6 +30,7 @@
  * Drizzle's push is interactive on a rename and would deadlock against a running
  * server (`.sps/handoff.md` — build trap 4).
  */
+import { randomBytes } from 'node:crypto'
 import { getPayload, type PayloadRequest } from 'payload'
 import { reporterQuickDraftEndpoint } from '../endpoints/reporter'
 import config from '../payload.config'
@@ -67,6 +68,20 @@ const idOf = (value: unknown): string =>
   String((value as { id?: unknown } | null)?.id ?? value ?? '')
 
 const stamp = Date.now()
+
+/**
+ * ⚠️ **A random password per run — never a literal.**
+ *
+ * These accounts are created and deleted inside one run, but a crash before the
+ * `finally` leaves them behind, and one of them is a **superAdmin**. A literal
+ * password here would mean a live admin account whose credential is published in
+ * the repository and its git history — which is what this file used to contain.
+ * The old value is named in the README's rotation table; do not put it back.
+ *
+ * Nothing reads the value: the harness asserts access rules through the local
+ * API rather than logging in. So it only has to be unguessable.
+ */
+const fixturePassword = randomBytes(24).toString('base64url')
 const created: Array<{ collection: string; id: number | string }> = []
 const track = <T extends { id: number | string }>(collection: string, doc: T): T => {
   created.push({ collection, id: doc.id })
@@ -174,7 +189,7 @@ try {
       collection: 'users',
       data: {
         email: `verify-admin-${stamp}@example.test`,
-        password: 'Verify-admin-1234',
+        password: fixturePassword,
         nameBn: 'যাচাই অ্যাডমিন',
         roles: ['superAdmin'],
       },
@@ -211,7 +226,7 @@ try {
       collection: 'users',
       data: {
         email: `verify-rep-a-${stamp}@example.test`,
-        password: 'Verify-rep-1234',
+        password: fixturePassword,
         nameBn: 'প্রতিবেদক ক',
         roles: ['reporter'],
         authorProfile: authorA.id,
@@ -225,7 +240,7 @@ try {
       collection: 'users',
       data: {
         email: `verify-rep-b-${stamp}@example.test`,
-        password: 'Verify-rep-1234',
+        password: fixturePassword,
         nameBn: 'প্রতিবেদক খ',
         roles: ['reporter'],
         authorProfile: authorB.id,

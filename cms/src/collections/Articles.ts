@@ -268,6 +268,28 @@ export const Articles: CollectionConfig = {
       label: { en: 'District', bn: 'জেলা' },
       admin: { position: 'sidebar', description: 'ঐচ্ছিক — স্থানীয় সংবাদের জন্য।' },
     },
+    /**
+     * The institution this story is about — the **only** entry point for the
+     * university directory's news linkage.
+     *
+     * ⚠️ There is deliberately no second field on `Institutions` listing its
+     * articles. The profile page queries *this* field, so publishing a story is
+     * the whole job: an editor never has to go back and update the institution
+     * record, and the two can never disagree about which stories belong where.
+     *
+     * Optional, because most education stories are not about one institution.
+     */
+    {
+      name: 'university',
+      type: 'relationship',
+      relationTo: 'institutions',
+      index: true,
+      label: { en: 'University / institution', bn: 'বিশ্ববিদ্যালয় / প্রতিষ্ঠান' },
+      admin: {
+        position: 'sidebar',
+        description: 'ঐচ্ছিক। দিলে প্রতিষ্ঠানের পাতায় সংবাদটি স্বয়ংক্রিয়ভাবে যুক্ত হবে।',
+      },
+    },
     {
       name: 'tags',
       type: 'relationship',

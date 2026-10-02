@@ -81,7 +81,14 @@ export interface CmsSiteSettings {
     height?: number | null
     updatedAt?: string | null
   } | null
-  contact?: { email?: string | null; phone?: string | null; address?: string | null } | null
+  contact?: {
+    email?: string | null
+    newsEmail?: string | null
+    editorEmail?: string | null
+    adsEmail?: string | null
+    phone?: string | null
+    address?: string | null
+  } | null
   social?: Record<string, string | null> | null
   footerText?: string | null
   /**

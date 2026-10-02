@@ -156,11 +156,20 @@ export async function qrLayer(target: string, size: number): Promise<Buffer> {
  * Payload stores `filename` relative to the collection's `staticDir`
  * (`./data/media` by default), and the stored "original" is already WebP. The
  * card needs the source file for a clean crop, not a browser-optimised variant.
+ *
+ * ⚠️ **Path traversal guard.** `path.resolve()` collapses `..` segments, so a
+ * filename of `../../../etc/passwd` would escape the media directory. The
+ * `startsWith` check below is the second line of defense — Payload's upload
+ * pipeline already sanitises filenames, but a defence-in-depth boundary here
+ * means a bypass in the upload layer cannot be escalated to arbitrary file read.
  */
 export function mediaFilePath(filename?: string | null): string | null {
   if (!filename) return null
   const staticDir = process.env.MEDIA_UPLOAD_DIR || './data/media'
-  const resolved = path.resolve(process.cwd(), staticDir, filename)
+  const base = path.resolve(process.cwd(), staticDir)
+  const resolved = path.resolve(base, filename)
+  // The resolved path must be inside the media directory.
+  if (!resolved.startsWith(base + path.sep)) return null
   return existsSync(resolved) ? resolved : null
 }
 

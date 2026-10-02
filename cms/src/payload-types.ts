@@ -301,6 +301,10 @@ export interface Article {
    * ঐচ্ছিক — স্থানীয় সংবাদের জন্য।
    */
   district?: (number | District)[] | null;
+  /**
+   * ঐচ্ছিক। দিলে প্রতিষ্ঠানের পাতায় সংবাদটি স্বয়ংক্রিয়ভাবে যুক্ত হবে।
+   */
+  university?: (number | null) | Institution;
   tags?: (number | Tag)[] | null;
   author: number | Author;
   /**
@@ -494,6 +498,140 @@ export interface District {
   divisionBn: string;
   divisionEn: string;
   sortOrder?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
+ * বিশ্ববিদ্যালয় ও কলেজের তালিকা। ধরন (মালিকানা) ও বিভাগ (বিষয়) — দুটি আলাদা অক্ষ।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "institutions".
+ */
+export interface Institution {
+  id: number;
+  /**
+   * এই সাইট বাংলা-প্রথম, তাই বাংলা নামটিই প্রধান।
+   */
+  nameBn: string;
+  nameEn?: string | null;
+  /**
+   * যেমন: ঢাবি, বুয়েট, জাবি। ঐচ্ছিক।
+   */
+  acronym?: string | null;
+  /**
+   * ASCII, lowercase।
+   */
+  slug: string;
+  /**
+   * মালিকানা — কে পরিচালনা করে। বিষয়ভিত্তিক শ্রেণি নয়, সেটি "বিভাগ"।
+   */
+  type: 'public' | 'private' | 'nu-college' | 'madrasa';
+  /**
+   * বিষয়ভিত্তিক শ্রেণি — "ধরন" থেকে আলাদা। একটি প্রতিষ্ঠান দুটিতেই থাকতে পারে (বুয়েট = সরকারি + প্রকৌশল)।
+   */
+  discipline?:
+    ('general' | 'engineering' | 'medical' | 'agricultural' | 'islamic' | 'science-technology' | 'other') | null;
+  levelOffered?: (number | Level)[] | null;
+  district?: (number | null) | District;
+  established?: number | null;
+  website?: string | null;
+  logo?: (number | null) | Media;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  contact?: {
+    address?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    mapUrl?: string | null;
+  };
+  /**
+   * প্রযোজ্য না হলে খালি রাখুন — খালি অনুষদ তালিকা দেখানো হবে না।
+   */
+  faculties?:
+    | {
+        name: string;
+        departments?:
+          | {
+              name: string;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * শিরোনাম-মান জোড়া, যেমন: "আবেদনের সময়" → "মে–জুন"।
+   */
+  admissionInfo?:
+    | {
+        label: string;
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
+  admissionUrl?: string | null;
+  /**
+   * প্রতি প্রোগ্রামে সঠিক অঙ্ক। যাচাইয়ের তারিখ ছাড়া সংরক্ষণ করা যাবে না — পুরনো অঙ্ক নির্ভরযোগ্য দেখায়।
+   */
+  tuitionFees?:
+    | {
+        programme: string;
+        amount: string;
+        period: 'per-semester' | 'per-year' | 'per-credit' | 'one-time';
+        /**
+         * যেমন: ২০২৬। অঙ্কটি কোন বছরের, তা স্পষ্ট রাখে।
+         */
+        academicYear: string;
+        note?: string | null;
+        /**
+         * বিশ্ববিদ্যালয়ের নিজের ফি পাতার লিংক — পাঠক নিজে যাচাই করতে পারেন।
+         */
+        sourceUrl?: string | null;
+        /**
+         * অঙ্কটি কবে যাচাই করা হয়েছে। বাধ্যতামূলক।
+         */
+        verifiedAt: string;
+        id?: string | null;
+      }[]
+    | null;
+  importantLinks?:
+    | {
+        label: string;
+        url: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * কোনো ব্যক্তি তথ্য যাচাই করেছেন কিনা। আমদানি করা সারি ডিফল্টভাবে অযাচাইকৃত থাকে।
+   */
+  isVerified?: boolean | null;
+  /**
+   * সর্বশেষ কবে প্রোফাইলটি যাচাই করা হয়েছে।
+   */
+  lastVerifiedAt?: string | null;
+  /**
+   * তথ্য কোথা থেকে এসেছে — আমদানি করা সারির জন্য।
+   */
+  dataSource?: string | null;
+  /**
+   * আমদানির পুনরাবৃত্তি ঠেকাতে ব্যবহৃত — যেমন Q12345।
+   */
+  wikidataId?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -803,48 +941,6 @@ export interface Deadline {
   district?: (number | District)[] | null;
   description?: string | null;
   relatedArticle?: (number | null) | Article;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
- *
- * বিশ্ববিদ্যালয় ও কলেজের তালিকা — প্রাথমিক সেট দিয়ে শুরু, ক্রমে বাড়ছে।
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "institutions".
- */
-export interface Institution {
-  id: number;
-  nameBn: string;
-  nameEn?: string | null;
-  slug: string;
-  type: 'public' | 'private' | 'madrasa' | 'college';
-  levelOffered?: (number | Level)[] | null;
-  district?: (number | null) | District;
-  established?: number | null;
-  website?: string | null;
-  logo?: (number | null) | Media;
-  address?: string | null;
-  description?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  /**
-   * তথ্য যাচাই করা হয়েছে কিনা।
-   */
-  isVerified?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1278,6 +1374,10 @@ export interface Reader {
         id?: string | null;
       }[]
     | null;
+  /**
+   * প্রথম সিঙ্কের সময় স্বয়ংক্রিয়ভাবে বসে। খালি থাকলে সার্ভার জানে না — তখন লোকাল তালিকা যোগ করা হয়; একবার বসলে সার্ভারই চূড়ান্ত।
+   */
+  bookmarksSyncedAt?: string | null;
   updatedAt: string;
   createdAt: string;
   /**
@@ -1406,6 +1506,14 @@ export interface Bookmark {
   kind: 'article' | 'deadline';
   article?: (number | null) | Article;
   deadline?: (number | null) | Deadline;
+  /**
+   * সংরক্ষণের সময়ের শিরোনাম।
+   */
+  title?: string | null;
+  /**
+   * সংরক্ষণের সময়ের স্লাগ।
+   */
+  slug?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1840,6 +1948,7 @@ export interface ArticlesSelect<T extends boolean = true> {
   subcategory?: T;
   level?: T;
   district?: T;
+  university?: T;
   tags?: T;
   author?: T;
   reviewStatus?: T;
@@ -2052,16 +2161,67 @@ export interface DeadlinesSelect<T extends boolean = true> {
 export interface InstitutionsSelect<T extends boolean = true> {
   nameBn?: T;
   nameEn?: T;
+  acronym?: T;
   slug?: T;
   type?: T;
+  discipline?: T;
   levelOffered?: T;
   district?: T;
   established?: T;
   website?: T;
   logo?: T;
-  address?: T;
   description?: T;
+  contact?:
+    | T
+    | {
+        address?: T;
+        phone?: T;
+        email?: T;
+        mapUrl?: T;
+      };
+  faculties?:
+    | T
+    | {
+        name?: T;
+        departments?:
+          | T
+          | {
+              name?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  admissionInfo?:
+    | T
+    | {
+        label?: T;
+        value?: T;
+        id?: T;
+      };
+  admissionUrl?: T;
+  tuitionFees?:
+    | T
+    | {
+        programme?: T;
+        amount?: T;
+        period?: T;
+        academicYear?: T;
+        note?: T;
+        sourceUrl?: T;
+        verifiedAt?: T;
+        id?: T;
+      };
+  importantLinks?:
+    | T
+    | {
+        label?: T;
+        url?: T;
+        id?: T;
+      };
   isVerified?: T;
+  lastVerifiedAt?: T;
+  dataSource?: T;
+  wikidataId?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2358,6 +2518,8 @@ export interface BookmarksSelect<T extends boolean = true> {
   kind?: T;
   article?: T;
   deadline?: T;
+  title?: T;
+  slug?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2414,6 +2576,7 @@ export interface ReadersSelect<T extends boolean = true> {
         keys?: T;
         id?: T;
       };
+  bookmarksSyncedAt?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -2579,7 +2742,22 @@ export interface SiteSetting {
    */
   favicon?: (number | null) | Media;
   contact?: {
+    /**
+     * সাধারণ যোগাযোগের জন্য — ফুটার, প্রাইভেসি পলিসি ও যোগাযোগ পাতায় দেখানো হয়।
+     */
     email?: string | null;
+    /**
+     * পাঠকের পাঠানো খবর বা সিটিজেন জার্নালিজমের জন্য।
+     */
+    newsEmail?: string | null;
+    /**
+     * সম্পাদকীয় দলের সাথে যোগাযোগের জন্য।
+     */
+    editorEmail?: string | null;
+    /**
+     * বিজ্ঞাপন ও স্পন্সরশিপ সংক্রান্ত যোগাযোগের জন্য।
+     */
+    adsEmail?: string | null;
     phone?: string | null;
     address?: string | null;
   };
@@ -2626,6 +2804,9 @@ export interface SiteSettingsSelect<T extends boolean = true> {
     | T
     | {
         email?: T;
+        newsEmail?: T;
+        editorEmail?: T;
+        adsEmail?: T;
         phone?: T;
         address?: T;
       };

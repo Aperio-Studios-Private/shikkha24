@@ -14,6 +14,43 @@ const nextConfig: NextConfig = {
    * `docs/hosting-and-deployment.md` §1 and the S0 "measure standalone size" gate.
    */
   output: 'standalone',
+
+  /**
+   * Security headers on every response, including API routes.
+   *
+   * The static frontend already carries these via `.htaccess` (verified by
+   * `pnpm verify:apache`). The CMS did not, which left the API surface
+   * unprotected against MIME-sniffing, click-jacking and downgrade attacks.
+   *
+   * CSP is included even on JSON responses — it is a no-op for XHR but stops
+   * an attacker who manages to render an API response as HTML.
+   */
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
+          },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          {
+            key: 'Permissions-Policy',
+            value: 'geolocation=(), camera=(), microphone=(), payment=()',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value:
+              "default-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+          },
+        ],
+      },
+    ]
+  },
+
   images: {
     localPatterns: [
       {

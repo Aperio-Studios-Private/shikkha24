@@ -28,10 +28,11 @@
     "verify:search-init": "node scripts/verify-search-init.mjs",
     "verify:gpa": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/verify-gpa.mjs",
     "verify:cgpa": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/verify-cgpa.mjs",
+    "verify:bookmarks": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/verify-bookmark-merge.mjs",
     "verify:sync": "node scripts/verify-cms-sync.mjs",
     "verify:endpoints": "pnpm --filter @shikkha24/cms verify:endpoints",
     "verify:reporter": "pnpm --filter @shikkha24/cms verify:reporter",
-    "verify": "pnpm run lint && pnpm run verify:astro-imports && pnpm run verify:gpa && pnpm run verify:cgpa && pnpm run typecheck && pnpm run build && pnpm run verify:build-output && pnpm run verify:links && pnpm run verify:search-init && pnpm run verify:apache",
+    "verify": "pnpm run lint && pnpm run verify:astro-imports && pnpm run verify:gpa && pnpm run verify:cgpa && pnpm run verify:bookmarks && pnpm run typecheck && pnpm run build && pnpm run verify:build-output && pnpm run verify:links && pnpm run verify:search-init && pnpm run verify:apache",
     "audit:ci": "pnpm audit --audit-level=high"
   },
   "devDependencies": {

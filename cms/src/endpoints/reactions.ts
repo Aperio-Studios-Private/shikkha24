@@ -8,8 +8,7 @@ import {
   type ReactionType,
   reactionFingerprint,
 } from '../lib/reactions'
-import { READER_SESSION_COOKIE, verifyReaderSession } from '../lib/reader-session'
-import { readCookie } from '../lib/signed-token'
+import { readerIdFromRequest } from '../lib/reader-session'
 
 /**
  * The reaction endpoints — S16.
@@ -45,21 +44,8 @@ const TOGGLES_PER_WINDOW = 20
 const WINDOW_MS = 5 * 60 * 1000
 
 /**
- * The caller's reader id, or `null` when they are not signed in.
- *
- * The session token carries the id as a string (it is signed, not typed), and the
- * relationship column is numeric — so it is parsed and range-checked rather than
- * cast. A token that somehow held a non-numeric id yields `null`, which stores an
- * anonymous reaction instead of failing the write.
+ * The caller's dedupe key. IP + UA, salted and hashed — never stored raw.
  */
-function readerIdOf(req: PayloadRequest): number | null {
-  const id = verifyReaderSession(readCookie(req.headers.get('cookie'), READER_SESSION_COOKIE))
-  if (!id) return null
-  const numeric = Number(id)
-  return Number.isInteger(numeric) && numeric > 0 ? numeric : null
-}
-
-/** The caller's dedupe key. IP + UA, salted and hashed — never stored raw. */
 function fingerprintOf(req: PayloadRequest): string {
   return reactionFingerprint(clientIp(req), req.headers.get('user-agent') ?? '')
 }
@@ -172,7 +158,7 @@ const reactionToggleEndpoint: Endpoint = {
     }
 
     const fingerprint = fingerprintOf(req)
-    const reader = readerIdOf(req)
+    const reader = readerIdFromRequest(req)
 
     // The caller's existing rows on this article. Top-level keys rather than a
     // nested `and` — a nested `and` with a negative operator silently failed to

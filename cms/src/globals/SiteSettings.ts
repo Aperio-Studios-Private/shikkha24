@@ -174,7 +174,38 @@ export const SiteSettings: GlobalConfig = {
       type: 'group',
       label: { en: 'Contact', bn: 'যোগাযোগ' },
       fields: [
-        { name: 'email', type: 'email', label: { en: 'Email', bn: 'ইমেইল' } },
+        {
+          name: 'email',
+          type: 'email',
+          label: { en: 'Primary email', bn: 'প্রাথমিক ইমেইল' },
+          admin: {
+            description: 'সাধারণ যোগাযোগের জন্য — ফুটার, প্রাইভেসি পলিসি ও যোগাযোগ পাতায় দেখানো হয়।',
+          },
+        },
+        {
+          name: 'newsEmail',
+          type: 'email',
+          label: { en: 'News submission email', bn: 'খবর জমার ইমেইল' },
+          admin: {
+            description: 'পাঠকের পাঠানো খবর বা সিটিজেন জার্নালিজমের জন্য।',
+          },
+        },
+        {
+          name: 'editorEmail',
+          type: 'email',
+          label: { en: 'Editorial email', bn: 'সম্পাদকীয় ইমেইল' },
+          admin: {
+            description: 'সম্পাদকীয় দলের সাথে যোগাযোগের জন্য।',
+          },
+        },
+        {
+          name: 'adsEmail',
+          type: 'email',
+          label: { en: 'Advertisement email', bn: 'বিজ্ঞাপনের ইমেইল' },
+          admin: {
+            description: 'বিজ্ঞাপন ও স্পন্সরশিপ সংক্রান্ত যোগাযোগের জন্য।',
+          },
+        },
         { name: 'phone', type: 'text', label: { en: 'Phone', bn: 'ফোন' } },
         { name: 'address', type: 'textarea', label: { en: 'Address', bn: 'ঠিকানা' } },
       ],

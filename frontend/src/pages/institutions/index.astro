@@ -1,14 +1,49 @@
 ---
 /**
- * Institution directory hub — N4.
+ * Institution directory hub — N4, rebuilt at S20.
  *
- * Starter set: public universities + top private, marked "growing"
- * (`docs/education-feature-inventory.md` §4).
+ * ## The navigation is filters, not routes — and that is a CSP decision
+ *
+ * `docs/university-directory.md` §2.1 asks for browse categories that are
+ * "filters over the two axes", so the categories are **filters on this page**
+ * rather than four new listing routes.
+ *
+ * That is not a shortcut. `.htaccess` decides the CSP profile structurally: any
+ * three-segment path is tagged `SHIKKHA24_CSP_ARTICLE`, which grants video
+ * framing (`frame-src youtube/facebook`) that a directory listing has no use
+ * for. The file's own comment forbids fixing that with an enumeration of
+ * reserved roots — the `/study-abroad` exclusion once sent every study-abroad
+ * article to the strict profile — and the only structural escape hatch is a
+ * middle `page/` segment, which means pagination, not browsing. Keeping the
+ * categories on one route leaves the CSP untouched.
+ *
+ * ⚠️ **A filter with no results is honest; a nav category with no results is a
+ * dead end.** Only categories that actually have institutions are rendered, so
+ * the discipline row appears only once S21 has authored disciplines — today 18
+ * of 724 carry one, because Wikidata does not supply them.
+ *
+ * ## Every institution is still a plain link in the HTML
+ *
+ * The filter island only hides and shows markup that is already there, so the
+ * directory is fully crawlable and every profile is reachable with JavaScript
+ * off. `content-visibility: auto` keeps the off-screen cards out of layout.
  */
 import Layout from '../../layouts/Layout.astro'
 import Breadcrumbs from '../../components/Breadcrumbs.astro'
 import { getInstitutions, type CmsInstitution } from '../../lib/education'
-import { getSiteSettings, getCategories, getFooterPages, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../../lib/cms'
+import {
+  institutionTypeLabel,
+  institutionDisciplineLabel,
+  INSTITUTION_TYPE_LABELS,
+  INSTITUTION_DISCIPLINE_LABELS,
+} from '../../lib/institution-labels'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../../lib/cms'
 
 const [settings, categories, footerPages, institutions] = await Promise.all([
   getSiteSettings().catch(() => FALLBACK_SETTINGS),
@@ -17,56 +52,176 @@ const [settings, categories, footerPages, institutions] = await Promise.all([
   getInstitutions().catch(() => []),
 ])
 
-const TYPE_LABELS: Record<string, string> = {
-  public: 'সরকারি', private: 'বেসরকারি', madrasa: 'মাদ্রাসা', college: 'কলেজ',
+/** Only the categories that have rows — a chip that filters to nothing is a dead end. */
+const countBy = (pick: (i: CmsInstitution) => string | null | undefined) => {
+  const counts = new Map<string, number>()
+  for (const institution of institutions) {
+    const key = pick(institution)
+    if (key) counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  return counts
 }
+
+const typeCounts = countBy((i) => i.type)
+const disciplineCounts = countBy((i) => i.discipline)
+
+const typeFilters = Object.entries(INSTITUTION_TYPE_LABELS)
+  .map(([value, label]) => ({ value, label, count: typeCounts.get(value) ?? 0 }))
+  .filter((f) => f.count > 0)
+
+const disciplineFilters = Object.entries(INSTITUTION_DISCIPLINE_LABELS)
+  .map(([value, label]) => ({ value, label, count: disciplineCounts.get(value) ?? 0 }))
+  .filter((f) => f.count > 0)
 
 function districtName(i: CmsInstitution): string | null {
   if (typeof i.district === 'object' && i.district) return i.district.nameBn ?? null
   return null
 }
 
-const jsonLd = institutions.length > 0 ? {
-  '@context': 'https://schema.org', '@type': 'ItemList', name: 'শিক্ষা প্রতিষ্ঠানের তালিকা',
-  itemListElement: institutions.slice(0, 20).map((i, idx) => ({
-    '@type': 'ListItem', position: idx + 1, name: i.nameBn, url: `/institutions/${i.slug}`,
-  })),
-} : undefined
+const jsonLd =
+  institutions.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: 'শিক্ষা প্রতিষ্ঠানের তালিকা',
+        numberOfItems: institutions.length,
+        itemListElement: institutions.slice(0, 20).map((i, idx) => ({
+          '@type': 'ListItem',
+          position: idx + 1,
+          name: i.nameBn,
+          url: `/institutions/${i.slug}`,
+        })),
+      }
+    : undefined
+
+const chipClass =
+  'rounded-full border border-rule px-3 py-1.5 text-sm text-ink transition hover:border-brand-red/50 aria-pressed:border-brand-red aria-pressed:bg-brand-red/10 aria-pressed:font-semibold aria-pressed:text-brand-red dark:border-dark-rule dark:text-dark-ink'
 ---
 
-<Layout title="শিক্ষা প্রতিষ্ঠান" description="বিশ্ববিদ্যালয় ও কলেজের তালিকা — প্রাথমিক সেট দিয়ে শুরু, ক্রমে বাড়ছে।"
-  settings={settings} categories={categories} footerPages={footerPages} jsonLd={jsonLd}>
+<Layout
+  title="শিক্ষা প্রতিষ্ঠান"
+  description="বিশ্ববিদ্যালয় ও কলেজের তালিকা — ধরন ও বিষয় অনুযায়ী দেখুন।"
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+  jsonLd={jsonLd}
+>
   <div class="container-page py-6">
     <Breadcrumbs items={[{ label: 'প্রতিষ্ঠান', href: '/institutions' }]} />
     <header class="mb-6 border-b-2 border-brand-red pb-3">
       <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">শিক্ষা প্রতিষ্ঠান</h1>
-      <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">বিশ্ববিদ্যালয় ও কলেজের তালিকা — ক্রমে বাড়ছে।</p>
+      <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">
+        মোট {institutions.length.toLocaleString('bn-BD')}টি প্রতিষ্ঠান।
+      </p>
     </header>
+
     {institutions.length === 0 ? (
-      <p class="rounded-md border border-rule bg-surface-raised p-6 text-center text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">এখনো কোনো প্রতিষ্ঠান যোগ করা হয়নি।</p>
+      <p class="rounded-md border border-rule bg-surface-raised p-6 text-center text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
+        এখনো কোনো প্রতিষ্ঠান যোগ করা হয়নি।
+      </p>
     ) : (
-      <ul class="grid gap-3 sm:grid-cols-2">
-        {institutions.map((i) => {
-          const typeLabel = i.type ? TYPE_LABELS[i.type] ?? i.type : null
-          const dist = districtName(i)
-          return (
-            <li>
-              <a href={`/institutions/${i.slug}`} class="block rounded-lg border border-rule bg-surface p-4 transition hover:border-brand-red/40 dark:border-dark-rule dark:bg-dark-surface dark:hover:border-brand-red/60">
-                <div class="flex items-center gap-2">
-                  {typeLabel && <span class="rounded bg-brand-red/10 px-2 py-0.5 text-xs font-semibold text-brand-red dark:bg-brand-red/20">{typeLabel}</span>}
-                  {i.isVerified && <span class="text-xs text-green-600 dark:text-green-400">✓ যাচাইকৃত</span>}
-                </div>
-                <h2 class="font-headline mt-2 text-lg font-bold text-ink dark:text-dark-ink">{i.nameBn}</h2>
-                {i.nameEn && <p class="text-sm text-ink-muted dark:text-dark-ink-muted">{i.nameEn}</p>}
-                <div class="mt-2 flex flex-wrap gap-3 text-xs text-ink-subtle dark:text-dark-ink-muted">
-                  {dist && <span>জেলা: {dist}</span>}
-                  {i.established && <span>প্রতিষ্ঠা: {i.established}</span>}
-                </div>
-              </a>
-            </li>
-          )
-        })}
-      </ul>
+      <div data-institution-filter>
+        <nav aria-label="ধরন অনুযায়ী দেখুন" class="flex flex-wrap gap-2">
+          <button type="button" class={chipClass} data-filter-kind="type" data-filter-value="" aria-pressed="true">
+            সব ({institutions.length.toLocaleString('bn-BD')})
+          </button>
+          {typeFilters.map((filter) => (
+            <button type="button" class={chipClass} data-filter-kind="type" data-filter-value={filter.value} aria-pressed="false">
+              {filter.label} ({filter.count.toLocaleString('bn-BD')})
+            </button>
+          ))}
+        </nav>
+
+        {disciplineFilters.length > 0 && (
+          <nav aria-label="বিষয় অনুযায়ী দেখুন" class="mt-3 flex flex-wrap gap-2">
+            {disciplineFilters.map((filter) => (
+              <button type="button" class={chipClass} data-filter-kind="discipline" data-filter-value={filter.value} aria-pressed="false">
+                {filter.label} ({filter.count.toLocaleString('bn-BD')})
+              </button>
+            ))}
+          </nav>
+        )}
+
+        <p class="mt-3 text-sm text-ink-muted dark:text-dark-ink-muted" data-filter-status aria-live="polite">
+          {institutions.length.toLocaleString('bn-BD')}টি প্রতিষ্ঠান দেখানো হচ্ছে।
+        </p>
+
+        <ul class="mt-4 grid gap-3 sm:grid-cols-2">
+          {institutions.map((i) => {
+            const typeLabel = institutionTypeLabel(i.type)
+            const discipline = institutionDisciplineLabel(i.discipline)
+            const dist = districtName(i)
+            return (
+              <li
+                data-institution
+                data-type={i.type ?? ''}
+                data-discipline={i.discipline ?? ''}
+                class="[content-visibility:auto] [contain-intrinsic-size:auto_120px]"
+              >
+                <a href={`/institutions/${i.slug}`} class="block rounded-lg border border-rule bg-surface p-4 transition hover:border-brand-red/40 dark:border-dark-rule dark:bg-dark-surface dark:hover:border-brand-red/60">
+                  <div class="flex flex-wrap items-center gap-2">
+                    {typeLabel && <span class="rounded bg-brand-red/10 px-2 py-0.5 text-xs font-semibold text-brand-red dark:bg-brand-red/20">{typeLabel}</span>}
+                    {discipline && <span class="rounded bg-surface-raised px-2 py-0.5 text-xs font-semibold text-ink-muted dark:bg-dark-raised dark:text-dark-ink-muted">{discipline}</span>}
+                    {i.isVerified && <span class="text-xs text-green-600 dark:text-green-400">✓ যাচাইকৃত</span>}
+                  </div>
+                  <h2 class="font-headline mt-2 text-lg font-bold text-ink dark:text-dark-ink">{i.nameBn}</h2>
+                  {i.nameEn && <p class="text-sm text-ink-muted dark:text-dark-ink-muted">{i.nameEn}</p>}
+                  <div class="mt-2 flex flex-wrap gap-3 text-xs text-ink-subtle dark:text-dark-ink-muted">
+                    {dist && <span>জেলা: {dist}</span>}
+                    {i.established && <span>প্রতিষ্ঠা: {i.established}</span>}
+                  </div>
+                </a>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
     )}
   </div>
 </Layout>
+
+<script>
+  /**
+   * The directory filter island.
+   *
+   * One active value per axis; the two axes AND together, which is what makes
+   * "সরকারি + প্রকৌশল" expressible — the whole reason the model has two axes.
+   * Cards are hidden with the `hidden` attribute rather than removed, so nothing
+   * is re-created and the accessible tree stays in sync.
+   */
+  const root = document.querySelector<HTMLElement>('[data-institution-filter]')
+  if (root) {
+    const chips = [...root.querySelectorAll<HTMLButtonElement>('[data-filter-kind]')]
+    const cards = [...root.querySelectorAll<HTMLElement>('[data-institution]')]
+    const status = root.querySelector<HTMLElement>('[data-filter-status]')
+    const active: Record<string, string> = { type: '', discipline: '' }
+
+    const apply = () => {
+      let shown = 0
+      for (const card of cards) {
+        const matches =
+          (!active.type || card.dataset.type === active.type) &&
+          (!active.discipline || card.dataset.discipline === active.discipline)
+        card.hidden = !matches
+        if (matches) shown++
+      }
+      for (const chip of chips) {
+        const kind = chip.dataset.filterKind as string
+        chip.setAttribute('aria-pressed', String(active[kind] === chip.dataset.filterValue))
+      }
+      if (status) {
+        status.textContent = `${shown.toLocaleString('bn-BD')}টি প্রতিষ্ঠান দেখানো হচ্ছে।`
+      }
+    }
+
+    for (const chip of chips) {
+      chip.addEventListener('click', () => {
+        const kind = chip.dataset.filterKind as string
+        const value = chip.dataset.filterValue ?? ''
+        // Tapping the active chip clears it, so a filter is never a trap.
+        active[kind] = active[kind] === value ? '' : value
+        apply()
+      })
+    }
+  }
+</script>

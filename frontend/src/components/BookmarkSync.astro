@@ -1,0 +1,35 @@
+---
+/**
+ * The bookmark sync island — **no markup at all, only the script**.
+ *
+ * Mounted on the two pages where bookmarks actually move: the article page, where
+ * the button is, and `/bookmarks`, where the reader looks at the list. It is not
+ * in the layout, because a script that runs on every page for a feature most
+ * readers never use is a cost paid by everyone for the few.
+ *
+ * ## It decides for itself whether to do anything
+ *
+ * The script returns immediately when no CMS origin is configured, and makes no
+ * request unless the reader has synced before, has local bookmarks worth merging,
+ * or is on `/bookmarks`. An anonymous reader browsing articles never calls the
+ * CMS. See `lib/bookmark-sync.ts`.
+ *
+ * Rendering nothing is the S8 rule the other islands follow: a control that
+ * cannot work is **absent**, not present-and-broken. Here there is no control to
+ * hide — the bookmark button already works with no account — so the island simply
+ * does not run.
+ */
+import { isEnabled } from '../lib/feature-flags'
+
+const enabled = isEnabled('bookmarks')
+---
+
+{enabled && (
+  <script>
+    import { startBookmarkSync } from '../lib/bookmark-sync'
+
+    // Never awaited: the page must not wait on the network to become usable, and
+    // the sync is safe to lose — the local list is already rendered.
+    void startBookmarkSync()
+  </script>
+)}

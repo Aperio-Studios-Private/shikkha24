@@ -1,17 +1,50 @@
 ---
 /**
- * Institution detail — N4. One institution's profile page.
+ * Institution profile — N4, extended by S20.
  *
- * `getStaticPaths` gates page *generation* on the flag — but institutions are
- * core content (not flag-gated), so the flag check is omitted here. If the
- * CMS is down at build time, the slugs list is empty and no pages are
- * generated.
+ * ## Sections are hidden, not empty
+ *
+ * A National-University college has no faculty list and a Tier-1 row has no fees
+ * at all. An empty heading reads as a broken page, so every section below is
+ * gated on its own data — `docs/university-directory.md` §6.2.
+ *
+ * ## Every fee carries the date it was checked
+ *
+ * ⚠️ The owner chose an **exact figure per programme** over a range, which is the
+ * most useful thing a reader can see and the first thing to go stale. The CMS
+ * refuses a fee row without `verifiedAt`, and this page prints it as
+ * **সর্বশেষ যাচাই** beside every figure — a bare number is never shown
+ * (`docs/university-directory.md` §6.5).
+ *
+ * ## The news linkage reads `Articles.university`
+ *
+ * The institution does not hold a list of its articles; the articles point here.
+ * Grouping is by the article's **own category**, so the page shows the site's
+ * real sections rather than a second taxonomy nobody maintains.
  */
 import Layout from '../../layouts/Layout.astro'
 import Breadcrumbs from '../../components/Breadcrumbs.astro'
 import { lexicalToHtml } from '../../lib/richtext'
-import { getInstitutionBySlug, getAllInstitutionSlugs, type CmsInstitution } from '../../lib/education'
-import { getSiteSettings, getCategories, getFooterPages, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../../lib/cms'
+import { formatBnBd } from '../../lib/bangla-date'
+import { articleUrl } from '../../lib/url'
+import {
+  getInstitutionBySlug,
+  getAllInstitutionSlugs,
+  getInstitutionArticles,
+  type CmsInstitutionArticle,
+} from '../../lib/education'
+import {
+  institutionTypeLabel,
+  institutionDisciplineLabel,
+  feePeriodLabel,
+} from '../../lib/institution-labels'
+import {
+  getSiteSettings,
+  getCategories,
+  getFooterPages,
+  FALLBACK_SETTINGS,
+  FALLBACK_CATEGORIES,
+} from '../../lib/cms'
 
 export async function getStaticPaths() {
   const slugs = await getAllInstitutionSlugs().catch(() => [])
@@ -28,16 +61,50 @@ const [settings, categories, footerPages, institution] = await Promise.all([
 
 if (!institution) return Astro.redirect('/404')
 
-const TYPE_LABELS: Record<string, string> = {
-  public: 'সরকারি', private: 'বেসরকারি', madrasa: 'মাদ্রাসা', college: 'কলেজ',
+const articles = await getInstitutionArticles(institution.id).catch(() => [])
+
+/** Grouped by the article's own category, in the order the CMS returned them. */
+const articlesByCategory = new Map<string, CmsInstitutionArticle[]>()
+for (const article of articles) {
+  const name =
+    article.category && typeof article.category === 'object'
+      ? (article.category.nameBn ?? 'সংবাদ')
+      : 'সংবাদ'
+  articlesByCategory.set(name, [...(articlesByCategory.get(name) ?? []), article])
 }
 
-const typeLabel = institution.type ? TYPE_LABELS[institution.type] ?? institution.type : null
-const districtName = typeof institution.district === 'object' && institution.district ? institution.district.nameBn : null
+const typeLabel = institutionTypeLabel(institution.type)
+const disciplineLabel = institutionDisciplineLabel(institution.discipline)
+const districtName =
+  typeof institution.district === 'object' && institution.district
+    ? institution.district.nameBn
+    : null
 const levelNames = Array.isArray(institution.levelOffered)
-  ? institution.levelOffered.map((l) => (typeof l === 'object' && l ? l.nameBn : null)).filter(Boolean) as string[]
+  ? (institution.levelOffered
+      .map((l) => (typeof l === 'object' && l ? l.nameBn : null))
+      .filter(Boolean) as string[])
   : []
 const descHtml = lexicalToHtml(institution.description)
+
+const contact = institution.contact ?? {}
+const hasContact = Boolean(contact.address || contact.phone || contact.email || contact.mapUrl)
+const faculties = (institution.faculties ?? []).filter((f) => f.name)
+const admissionRows = (institution.admissionInfo ?? []).filter((r) => r.label && r.value)
+const fees = (institution.tuitionFees ?? []).filter((f) => f.programme && f.amount)
+const links = (institution.importantLinks ?? []).filter((l) => l.label && l.url)
+
+/**
+ * The faculty list came from the Wikidata import and nobody has checked it.
+ *
+ * ⚠️ Gated on the **provenance**, not on `isVerified` alone: the note names
+ * Wikidata as the source, so it must not appear on a hand-authored profile that
+ * merely happens to be unverified.
+ */
+const facultiesAreImported =
+  !institution.isVerified && Boolean(institution.dataSource?.includes('Wikidata'))
+
+const feeDate = (iso?: string | null) =>
+  iso ? formatBnBd(iso, { day: 'numeric', month: 'long', year: 'numeric' }) : null
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -45,32 +112,59 @@ const jsonLd = {
   name: institution.nameBn,
   alternateName: institution.nameEn ?? undefined,
   url: institution.website ?? undefined,
-  address: institution.address ?? undefined,
+  sameAs: institution.website ?? undefined,
   foundingDate: institution.established ? String(institution.established) : undefined,
+  address: contact.address
+    ? { '@type': 'PostalAddress', streetAddress: contact.address, addressCountry: 'BD' }
+    : undefined,
+  telephone: contact.phone ?? undefined,
+  email: contact.email ?? undefined,
+  identifier: institution.wikidataId ?? undefined,
 }
+
+const cardClass =
+  'rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface'
+const headingClass = 'font-headline text-base font-semibold text-ink dark:text-dark-ink'
+const bodyClass = 'text-sm text-ink-muted dark:text-dark-ink-muted'
 ---
 
-<Layout title={institution.nameBn} description={`${institution.nameBn}${institution.nameEn ? ` (${institution.nameEn})` : ''}`}
-  settings={settings} categories={categories} footerPages={footerPages} jsonLd={jsonLd}>
+<Layout
+  title={institution.nameBn}
+  description={`${institution.nameBn}${institution.nameEn ? ` (${institution.nameEn})` : ''}`}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+  jsonLd={jsonLd}
+>
   <div class="container-page py-6">
-    <Breadcrumbs items={[
-      { label: 'প্রতিষ্ঠান', href: '/institutions' },
-      { label: institution.nameBn },
-    ]} />
+    <Breadcrumbs
+      items={[{ label: 'প্রতিষ্ঠান', href: '/institutions' }, { label: institution.nameBn }]}
+    />
 
     <header class="mb-6 border-b-2 border-brand-red pb-3">
       <div class="flex flex-wrap items-center gap-2">
         {typeLabel && <span class="rounded bg-brand-red/10 px-2 py-0.5 text-xs font-semibold text-brand-red dark:bg-brand-red/20">{typeLabel}</span>}
-        {institution.isVerified && <span class="text-xs text-green-600 dark:text-green-400">✓ যাচাইকৃত</span>}
+        {disciplineLabel && <span class="rounded bg-surface-raised px-2 py-0.5 text-xs font-semibold text-ink-muted dark:bg-dark-raised dark:text-dark-ink-muted">{disciplineLabel}</span>}
+        {/*
+          ⚠️ The negative case is printed, not left blank. `isVerified` used to add a
+          ✓ when true and nothing otherwise, which made its absence ambiguous — a
+          reader could not tell "a person checked this" from "nobody has looked".
+          That matters most for the imported rows, whose faculty list is partial
+          (`docs/university-directory.md` §8.3).
+        */}
+        {institution.isVerified
+          ? <span class="text-xs text-green-600 dark:text-green-400">✓ যাচাইকৃত</span>
+          : <span class="text-xs text-ink-subtle dark:text-dark-ink-muted">যাচাই করা হয়নি</span>}
       </div>
       <h1 class="font-headline mt-2 text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">{institution.nameBn}</h1>
       {institution.nameEn && <p class="mt-1 text-base text-ink-muted dark:text-dark-ink-muted">{institution.nameEn}</p>}
+      {institution.acronym && <p class="mt-0.5 text-sm text-ink-subtle dark:text-dark-ink-muted">{institution.acronym}</p>}
     </header>
 
     <div class="grid gap-4 sm:grid-cols-2">
-      <div class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
-        <h2 class="font-headline text-base font-semibold text-ink dark:text-dark-ink">তথ্য</h2>
-        <dl class="mt-2 space-y-1 text-sm text-ink-muted dark:text-dark-ink-muted">
+      <div class={cardClass}>
+        <h2 class={headingClass}>তথ্য</h2>
+        <dl class={`mt-2 space-y-1 ${bodyClass}`}>
           {districtName && <div><dt class="inline font-semibold">জেলা: </dt><dd class="inline">{districtName}</dd></div>}
           {institution.established && <div><dt class="inline font-semibold">প্রতিষ্ঠা: </dt><dd class="inline">{institution.established}</dd></div>}
           {levelNames.length > 0 && <div><dt class="inline font-semibold">শ্রেণি: </dt><dd class="inline">{levelNames.join(', ')}</dd></div>}
@@ -81,14 +175,144 @@ const jsonLd = {
         </dl>
       </div>
 
-      {institution.address && (
-        <div class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
-          <h2 class="font-headline text-base font-semibold text-ink dark:text-dark-ink">ঠিকানা</h2>
-          <p class="mt-2 text-sm text-ink-muted dark:text-dark-ink-muted">{institution.address}</p>
+      {hasContact && (
+        <div class={cardClass}>
+          <h2 class={headingClass}>যোগাযোগ</h2>
+          <dl class={`mt-2 space-y-1 ${bodyClass}`}>
+            {contact.address && <div><dt class="inline font-semibold">ঠিকানা: </dt><dd class="inline">{contact.address}</dd></div>}
+            {contact.phone && <div><dt class="inline font-semibold">ফোন: </dt><dd class="inline">{contact.phone}</dd></div>}
+            {contact.email && <div><dt class="inline font-semibold">ইমেইল: </dt><dd class="inline">{contact.email}</dd></div>}
+            {contact.mapUrl && (
+              <div><dd class="inline"><a href={contact.mapUrl} rel="noopener noreferrer nofollow" class="text-brand-red hover:underline">মানচিত্রে দেখুন</a></dd></div>
+            )}
+          </dl>
         </div>
       )}
     </div>
 
     {descHtml && <div class="prose-bn mt-4 text-ink dark:text-dark-ink" set:html={descHtml} />}
+
+    {faculties.length > 0 && (
+      <section class="mt-6">
+        <h2 class={headingClass}>অনুষদ ও বিভাগ</h2>
+        {/*
+          ⚠️ An imported faculty list is PARTIAL, and a short list reads as a
+          complete one — BUET shows 1 faculty because only one of its five carries
+          a Bengali name in Wikidata. The note is not decoration; without it the
+          page makes a claim the data cannot support
+          (`docs/university-directory.md` §8.1).
+        */}
+        {facultiesAreImported && (
+          <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
+            তথ্যসূত্র: উইকিডেটা — তালিকাটি অসম্পূর্ণ হতে পারে।
+          </p>
+        )}
+        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+          {faculties.map((faculty) => (
+            <div class={cardClass}>
+              <h3 class="font-headline text-sm font-semibold text-ink dark:text-dark-ink">{faculty.name}</h3>
+              {faculty.departments && faculty.departments.length > 0 && (
+                <ul class={`mt-2 list-inside list-disc space-y-0.5 ${bodyClass}`}>
+                  {faculty.departments.filter((d) => d.name).map((d) => <li>{d.name}</li>)}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {(admissionRows.length > 0 || institution.admissionUrl) && (
+      <section class="mt-6">
+        <h2 class={headingClass}>ভর্তি তথ্য</h2>
+        <div class={`mt-3 ${cardClass}`}>
+          {admissionRows.length > 0 && (
+            <dl class={`space-y-1 ${bodyClass}`}>
+              {admissionRows.map((row) => (
+                <div><dt class="inline font-semibold">{row.label}: </dt><dd class="inline">{row.value}</dd></div>
+              ))}
+            </dl>
+          )}
+          {institution.admissionUrl && (
+            <p class="mt-3">
+              <a href={institution.admissionUrl} rel="noopener noreferrer nofollow" class="text-sm font-semibold text-brand-red hover:underline">ভর্তি পাতায় যান →</a>
+            </p>
+          )}
+        </div>
+      </section>
+    )}
+
+    {fees.length > 0 && (
+      <section class="mt-6">
+        <h2 class={headingClass}>টিউশন ফি</h2>
+        <div class="mt-3 overflow-x-auto">
+          <table class="w-full border-collapse text-sm">
+            <thead>
+              <tr class="border-b border-rule text-left dark:border-dark-rule">
+                <th class="py-2 pr-3 font-semibold text-ink dark:text-dark-ink">প্রোগ্রাম</th>
+                <th class="py-2 pr-3 font-semibold text-ink dark:text-dark-ink">পরিমাণ</th>
+                <th class="py-2 pr-3 font-semibold text-ink dark:text-dark-ink">শিক্ষাবর্ষ</th>
+                <th class="py-2 font-semibold text-ink dark:text-dark-ink">সর্বশেষ যাচাই</th>
+              </tr>
+            </thead>
+            <tbody class={bodyClass}>
+              {fees.map((fee) => (
+                <tr class="border-b border-rule/60 align-top dark:border-dark-rule/60">
+                  <td class="py-2 pr-3">
+                    {fee.programme}
+                    {fee.note && <span class="block text-xs text-ink-subtle dark:text-dark-ink-muted">{fee.note}</span>}
+                  </td>
+                  <td class="py-2 pr-3">
+                    {fee.amount}
+                    {feePeriodLabel(fee.period) && <span class="block text-xs text-ink-subtle dark:text-dark-ink-muted">{feePeriodLabel(fee.period)}</span>}
+                  </td>
+                  <td class="py-2 pr-3">{fee.academicYear}</td>
+                  <td class="py-2">
+                    {feeDate(fee.verifiedAt)}
+                    {fee.sourceUrl && (
+                      <a href={fee.sourceUrl} rel="noopener noreferrer nofollow" class="block text-xs text-brand-red hover:underline">সূত্র</a>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-2 text-xs text-ink-subtle dark:text-dark-ink-muted">
+          ফি পরিবর্তন হতে পারে — ভর্তির আগে প্রতিষ্ঠানের নিজের পাতায় যাচাই করে নিন।
+        </p>
+      </section>
+    )}
+
+    {links.length > 0 && (
+      <section class="mt-6">
+        <h2 class={headingClass}>গুরুত্বপূর্ণ লিংক</h2>
+        <ul class={`mt-3 grid gap-2 sm:grid-cols-2 ${bodyClass}`}>
+          {links.map((link) => (
+            <li>
+              <a href={link.url} rel="noopener noreferrer nofollow" class="text-brand-red hover:underline">{link.label}</a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    {articles.length > 0 && (
+      <section class="mt-6">
+        <h2 class={headingClass}>এই প্রতিষ্ঠান নিয়ে সংবাদ</h2>
+        {[...articlesByCategory.entries()].map(([categoryName, list]) => (
+          <div class="mt-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">{categoryName}</h3>
+            <ul class="mt-1 space-y-1">
+              {list.map((article) => (
+                <li>
+                  <a href={articleUrl(article)} class="text-sm text-ink hover:text-brand-red dark:text-dark-ink dark:hover:text-brand-red">{article.title}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </section>
+    )}
   </div>
 </Layout>
