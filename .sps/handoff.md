@@ -1,5 +1,17 @@
 # SPS Handoff
 
+## Deployment investigation — 2026-10-02
+
+- **Found:** The `cms-standalone` artifact from successful CI run `36784464435`
+  downloads source-like files but omits `cms/.next/static` and the hidden
+  `.next` deploy tree.
+- **Cause:** GitHub's artifact uploader excludes hidden files by default. The
+  CI workflow uploaded `cms/.next/standalone` without
+  `include-hidden-files: true`, producing an incomplete deployment artifact.
+- **Fix applied:** Added `include-hidden-files: true` to the CMS artifact upload
+  step in `.github/workflows/ci.yml`. A fresh successful CI run is required
+  before uploading the CMS to DianaHost.
+
 ## Documentation index — where to look
 
 | Question | Document |
