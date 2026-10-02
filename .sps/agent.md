@@ -1,11 +1,11 @@
 # SPS Agent Identity
 
-- **Host:** WorkBuddy AI (WorkBuddy AI skill root: `~/.workbuddy-ai/skills/`)
+- **Host:** Copilot SDK in VS Code
 - **Prior host:** Antigravity (original discovery and planning session, 2026-09-11)
 - **SPS Version:** 4.0.0 (skill version stamp; `sps-cms` 2.3.0)
 - **Session Started:** 2026-09-11T19:58+06:00
-- **Last refreshed:** 2026-09-15T12:50+06:00
-- **Phase:** **S11 build complete; S12 local verification complete — owner-only items remaining.** All buildable work across S0–S12 is done. Every agent-buildable defect in the production-readiness audit is fixed (0 blocking open, 0 significant open). The CI pipeline runs all 14 harnesses and the deploy workflow exists; `docs/cms-deployment.md` is the runbook for the remaining blocker (deploy the CMS first — the frontend is built *from* it). Next: owner actions, then LAUNCH.
+- **Last refreshed:** 2026-10-02
+- **Phase:** **S12 deployment in progress.** CI run `37021393174` passed for the current deployment branch tip and produced current CMS/frontend artifacts. External SSH is unavailable; proceed by manual cPanel upload. The CMS must be initialized and seeded before building/deploying the frontend. See `.sps/handoff.md` and `docs/cms-deployment.md`.
 - **Package manager:** **pnpm 11.22.0** (`pnpm-workspace.yaml`). npm is unusable in the build environment — a filesystem broker refuses its `mkdir` calls. See `.sps/handoff.md`.
 - **`/sps` required for this project:** YES
 - **Plan approved:** 2026-09-11T20:41+06:00 — **scope amended 2026-09-11 (education portal)**
