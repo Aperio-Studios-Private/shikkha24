@@ -52,9 +52,18 @@ allowBuilds:
 #                     >=22.12 (frontend). Clears GHSA-v53p-9fqp-m79j (addressparser
 #                     ReDoS). The SMTP path is inactive until SMTP is configured,
 #                     so the runtime exposure was nil either way.
+#   devalue 5.9.4 — MIT. Astro pulls devalue transitively via unifont, and
+#                     5.9.2 carries three advisories: GHSA-j22f-vq7h-c4qm
+#                     (stringify/uneval serialise shared memory),
+#                     GHSA-mcm9-63f2-9j32 (repeated primitive strings cause
+#                     quadratic behaviour) and GHSA-x5rw-q4pp-hg5g
+#                     (stringifyAsync can throw unhandled). Scoped to the
+#                     exact vulnerable version so it stops applying by itself
+#                     once upstream moves on.
 overrides:
   'undici@7.29.0': 7.29.1
   'nodemailer@9.1.1': 10.0.6
+  'devalue@5.9.2': 5.9.4
 
 # pnpm 11 enforces a minimum package age as supply-chain protection. The stack
 # pins exact versions verified against the live registry (agent rule 8), so
