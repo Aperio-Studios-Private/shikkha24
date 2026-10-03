@@ -54,6 +54,60 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# ── Diagnostics ───────────────────────────────────────────────────────────────
+# When a CLS assertion fails, "0.038 > 0.03" is not actionable — the fix depends
+# on WHICH element moved. This prints the offending node snippets from the reports
+# `lhci collect` just wrote, so the failure log names the culprit instead of
+# sending someone to the HTML to hunt for it.
+#
+# ⚠️ It reads `.lighthouseci/` directly rather than trusting `lhci` output: on a
+# CLS failure `lhci` prints only the aggregate score.
+diagnose_layout_shifts() {
+  local dir=".lighthouseci"
+  if [ ! -d "$dir" ]; then
+    echo "note  no reports at $dir — cannot list the shifting elements"
+    return 0
+  fi
+
+  node -e '
+const fs = require("fs")
+const dir = process.argv[1]
+const files = fs.readdirSync(dir).filter((f) => f.endsWith(".json") && f.startsWith("lhr-"))
+if (!files.length) { console.log("note  no Lighthouse reports found"); process.exit(0) }
+
+for (const f of files) {
+  const r = JSON.parse(fs.readFileSync(dir + "/" + f, "utf8"))
+  const url = (r.finalDisplayedUrl || "").replace(/^https?:\/\/[^/]+/, "") || "/"
+
+  // NOTE: the SCORE lives on the "cumulative-layout-shift" audit, but the
+  // per-element detail (WHICH node actually moved) lives on a SEPARATE audit,
+  // "layout-shifts". Reading the score audit details yields entries whose only
+  // keys are cumulativeLayoutShiftMainFrame (a bare number), newEngineResult and
+  // newEngineResultDiffered - no node, no per-entry score. That is why the first
+  // version printed "score NaN: (snippet unavailable)": it was reading the wrong
+  // audit, and looked like it worked while reporting nothing.
+  const score = r.audits["cumulative-layout-shift"]
+  const shifts = r.audits["layout-shifts"]
+  if (!score || !shifts || !shifts.details || !shifts.details.items || !shifts.details.items.length) continue
+
+  console.log("\n  CLS contributors for " + url + " (total " + Number(score.numericValue).toFixed(4) + "):")
+  for (const entry of shifts.details.items) {
+    const node = entry.node || {}
+    console.log("    - score " + Number(entry.score).toFixed(4) + ": " +
+      String(node.snippet || "(snippet unavailable)").replace(/\s+/g, " ").slice(0, 150))
+    if (node.selector) console.log("      selector: " + node.selector)
+    if (node.nodeLabel) {
+      console.log("      content:  " + String(node.nodeLabel).replace(/\s+/g, " ").slice(0, 90))
+    }
+    if (node.boundingRect) {
+      const rect = node.boundingRect
+      console.log("      moved:   top " + rect.top + "px, " + rect.width + "x" + rect.height + "px")
+    }
+  }
+}
+' "$dir" 2>/dev/null || echo "note  could not parse the layout-shift details"
+}
+
 DIST="frontend/dist"
 
 if [ ! -d "$DIST" ]; then
@@ -82,9 +136,13 @@ rm -rf .lighthouseci .lighthouseci-report
 status=0
 pnpm exec lhci autorun --config=lighthouserc.json || status=$?
 
+# `diagnose_layout_shifts` is defined below; shell functions must exist before the
+# call site executes, and the whole file is parsed first, so ordering is safe.
+
 echo
 if [ "$status" -ne 0 ]; then
   echo "::error::Lighthouse budget missed - see the failing assertion above"
+  diagnose_layout_shifts
   exit "$status"
 fi
 
@@ -92,6 +150,12 @@ echo "PASS  every measured template is within its budget"
 echo "note  these are LAB scores against a simulated 4G profile, not field data."
 echo "note  TTFB is deliberately not asserted: it is a hosting property, measured"
 echo "      once in production on DianaHost at S12 (see .sps/plan.md)."
+
+# The CLS threshold is deliberately NOT raised to accommodate the CI runner (see
+# docs/performance-budget.md 8.3). The gate is meant to hold the environment that
+# actually ships - CI, not this laptop - and if it fails there, the diagnostic
+# above names the element that moved. Lowering the ceiling to make a red build
+# green would hide the one signal this gate exists to give.
 
 # ── Self-test: prove this gate can still fail ──────────────────────────────────
 # ⚠️ This is the whole point of the wrapper. `lhci autorun` exits 0 when an

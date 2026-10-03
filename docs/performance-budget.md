@@ -223,6 +223,33 @@ attempted here**: it is a real optimisation task that changes the rendering
 architecture, and it needs its own section rather than being smuggled into a QA
 fix.
 
+### 8.3a ⚠️ CLS is higher on the CI runner than on a laptop — UNRESOLVED
+
+**Measured, not fixed.** The article template measures **CLS 0.0069** on this
+machine across three runs, but **0.0381** on the GitHub runner for the *same
+commit and the same fresh build*. Both are real; the 5× difference is not.
+
+This is why the gate's CLS ceiling was **not** raised to make the build green.
+The gate exists to hold the environment that actually ships, and the runner is a
+shared, slower machine than a developer laptop — so its number is the more
+conservative one. Raising the ceiling to 0.05 would have turned the build green
+and simultaneously destroyed the only signal the gate gives.
+
+Two candidate causes, **neither confirmed**:
+
+1. **Slower CPU → later reflow.** Under a shared runner the ad-slot and
+   lazy-image work lands later, where a shift costs more of the viewport.
+2. **The homepage's "related articles" rail.** Locally, the only shifting node is
+   `<div class="mt-6 flex justify-center">` inside
+   `article.container-page > div.grid-12 > div.col-span-4` — a 380×90 px block
+   below the article. Small locally, but it is the kind of element that grows if
+   a slot above it is not reserved.
+
+To tell them apart, `scripts/verify-lighthouse.sh` prints the **shifting
+element, its CSS selector, its content and its bounding box** on any CLS
+failure. The next CI run will name it directly. Until that identifies a specific
+element, this stays open — **do not "fix" it by raising the threshold.**
+
 ### 8.4 Data-saver <30 KB is a known, recorded failure
 
 Not implemented. Raw HTML alone exceeds 30 KB on every page — the homepage's HTML
