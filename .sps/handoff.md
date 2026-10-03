@@ -19,6 +19,19 @@
   `data/` and root `node_modules/`. Upload/extract its contents into the app
   root without deleting or replacing production `data/` or CloudLinux's
   `node_modules` symlink. Deployment runbook updated accordingly.
+- **Production schema push attempt did not initialize the database (2026-10-03).**
+  The owner added `DB_PUSH=true` to the cPanel app environment and restarted
+  Passenger, but `sqlite3 data/payload.db '.tables'` returned no tables and
+  `stderr.log` shows `no such table: users` / server not running. Payload's
+  official SQLite docs state that db push only runs in development mode.
+  Therefore setting DB_PUSH on the production Passenger app was ineffective;
+  earlier instructions to restart production for schema creation were wrong.
+  Correct route: keep Passenger stopped, run `npm run seed` once from cPanel
+  Terminal with `NODE_ENV=development`, `DB_PUSH=true`, the production
+  `DATABASE_URI`, and the existing `PAYLOAD_SECRET` entered via a hidden prompt.
+  Then remove DB_PUSH from cPanel, restore/keep `NODE_ENV=production`, start
+  Passenger once, and verify the API/admin. Do not expose a development server.
+  See the corrected steps in `docs/cms-deployment.md` §3.7.
 - The preceding seed failure was fixed by commit `734b5ff`: CI sets
   `DB_PUSH=true` only for its throwaway seed database, and `cms/.env.example`
   documents the one-time initialization procedure.

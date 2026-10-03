@@ -154,12 +154,30 @@ ls -la ~/public_html/               # must NOT contain a copy of either
 The database holds the entire editorial archive. If it is reachable over HTTP, anyone who guesses
 the filename downloads the whole newsroom. `docs/security.md` §2.
 
-### 3.7 Start and verify
+### 3.7 Initialize the database, then start and verify
 
-1. cPanel → **Setup Node.js App** → **Restart** (not "Stop")
-2. Wait 10–30 s. **The first request takes 5–15 s** while Node initialises and Payload boots —
-   this is normal, do not restart again thinking it failed.
-3. Verify, in order:
+Payload's SQLite schema push runs only in development mode. Do not start the public Passenger
+application in development mode. With the Passenger application **stopped**, run the seed once
+from cPanel Terminal in a one-off development-mode shell:
+
+```sh
+cd /home/shikkhac/shikkha24-cms
+source /home/shikkhac/nodevenv/shikkha24-cms/24/bin/activate
+export NODE_ENV=development
+export DB_PUSH=true
+export DATABASE_URI=file:./data/payload.db
+read -s -p 'Payload secret (input hidden): ' PAYLOAD_SECRET; echo
+export PAYLOAD_SECRET
+npm run seed
+unset PAYLOAD_SECRET DB_PUSH NODE_ENV
+```
+
+Enter the existing cPanel `PAYLOAD_SECRET` at the hidden prompt; do not paste it into a command,
+ticket, or chat. Continue only if the seed reports success. Then remove `DB_PUSH` from the cPanel
+application environment, set/keep `NODE_ENV=production`, and start/restart Passenger once.
+
+Wait 10–30 s. **The first request takes 5–15 s** while Node initialises and Payload boots — this is
+normal, do not restart again thinking it failed. Verify, in order:
 
 ```sh
 curl -s -o /dev/null -w '%{http_code}\n' https://cms.shikkha24.com/api/articles?limit=1   # expect 200
@@ -167,15 +185,7 @@ curl -s -o /dev/null -w '%{http_code}\n' https://cms.shikkha24.com/admin        
 ```
 
 4. Open `https://cms.shikkha24.com/admin` and create the first **Super Admin** user.
-5. Run the taxonomy seed so categories exist before the frontend build:
-   ```sh
-   cd ~/shikkha24-cms && pnpm seed   # or: payload run src/seed/run.ts
-   ```
-
-> **Note:** the seed expects the app's own Node environment. If `pnpm` is unavailable on the host,
-> run the seed locally against a copy of the database and upload it, or add a one-off admin screen.
-> Do not skip it — the frontend build needs the 8 categories to exist or every article is skipped
-> (see the seed's own `skipped` counter).
+5. The seed above creates the taxonomies required before the frontend build.
 
 ---
 
