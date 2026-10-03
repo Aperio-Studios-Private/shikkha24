@@ -164,8 +164,47 @@ Document the limits chosen, and note that on a 2 GB shared host a flood can exha
 - Enable **Dependabot** (free on GitHub) for security advisories.
 - Run `pnpm audit` in CI; decide an explicit policy on what severity fails the build.
 - **Review install scripts.** Native-binary packages (Astro's Rust compiler, Tailwind Oxide, Rolldown, TypeScript 7's Go binaries, Pagefind) run post-install steps — treat major-version bumps as reviewable events, not routine. pnpm blocks post-install scripts by default; the allowed ones are listed explicitly in `pnpm-workspace.yaml` (`allowBuilds`), so a newly-added native dependency cannot silently execute code until someone adds it there.
-- **Record the known freshness risk:** Payload 3.89.0 was published one day before being pinned (`.sps/plan.md`). An S0 decision on hold-vs-pin already exists.
+- Record the known freshness risk: Payload 3.89.0 was published one day before being pinned (`.sps/plan.md`). An S0 decision on hold-vs-pin already exists.
 - Never add an unreviewed package on the production host.
+
+### 9.1 The audit gate, and the two advisories it tolerates
+
+**Policy:** `audit.level: high` in `pnpm-workspace.yaml`. High and critical fail the
+build; moderate and low are reported but do not.
+
+Two advisories are listed in `audit.ignore`, and the reason is narrow enough to
+state exactly:
+
+| GHSA | Package | Why tolerated |
+|---|---|---|
+| `GHSA-vfj7-8cjw-p6xm` | `braces` | "Patched versions: **None**" |
+| `GHSA-ch52-4w7c-c8xp` | `http-cache-semantics` | "Patched versions: **None**" |
+
+**Neither has a fix to move to.** `pnpm audit --json` reports `patched_versions:
+null` for both, so the `overrides` mechanism used for `undici`, `nodemailer` and
+`devalue` cannot apply — it needs a patched release to point at.
+
+**Neither reaches production, which is the substantive reason for tolerating them:**
+
+1. **Astro is not in the CMS.** Verified: `astro` is absent from `cms/package.json`
+   dependencies entirely. Astro builds the static frontend, and that build runs in
+   CI on a GitHub runner, never on DianaHost. The CMS ships as a Next standalone
+   bundle whose runtime trace contains neither package.
+2. **Both are build-time-only transitives.** `http-cache-semantics` arrives through
+   Astro's toolchain; `braces` through `micromatch` → `fill-range`. Neither is a
+   direct dependency of `cms` or `frontend`.
+3. **The vulnerable inputs are unreachable.** `braces` recurses on glob patterns
+   fixed at build time — never reader-supplied. `http-cache-semantics` only matters
+   to a program running a **shared HTTP cache**; the storefront is static files
+   behind Apache and the CMS serves its own API with no intermediary cache.
+
+**The gate still cannot be passed by hiding something new.** From pnpm 12.4.0,
+ignored advisories are excluded from the totals and reported separately, so any
+*third* un-ignored high or critical still fails the build.
+
+⚠️ **Re-check both on every dependency bump** and delete each entry the moment
+upstream publishes a fix. This is a holding position, not a standing exemption —
+the reasoning above stops being true the moment either package reaches runtime.
 
 ---
 

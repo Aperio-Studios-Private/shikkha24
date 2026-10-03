@@ -83,3 +83,46 @@ minimumReleaseAgeExclude:
   # Payload's i18n package — pinned to the exact Payload version so the Bengali
   # admin locale bundle is built against the matching translation schema.
   - '@payloadcms/translations@3.89.0'
+
+# ── Audit policy ─────────────────────────────────────────────────────────────
+# `level: high` is the gate CI enforces: docs/security.md §9. Two advisories are
+# tolerated below, and **both say "Patched versions: None"** — upstream has not
+# shipped a fix, so there is no version to move to. Overrides cannot help either;
+# that mechanism needs a patched release to point at. These are therefore
+# documented, scoped, and re-checked by hand rather than silently waved through.
+#
+# Neither ships to production, which is the reason for tolerating them at all:
+#
+#   • **Astro is not in the CMS at all** — verified, `astro in cms deps: NO`.
+#     Astro builds the static frontend, and that build runs in CI on GitHub's
+#     runner, never on DianaHost. The CMS is a Next standalone bundle whose
+#     runtime trace contains neither package.
+#
+#   • **Both are BUILD-TIME ONLY transitives.** `http-cache-semantics` comes via
+#     astro's toolchain; `braces` via micromatch -> fill-range. Neither is a
+#     direct dependency of `cms` or `frontend`.
+#
+#   • **`braces` (GHSA-vfj7-8cjw-p6xm, CVE-2026-93687)** — uncontrolled
+#     recursion in the AST walkers; a deeply nested pattern exhausts the stack.
+#     The input is a build-time glob pattern, never reader-supplied data.
+#
+#   • **`http-cache-semantics` (GHSA-ch52-4w7c-c8xp, CVE-2026-93748)** —
+#     max-stale can expose cross-user cache entries. It only matters to a program
+#     running a **shared HTTP cache**, and no reader-facing component here does:
+#     the storefront is static files behind Apache, and the CMS serves its own
+#     API without an intermediary cache.
+#
+# pnpm 12.4.0+ excludes ignored advisories from the totals and reports them
+# separately, so the gate cannot pass by hiding a *new* finding: a third
+# un-ignored high or critical still fails the build.
+#
+# ⚠️ **Re-check these two on every dependency bump** and delete each entry as
+# soon as upstream publishes a fix. They are a holding position, not a permanent
+# exemption.
+audit:
+  level: high
+  ignore:
+    # No patched release exists upstream. MIT-licensed. Build-time only.
+    - GHSA-vfj7-8cjw-p6xm
+    # No patched release exists upstream. MIT-licensed. Build-time only.
+    - GHSA-ch52-4w7c-c8xp
