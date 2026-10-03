@@ -41,7 +41,8 @@ Positioning (owner's words):
 | Utility widgets | Free public APIs only; descope anything with no free source | 2026-09-11 |
 | Content velocity | ✅ **Baseline 15–20/day + burst to 40+ on event days** (replaces the 45–70/day flat target, which implied 15–23 staff) | 2026-09-11 |
 | Editorial team | 5 people already in place — no hiring prerequisite | 2026-09-11 |
-| Content | Greenfield launch — no migration | 2026-09-11 |
+| Content | Greenfield launch — no **data** migration | 2026-09-11 |
+| Schema | ⚠️ **Amended 2026-10-03 — Drizzle migrations are now mandatory, not optional.** This row originally read "no migration", which was true of *content* and false of *schema*: `@payloadcms/db-sqlite` only creates the schema via `pushDevSchema`, gated on `NODE_ENV !== 'production'` (`dist/connect.js:49`), so a production Payload app with no migrations can never populate its own database. It was discovered during the DianaHost deploy, where it presented as `SQLITE_ERROR: no such table: levels` and defeated four separate workarounds. `cms/src/migrations/` is committed, `push: false` is set, and CI gates migration drift. See `.sps/handoff.md` → Current Phase | 2026-10-03 |
 | Repository | Private (caps GitHub Actions at 2,000 min/month) | 2026-09-11 |
 | Logo | Real logo supplied, CMS-editable (`docs/assets/logo.svg`) | 2026-09-13 |
 | Social login | Facebook + Google — kept; both are free (app review is a process, not a cost) | 2026-09-11 |
