@@ -130,6 +130,27 @@ jobs:
         # database: no seed, no PAYLOAD_SECRET.
         run: pnpm run verify:payload-types
 
+      - name: Verify the CMS migrations are not stale
+        # The same drift bug one layer down from payload-types.ts, and the one
+        # that reached production. `cms/src/migrations/` is generated, committed,
+        # and applied by dev, CI and the host alike — so it can describe the OLD
+        # schema while typecheck, lint and build all stay green.
+        #
+        # This is not hypothetical. On 2026-10-03 the production database was
+        # 0 bytes and `payload migrate` was a no-op, because the repository had
+        # no migrations at all; DianaHost reported `SQLITE_ERROR: no such table:
+        # levels` and four separate workarounds were attempted before the cause
+        # was found. See `.sps/handoff.md` → Current Phase.
+        #
+        # `migrate:create` writes a file only when the schema actually moved, so
+        # the check is: generate, then see whether anything appeared. Counter-
+        # proved in both directions — a drifted field fails and names the missing
+        # migration; an unchanged schema passes and leaves the tree as it found it.
+        #
+        # Runs here, before the with-CMS step, because `migrate:create` sets
+        # `disableDBConnect` and reads the config rather than the database.
+        run: pnpm run verify:payload-migrations
+
       - name: Verify the client IP is not spoofable
         # clientIp() keys EVERY abuse control in the CMS: the rate limit on
         # comments, newsletter signup, poll votes, bookmark toggles and account
@@ -203,6 +224,11 @@ jobs:
           # Both are gitignored, so a fresh checkout has neither — and neither
           # SQLite nor the media harness creates its own directory.
           mkdir -p cms/data/media
+          # Build the schema from the committed migrations BEFORE seeding. Since
+          # `push: false`, `db:migrate` is the only thing that creates it here
+          # — the same path production takes, so CI exercises the migrations the
+          # host will actually run rather than a development-only auto-push.
+          pnpm --filter @shikkha24/cms db:migrate
           pnpm --filter @shikkha24/cms seed
           pnpm --filter @shikkha24/cms seed:demo
 
@@ -433,6 +459,25 @@ jobs:
           cp -R cms/.next/static/. "$ROOT/cms/.next/static/"
           mkdir -p "$ROOT/cms/fonts"
           cp assets/fonts/vendor/solaimanlipi-400.woff2 assets/fonts/vendor/solaimanlipi-700.woff2 "$ROOT/cms/fonts/"
+          # 4. The CMS migrations are the same case, and the one that reached
+          #    production. `payload migrate` locates them at `src/migrations`,
+          #    `dist/migrations` or `migrations` relative to the working
+          #    directory (payload `dist/database/migrations/findMigrationDir.js`).
+          #    The whole `src/` tree does happen to be traced into the bundle
+          #    today - but nothing in next.config.ts asks for it (there is no
+          #    outputFileTracingIncludes), so relying on it would mean betting
+          #    production on undocumented tracing behaviour. Without them the
+          #    host cannot build its schema at all: that was the 2026-10-03
+          #    outage, where `payload migrate` was a no-op and the database
+          #    stayed 0 bytes.
+          mkdir -p "$ROOT/cms/src/migrations"
+          cp -R cms/src/migrations/. "$ROOT/cms/src/migrations/"
+          # Assert the copy actually landed rather than trusting `cp`. A silent
+          # miss here is a dead production deploy, not a visible build failure.
+          if [ ! -f "$ROOT/cms/src/migrations/index.ts" ]; then
+            echo "::error::migrations missing from the deploy bundle - the host could not build its schema"
+            exit 1
+          fi
           mb=$(du -sm "$ROOT" | cut -f1)
           echo "standalone bundle = ${mb} MB (target 300-600 MB)"
           echo "Measured at S0 on this exact stack: 114 MB."
