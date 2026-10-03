@@ -163,20 +163,21 @@ from cPanel Terminal in a one-off development-mode shell:
 ```sh
 cd /home/shikkhac/shikkha24-cms
 source /home/shikkhac/nodevenv/shikkha24-cms/24/bin/activate
-export NODE_ENV=development
-export DB_PUSH=true
-export DATABASE_URI=file:./data/payload.db
 read -s -p 'Payload secret (input hidden): ' PAYLOAD_SECRET; echo
-export PAYLOAD_SECRET
-./node_modules/.bin/payload run src/seed/run.ts
-unset PAYLOAD_SECRET DB_PUSH NODE_ENV
+env NODE_ENV=development DB_PUSH=true DATABASE_URI=file:./data/payload.db \
+  PAYLOAD_SECRET="$PAYLOAD_SECRET" \
+  /opt/alt/alt-nodejs24/root/usr/bin/node \
+  /home/shikkhac/nodevenv/shikkha24-cms/24/lib/node_modules/payload/bin.js \
+  run src/seed/run.ts
+unset PAYLOAD_SECRET
 ```
 
 Enter the existing cPanel `PAYLOAD_SECRET` at the hidden prompt; do not paste it into a command,
-ticket, or chat. Invoke Payload's executable directly rather than through `npm run`, so npm
-lifecycle configuration cannot replace the one-off `NODE_ENV=development`. Continue only if the
-seed reports success. Then remove `DB_PUSH` from the cPanel application environment,
-set/keep `NODE_ENV=production`, and start/restart Passenger once.
+ticket, or chat. The CloudLinux `node` command was observed to force `NODE_ENV=production` even
+when an inline override requested development. The absolute system Node 24 binary was verified to
+honor the override, so use it directly and invoke Payload's `bin.js` rather than a wrapper or npm
+lifecycle script. Continue only if the seed reports success. Then remove `DB_PUSH` from the cPanel
+application environment, set/keep `NODE_ENV=production`, and start/restart Passenger once.
 
 Wait 10–30 s. **The first request takes 5–15 s** while Node initialises and Payload boots — this is
 normal, do not restart again thinking it failed. Verify, in order:

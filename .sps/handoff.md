@@ -1,5 +1,50 @@
 # SPS Handoff
 
+## Live deployment checkpoint — 2026-10-03 21:26 (+06)
+
+- **CMS artifact is uploaded and extracted** at
+  `/home/shikkhac/shikkha24-cms`. The user verified `server.js`,
+  `.next/static`, and `data/` exist. `node_modules` remains the correct
+  CloudLinux symlink to
+  `/home/shikkhac/nodevenv/shikkha24-cms/24/lib/node_modules`.
+- **Passenger is stopped** (user-confirmed). Production SQLite file
+  `data/payload.db` is 0 bytes; `.tables` returned no tables.
+- **Schema and seed have NOT succeeded.** Production startup logs contain
+  `no such table: users`; repeated seed attempts report `no such table: levels`.
+  Do not claim deployment is complete, do not start Passenger, and do not
+  continue to frontend deployment until schema + taxonomy seed + live smoke
+  tests succeed.
+- **Root cause of the latest attempts:** `type -a node` showed
+  `/home/shikkhac/nodevenv/shikkha24-cms/24/bin/node` first (CloudLinux shim),
+  then `/opt/alt/alt-nodejs24/root/usr/bin/node`. Passing
+  `NODE_ENV=development` through the shim still resulted in Node observing
+  `production`; passing it directly to the absolute system Node binary yielded
+  `development`. Payload v3.89.0's official SQLite adapter
+  `packages/db-sqlite/src/connect.ts` calls dev schema push only when
+  `NODE_ENV !== 'production'`. `payload run ...` uses a shebang (`env node`),
+  so calling `.bin/payload` still routes through the shim. The next attempt,
+  not yet made, must invoke the absolute Node binary directly on Payload's
+  installed `payload/bin.js`, with the rotated secret passed only as an
+  environment variable from hidden prompt input. Do not retry npm or shim
+  commands.
+- **Secret incident:** the previous `PAYLOAD_SECRET` was pasted into chat. The
+  user reports rotating it in cPanel. Never repeat either value or ask the
+  user to paste the replacement. For the one-time seed, prompt silently and
+  pass it only in the command environment. Rotate again before handover if
+  there is any doubt whether the disclosed value is still configured.
+- **Verified code/docs:** `cms/src/payload.config.ts` gates adapter push on
+  `DB_PUSH === 'true'`; Payload official docs say SQLite db push is development
+  only. Corrected runbook is `docs/cms-deployment.md` §3.7. Last documentation
+  commits on the branch include `070deca`; pending local changes must be
+  committed before handoff.
+- **Next single action:** with Passenger stopped, run the direct absolute-Node
+  Payload CLI command from the runbook, passing `NODE_ENV=development`,
+  `DB_PUSH=true`, `DATABASE_URI=file:./data/payload.db`, and the rotated
+  `PAYLOAD_SECRET` entered by hidden prompt. Expected: seed completes and
+  reports counts. If it fails, stop and inspect exact error; do not restart
+  Passenger. On success, confirm tables, remove `DB_PUSH` from cPanel, restore
+  production mode, start once, and verify admin + articles API.
+
 ## Deployment status — 2026-10-02 (latest)
 
 - **CI passed for the current deployment branch tip.** Run
@@ -32,17 +77,9 @@
   Then remove DB_PUSH from cPanel, restore/keep `NODE_ENV=production`, start
   Passenger once, and verify the API/admin. Do not expose a development server.
   See the corrected steps in `docs/cms-deployment.md` §3.7.
-- **First CLI schema initialization attempts also failed (2026-10-03).** The
-  owner confirmed `NODE_ENV=development`, `DB_PUSH=true`,
-  `DATABASE_URI=file:./data/payload.db`, and a non-empty `PAYLOAD_SECRET` in
-  the shell, but `npm run seed` still reported `no such table: levels`. The
-  latest `node -e` check in a later Terminal invocation showed cPanel injects
-  `NODE_ENV=production`; npm lifecycle configuration may therefore override
-  the one-off mode. Do not repeat `npm run seed`. Updated the runbook to invoke
-  `./node_modules/.bin/payload run src/seed/run.ts` directly with inline
-  `NODE_ENV=development DB_PUSH=true DATABASE_URI=...`, bypassing npm lifecycle
-  configuration. Passenger must remain stopped. After the failed attempts,
-  re-check `.tables` before proceeding; do not assume schema was created.
+- **First CLI schema initialization attempts also failed (2026-10-03).** See
+  the live checkpoint at the top of this file for confirmed findings and the
+  exact next action. No seed attempt has yet succeeded.
 - The preceding seed failure was fixed by commit `734b5ff`: CI sets
   `DB_PUSH=true` only for its throwaway seed database, and `cms/.env.example`
   documents the one-time initialization procedure.

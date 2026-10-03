@@ -4,8 +4,8 @@
 - **Prior host:** Antigravity (original discovery and planning session, 2026-09-11)
 - **SPS Version:** 4.0.0 (skill version stamp; `sps-cms` 2.3.0)
 - **Session Started:** 2026-09-11T19:58+06:00
-- **Last refreshed:** 2026-10-02
-- **Phase:** **S12 deployment in progress.** CI run `37021393174` passed for the current deployment branch tip and produced current CMS/frontend artifacts. External SSH is unavailable; proceed by manual cPanel upload. The CMS must be initialized and seeded before building/deploying the frontend. See `.sps/handoff.md` and `docs/cms-deployment.md`.
+- **Last refreshed:** 2026-10-03
+- **Phase:** **S12 deployment in progress; CMS files extracted, database initialization blocked.** CI passed and the CMS artifact is on DianaHost; CloudLinux dependencies remain correctly linked. Passenger is stopped. The SQLite DB is empty; schema/seed have not succeeded. A CloudLinux `node` shim forces `NODE_ENV=production`; the absolute system Node binary honors `development`. Next use Payload's CLI through the absolute Node binary for a one-off development schema push and seed, then restore production and verify endpoints. External SSH remains unavailable; frontend is not deployed. See `.sps/handoff.md` live checkpoint and `docs/cms-deployment.md` §3.7.
 - **Package manager:** **pnpm 11.22.0** (`pnpm-workspace.yaml`). npm is unusable in the build environment — a filesystem broker refuses its `mkdir` calls. See `.sps/handoff.md`.
 - **`/sps` required for this project:** YES
 - **Plan approved:** 2026-09-11T20:41+06:00 — **scope amended 2026-09-11 (education portal)**
