@@ -125,8 +125,12 @@ the branch that actually deploys to production.
   one paginated call feeds both paths and dates and they cannot disagree. Verified
   by CI run `37022621167` (green, both artifacts) and by exercising the loop
   against a 3-page result set (201 docs collected where a capped call gives 200).
-- **F-05 (Medium)** `cms/src/endpoints/reactions.ts:81` — reaction counts are a
-  full table scan per request; viral traffic hits a 2 GB host.
+- **F-05 (Medium)** ✅ **FIXED** (`c92f12b`). `countsFor` fetched every reaction row
+  and counted in JavaScript, on every counts read *and* every toggle — cost grew
+  linearly with popularity. Now five indexed `payload.count` calls (documents
+  never materialised) plus one `limit: 1` lookup, both served by the collection's
+  existing `(article, type, …)` index prefixes. The aggregate also had **no test
+  at all**; 6 assertions added and counter-proved. CI: 17/17.
 - **F-16 (Medium)** Lighthouse / Core Web Vitals gates are declared in
   `.sps/plan.md` but **never automated**; the ≥95 budget is currently
   unmeasured.
@@ -207,18 +211,16 @@ answer:** does the DianaHost proxy append to or overwrite the inbound
 appends, "ignore the header, use the socket address" if the origin is
 directly reachable. Everything else about the fix is already determined.
 
-**2. F-05 (Medium)** reaction counts are a full table scan per request —
-the one remaining scalability risk under a viral spike on a 2 GB host.
+**2. F-16 (Medium)** Lighthouse automation — the ≥95 performance budget is
+declared in `.sps/plan.md` and still unmeasured.
 
-**3. F-16 (Medium)** Lighthouse automation.
-
-**4. F-06 / F-08 / F-14 / F-03 / F-18** — all small and self-contained.
+**3. F-06 / F-08 / F-14 / F-03 / F-18** — all small and self-contained.
 
 **Owner decisions:** F-07 (cookie consent — legal call first), F-17
 (corrections policy page + Trade Licence/TIN/Ministry numbers).
 
 **Done:** F-04 (thin-build guard), F-01 (pagination caps), F-02 (orphaned
-harnesses). All three green in CI.
+harnesses), F-05 (reaction aggregation). All four green in CI.
 
 ---
 
