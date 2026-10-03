@@ -50,6 +50,7 @@ import { SiteSettings } from './globals/SiteSettings'
 import { bn } from './i18n/bn'
 import { isMailConfigured } from './lib/mailer'
 import { withRebuildTrigger, withRebuildTriggerGlobal } from './lib/rebuild-trigger'
+import { migrations } from './migrations/index.js'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -422,6 +423,39 @@ export default buildConfig({
      * is caught at review rather than at boot.
      */
     push: false,
+
+    /**
+     * One-shot schema bootstrap, off by default.
+     *
+     * `pushDevSchema` is unavailable in production, so an empty production
+     * database normally needs a `payload migrate` run — a terminal command on
+     * the host. That is the wrong dependency for a first deployment: it makes
+     * the schema depend on shell access, which is exactly what DianaHost
+     * restricts (SSH refused; cPanel Terminal is the only shell).
+     *
+     * The adapter has a supported alternative (`dist/connect.js:56`):
+     *
+     *     if (process.env.NODE_ENV === 'production' && this.prodMigrations) {
+     *       await this.migrate({ migrations: this.prodMigrations })
+     *     }
+     *
+     * With `prodMigrations` set, the application builds its own schema while
+     * booting — no terminal, no CLI, no ordering to get wrong. Measured on
+     * 2026-10-03 against an empty database at `NODE_ENV=production`: 74 tables
+     * created on boot; counter-proved with the flag absent, 0 tables.
+     *
+     * ## Why it is gated on an environment variable
+     *
+     * Because it works, it is a footgun. Unset, every future boot would apply
+     * pending migrations with no human present and no backup taken first — the
+     * failure mode `push: false` exists to prevent. So it is opt-in per
+     * deployment: set `PAYLOAD_BOOTSTRAP_SCHEMA=true` in cPanel, restart once,
+     * confirm the tables, then remove it.
+     *
+     * Boot-time migration does not relax anything above. The same committed
+     * migrations run either way; this only chooses *who invokes them*.
+     */
+    prodMigrations: process.env.PAYLOAD_BOOTSTRAP_SCHEMA === 'true' ? migrations : undefined,
   }),
 
   sharp,

@@ -153,6 +153,13 @@ the filename downloads the whole newsroom. `docs/security.md` §2.
 > This step used to be last, and that ordering is why the first deployment attempt
 > failed. See §3.7a for why the database cannot be created by starting the app.
 
+> **No terminal required (added 2026-10-03).** Step 1 below — the one that used to
+> need a shell — can now be done from cPanel alone, because DianaHost refuses SSH
+> and cPanel Terminal is not always available. Use **3.7 B (recommended)** unless
+> you have a shell and specifically want the CLI. Steps 2–6 are unchanged.
+
+#### 3.7 A — with a terminal (CLI)
+
 1. **Apply the migrations.** With Passenger stopped, from cPanel → Terminal:
 
    ```sh
@@ -178,7 +185,44 @@ the filename downloads the whole newsroom. `docs/security.md` §2.
    it replaced the `DB_PUSH` workaround — but calling the absolute binary removes
    the question entirely.
 
-2. **Run the taxonomy seed** (8 categories, 5 levels, 64 districts):
+   Then continue at step 2.
+
+#### 3.7 B — without a terminal (cPanel only)
+
+1. **Set the bootstrap variable.** cPanel → **Setup Node.js App** → your application
+   → **Environment variables** → add:
+
+   | Variable | Value |
+   |---|---|
+   | `PAYLOAD_BOOTSTRAP_SCHEMA` | `true` |
+
+2. **Restart the app** (not Stop). The application builds its own schema while
+   booting — there is no command to run and no ordering to get right.
+3. **Wait 30 s**, then verify the schema took, either by reloading `/admin`
+   (a login page means the schema exists) or from a terminal with
+   `sqlite3 data/payload.db '.tables' | tr ' ' '\n' | grep -c .` → **74**.
+4. **Remove `PAYLOAD_BOOTSTRAP_SCHEMA` and restart again.** Leaving it set means
+   every future boot applies pending migrations unattended — see §3.7c.
+
+> How this works: `cms/src/payload.config.ts` passes the committed migrations to
+> the adapter's `prodMigrations` option, and the adapter runs them at
+> `NODE_ENV=production` (`@payloadcms/db-sqlite` `dist/connect.js:56`). The same
+> committed SQL runs as in 3.7 A — only the thing invoking it changes.
+
+#### 3.7 C — why the bootstrap variable is temporary
+
+It is gated off precisely because it works. Unset, every boot applies pending
+migrations with no human present and no backup taken first — the failure mode
+`push: false` exists to prevent. It is a bootstrap switch, not a deployment mode.
+
+Measured 2026-10-03 at `NODE_ENV=production` against an empty database:
+**74 tables with the variable set, 0 without it.** Both directions were run.
+
+#### 3.7 D — shared steps (either route)
+
+2. **Run the taxonomy seed** (8 categories, 5 levels, 64 districts).
+
+   With a terminal:
 
    ```sh
    env PAYLOAD_SECRET="$PAYLOAD_SECRET" \
