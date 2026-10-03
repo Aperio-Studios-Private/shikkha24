@@ -283,6 +283,9 @@ jobs:
           done
 
       - name: Build (frontend) against the seeded CMS
+        # Referenced by the upload below, which must upload whenever THIS step
+        # succeeded regardless of what later performance checks conclude.
+        id: build_frontend
         # `CMS_URL` is the **build-time** content origin. `PUBLIC_CMS_ORIGIN` is a
         # different variable — the browser-facing origin for the interactive
         # islands — and is deliberately left unset here so those islands self-hide.
@@ -420,6 +423,15 @@ jobs:
 
       - name: Upload frontend build output
         uses: actions/upload-artifact@v7
+        # `always() && the build succeeded` — read that condition as "a finished
+        # artefact is a property of the BUILD, not of the checks that follow it".
+        #
+        # It was plain (implicit `success()`), so a red *performance* assertion
+        # silently produced no artefact: on 2026-10-03 the Lighthouse CLS gate
+        # failed and both uploads were skipped, which made a page-speed budget the
+        # sole thing standing between a green CMS build and a deployable host.
+        # Correctness still gates here — a failed build uploads nothing.
+        if: ${{ always() && steps.build_frontend.outcome == 'success' }}
         with:
           name: frontend-dist
           path: frontend/dist
@@ -439,6 +451,9 @@ jobs:
         run: pnpm run typecheck:cms
 
       - name: Assemble and measure the standalone deploy bundle
+        # Referenced by the upload below. The CMS artefact is the one the owner
+        # uploads to DianaHost, so it must exist whenever the bundle assembled.
+        id: assemble_cms
         # Two things this asserts, both learned the hard way at S0:
         #   1. In a pnpm monorepo the entry point is .next/standalone/cms/server.js,
         #      NOT .next/standalone/server.js.
@@ -488,6 +503,10 @@ jobs:
 
       - name: Upload standalone bundle
         uses: actions/upload-artifact@v7
+        # Same rule as the frontend upload above: depend on the assemble step, not
+        # on later assertions. This is the artefact the production host consumes,
+        # so a red Lighthouse score must not decide whether it exists.
+        if: ${{ always() && steps.assemble_cms.outcome == 'success' }}
         with:
           name: cms-standalone
           path: cms/.next/standalone
