@@ -108,11 +108,16 @@ the branch that actually deploys to production.
 ## 5. Remaining QA findings
 
 ### P0 — next
-- **F-13 (High)** `cms/src/lib/http.ts:34` trusts `X-Forwarded-For[0]`, a
-  client-controlled header. Rotating it bypasses **every** rate limit (comments,
-  newsletter, polls, bookmarks, account deletion) and defeats the poll/reaction
-  duplicate-vote guards. **Needs the owner's answer on DianaHost's proxy
-  behaviour** before the correct fix can be chosen.
+- **F-13 (High)** ✅ **FIXED.** `clientIp()` read `x-forwarded-for[0]` — the
+  **caller's own value**, since a proxy only appends. Rotating that header gave a
+  fresh rate-limit bucket per request *and* a fresh "voter" identity per poll, so
+  every per-IP limit in `docs/security.md` §7 and both duplicate-vote guards were
+  unenforced. Now reads the **last** entry, which is correct whether the proxy
+  appends or overwrites. Validated against the documented architecture
+  (Client → Apache/Passenger → Node = one trusted hop) rather than assumed, with
+  the "add a second proxy and this breaks" condition written into both the code
+  and `docs/security.md` §7.1. New gate `verify:client-ip` (10 checks, incl. a
+  counter-proof that the old code *was* fooled) runs on every push.
 
 ### P1 — this month
 - **F-01 (High)** ✅ **FIXED** (`8242adb`). Four capped, un-paginated fetches in
@@ -205,22 +210,22 @@ secret values requested or displayed, no files deleted without approval.
 
 The audit findings in §5 stand. Ordering, with what each needs:
 
-**1. F-13 (High) — `X-Forwarded-For` trust.** **Blocked on one owner
-answer:** does the DianaHost proxy append to or overwrite the inbound
-`X-Forwarded-For`? The correct fix differs — "trust the last hop" if it
-appends, "ignore the header, use the socket address" if the origin is
-directly reachable. Everything else about the fix is already determined.
-
-**2. F-16 (Medium)** Lighthouse automation — the ≥95 performance budget is
+**1. F-16 (Medium)** Lighthouse automation — the ≥95 performance budget is
 declared in `.sps/plan.md` and still unmeasured.
 
-**3. F-06 / F-08 / F-14 / F-03 / F-18** — all small and self-contained.
+**2. F-06 / F-08 / F-14 / F-03 / F-18** — all small and self-contained.
 
 **Owner decisions:** F-07 (cookie consent — legal call first), F-17
 (corrections policy page + Trade Licence/TIN/Ministry numbers).
 
 **Done:** F-04 (thin-build guard), F-01 (pagination caps), F-02 (orphaned
-harnesses), F-05 (reaction aggregation). All four green in CI.
+harnesses), F-05 (reaction aggregation), F-13 (spoofable client IP). All
+five green in CI.
+
+⚠️ **Both High findings are now closed.** F-13 needed no owner input after all —
+the last XFF entry is correct whether the proxy appends or overwrites, so the
+question I had flagged as blocking was answerable from the deployment
+architecture alone.
 
 ---
 

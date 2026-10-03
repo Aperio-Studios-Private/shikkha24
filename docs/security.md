@@ -143,6 +143,39 @@ A strict CSP will break AdSense, which needs inline scripts and dynamic script i
 
 Document the limits chosen, and note that on a 2 GB shared host a flood can exhaust the process before any application limit applies — which is why the frontend is static HTML on disk (see `docs/reliability.md`).
 
+### 7.1 Every limit above depends on one function — and it was spoofable
+
+⚠️ All of the above are keyed on `clientIp()` (`cms/src/lib/http.ts`). So is the
+poll `voterHash` and the reaction `fingerprint` — the two that together form the
+**duplicate-vote** control. If that one function returns an address the caller
+chose, every control in this section is decorative.
+
+It resolves the address from `x-forwarded-for`, which is **caller-supplied and
+appended to** by the proxy, never validated. The implementation read entry
+`[0]`, which is the caller's own value. Rotating that header per request gave an
+attacker a fresh rate-limit bucket on every call and a fresh "voter" identity on
+every poll — no rate limit and no duplicate-vote guard was effectively enforced
+against anyone who read the code.
+
+It now reads the **last** entry, the one the trusted hop wrote. That is correct
+whether the proxy appends (the standard) or overwrites:
+
+| Proxy behaviour | Header received | Last entry |
+|---|---|---|
+| appends | `9.9.9.9, 203.0.113.5` | `203.0.113.5` ✓ |
+| overwrites | `203.0.113.5` | `203.0.113.5` ✓ |
+
+The first entry is correct only in the second row, and only by luck.
+
+⚠️ **This holds while there is exactly one trusted hop** — the deployment is
+Client → Apache/Passenger → Node (`docs/cms-deployment.md` §1). **If a proxy is
+ever added in front of Passenger**, re-derive this: the correct entry is the last
+one written by a hop we trust, counted from the right, and the current code would
+be wrong.
+
+Gated by `pnpm run verify:client-ip` (10 checks, including a counter-proof that the
+old implementation *was* fooled), which runs on every push.
+
 ---
 
 ## 8. Privacy and PII

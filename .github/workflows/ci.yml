@@ -118,6 +118,24 @@ jobs:
         # extensionless (fine for Vite, unresolvable for Node's ESM loader).
         run: pnpm run verify:ad-split
 
+      - name: Verify the client IP is not spoofable
+        # clientIp() keys EVERY abuse control in the CMS: the rate limit on
+        # comments, newsletter signup, poll votes, bookmark toggles and account
+        # deletion, plus the poll voterHash and the reaction fingerprint — the
+        # last two together being the duplicate-vote control.
+        #
+        # It reads that address from x-forwarded-for, which the client controls
+        # and a proxy only appends to. Taking the wrong end of the header does
+        # not weaken those controls, it removes them — silently, and only for an
+        # attacker who bothers to rotate the header.
+        #
+        # The harness asserts a forged entry can never become the client IP, and
+        # closes with a counter-proof that the previous implementation WAS fooled,
+        # so the checks cannot all be trivially true.
+        #
+        # Pure: no CMS, no network, no database.
+        run: pnpm run verify:client-ip
+
       - name: Verify SQLite WAL concurrency
         # 6 concurrent writer processes, 40 rows each, real lock contention —
         # because the CMS targets 5 editors publishing at once, and lock contention

@@ -20,11 +20,46 @@ import type { PayloadRequest } from 'payload'
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 /**
- * Best-effort client IP from raw headers.
+ * The client IP from raw headers.
  *
- * On DianaHost, Passenger passes the client IP via `x-forwarded-for`. The first
- * entry is the real client address. `x-real-ip` is a fallback set by some
- * reverse proxies. There is no Cloudflare-specific header (Cloudflare removed
+ * ## ⚠️ Why the LAST entry, not the first (F-13)
+ *
+ * `x-forwarded-for` is a **client-supplied, appendable** header. A proxy
+ * *appends* the address it saw; it does not validate what was already there. So
+ * a client can send `X-Forwarded-For: 9.9.9.9` and the header arrives as:
+ *
+ *     X-Forwarded-For: 9.9.9.9, <address the proxy actually saw>
+ *
+ * Taking entry `[0]` therefore returns whatever the caller chose. Rotating that
+ * header per request defeated **every** rate limiter in this codebase — comments,
+ * newsletter signup, poll votes, bookmarks, account deletion — and also the poll
+ * `voterHash` and reaction `fingerprint`, both of which key on IP + user agent,
+ * so it defeated duplicate-vote detection too. One header, and the abuse
+ * controls on every public write endpoint were opt-in.
+ *
+ * The **rightmost** entry is the one the trusted hop wrote, so that is the one
+ * read. This is correct whether the proxy appends *or* overwrites the header:
+ *
+ * | Proxy behaviour      | Header received                   | Rightmost  |
+ * |----------------------|-----------------------------------|------------|
+ * | appends (standard)   | `9.9.9.9, 203.0.113.5`            | `203.0.113.5` ✓ |
+ * | overwrites           | `203.0.113.5`                      | `203.0.113.5` ✓ |
+ *
+ * Leftmost is correct only in the second row, and only by luck.
+ *
+ * ## ⚠️ This is correct only while there is exactly ONE trusted hop
+ *
+ * The deployment is Client → Apache/Passenger → Node (`docs/cms-deployment.md`
+ * §1), so the last entry is Passenger's and the reasoning above holds. Behind a
+ * second proxy (a CDN or load balancer in front of Passenger) the last entry
+ * would be *that* proxy's client-visible address, and a client could forge one
+ * entry to its left. If a proxy is ever added in front, re-derive this: the
+ * correct entry is the last one written by a hop we trust, counted from the
+ * right.
+ *
+ * `x-real-ip` is the fallback for hosts that do not use `x-forwarded-for`. It is
+ * equally client-supplied, so it carries the same caveat — it is a fallback, not
+ * a stronger source. There is no Cloudflare-specific header (Cloudflare removed
  * 2026-09-14).
  *
  * ⚠️ Takes `Headers` rather than a `PayloadRequest` so **Next middleware can use
@@ -33,7 +68,15 @@ export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
  */
 export function ipFromHeaders(headers: Headers): string {
   const forwarded = headers.get('x-forwarded-for')
-  if (forwarded) return forwarded.split(',')[0]?.trim() || 'unknown'
+  if (forwarded) {
+    // Last non-empty entry wins. Filter first so a trailing comma
+    // (`a, b,`) cannot yield an empty string and fall through to 'unknown'.
+    const hops = forwarded
+      .split(',')
+      .map((hop) => hop.trim())
+      .filter(Boolean)
+    if (hops.length > 0) return hops[hops.length - 1] as string
+  }
   return headers.get('x-real-ip') ?? 'unknown'
 }
 
