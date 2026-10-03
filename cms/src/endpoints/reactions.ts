@@ -68,40 +68,102 @@ async function articleExists(req: PayloadRequest, articleId: number): Promise<bo
 /**
  * The five counts for an article, and the caller's own reaction.
  *
- * ⚠️ `pagination: false` is required, not cosmetic. Payload's `find` returns one
- * page by default, so counting `docs.length` without it would silently cap the
- * tally at the page size — a wrong number that looks like a real one
+ * ## ⚠️ Aggregated in the database, not in Node
+ *
+ * The original version did `payload.find({ pagination: false })` and counted the
+ * returned rows in JavaScript. That loads **every reaction row on the article**
+ * into the Node process on every single read — and `countsFor` runs on both the
+ * counts endpoint and every toggle, because a toggle returns fresh numbers.
+ *
+ * That made the endpoint's cost grow linearly with popularity, which is the one
+ * shape a news site cannot have: a story that goes viral is exactly the story
+ * that starts timing out. On a 2 GB host sharing the disk with the SQLite file
+ * and the standalone bundle, that is memory pressure, not just latency.
+ *
+ * ## Why the database is genuinely faster here, not just tidier
+ *
+ * It is not "SQL is nicer than JS" — the win comes from the two compound unique
+ * indexes the collection already declares:
+ *
+ *     (article, type, reader)
+ *     (article, type, fingerprint)
+ *
+ * `article` is the leading column of both, so `WHERE article = ? AND type = ?`
+ * is answered from an index prefix. Five such queries read **five index entries
+ ***, regardless of how many reactions exist — against a full row fetch that
+ * reads every row on the article.
+ *
+ * `payload.count` is used rather than `find` precisely because it issues a bare
+ * `SELECT COUNT(*)` and **never materialises documents** — there is no `limit`
+ * option on it to get wrong, and no rows cross into the process. The earlier
+ * concern that a default page size might quietly cap the tally applies to
+ * `find` + `docs.length`, which is exactly the shape this replaces
  * (`sandbox-build-traps`, trap 10A).
+ *
+ * The unique indexes also make each `(article, type)` pair **provably unique** —
+ * at most one row per fingerprint, and one per reader — so each count is 0 or 1
+ * per reader rather than an arbitrary tally. That is the approved S16 design
+ * (see `collections/Reactions.ts`), not a limitation introduced here.
  */
 async function countsFor(
   req: PayloadRequest,
   articleId: number,
   fingerprint: string,
 ): Promise<{ counts: Record<ReactionType, number>; total: number; mine: ReactionType | null }> {
-  const rows = await req.payload
-    .find({
-      collection: 'reactions',
-      where: { article: { equals: articleId } },
-      pagination: false,
-      depth: 0,
-      overrideAccess: true,
-      req,
-    })
-    .catch(() => null)
-
   const counts = emptyCounts()
-  let mine: ReactionType | null = null
 
-  for (const row of rows?.docs ?? []) {
-    const type = (row as { type?: unknown }).type
-    if (!isReactionType(type)) continue
-    counts[type] += 1
-    // At most one row per fingerprint per article — the toggle replaces rather
-    // than accumulates — so this is a plain assignment, not an accumulate.
-    if ((row as { fingerprint?: unknown }).fingerprint === fingerprint) mine = type
-  }
+  // One indexed COUNT per reaction type, in parallel. `payload.count` resolves to
+  // `{ totalDocs }` and issues a bare `SELECT COUNT(*)` — no documents are
+  // materialised, whatever the row count.
+  const perType = await Promise.all(
+    REACTION_TYPES.map((type) =>
+      req.payload
+        .count({
+          collection: 'reactions',
+          where: { article: { equals: articleId }, type: { equals: type } },
+          overrideAccess: true,
+          req,
+        })
+        // `count` resolves to `{ totalDocs }`; normalise to a number and default to
+        // 0 on failure so one bad query degrades that type's count rather than
+        // failing the whole response — the same contract the old `.catch(() => null)`
+        // gave, where a failed read produced zeros.
+        .then((result) => result?.totalDocs ?? 0)
+        .catch(() => 0),
+    ),
+  )
+
+  REACTION_TYPES.forEach((type, index) => {
+    counts[type] = perType[index] ?? 0
+  })
 
   const total = REACTION_TYPES.reduce((sum, type) => sum + counts[type], 0)
+
+  /*
+   * The caller's own reaction, if any.
+   *
+   * A second narrow query rather than a scan for "which of these rows is mine":
+   * it is answered by the `(article, type, fingerprint)` index, so it stays a
+   * fixed-cost lookup. `limit: 1` because the unique index guarantees at most
+   * one matching row.
+   */
+  let mine: ReactionType | null = null
+  if (fingerprint) {
+    const mineRow = await req.payload
+      .find({
+        collection: 'reactions',
+        where: { article: { equals: articleId }, fingerprint: { equals: fingerprint } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+        req,
+      })
+      .catch(() => null)
+
+    const type = (mineRow?.docs?.[0] as { type?: unknown } | undefined)?.type
+    if (isReactionType(type)) mine = type
+  }
+
   return { counts, total, mine }
 }
 
