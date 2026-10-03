@@ -386,6 +386,42 @@ export default buildConfig({
         'It is the path to the SQLite file that holds the whole editorial archive.',
       ),
     },
+
+    /**
+     * Schema changes go through `cms/src/migrations/` and nothing else.
+     *
+     * ## Why this is `false` and not simply absent
+     *
+     * `@payloadcms/db-sqlite` creates the schema in exactly one place —
+     * `pushDevSchema` — and it is gated on `process.env.NODE_ENV !==
+     * 'production'` (`dist/connect.js:49`). With no `push` key and no
+     * migrations directory, development and CI got a schema implicitly and
+     * production could never get one at all. That is not theoretical: it
+     * surfaced on DianaHost as `SQLITE_ERROR: no such table: levels`, and it
+     * defeated four separate attempts to work around it (`DB_PUSH` in cPanel,
+     * `npm run seed`, `.bin/payload`, an absolute-`node` binary). Every one of
+     * them was fighting this one line.
+     *
+     * ## Why not leave it unset for development convenience
+     *
+     * An unset `push` lets development auto-create the schema from the config
+     * while production applies the committed migration. Those are two
+     * independent descriptions of the same schema, and they drift: a
+     * developer changes a field, their database updates itself, no migration
+     * is written, every local check passes — and production then applies a
+     * migration that describes the *old* schema. Nothing in that sequence
+     * fails anywhere.
+     *
+     * `push: false` removes the second description. One source of truth, three
+     * environments. The cost is that a developer must run
+     * `pnpm --filter @shikkha24/cms db:migrate` after pulling schema changes,
+     * which is the ordinary Payload contract.
+     *
+     * `scripts/verify-payload-migrations.sh` fails CI if the committed
+     * migrations no longer match the config, so a forgotten `migrate:create`
+     * is caught at review rather than at boot.
+     */
+    push: false,
   }),
 
   sharp,
