@@ -22,7 +22,8 @@
       "!**/package-lock.json",
       "!**/pnpm-lock.yaml",
       "!**/tsconfig.json",
-      "!cms/src/app/(payload)"
+      "!cms/src/app/(payload)",
+      "!**/cms/src/migrations"
     ]
   },
   "formatter": {
