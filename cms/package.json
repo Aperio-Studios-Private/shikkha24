@@ -44,7 +44,7 @@
     "@payloadcms/email-nodemailer": "3.89.0",
     "@payloadcms/next": "3.89.0",
     "@payloadcms/richtext-lexical": "3.89.0",
-    "@payloadcms/translations": "3.89.0",
+    "@payloadcms/translations": "3.90.2",
     "@payloadcms/ui": "3.89.0",
     "@swc/helpers": "0.5.23",
     "cross-env": "7.0.3",
