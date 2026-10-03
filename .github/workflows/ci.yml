@@ -440,6 +440,13 @@ jobs:
       # ── CMS ─────────────────────────────────────────────────────────────────
       - name: Build (CMS, standalone)
         # `next build` performs its own type checking, so a type error fails here.
+        #
+        # `always()` for the same reason as the uploads: the Lighthouse gate
+        # measures the FRONTEND, and it sits earlier in this job than the CMS
+        # build. Gating the CMS build behind it meant a page-speed budget also
+        # decided whether the CMS artefact existed — and that artefact is the
+        # thing the production host is deployed from.
+        if: ${{ always() }}
         run: pnpm run build:cms
         env:
           PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
@@ -448,12 +455,17 @@ jobs:
       - name: Typecheck (CMS)
         # Runs AFTER the build on purpose: `next build` writes .next/types, which
         # tsconfig.json includes. Running this first would fail on missing files.
+        if: ${{ always() }}
         run: pnpm run typecheck:cms
 
       - name: Assemble and measure the standalone deploy bundle
         # Referenced by the upload below. The CMS artefact is the one the owner
         # uploads to DianaHost, so it must exist whenever the bundle assembled.
         id: assemble_cms
+        # `always()` so the CMS artefact is produced whenever the CMS build ran,
+        # independent of the frontend's performance assertions. See the note on
+        # the build step above.
+        if: ${{ always() }}
         # Two things this asserts, both learned the hard way at S0:
         #   1. In a pnpm monorepo the entry point is .next/standalone/cms/server.js,
         #      NOT .next/standalone/server.js.
