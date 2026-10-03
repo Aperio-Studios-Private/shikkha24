@@ -491,6 +491,13 @@ jobs:
         with:
           name: cms-standalone
           path: cms/.next/standalone
+          # Next's deploy bundle contains hidden `.next` directories. GitHub
+          # excludes hidden files from artifacts by default, which produces a
+          # successful-looking but unusable download without this flag: the
+          # admin HTML loads and every asset 404s. Recovered from the deploy
+          # branch (0ecbeda) during the 2026-10-03 reconciliation — it was
+          # never on main, so every main-built artifact was affected.
+          include-hidden-files: true
           retention-days: 7
 
       # ── Supply chain ────────────────────────────────────────────────────────
