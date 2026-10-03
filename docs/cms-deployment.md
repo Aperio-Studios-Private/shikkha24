@@ -89,12 +89,19 @@ modules actually imported, which is what makes the 2 GB plan viable (114 MB meas
 
 ### 3.4 Upload and assemble
 
-Upload the bundle contents into the application root (`shikkha24-cms/`) — over SSH with `rsync`
-or `scp`, which is far more reliable than cPanel's File Manager for tens of thousands of files.
+Upload the **contents** of the bundle into the application root (`shikkha24-cms/`) — over SSH
+with `rsync` or `scp`, which is far more reliable than cPanel's File Manager for tens of thousands
+of files.
+
+Before upload, exclude the artifact's top-level `data/` and `node_modules/` directories. CI can
+leave its throwaway `data/ci.db` and demo media in the standalone tree; neither belongs on the
+production host. cPanel's CloudLinux setup owns the application-root `node_modules` symlink, so
+never replace it with the artifact's directory. Preserve the production `data/` directory on every
+deployment.
 
 ```sh
 # from the unzipped artifact directory
-rsync -az --delete ./ <user>@<host>:~/shikkha24-cms/
+rsync -az --exclude='/data/' --exclude='/node_modules/' ./ <user>@<host>:~/shikkha24-cms/
 ```
 
 Then, on the host:

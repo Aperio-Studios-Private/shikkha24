@@ -10,6 +10,15 @@
   `11233397236`, 84,182,339 bytes) and `frontend-dist` (artifact
   `11233856628`, 3,371,932 bytes). Both expire 2026-10-09. They were built from
   the current branch tip, unlike the earlier green run's artifacts.
+- **The CMS artifact needs deployment exclusions.** Inspection found
+  `cms/data/ci.db`, demo media, and a root `cms/node_modules` directory in the
+  downloaded artifact. A clean archive was prepared at
+  `/tmp/shikkha24-cms-dianahost-upload-37021393174.tar.gz` (SHA-256
+  `086290681e26c3d544459b8bd2c039d03406cc130c94c1511d3ff8e853348eea`).
+  It has `server.js` at archive root and 82 `.next/static` entries; it omits
+  `data/` and root `node_modules/`. Upload/extract its contents into the app
+  root without deleting or replacing production `data/` or CloudLinux's
+  `node_modules` symlink. Deployment runbook updated accordingly.
 - The preceding seed failure was fixed by commit `734b5ff`: CI sets
   `DB_PUSH=true` only for its throwaway seed database, and `cms/.env.example`
   documents the one-time initialization procedure.
