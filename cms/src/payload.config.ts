@@ -50,7 +50,12 @@ import { SiteSettings } from './globals/SiteSettings'
 import { bn } from './i18n/bn'
 import { isMailConfigured } from './lib/mailer'
 import { withRebuildTrigger, withRebuildTriggerGlobal } from './lib/rebuild-trigger'
-import { migrations } from './migrations/index.js'
+// Extensionless on purpose. Every other import in this file is extensionless,
+// and that is load-bearing rather than stylistic: `payload run` resolves
+// `./migrations/index.js` to the `.ts` file, but Next's bundler does not, and
+// the failure surfaces as a 500 from every API route — which reads as "the CMS
+// is broken", not as "one import path is wrong". CI caught it on the first push.
+import { migrations } from './migrations/index'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
