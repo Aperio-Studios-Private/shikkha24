@@ -147,28 +147,98 @@ ls -la ~/public_html/               # must NOT contain a copy of either
 The database holds the entire editorial archive. If it is reachable over HTTP, anyone who guesses
 the filename downloads the whole newsroom. `docs/security.md` §2.
 
-### 3.7 Start and verify
+### 3.7 Build the schema, seed, then start
 
-1. cPanel → **Setup Node.js App** → **Restart** (not "Stop")
-2. Wait 10–30 s. **The first request takes 5–15 s** while Node initialises and Payload boots —
+> **Order changed 2026-10-03 — do this before restarting Passenger.**
+> This step used to be last, and that ordering is why the first deployment attempt
+> failed. See §3.7a for why the database cannot be created by starting the app.
+
+1. **Apply the migrations.** With Passenger stopped, from cPanel → Terminal:
+
+   ```sh
+   cd ~/shikkha24-cms
+   read -r -s -p 'PAYLOAD_SECRET (hidden): ' PAYLOAD_SECRET; printf '\n'
+   env PAYLOAD_SECRET="$PAYLOAD_SECRET" \
+     DATABASE_URI=file:./data/payload.db \
+     /opt/alt/alt-nodejs24/root/usr/bin/node \
+     ~/nodevenv/shikkha24-cms/24/lib/node_modules/payload/bin.js migrate
+   unset PAYLOAD_SECRET
+   ```
+
+   Expect `Migrated: 20261003_155252_initial` and `Done.` — 74 tables. Confirm:
+
+   ```sh
+   sqlite3 data/payload.db '.tables' | tr ' ' '\n' | grep -c .   # expect 74
+   ```
+
+   **The absolute `node` path matters here.** The CloudLinux `nodevenv` shim sets
+   `NODE_ENV=production` even when it is overridden inline, and `.bin/payload` is
+   an `env node` shebang that routes through that shim. For `migrate` this is
+   harmless — the CLI works fine under `NODE_ENV=production`, which is exactly why
+   it replaced the `DB_PUSH` workaround — but calling the absolute binary removes
+   the question entirely.
+
+2. **Run the taxonomy seed** (8 categories, 5 levels, 64 districts):
+
+   ```sh
+   env PAYLOAD_SECRET="$PAYLOAD_SECRET" \
+     DATABASE_URI=file:./data/payload.db \
+     /opt/alt/alt-nodejs24/root/usr/bin/node \
+     ~/nodevenv/shikkha24-cms/24/lib/node_modules/payload/bin.js \
+     run src/seed/run.ts
+   ```
+
+   Expect `created 77`. Do not skip it — the frontend build needs the 8 categories
+   to exist or every article is skipped (see the seed's own `skipped` counter).
+
+3. cPanel → **Setup Node.js App** → **Restart** (not "Stop").
+4. Wait 10–30 s. **The first request takes 5–15 s** while Node initialises and Payload boots —
    this is normal, do not restart again thinking it failed.
-3. Verify, in order:
+5. Verify, in order:
 
 ```sh
 curl -s -o /dev/null -w '%{http_code}\n' https://cms.shikkha24.com/api/articles?limit=1   # expect 200
 curl -s -o /dev/null -w '%{http_code}\n' https://cms.shikkha24.com/admin                  # expect 200
 ```
 
-4. Open `https://cms.shikkha24.com/admin` and create the first **Super Admin** user.
-5. Run the taxonomy seed so categories exist before the frontend build:
-   ```sh
-   cd ~/shikkha24-cms && pnpm seed   # or: payload run src/seed/run.ts
-   ```
+6. Open `https://cms.shikkha24.com/admin` and create the first **Super Admin** user.
 
-> **Note:** the seed expects the app's own Node environment. If `pnpm` is unavailable on the host,
-> run the seed locally against a copy of the database and upload it, or add a one-off admin screen.
-> Do not skip it — the frontend build needs the 8 categories to exist or every article is skipped
-> (see the seed's own `skipped` counter).
+> **There is no `DB_PUSH` variable, and there must never be one.** Earlier drafts of
+> this runbook set it in the cPanel environment and told you to restart the app to
+> create the schema. That cannot work: `@payloadcms/db-sqlite` creates the schema
+> only via `pushDevSchema`, gated on `NODE_ENV !== 'production'`
+> (`dist/connect.js:49`), and Passenger runs the app at `NODE_ENV=production`.
+
+### 3.7a Why starting the app cannot create its own schema
+
+Worth stating once, because it cost four workarounds on 2026-10-03 and the error
+message (`SQLITE_ERROR: no such table: levels`) points nowhere near the cause.
+
+`@payloadcms/db-sqlite` has exactly one schema-creation path:
+
+```js
+// dist/connect.js:49 — the whole story
+if (process.env.NODE_ENV !== 'production' && process.env.PAYLOAD_MIGRATING !== 'true' && this.push !== false) {
+  await pushDevSchema(this);
+}
+if (process.env.NODE_ENV === 'production' && this.prodMigrations) { await this.migrate({ migrations: this.prodMigrations }); }
+```
+
+Development and CI got a schema implicitly from that push. Production never could.
+The repository also had **no `cms/src/migrations/` directory at all**, so
+`payload migrate` was a silent no-op — which is what made the failure look
+unfixable rather than merely unfinished.
+
+Three consequences that still hold:
+
+- **Schema changes are migrations.** `cms/src/payload.config.ts` sets `push: false`,
+  so the committed migrations are the only description of the schema. After changing
+  a collection, run `pnpm --filter @shikkha24/cms db:migrate:create <name>` and commit it.
+  `verify:payload-migrations` fails CI if you forget.
+- **Applying an update to an existing database is `payload migrate`,** never a
+  `push`. Same command, same absolute-`node` invocation as step 1.
+- **A green build no longer implies a correct schema.** That is the entire reason
+  the drift gate exists.
 
 ---
 

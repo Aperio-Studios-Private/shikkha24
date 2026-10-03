@@ -266,7 +266,7 @@ Still outstanding whenever deployment resumes:
 
 | # | Blocker | Note |
 |---|---|---|
-| 1 | Production DB empty, no schema; `payload migrate` is a no-op (no migrations dir) | needs `DB_PUSH=true` **once**, then remove |
+| 1 | ✅ **FIXED in the repo, not yet applied on the host.** Production DB empty, no schema; `payload migrate` was a no-op (no migrations dir) | **Superseded 2026-10-03 — NOT `DB_PUSH`.** Committed Drizzle migrations + `push: false`; the host now runs `payload migrate`, which works at `NODE_ENV=production`. Procedure: `docs/cms-deployment.md` §3.7. `data/payload.db` on the host is still 0 bytes |
 | 2 | External SSH `b201.serverdiana.com:22` → connection refused | **auto-deploy cannot be configured**; cPanel File Manager only |
 | 3 | First Super Admin not yet created | after schema + seed succeed |
 | 4 | `PUBLIC_CMS_ORIGIN` / CSP `connect-src` is a placeholder host | must match the real CMS hostname exactly, or AdSense breaks silently |
