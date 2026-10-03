@@ -103,6 +103,40 @@ jobs:
         # asserted over HTTP by `verify:endpoints` in the with-CMS step below.
         run: pnpm run verify:bookmarks
 
+      - name: Verify the mid-article ad split
+        # Splitting the article body to insert a mid-article ad is pure string
+        # surgery, so it has a pure harness: it exercises the paragraph counting,
+        # the split point, and — the one that actually matters — that no HTML tag
+        # is ever sliced in half. A split that cuts through a tag produces broken
+        # markup on the most-read page on the site.
+        #
+        # It matters specifically because the demo articles are all four
+        # paragraphs, below the six-paragraph floor, so the split NEVER runs in a
+        # normal build. Without this the logic would ship entirely unexercised.
+        #
+        # Imports `html-split.ts` rather than `richtext.ts`: the latter imports
+        # extensionless (fine for Vite, unresolvable for Node's ESM loader).
+        run: pnpm run verify:ad-split
+
+      - name: Verify SQLite WAL concurrency
+        # 6 concurrent writer processes, 40 rows each, real lock contention —
+        # because the CMS targets 5 editors publishing at once, and lock contention
+        # would surface as silently failed publishes.
+        #
+        # This is a foundational database decision, not a late QA item:
+        # `.sps/mistakes.md` M10 records the original plan gating it at S12, after
+        # all twelve sections were built, and forbids repeating that.
+        #
+        # Each "editor" is a SEPARATE PROCESS with its own connection, because that
+        # is what production actually does. The known finding is documented in the
+        # harness: re-issuing `PRAGMA journal_mode = WAL` per connection is NOT
+        # concurrency-safe, so it must be set once on the database, ever.
+        #
+        # Uses node:sqlite rather than libSQL. libSQL is a SQLite fork and WAL
+        # contention is an engine-level property, so this faithfully answers the
+        # question — but it is not the identical driver, which the harness states.
+        run: pnpm run verify:sqlite-wal
+
       # ── Frontend ────────────────────────────────────────────────────────────
       - name: Astro sync (generate content + env types)
         # `astro sync` writes .astro/types.d.ts, which tsconfig.json includes.

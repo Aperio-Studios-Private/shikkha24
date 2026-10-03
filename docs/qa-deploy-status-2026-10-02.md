@@ -130,9 +130,22 @@ the branch that actually deploys to production.
 - **F-16 (Medium)** Lighthouse / Core Web Vitals gates are declared in
   `.sps/plan.md` but **never automated**; the ≥95 budget is currently
   unmeasured.
-- **F-02 (Medium)** Five harnesses are orphaned — `verify-ad-split`,
-  `verify-ads-s7`, `verify-s8`, `verify-sqlite-wal`, `verify-cms-sync`. The last
-  is listed in the feature register as a gate but has never run in CI.
+- **F-02 (Medium)** ✅ **FIXED**. Re-auditing found the finding itself was partly
+  wrong: `verify-cms-sync` is **not** orphaned — it is wired as `verify:sync` and
+  runs in CI. Four were genuinely unwired: `verify-ad-split`, `verify-sqlite-wal`,
+  `verify-s8`, `verify-ads-s7`.
+  - **`verify:ad-split` + `verify:sqlite-wal` now run in CI** on every push and in
+    the local `verify` chain. Both are pure (no CMS, no `sqlite3`) and both pass
+    today: 10/10 and 240 rows across 6 concurrent writer processes. The WAL
+    harness is the valuable one — `.sps/mistakes.md` M10 explicitly forbids
+    deferring it past S0, and it is the only thing guarding 5 editors publishing
+    at once.
+  - **`verify-s8` and `verify-ads-s7` stay manual, deliberately.** Both need a
+    live CMS plus the `sqlite3` CLI, and both mutate the seed database behind
+    Payload's API (`DELETE FROM poll_votes`; a rewritten article body plus a full
+    `astro build`). `verify:endpoints` gets away with touching the DB in CI only
+    because it stamps its rows and cleans up through the API; these have no such
+    safety net. Their headers now state this, and what only they still cover.
 
 ### P2 — this quarter
 - **F-06 (Medium)** In-memory rate limiter resets on restart; no shared store.
@@ -194,18 +207,18 @@ answer:** does the DianaHost proxy append to or overwrite the inbound
 appends, "ignore the header, use the socket address" if the origin is
 directly reachable. Everything else about the fix is already determined.
 
-**2. F-02 (Medium)** five orphaned harnesses, including `verify-cms-sync`
-which the feature register already claims as a gate.
+**2. F-05 (Medium)** reaction counts are a full table scan per request —
+the one remaining scalability risk under a viral spike on a 2 GB host.
 
-**3. F-05 (Medium)** reaction counts; **4. F-16 (Medium)** Lighthouse
-automation.
+**3. F-16 (Medium)** Lighthouse automation.
 
-**5. F-06 / F-08 / F-14 / F-03 / F-18** — all small and self-contained.
+**4. F-06 / F-08 / F-14 / F-03 / F-18** — all small and self-contained.
 
 **Owner decisions:** F-07 (cookie consent — legal call first), F-17
 (corrections policy page + Trade Licence/TIN/Ministry numbers).
 
-**Done:** F-04 (thin-build guard) and F-01 (pagination caps). Both green in CI.
+**Done:** F-04 (thin-build guard), F-01 (pagination caps), F-02 (orphaned
+harnesses). All three green in CI.
 
 ---
 

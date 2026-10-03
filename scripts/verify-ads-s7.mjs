@@ -1,17 +1,39 @@
 /**
  * Ad-hoc verification harness for S7 (ad system).
  *
- * Not part of the build. It exists because two S7 behaviours cannot be observed
- * against the demo content as it stands:
+ * Not part of the build, and **deliberately so** — a manual harness, not an
+ * orphaned one. It is excluded from CI for a concrete reason:
  *
- *  1. the sponsored banner on the article page — no demo article is sponsored
- *  2. the mid-article ad — every demo article is 4 paragraphs, below the
- *     6-paragraph floor, so the split never runs
+ *   1. It needs a **live CMS** and the **sqlite3** CLI; CI installs neither
+ *      for this step.
+ *   2. It is the most invasive harness in the repo. It **rewrites a demo
+ *      article's body** through `sqlite3`, marks it sponsored, **rebuilds the
+ *      entire frontend**, asserts against the built HTML, and reverts.
  *
- * It flips the data, rebuilds, checks the built HTML, and reverts. Every change
- * is restored at the end; the original body is kept in memory.
+ * ⚠️ **Do not add this to CI.** It mutates editorial content and triggers a
+ * full `astro build` from inside a test step — roughly tripling the run time
+ * of the pipeline to re-check two ad paths. Worse, if it failed between the
+ * mutation and the revert it would leave a rewritten article in the seed
+ * database, and the failure would surface as an unrelated frontend-build
+ * error further down rather than as this harness failing.
  *
- * Run with the CMS up: node scripts/verify-ads-s7.mjs
+ * The mid-article split it exercises at length is now covered by
+ * `verify:ad-split`, which is pure, runs in CI on every push, and asserts
+ * the same paragraph-counting and split-point logic — including that no HTML
+ * tag is ever sliced. That is the part most likely to break silently, so it
+ * is the part worth automating.
+ *
+ * **What only this harness covers** is the sponsored banner on the article
+ * page and the mid-article slot actually rendering in built HTML. No demo
+ * article is sponsored, so that path is otherwise unexercised. Run it by
+ * hand before changing ad placement.
+ *
+ * ## How to run it
+ *
+ *   scripts/with-cms.sh bash -c "node scripts/verify-ads-s7.mjs"
+ *
+ * Requires the `sqlite3` CLI (`brew install sqlite`) and a seeded local
+ * database at `cms/data/payload.db`. Never run it against production.
  */
 import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'

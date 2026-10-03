@@ -1,18 +1,37 @@
 /**
  * Ad-hoc verification harness for S8 (live blog, poll, quiz).
  *
- * Not part of the build. It exists because three S8 behaviours cannot be judged
- * by looking at a page:
+ * Not part of the build, and **deliberately so** — it is a manual harness,
+ * not an orphaned one. It is excluded from CI for a concrete reason:
  *
- *   1. the poll vote endpoint's abuse guards — a honeypot, a duplicate vote and
- *      a rate limit all have to be *attempted* to be shown working
- *   2. the live blog's static fallback — the entries must be in the HTML, not
- *      fetched, or the reliability promise is not kept
- *   3. the quiz's grading data — it must be present without being executable
+ *   1. It needs a **live CMS**, a **built `frontend/dist`**, and the
+ *      `sqlite3` CLI. CI installs none of those for this step.
+ *   2. It mutates the database directly: it deletes every row in
+ *      `poll_votes` and zeroes the poll tallies
+ *      (`UPDATE polls_options SET vote_count = 0`). It bypasses the Payload
+ *      API entirely.
  *
- * Everything it changes on the poll it restores at the end.
+ * ⚠️ **That second point is why it must not simply be added to CI.** The CI
+ * seed is what `verify:sync`, the frontend build and every later gate read
+ * from. A harness that truncates `poll_votes` and rewrites tallies behind
+ * Payload's back would be the classic "a test that pollutes the thing it
+ * tests" — and, unlike `verify:endpoints`, it has no stamped-row cleanup to
+ * make that safe. Running it in CI would mean either ordering it after
+ * everything that reads the poll data, or rebuilding the seed afterwards.
+ * Neither is worth it for checks `verify:endpoints` already covers over the
+ * API (it asserts the same honeypot, duplicate-vote and rate-limit guards).
  *
- * Run with the CMS up and the frontend built: node scripts/verify-s8.mjs
+ * **The static fallback (2) and the quiz grading data (3) are NOT covered
+ * elsewhere** and are asserted here against the built HTML, so this harness
+ * remains worth running by hand before an S8 change ships.
+ *
+ * ## How to run it
+ *
+ *   scripts/with-cms.sh bash -c "pnpm run build:frontend && node scripts/verify-s8.mjs"
+ *
+ * Requires the `sqlite3` CLI (`brew install sqlite`). It writes to
+ * `cms/data/payload.db`, so run it against a seeded local database, never a
+ * production one.
  */
 import { execFileSync } from 'node:child_process'
 import { readdirSync, readFileSync } from 'node:fs'

@@ -324,7 +324,9 @@ Every claim in this document is backed by a runnable check.
 | `pnpm --filter @shikkha24/cms verify:rebuild-notice` | The rebuild notice appears on exactly the triggered configs | 10/10 |
 | `pnpm --filter @shikkha24/cms verify:social` | Social URL validation rejects homepages, bare handles, plain http | 11/11 |
 | `pnpm --filter @shikkha24/cms verify:endpoints` | Real writes over HTTP, read back, cleaned up | — |
-| `pnpm --filter @shikkha24/cms verify:sync` | Every CMS record appears on its page | — |
+| `pnpm run verify:ad-split` | The mid-article ad split: paragraph counting, split point, and that no HTML tag is sliced | 10/10 |
+| `pnpm run verify:sqlite-wal` | 6 concurrent writer processes on one SQLite database — 5 editors publishing at once must not deadlock | 240 rows, 6/6 clean |
+| `pnpm run verify:sync` | Every CMS record appears on its page | — |
 
 **Standing rules these gates encode:**
 
