@@ -278,10 +278,15 @@ jobs:
 
       - name: Build output size ceiling
         # Regression guard on total dist size — NOT the per-page 1.2 MB payload
-        # budget (that belongs to Lighthouse CI, wired at S3+). This catches a
-        # catastrophic size regression (e.g. a source asset committed un-optimised,
-        # or a bundling config change that bloats every page). At 84 pages the
-        # build output is ~8.8 MB; 15 MB gives headroom for content growth.
+        # budget. This catches a catastrophic size regression across the whole
+        # build (e.g. a source asset committed un-optimised, or a bundling config
+        # change that bloats every page). At 84 pages the build output is ~8.8 MB;
+        # 15 MB gives headroom for content growth.
+        #
+        # The per-page payload budget is enforced by the Lighthouse gate in the
+        # next step (`total-byte-weight` ≤ 1.2 MB, measured per page). These two
+        # are complementary: this one bounds the whole site cheaply, that one
+        # bounds a single page load.
         # Adjust if page count or asset strategy changes materially.
         run: |
           set -euo pipefail
@@ -291,6 +296,30 @@ jobs:
             echo "::error::frontend/dist exceeds the 15 MB build-output ceiling (regression guard; per-page payload budget is enforced by Lighthouse CI)"
             exit 1
           fi
+
+      - name: Lighthouse gate (performance, accessibility, payload)
+        # F-16. `.sps/plan.md` states page-level budgets (perf ≥95, a11y ≥90,
+        # initial payload <1.2 MB, CLS <0.02); this is where they are enforced.
+        #
+        # Runs HERE, after the build, because LHCI measures a served `dist/` —
+        # which is exactly what the build two steps above produced. It cannot run
+        # any earlier, and it needs no CMS (the output is static).
+        #
+        # Thresholds live in `lighthouserc.json` and are derived from a measured
+        # baseline, not from the aspirational plan targets — see the script header
+        # and `docs/performance-budget.md` §8. Two gaps are recorded rather than
+        # hidden: perf holds ≥90 against a plan target of ≥95, and LCP is NOT
+        # asserted because it measures ~2.7-2.9s against a plan target of <1.5s.
+        # A gate set at the plan target would be permanently red and would get
+        # switched off, which is worse than an honest ceiling.
+        #
+        # ⚠️ The script self-tests that its own assertions can still fail.
+        # `lhci` exits 0 when an assertion key matches nothing, so a typo would
+        # make this step permanently green. The self-test is what stops that.
+        #
+        # Chrome comes from the runner image (no ~300 MB download). CI-minutes:
+        # this runs on pushes and PRs, never per publish, per the budget header.
+        run: pnpm run verify:lighthouse
 
       - name: Verify .htaccess against a real Apache
         # Serves the built dist/ through the real .htaccess on a real Apache and
@@ -425,12 +454,24 @@ jobs:
         run: pnpm audit --audit-level=high
 
       # ── Not yet wired ─────────────────────────────────────────────────────
-      # All 14 harnesses now run here. What remains needs infrastructure CI does
-      # not have:
+      # What remains needs infrastructure CI does not have:
       #
-      # Lighthouse CI, broken-link check and JSON-LD validation: need real page
-      # templates served over HTTP. Wired at S3+ per docs/testing-and-qa.md §1.
+      # Broken-link checking over the live network and JSON-LD validation
+      # against the served templates. (Lighthouse CI is NO LONGER in this list —
+      # it is wired above, serving the built `dist/`.)
       #
-      # The measured page-level budgets (Lighthouse ≥95, LCP, INP, CLS, TTFB) are
-      # production-only — TTFB in particular is a hosting property, measured once
-      # at S12 on DianaHost with no CDN. See .sps/plan.md.
+      # ⚠️ The page-level budgets are **partly** enforced now, and the gap is
+      # deliberate rather than forgotten. Enforced in CI: perf ≥90, a11y ≥90,
+      # SEO ≥90, CLS ≤0.03, payload ≤1.2 MB. Still production-only:
+      #
+      #   - **LCP <1.5s** — measures 2.7-2.9s in the lab today. Asserting the plan
+      #     target would be permanently red. See docs/performance-budget.md §8.
+      #   - **Perf ≥95** — the plan target; the gate holds ≥90 against a measured
+      #     93-98. Closing the gap is optimisation work, not a threshold change.
+      #   - **TTFB <200ms** — a hosting property, measured once at S12 on
+      #     DianaHost with no CDN. See .sps/plan.md.
+      #   - **Data-saver <30 KB** — not implemented; recorded as a known gap.
+      #   - **INP <100ms** — a field metric; lab Lighthouse cannot measure it
+      #     (TBT is the documented lab proxy).
+      #
+      # All lab numbers are simulated-4G, not field data. See .sps/plan.md.

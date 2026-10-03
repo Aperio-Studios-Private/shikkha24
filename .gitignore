@@ -66,3 +66,16 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+
+
+.claude
+
+# ─── Lighthouse CI (F-16) ─────────────────────────────────────────────────────
+# `lhci autorun` writes one ~1.2 MB JSON report per run (3 runs x 3 templates),
+# plus the aggregated reports. They are measurement output, not source: committing
+# them would add megabytes of churn to every build that moved a score by 0.1.
+.lighthouseci/
+.lighthouseci-report/
+.lhci-tmp/
+
