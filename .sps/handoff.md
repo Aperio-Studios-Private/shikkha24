@@ -32,6 +32,17 @@
   Then remove DB_PUSH from cPanel, restore/keep `NODE_ENV=production`, start
   Passenger once, and verify the API/admin. Do not expose a development server.
   See the corrected steps in `docs/cms-deployment.md` §3.7.
+- **First CLI schema initialization attempts also failed (2026-10-03).** The
+  owner confirmed `NODE_ENV=development`, `DB_PUSH=true`,
+  `DATABASE_URI=file:./data/payload.db`, and a non-empty `PAYLOAD_SECRET` in
+  the shell, but `npm run seed` still reported `no such table: levels`. The
+  latest `node -e` check in a later Terminal invocation showed cPanel injects
+  `NODE_ENV=production`; npm lifecycle configuration may therefore override
+  the one-off mode. Do not repeat `npm run seed`. Updated the runbook to invoke
+  `./node_modules/.bin/payload run src/seed/run.ts` directly with inline
+  `NODE_ENV=development DB_PUSH=true DATABASE_URI=...`, bypassing npm lifecycle
+  configuration. Passenger must remain stopped. After the failed attempts,
+  re-check `.tables` before proceeding; do not assume schema was created.
 - The preceding seed failure was fixed by commit `734b5ff`: CI sets
   `DB_PUSH=true` only for its throwaway seed database, and `cms/.env.example`
   documents the one-time initialization procedure.
