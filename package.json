@@ -31,6 +31,7 @@
     "verify:bookmarks": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/verify-bookmark-merge.mjs",
     "verify:ad-split": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/verify-ad-split.ts",
     "verify:client-ip": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/verify-client-ip.mjs",
+    "verify:payload-types": "bash scripts/verify-payload-types.sh",
     "verify:sqlite-wal": "node scripts/verify-sqlite-wal.mjs",
     "verify:sync": "node scripts/verify-cms-sync.mjs",
     "verify:endpoints": "pnpm --filter @shikkha24/cms verify:endpoints",

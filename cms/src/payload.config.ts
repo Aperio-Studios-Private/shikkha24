@@ -352,6 +352,31 @@ export default buildConfig({
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
 
+  /**
+   * GraphQL — the Playground, stated explicitly rather than inherited.
+   *
+   * ⚠️ **This was verified, not assumed.** Payload's own defaults
+   * (`config/defaults.js`) already set `disablePlaygroundInProduction: true`, so
+   * the Playground is *not* exposed in production today. This line therefore
+   * closes no hole — it stops the property depending on an upstream default.
+   *
+   * It is stated here for two reasons:
+   *
+   * 1. **A dependency bump must not silently change the security posture.** An
+   *    introspection UI appearing in production is exactly the kind of
+   *    regression nobody would connect to a version bump in a review.
+   * 2. **`docs/security.md` claims this is off. This makes the claim checkable**
+   *    at the point a reviewer is already looking.
+   *
+   * `disableIntrospectionInProduction` is deliberately left at its default
+   * (false). The REST API already serves this same published content to
+   * anonymous readers, so hiding the GraphQL schema would protect nothing that
+   * is not already public — while breaking the schema explorer editors rely on.
+   */
+  graphQL: {
+    disablePlaygroundInProduction: true,
+  },
+
   db: sqliteAdapter({
     client: {
       // An empty URL would leave the adapter pointed at nothing. This file holds

@@ -441,6 +441,46 @@ export function isFontAvailable(): boolean {
  * forged. Both sides build from `PUBLIC_SITE_URL` so they cannot drift.
  */
 export function verifyUrlFor(reporterId: string): string {
-  const base = (process.env.PUBLIC_SITE_URL || 'https://shikkha24.com').replace(/\/$/, '')
-  return `${base}/verify/${reporterId}`
+  return `${siteOrigin()}/verify/${reporterId}`
+}
+
+/**
+ * The site's public origin, from `PUBLIC_SITE_URL`, without a trailing slash.
+ *
+ * ## Why this is shared
+ *
+ * Three places need the public origin — the OAuth redirect builder, the CORS
+ * allow-list, and the QR URLs printed on ID cards and photocards. Each had its
+ * own inline `process.env.PUBLIC_SITE_URL || 'https://shikkha24.com'`, and the
+ * photocard's copy was once **hardcoded to the domain**, so a card generated on
+ * a staging host pointed at production. One helper means one place to change
+ * when the domain changes, and one place to fall back.
+ *
+ * The fallback keeps the production domain rather than localhost: a missing
+ * variable should fail toward the real site (cards that scan), never toward a
+ * dead `localhost` URL baked into a permanent PNG.
+ */
+export function siteOrigin(): string {
+  return (process.env.PUBLIC_SITE_URL || 'https://shikkha24.com').replace(/\/$/, '')
+}
+
+/**
+ * An article's canonical public URL, as printed on the photocard's QR.
+ *
+ * Mirrors the frontend route shape in `frontend/src/pages/[category]/[id]/[slug].astro`:
+ * `/<category>/<id>/<slug>`, falling back to `/a/<id>` when the article has no
+ * category. A missing slug likewise shortens to `/a/<id>` rather than emitting a
+ * trailing-slash URL.
+ *
+ * @param categorySlug - the article's category slug, or `undefined` if uncategorised
+ * @param id - the article's numeric id
+ * @param slug - the article's slug, or an empty string if unset
+ */
+export function articleUrlFor(
+  categorySlug: string | undefined,
+  id: number | string,
+  slug: string,
+): string {
+  if (categorySlug && slug) return `${siteOrigin()}/${categorySlug}/${id}/${slug}`
+  return `${siteOrigin()}/a/${id}`
 }

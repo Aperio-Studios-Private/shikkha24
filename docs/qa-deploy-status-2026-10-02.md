@@ -158,10 +158,42 @@ the branch that actually deploys to production.
 
 ### P2 — this quarter
 - **F-06 (Medium)** In-memory rate limiter resets on restart; no shared store.
-- **F-08 (Low)** Set `disablePlaygroundInProduction` explicitly.
-- **F-14 (Low)** Fail CI when `payload-types.ts` is stale.
-- **F-03 (Low)** `cms/src/endpoints/id-card.ts:167` hardcodes
-  `https://shikkha24.com` while its sibling reads `PUBLIC_SITE_URL`.
+- **F-08 (Low)** ✅ **FIXED — and the finding was wrong to call a risk.** Payload's
+  own defaults (`cms/node_modules/payload/dist/config/defaults.js`) already set
+  `disablePlaygroundInProduction: true`, so the Playground was **never** exposed in
+  production. Now set explicitly under a top-level `graphQL` key so a future
+  version bump cannot silently change the posture, and so `docs/security.md`'s
+  claim is checkable at the point of configuration.
+  - ⚠️ **First placed under `admin:` — the typecheck rejected it.** The option
+    belongs to the top-level `graphQL` block, not `admin`. Worth recording: the
+    property name appears in Payload's docs next to the admin options, so it reads
+    plausibly in the wrong place. `tsc` caught it before commit.
+  - `disableIntrospectionInProduction` deliberately left at its default. The REST
+    API already serves the same published content anonymously, so hiding the
+    GraphQL schema protects nothing that is not already public, and it breaks the
+    schema explorer editors use.
+- **F-14 (Low)** ✅ **FIXED.** `scripts/verify-payload-types.sh` + `pnpm
+  verify:payload-types`, running in CI before the with-CMS step (type generation
+  reads the config, not the database, so it needs no seed and no `PAYLOAD_SECRET`).
+  - ⚠️ **The first version could never fail.** It regenerated the types and then
+    ran `git diff --quiet` — but regeneration *overwrites* the staleness before
+    the diff, so it compared the regenerated file against itself. Counter-proving
+    caught it: an injected stale field still passed. The committed blob is now
+    captured with `git cat-file` **before** generation and compared with `cmp`.
+  - Counter-proof now passes in the real direction too: adding a field to
+    `Circulars` without regenerating fails the gate and prints the exact drifted
+    field (`f14ProbeField?: string | null`).
+  - The check restores the working tree on both paths, so a failing CI run never
+    leaves generated output behind.
+- **F-03 (Low)** ✅ **FIXED.** `cms/src/endpoints/id-card.ts` no longer hardcodes
+  `https://shikkha24.com` for the photocard QR target. Added `siteOrigin()` and
+  `articleUrlFor()` to `cms/src/lib/id-card.ts`; `verifyUrlFor()` now shares the
+  same origin helper, so both card types move together.
+  - Four assertions added to the existing `verify:id-card` harness, covering a
+    staging host, a trailing slash, and the uncategorised `/a/:id` fallback.
+  - The sibling's own comment already claimed "both sides build from
+    `PUBLIC_SITE_URL` so they cannot drift" — the endpoint was the counter-example
+    to its own docstring.
 - **F-18 (Low)** Add an automated axe pass.
 
 ### Owner decisions

@@ -26,6 +26,7 @@
 | **Social URL validation** (`verify:social`) | Every CI run | Merge |
 | **Card determinism + QR target** (`verify:id-card`) | Every CI run | Merge |
 | **Reaction dedupe at the database** (`verify:reactions`) | Every CI run | Merge |
+| **Generated types not stale** (`verify:payload-types`) | Every CI run | Merge |
 | **🔒 Access matrix — every collection × role × operation** (`verify:access`) | Every CI run | Merge |
 | **Media upload rules** (`verify:media`) | Every CI run | Merge |
 | **Newsletter signup + tokens** (`verify:newsletter`) | Every CI run | Merge |

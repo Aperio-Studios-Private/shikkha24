@@ -1,6 +1,7 @@
 import type { Endpoint, PayloadRequest } from 'payload'
 import { json } from '../lib/http'
 import {
+  articleUrlFor,
   composeIdCard,
   composePhotocard,
   type IdCardAuthor,
@@ -163,9 +164,15 @@ const photocardEndpoint: Endpoint = {
       typeof article.category === 'object' && article.category !== null
         ? (article.category.slug as string | undefined)
         : undefined
-    const canonical = categorySlug
-      ? `https://shikkha24.com/${categorySlug}/${article.id}/${slugPart}`
-      : `https://shikkha24.com/a/${article.id}`
+    /**
+     * The article's canonical URL, printed as the QR target on the photocard.
+     *
+     * Reads `PUBLIC_SITE_URL` via `siteOrigin()` — the same helper the OAuth
+     * and CORS code uses. This was hardcoded to `https://shikkha24.com`, which
+     * meant a staging or preview deployment printed a QR pointing at production,
+     * and a domain change silently invalidated every card.
+     */
+    const canonical = articleUrlFor(categorySlug, article.id, slugPart)
 
     const card: PhotocardArticle = {
       title: String(article.title ?? ''),

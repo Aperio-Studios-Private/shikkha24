@@ -118,6 +118,18 @@ jobs:
         # extensionless (fine for Vite, unresolvable for Node's ESM loader).
         run: pnpm run verify:ad-split
 
+      - name: Verify payload-types.ts is not stale
+        # The one file in the CMS that can be wrong while the build stays green.
+        # `payload-types.ts` is generated and committed; if a collection changes
+        # and it is not regenerated, the file still typechecks — it is valid
+        # TypeScript describing the OLD schema — so nothing fails here and the
+        # error surfaces later as a missing property, far from the cause.
+        #
+        # Regenerates and compares against what is committed. Runs before the
+        # with-CMS step because type generation reads the config, not the
+        # database: no seed, no PAYLOAD_SECRET.
+        run: pnpm run verify:payload-types
+
       - name: Verify the client IP is not spoofable
         # clientIp() keys EVERY abuse control in the CMS: the rate limit on
         # comments, newsletter signup, poll votes, bookmark toggles and account

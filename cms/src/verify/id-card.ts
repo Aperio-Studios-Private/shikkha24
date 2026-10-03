@@ -34,11 +34,13 @@ import { getPayload } from 'payload'
 import sharp from 'sharp'
 
 import {
+  articleUrlFor,
   composeIdCard,
   composePhotocard,
   type IdCardAuthor,
   isFontAvailable,
   type PhotocardArticle,
+  siteOrigin,
   verifyUrlFor,
 } from '../lib/id-card'
 
@@ -166,6 +168,53 @@ await withAuthor(async (author) => {
       )
     }
   }
+}
+
+// ── F-03: the printed URLs follow PUBLIC_SITE_URL, never a baked-in domain ────
+{
+  // The photocard endpoint used to hardcode `https://shikkha24.com`, so a card
+  // generated on a staging host printed a QR pointing at production. These
+  // assertions pin the behaviour to the environment variable instead.
+  const realSiteUrl = process.env.PUBLIC_SITE_URL
+
+  try {
+    process.env.PUBLIC_SITE_URL = 'https://staging.example.test'
+    check(
+      'the photocard QR target follows PUBLIC_SITE_URL, not a hardcoded domain',
+      articleUrlFor('exams-results', 1, 'ssc-result') ===
+        'https://staging.example.test/exams-results/1/ssc-result',
+      articleUrlFor('exams-results', 1, 'ssc-result'),
+    )
+
+    // A trailing slash in the variable must not produce `//` in the path —
+    // an operator adding one should not break every QR on the site.
+    process.env.PUBLIC_SITE_URL = 'https://staging.example.test/'
+    check(
+      'a trailing slash in PUBLIC_SITE_URL is not doubled',
+      articleUrlFor('exams-results', 1, 'ssc-result') ===
+        'https://staging.example.test/exams-results/1/ssc-result',
+      articleUrlFor('exams-results', 1, 'ssc-result'),
+    )
+
+    // Both card types share `siteOrigin()`, so both must move together.
+    check(
+      'the reporter verify QR follows PUBLIC_SITE_URL too',
+      verifyUrlFor('SHK-R-2026-9999') === 'https://staging.example.test/verify/SHK-R-2026-9999',
+      verifyUrlFor('SHK-R-2026-9999'),
+    )
+  } finally {
+    // Restore, so later checks and any real card render see the real value.
+    if (realSiteUrl === undefined) delete process.env.PUBLIC_SITE_URL
+    else process.env.PUBLIC_SITE_URL = realSiteUrl
+  }
+
+  // An uncategorised article has no category segment, so it takes the short
+  // `/a/:id` route. Both the old and new code must agree here.
+  check(
+    'an uncategorised article falls back to /a/:id',
+    articleUrlFor(undefined, 42, 'some-slug') === `${siteOrigin()}/a/42`,
+    articleUrlFor(undefined, 42, 'some-slug'),
+  )
 }
 
 // ── The font must actually be loadable, or every card is tofu ───────────────
