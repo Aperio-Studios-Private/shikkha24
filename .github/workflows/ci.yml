@@ -188,6 +188,20 @@ jobs:
         # question — but it is not the identical driver, which the harness states.
         run: pnpm run verify:sqlite-wal
 
+      - name: Verify the backup gate rejects what it claims to reject
+        # The daily backup workflow's entire output is a decision made by
+        # backup-verify.mjs. A gate that quietly stopped rejecting bad input would let a
+        # week of green backup runs mean nothing, so it is proved here on every push
+        # rather than only on the daily schedule.
+        #
+        # Every section is proved against the specific defect it claims to catch —
+        # a truncated archive, a corrupted database, a missing media directory, a
+        # structurally perfect database belonging to a different project — using real
+        # SQLite files rather than mocks.
+        #
+        # Pure: no CMS, no network, no database, no dependencies.
+        run: pnpm run verify:backup
+
       # ── Frontend ────────────────────────────────────────────────────────────
       - name: Astro sync (generate content + env types)
         # `astro sync` writes .astro/types.d.ts, which tsconfig.json includes.
