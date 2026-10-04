@@ -111,6 +111,34 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
     account; hand-run the dump script in cPanel Terminal **and read the output**; add the 19:00
     UTC cron entry; add `FTP_HOST` / `FTP_USER` / `FTP_PASSWORD` as GitHub Secrets. Until then
     **run the manual procedure in §6.5 — it is the only thing protecting the archive.**
+  - **🔴 BLOCKER, and it is the host, not the code (2026-10-04). The account cannot fork
+    processes, so the host half of the backup cannot run at all.**
+    - **cPanel Terminal access has been disabled by DianaHost.** The step above that says
+      "hand-run the dump script in cPanel Terminal and read the output" **can no longer be
+      performed** — it was already unreliable ("not reliably available"), and now it is gone. The
+      runbook must stop prescribing it.
+    - **Evidence, from cPanel itself.** The cron entry is saved and correct (screenshot of the
+      Cron Jobs page: `* * * * *` plus the redirect command). Replacing the command with the
+      smallest thing a scheduler can do — `date > /home/shikkhac/cron-test.txt` — produced
+      `run.log` (388 bytes, 20:28) containing five identical lines:
+      `/usr/local/cpanel/bin/jailshell: fork: retry: Resource temporarily unavailable`.
+      That is **EAGAIN from `fork(2)`** — CloudLinux refusing to create a process. **Cron is
+      firing; the host will not give it a process.**
+    - **⚠️ Why the earlier run produced *absolutely nothing*, including no `run.log`.** The
+      previous command was `( … ; echo … ) > run.log`. The parentheses require the shell to
+      **fork a subshell before** the redirect can be established — the fork failed, so the file
+      was never created. The two observations look like "cron never runs" and "cron runs but
+      fails at the first syscall"; only the second was true. See `.sps/mistakes.md` **M19**.
+    - **`https://cms.shikkha24.com` loads normally**, so this is not a blanket outage — process
+      slots are available to a web request and are not available to cron. That distinction has
+      not yet been explained by the host.
+    - **Consequence:** *no* host-side scheduled automation of any kind works on this account while
+      this holds — the dump is the first thing it was noticed on. Raising the CloudLinux `nPROC`
+      / LVE limit is **only possible by DianaHost**. Unverified: whether a quieter hour (the dump
+      is scheduled for 23:00 local) has enough headroom to fork; that is a hypothesis, not a
+      measurement, and it must not be relied on.
+    - **Next:** read **cPanel → Site Quality Monitoring** for live CPU/memory/**process** usage,
+      and **Setup Node.js App** for a Passenger restart loop, before proposing any workaround.
   - **Still unverified:** the private-repo Actions artifact quota. `docs.github.com` returned 404
     on every attempt and WebSearch was unavailable, so retention is set to 30 days and the
     workflow *warns* above 100 MB rather than asserting a ceiling it cannot prove.
