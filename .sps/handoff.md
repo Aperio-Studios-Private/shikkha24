@@ -221,6 +221,12 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
       detects this (`${CMS_URL}/api/articles` health check) and prints a venv-repair command,
       ⚠️ **but that repair needs the cPanel Terminal, which DianaHost disabled.** Do not treat a
       passing dry run as proof that a live deploy is safe; it proves credentials and plan only.
+  - **🔴 First dry run FAILED — at its own self-test, 39 of 40 (`0104147`), before the host was
+    contacted for anything.** `verify-cpanel-deploy.mjs` read stdout for the venv-repair command;
+    `summary()` sends the report to `$GITHUB_STEP_SUMMARY` in CI and to stdout locally, **by
+    design**. The check therefore passed on every local run and failed in CI, guarding the one
+    recovery instruction that depends on the disabled Terminal. Fixed by pinning a step-summary
+    file for the child and reading both channels. See `.sps/mistakes.md` **M22**.
 - **⚠️ One owner action settles a nine-document dispute.** The runtime Node version is asserted
   as `20.18.2` in nine documents and was **never measured** — it was inferred from the
   CloudLinux `nodevenv` path, whose directory number **is** the version, and that path reads
