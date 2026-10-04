@@ -442,15 +442,41 @@ async function main() {
 
     const cmsDir = mkdtempSync(join(tmpdir(), 'cmsdist-'))
     writeFileSync(join(cmsDir, 'server.js'), '')
-    const cmsOutput = await run('deploy-cms.mjs', { DEPLOY_CMS_DIST: cmsDir })
+
+    // ⚠️ The child gets its OWN step-summary file, and the assertion reads
+    // stdout *and* that file. This check was previously stdout-only, and it
+    // passed on a laptop while failing in CI — 39 of 40, with the deploy never
+    // leaving dry run.
+    //
+    // The cause is `summary()` in deploy-summary.mjs, and it is deliberate: the
+    // report goes to `$GITHUB_STEP_SUMMARY` when GitHub provides one and to
+    // stdout when it does not (see the "why it is not both" note there). This
+    // helper inherits `...process.env`, so inside Actions the child's report was
+    // appended to the run summary and stdout carried only the `Mode:`/`Files:`
+    // narration — and the repair command, which is in the report, was absent
+    // from the stream the check was looking at.
+    //
+    // **The assertion is about visibility, not about a stream.** The requirement
+    // is that whoever runs this can find the command; it is genuinely correct
+    // for it to land in either place. Pinning the file makes that deterministic
+    // on a laptop and in CI alike, and reading both channels is what the
+    // requirement actually means.
+    const stepSummary = join(mkdtempSync(join(tmpdir(), 'stepsummary-')), 'summary.md')
+    writeFileSync(stepSummary, '')
+    const cmsOutput = await run('deploy-cms.mjs', {
+      DEPLOY_CMS_DIST: cmsDir,
+      GITHUB_STEP_SUMMARY: stepSummary,
+    })
+    const cmsReport = cmsOutput + readFileSync(stepSummary, 'utf8')
     check(
       'deploy-cms.mjs runs and exits cleanly',
       cmsOutput.includes('DRY RUN'),
       cmsOutput.slice(0, 300),
     )
     check(
-      'its dry run prints the venv repair command',
-      cmsOutput.includes('nodevenv') && cmsOutput.includes('ln -sfn'),
+      'its dry run reports the venv repair command',
+      cmsReport.includes('nodevenv') && cmsReport.includes('ln -sfn'),
+      `stdout ${cmsOutput.length}b + summary ${readFileSync(stepSummary, 'utf8').length}b`,
     )
 
     await server.close()
