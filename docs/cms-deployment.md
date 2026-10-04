@@ -160,13 +160,20 @@ the filename downloads the whole newsroom. `docs/security.md` §2.
 
 #### 3.7 A — with a terminal (CLI)
 
+> **Two corrections to this section, 2026-10-04.** Both were found by deploying it.
+> Before reading on: `cd` into `cms/`, and use an **absolute** `DATABASE_URI`.
+> The standalone bundle keeps its workspace segment, so the app's files live at
+> `~/shikkha24-cms/cms/` — not `~/shikkha24-cms/`. A relative `file:./data/payload.db`
+> therefore resolves against `cms/` and opens a **different database** from the one
+> the running app uses, silently. Every `sqlite3` command must be absolute too.
+
 1. **Apply the migrations.** With Passenger stopped, from cPanel → Terminal:
 
    ```sh
-   cd ~/shikkha24-cms
+   cd ~/shikkha24-cms/cms
    read -r -s -p 'PAYLOAD_SECRET (hidden): ' PAYLOAD_SECRET; printf '\n'
    env PAYLOAD_SECRET="$PAYLOAD_SECRET" \
-     DATABASE_URI=file:./data/payload.db \
+     DATABASE_URI='file:/home/shikkhac/shikkha24-cms/data/payload.db' \
      /opt/alt/alt-nodejs24/root/usr/bin/node \
      ~/nodevenv/shikkha24-cms/24/lib/node_modules/payload/bin.js migrate
    unset PAYLOAD_SECRET
@@ -175,7 +182,8 @@ the filename downloads the whole newsroom. `docs/security.md` §2.
    Expect `Migrated: 20261003_155252_initial` and `Done.` — 74 tables. Confirm:
 
    ```sh
-   sqlite3 data/payload.db '.tables' | tr ' ' '\n' | grep -c .   # expect 74
+   sqlite3 /home/shikkhac/shikkha24-cms/data/payload.db '.tables' | tr ' ' '\n' | grep -c .
+   # expect 74
    ```
 
    **The absolute `node` path matters here.** The CloudLinux `nodevenv` shim sets
@@ -184,6 +192,11 @@ the filename downloads the whole newsroom. `docs/security.md` §2.
    harmless — the CLI works fine under `NODE_ENV=production`, which is exactly why
    it replaced the `DB_PUSH` workaround — but calling the absolute binary removes
    the question entirely.
+
+   **The CLI must be the cPanel `nodevenv` one, never the app's own copy.** The
+   standalone bundle ships the traced `payload` package but **not** `bin.js`,
+   `dist/bin/`, or `tsx` (which `bin.js` requires for `run`). There is no CLI inside
+   the application directory — the only working invocation is the `nodevenv` path above.
 
    Then continue at step 2.
 
@@ -200,7 +213,8 @@ the filename downloads the whole newsroom. `docs/security.md` §2.
    booting — there is no command to run and no ordering to get right.
 3. **Wait 30 s**, then verify the schema took, either by reloading `/admin`
    (a login page means the schema exists) or from a terminal with
-   `sqlite3 data/payload.db '.tables' | tr ' ' '\n' | grep -c .` → **74**.
+   `sqlite3 /home/shikkhac/shikkha24-cms/data/payload.db '.tables' | tr ' ' '\n' | grep -c .`
+   → **74**.
 4. **Remove `PAYLOAD_BOOTSTRAP_SCHEMA` and restart again.** Leaving it set means
    every future boot applies pending migrations unattended — see §3.7c.
 
@@ -222,11 +236,17 @@ Measured 2026-10-03 at `NODE_ENV=production` against an empty database:
 
 2. **Run the taxonomy seed** (8 categories, 5 levels, 64 districts).
 
-   With a terminal:
+   With a terminal — note `cd ~/shikkha24-cms/cms` and the **absolute**
+   `DATABASE_URI`, for the reasons in §3.7 A. `run.ts` also lives under `cms/`,
+   so from the app root the CLI reports `Cannot find package 'payload'`:
 
    ```sh
+   cd ~/shikkha24-cms/cms
    env PAYLOAD_SECRET="$PAYLOAD_SECRET" \
-     DATABASE_URI=file:./data/payload.db \
+     DATABASE_URI='file:/home/shikkhac/shikkha24-cms/data/payload.db' \
+     NODE_ENV=production \
+     PUBLIC_SITE_URL=https://shikkha24.com \
+     OAUTH_REDIRECT_BASE=https://cms.shikkha24.com \
      /opt/alt/alt-nodejs24/root/usr/bin/node \
      ~/nodevenv/shikkha24-cms/24/lib/node_modules/payload/bin.js \
      run src/seed/run.ts
@@ -234,6 +254,18 @@ Measured 2026-10-03 at `NODE_ENV=production` against an empty database:
 
    Expect `created 77`. Do not skip it — the frontend build needs the 8 categories
    to exist or every article is skipped (see the seed's own `skipped` counter).
+
+   > **`ERR_MODULE_NOT_FOUND: Cannot find package 'payload'`** means the venv's
+   > packages are not on the resolution path from `cms/src/seed/`. The standalone
+   > bundle has no top-level `node_modules/<pkg>` — pnpm keeps them under
+   > `node_modules/.pnpm/`, and Node only walks *upward* through `node_modules`
+   > directories. Link the venv into the app once, without clobbering what is there:
+   >
+   > ```sh
+   > V=/home/shikkhac/nodevenv/shikkha24-cms/24/lib/node_modules
+   > N=/home/shikkhac/shikkha24-cms/node_modules
+   > for d in "$V"/*; do t="$N/${d#$V/}"; [ -e "$t" ] || { mkdir -p "${t%/*}"; ln -sfn "$d" "$t"; }; done
+   > ```
 
 3. cPanel → **Setup Node.js App** → **Restart** (not "Stop").
 4. Wait 10–30 s. **The first request takes 5–15 s** while Node initialises and Payload boots —
