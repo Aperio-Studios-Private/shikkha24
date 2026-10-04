@@ -13,10 +13,14 @@
 #
 # ## ⚠️ It never displays or records a secret
 #
-# `gh secret set NAME` prompts with a **hidden input** when no `--body` is given, so the value
-# never appears on screen, in this shell's history, in a process argument list, or in any log.
-# That is the entire design. Do not "helpfully" add `--body "$TOKEN"` — that writes the secret
-# into your shell history and into `ps` output.
+# Each value is read with `read -s` (no echo, not even dots) and piped to `gh secret set` on
+# **stdin**. Never passed as `--body`, which would put the value in the process argument list
+# where any other process on the machine could read it with `ps`. So the value appears nowhere:
+# not on screen, not in your shell history, not in `ps`, not in a log.
+#
+# The prompt is drawn by this script rather than by `gh`, because `gh`'s own prompt races the
+# terminal — see the long note at the reading loop below. That race was found by watching the
+# owner hit it, not by reading the code.
 #
 # ## Safe to re-run
 #
@@ -84,10 +88,29 @@ for entry in "${secrets[@]}"; do
   say "  ${BOLD}$name${OFF}"
   say "  ${DIM}$desc${OFF}"
   # Hidden prompt. `--body` is deliberately absent — see the header.
-  if gh secret set "$name" --repo "$REPO" >/dev/null 2>&1; then
+  # ⚠️ Do NOT use `gh secret set NAME` with no argument and let gh do the prompting.
+  #
+  # It races the terminal. gh has to start up, then disable echo, and anything typed in that
+  # window is echoed by the tty instead of being read by gh — which looks exactly like the
+  # program working. The owner hit this on the first run and could not tell what had been
+  # saved. Worse, the value can land as an empty string and fail silently weeks later.
+  #
+  # So this script owns the prompt: `read -s` hides the echo, and the value is piped to gh on
+  # **stdin**, never passed as `--body` — so it is not in the process argument list either, and
+  # `ps` cannot see it.
+  printf '  %s> %s' "$YELLOW" "$OFF"
+  IFS= read -r -s value || value=''
+  printf '\n'
+  if [ -z "$value" ]; then
+    skip "$name"
+    continue
+  fi
+  if printf '%s' "$value" | gh secret set "$name" --repo "$REPO" >/dev/null 2>&1; then
+    unset value
     ok "$name saved"
   else
-    printf '  %s·%s %s skipped%s\n' "$DIM" "$OFF" "$name" "$DIM" "$OFF"
+    unset value
+    printf '  %s·%s %s was not saved%s\n' "$DIM" "$OFF" "$name" "$DIM" "$OFF"
   fi
 done
 
