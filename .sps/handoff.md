@@ -15,7 +15,33 @@
 | **What grade calculators already exist, and how do ours compare?** | **`docs/gpa-calculator-landscape.md`** — BD + international landscape, and the positioning |
 
 ## Current Phase
-- **✅ DEPLOY UNBLOCKED — the terminal is no longer on the critical path (2026-10-03).**
+- **✅ CMS IS LIVE on `cms.shikkha24.com` (2026-10-04).** Verified on the host, not
+  assumed: `/api/articles` → 200, `/admin` → 200, `Migrated: 20261003_155252_initial
+  (618ms)`, 74 tables, taxonomy seed → `created 77`.
+- **🔴 Root cause of the blank admin — a `/:path*` catch-all CSP (2026-10-04).**
+  `cms/next.config.ts` applied one header rule to `source: '/:path*'` carrying
+  `default-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`.
+  The admin is a React SPA, so `default-src` being the fallback for every unnamed
+  directive meant **no `script-src`, no `style-src`, no `img-src` existed at all** —
+  every stylesheet, chunk, favicon and inline style was refused and `/admin` rendered
+  blank at HTTP 200. The rule's own comment said the intent was to protect the *API*
+  surface; `/:path*` was simply the wrong way to say "API", and it swallowed the admin.
+  - Fixed by splitting the CSP per route: deny-all stays on `/api/:path*`, and
+    `/admin/:path*` gets a policy that permits the SPA while keeping
+    `frame-ancestors 'none'`, `object-src 'none'` and `base-uri 'self'` locked down.
+  - **The catch-all deliberately carries no CSP at all.** Two `Content-Security-Policy`
+    headers are enforced as an *intersection*, so a catch-all plus a narrower rule means
+    the narrow one must permit everything the broad one permits — there is no override.
+    One CSP per response also removes any dependence on rule-application order.
+  - `'unsafe-eval'` is provably unnecessary, and that was checked rather than assumed:
+    **0 of 64** production client chunks and **0 of 621** shipped `@payloadcms/ui`
+    files contain `eval(` or `new Function(`. `'unsafe-inline'` *is* required — Next
+    inlines the RSC payload and bootstrap scripts — matching what the frontend's own
+    `.htaccess` already does.
+  - **What was ruled out first:** the frontend `.htaccess` policy is `default-src
+    'self'`, not `'none'`; the host's `~/public_html/.htaccess` is 281 bytes and never
+    matched a CSP grep. So it was neither of ours-that-looked-suspect — it was ours.
+- **✅ The terminal is no longer on the critical path (2026-10-03).**
   - **The production schema no longer needs a shell.** `@payloadcms/db-sqlite` has a
     documented option (`dist/connect.js:56`) that applies migrations at
     `NODE_ENV=production` when `prodMigrations` is set. `cms/src/payload.config.ts`
