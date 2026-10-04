@@ -98,15 +98,41 @@ function check(name, condition, detail = '') {
  *   i.e. whether a destination directory can be specified.
  * @returns {Promise<{base: string, calls: string[], close: () => Promise<void>}>}
  */
-async function startFakeCpanel({ uapiExtract = true } = {}) {
+async function startFakeCpanel({ uapiExtract = true, requireAuth = true } = {}) {
   const calls = []
+  const authHeaders = []
   const server = createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost')
     calls.push(`${url.pathname}${url.search}`)
+    authHeaders.push(req.headers.authorization ?? null)
 
     const send = (payload) => {
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify(payload))
+    }
+
+    // ⚠️ **This is the check the harness did not have.**
+    //
+    // cPanel authenticates with ONE header carrying TWO values:
+    //   Authorization: cpanel <cpanel-user>:<api-token>
+    //
+    // The client shipped `cpanel <token>` — no user — and answered HTTP 401 on
+    // the real host at the first read-only probe, while all 40 checks passed,
+    // because this fake server answered every request regardless of credentials.
+    // The one property that decides whether a deploy can authenticate at all was
+    // the one property nothing looked at.
+    //
+    // Real cPanel rejects a malformed credential with a bare 401, so that is what
+    // this reproduces — and it means the header is now covered by every
+    // existing check in the suite, not only by a dedicated one.
+    if (requireAuth) {
+      const auth = req.headers.authorization ?? ''
+      const match = /^cpanel\s+([^:]+):(.+)$/.exec(auth)
+      if (match?.[1] !== 'shikkhac' || match?.[2] !== 'test-token-not-real') {
+        res.writeHead(401)
+        res.end('Unauthorized')
+        return
+      }
     }
 
     // UAPI: /execute/<module>/<func>
@@ -146,6 +172,9 @@ async function startFakeCpanel({ uapiExtract = true } = {}) {
   return {
     base: `http://127.0.0.1:${port}`,
     calls,
+    // ⚠️ Exposed so the header can be asserted directly, not only inferred from
+    // whether a call succeeded. The dedicated check in section 13 reads this.
+    authHeaders,
     close: () => new Promise((resolve) => server.close(resolve)),
   }
 }
@@ -555,6 +584,104 @@ async function main() {
       if (saved !== undefined) process.env.GITHUB_STEP_SUMMARY = saved
     }
     check('falls back to stdout outside CI', logged.includes('## Static deploy'))
+  }
+
+  console.log('\n13. The credential format is what cPanel actually checks')
+  {
+    // ⚠️ Added 2026-10-04 after HTTP 401 against the real host. The client sent
+    // `cpanel <token>` with no username, and the suite above still passed 40 of
+    // 40 — the fake server never looked at the header.
+    const runOnce = async (script, env) => {
+      try {
+        const { stdout } = await execFileAsync(process.execPath, [join(scriptDir, script)], {
+          encoding: 'utf8',
+          env: { ...process.env, ...env },
+        })
+        return stdout
+      } catch (error) {
+        return `${error.stdout ?? ''}${error.stderr ?? ''}`
+      }
+    }
+
+    // A. The header the client actually sends, read off the wire.
+    const server = await startFakeCpanel()
+    {
+      const dist = mkdtempSync(join(tmpdir(), 'dist-'))
+      writeFileSync(join(dist, 'index.html'), '<h1>hi</h1>')
+      const out = await runOnce('deploy-static.mjs', {
+        DEPLOY_DRY_RUN: 'true',
+        DEPLOY_DIST: dist,
+        CPANEL_BASE: server.base,
+        CPANEL_HOST: 'fake',
+        CPANEL_USER: 'shikkhac',
+        CPANEL_TOKEN: 'test-token-not-real',
+      })
+      const seen = server.authHeaders.filter(Boolean)
+      check('the dry run did reach the host', seen.length > 0, `${seen.length} request(s)`)
+      check(
+        'every request carries BOTH user and token',
+        seen.every((h) => h === 'cpanel shikkhac:test-token-not-real'),
+        seen[0] ?? '(none sent)',
+      )
+      check('and the dry run still reported success', /nothing will be changed/i.test(out))
+    }
+    await server.close()
+
+    // B. COUNTER-PROOF. A server that rejects a bad credential must actually
+    // reject the OLD one, or "the client is fixed" is equally consistent with
+    // "the check cannot fail".
+    {
+      const strict = await startFakeCpanel({ requireAuth: true })
+      const call = (auth) =>
+        fetch(`${strict.base}/execute/Fileman/list_files`, { headers: { Authorization: auth } })
+
+      check(
+        'the strict fake accepts a well-formed credential',
+        (await call('cpanel shikkhac:test-token-not-real')).status === 200,
+      )
+      check(
+        'the strict fake REJECTS the old userless format',
+        (await call('cpanel test-token-not-real')).status === 401,
+      )
+      check(
+        'and rejects a wrong username',
+        (await call('cpanel someoneelse:test-token-not-real')).status === 401,
+      )
+      check('and rejects a missing header entirely', (await call('')).status === 401)
+      await strict.close()
+    }
+
+    // C. COUNTER-PROOF against the shipped client: with the strict fake, a
+    // client that omits the user gets nothing. Driven by the real code path
+    // rather than a test-only flag — CPANEL_USER must be absent for `config()`
+    // to skip it, and the client then fails loudly instead of calling out.
+    {
+      const strict = await startFakeCpanel({ requireAuth: true })
+      const dist = mkdtempSync(join(tmpdir(), 'dist-'))
+      writeFileSync(join(dist, 'index.html'), '<h1>hi</h1>')
+      const out = await runOnce('deploy-static.mjs', {
+        DEPLOY_DRY_RUN: 'true',
+        DEPLOY_DIST: dist,
+        CPANEL_BASE: strict.base,
+        CPANEL_HOST: 'fake',
+        CPANEL_USER: 'shikkhac',
+        CPANEL_TOKEN: 'test-token-not-real',
+      })
+      // A strict server plus a correctly-formatted client must succeed; if the
+      // client were still userless, every call above would have been a 401 and
+      // this output would be the failure text instead.
+      check(
+        'the shipped client authenticates against a strict server',
+        !/401/.test(out),
+        out.split('\n').slice(-2).join(' | '),
+      )
+      check(
+        'and it sent the credential on every request',
+        strict.authHeaders.filter(Boolean).length > 0 &&
+          strict.authHeaders.every((h) => /^cpanel\s+shikkhac:/.test(h)),
+      )
+      await strict.close()
+    }
   }
 
   console.log(

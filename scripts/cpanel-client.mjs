@@ -77,11 +77,36 @@ export function config() {
  * @param {'GET'|'POST'} [options.method]
  * @param {Record<string,string>} [options.form] Form fields for POST.
  * @param {FormData} [options.body] Multipart body, when uploading a file.
- * @param {string} options.token API token, sent as the cPanel auth header.
+ * @param {string} options.user cPanel account username.
+ * @param {string} options.token API token.
  * @returns {Promise<Response>}
+ *
+ * ## ⚠️ The username is part of the credential, not decoration
+ *
+ * cPanel's authentication is **one header carrying two values**:
+ *
+ * ```
+ * Authorization: cpanel <cpanel-user>:<api-token>
+ * ```
+ *
+ * This sent `cpanel ${token}` — the bare token, no user — and every call
+ * answered **HTTP 401** against the real host on 2026-10-04, at the first
+ * read-only directory listing of the very first credential probe.
+ *
+ * ## ⚠️ And 40 of 40 checks passed while it was broken
+ *
+ * `verify-cpanel-deploy.mjs` drives this client against a fake cPanel that
+ * reproduces the response envelopes. That fake **never inspected the
+ * `Authorization` header** — it answered any request — so the suite certified
+ * the client's behaviour thoroughly and its *credential format* not at all.
+ * The one property that decides whether the deploy can authenticate was the one
+ * property nothing checked.
+ *
+ * The check below now asserts the header, and the fake server rejects a
+ * malformed one, so the format cannot regress into silence again.
  */
-async function request({ url, method = 'GET', form, body, token }) {
-  const headers = { Authorization: `cpanel ${token}` }
+async function request({ url, method = 'GET', form, body, token, user }) {
+  const headers = { Authorization: `cpanel ${user}:${token}` }
   if (form) headers['Content-Type'] = 'application/x-www-form-urlencoded'
   return fetch(url, { method, headers, body: body ?? (form && new URLSearchParams(form)) })
 }
@@ -123,6 +148,7 @@ export async function uapi(cfg, module, func, params = {}) {
     method: 'POST',
     form: params,
     token: cfg.token,
+    user: cfg.user,
   })
   return unwrap(label, res)
 }
@@ -142,6 +168,7 @@ async function uapiMultipart(cfg, module, func, form) {
     method: 'POST',
     body: form,
     token: cfg.token,
+    user: cfg.user,
   })
   return unwrap(`UAPI ${module}::${func}`, res)
 }
@@ -193,7 +220,11 @@ export async function api2(cfg, module, func, params = {}) {
     cpanel_jsonapi_func: func,
     ...params,
   })
-  const res = await request({ url: `${cfg.base}/json-api/cpanel?${query}`, token: cfg.token })
+  const res = await request({
+    url: `${cfg.base}/json-api/cpanel?${query}`,
+    token: cfg.token,
+    user: cfg.user,
+  })
   const payload = await res.json()
   const result = payload?.cpanel_obj?.result
   if (result) {
