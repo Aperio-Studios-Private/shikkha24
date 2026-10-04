@@ -140,17 +140,19 @@ harmless, and it is the correct trade against a forgeable key.
 | Portal display name + logo (S2 entry) | ⏳ Domain ✅ registered; placeholder logo in place; final name + logo pending |
 | ~~`wrangler` direct upload vs the Pages quota~~ | ✅ **MOOT.** Cloudflare removed 2026-09-14 |
 | **DianaHost Node.js version** (S0 exit) | ⚠️ **DISPUTED.** Nine docs say 20.18.2 (EOL); the live app runs under `nodevenv/shikkha24-cms/**24**/`, implying Node 24. **One command settles it** — `node -v` in the cPanel Terminal. See `docs/hosting-and-deployment.md` §5 |
-| **Auto-deploy on push** | ❌ **Does not work, and cannot** — no SSH, and cPanel has no webhook receiver. Being replaced with a cPanel-API deploy. See `docs/hosting-and-deployment.md` §4 |
+| **Auto-deploy** | ✅ **Built 2026-10-04, not yet run live.** `deploy.yml` ships over the cPanel HTTPS API — the host refuses SSH, so rsync was never possible. **Dry run is the default** and publishing stays a no-op until `AUTO_DEPLOY=live` is set. See `docs/hosting-and-deployment.md` §4.2 |
 | DianaHost inode quota + other limits confirmed (S0 exit) | ⏳ Not published — needs a support ticket |
 | SQLite WAL 5-writer concurrency proven (S0 exit) | ✅ `verify:sqlite-wal` harness passes |
-| CI quality gates + backup automation + feature flags (S0 exit) | ✅ Gates in `ci.yml`; daily backup in `backup-db.yml` |
+| CI quality gates + feature flags (S0 exit) | ✅ Gates in `ci.yml` |
+| **Automated backup** (S0 exit) | ❌ **`backup-db.yml` has failed 6 runs out of 6** — every run used `ssh`/`scp` against a host that refuses both. **There is no off-host copy of the editorial archive.** `docs/backup-and-recovery.md` §6 |
 | ~~Cloudflare R2 enabled + usage alert set~~ | ✅ **REMOVED 2026-09-14.** No Cloudflare. |
 
 ### Known open issues
 
 | Issue | Detail |
 |---|---|
-| **CI red on CLS** | `cumulative-layout-shift` measured **0.0436** against a 0.03 gate on the article template. The culprit is identified: the `<aside>` "মূল বিষয়সমূহ" box in `article.container-page > div.grid-12 > div.col-span-4`, moving at `top 510px, 380x227px`. Not yet fixed. |
+| **CI red on CLS** | `layout-shifts` measured **0.0436** against a 0.03 gate on the article template. The culprit is identified: the `<aside>` "মূল বিষয়সমূহ" box in `article.container-page > div.grid-12 > div.col-span-4`, moving at `top 510px, 380x227px`. Not yet fixed. |
+| **No working backup** | The highest operational risk in the project. Every article and upload lives in one `payload.db` on one host with no off-host copy. Manual procedure in `docs/backup-and-recovery.md` §6. |
 | **CMS runs a hand-patched host** | The host's `.next/routes-manifest.json` was edited directly to unblock the admin. The permanent fix is committed (`f267079`) but not yet deployed, so `/api/*` is still on the looser policy until it is. |
 | **Demo content is live** | 24 demo articles are published so the site can be reviewed. `cms/src/seed/demo-purge.ts` removes them with no fallback — but a purge must be followed by a frontend rebuild, or Apache keeps serving the deleted pages. |
 

@@ -29,8 +29,8 @@ read these three files in this order:
 
 | Document | Status | What it is for |
 |---|---|---|
-| **`deployment-runbook.md`** | ✅ LIVE | The day-to-day deploy. Frontend by hand, CMS updates, seeding, verification, and the traps that have each cost a failed deploy. |
-| **`hosting-and-deployment.md`** | ✅ LIVE | Why CI exists, the real pipeline, the cPanel API mechanism, quotas, and the unresolved Node-version question. |
+| **`deployment-runbook.md`** | ✅ LIVE | The day-to-day deploy. Frontend by hand **or by workflow**, CMS updates, seeding, verification, and the traps that have each cost a failed deploy. |
+| **`hosting-and-deployment.md`** | ✅ LIVE | Why CI exists, the real pipeline, the cPanel API mechanism (**built 2026-10-04, never yet run live**), quotas, and the unresolved Node-version question. |
 | **`cms-deployment.md`** | ✅ LIVE | Full first-time CMS setup: subdomain, Node app, standalone bundle, schema bootstrap, seeding, updates. |
 
 ## Operations and incident response
