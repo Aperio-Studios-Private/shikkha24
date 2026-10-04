@@ -1,7 +1,12 @@
 # CMS Deployment Runbook — Shikkha24
 
-**Created:** 2026-09-15 · **Status:** first-time deployment, not yet executed
-**Audience:** the owner, or anyone with cPanel and SSH access to the DianaHost account.
+**Created:** 2026-09-15 · **Updated 2026-10-04** — the first production deploy has been executed.
+**Status:** executed and verified against the live host on 2026-10-04.
+**Audience:** the owner, or anyone with cPanel access to the DianaHost account.
+
+> ⚠️ **There is no SSH on this host.** An earlier version of this runbook assumed SSH for steps
+> §2, §5 and §6. All three have been corrected. Use the cPanel **Terminal** (a shell inside
+> cPanel) or the cPanel **File Manager** — never `ssh`, `rsync` or `scp`.
 
 **Why this document exists.** Every other launch step depends on it. The frontend is *built from*
 the CMS — `CMS_URL` is fetched at build time and every article, category and setting is baked into
@@ -27,7 +32,8 @@ See `docs/reliability.md` §1.
 ## 2. Prerequisites
 
 - [ ] cPanel login for the DianaHost account (bookmark `https://<host>:2083`)
-- [ ] SSH access enabled in cPanel (**Security → SSH Access**) — or use cPanel's **Terminal**
+- [ ] The cPanel **Terminal** available (cPanel → **Advanced → Terminal**) — this is a shell
+      *inside* cPanel, **not** SSH, and nothing can connect to it from outside
 - [ ] The `shikkha24.com` domain pointed at DianaHost nameservers
 - [ ] A subdomain created for the CMS — `cms.shikkha24.com` (see §3.1)
 - [ ] The GitHub Actions secrets set (see §3.4)
@@ -68,6 +74,13 @@ cPanel → **Software → Setup Node.js App** → **Create Application**
 > 20.x is available, that is an **accepted, documented risk** (`docs/hosting-and-deployment.md`
 > §5) — raise a support ticket asking for 22/24, and in the meantime keep the admin panel
 > rate-limited (`docs/security.md` §5).
+>
+> ⚠️ **This finding is currently disputed and is not yet resolved.** The application that actually
+> ran on 2026-10-04 lives under
+> `~/nodevenv/shikkha24-cms/**24**/lib/node_modules/`, and in CloudLinux's layout that directory is
+> named for the Node **major version** — which would make the host Node 24, not Node 20. Confirm
+> with `node -v` in the cPanel Terminal before relying on either claim. The full question is
+> written up in `docs/hosting-and-deployment.md` §5.
 
 ### 3.3 Build and fetch the standalone bundle
 
@@ -352,18 +365,21 @@ do **not** require a CMS redeploy; they require a **frontend rebuild** (§6).
 
 ```sh
 # 1. back up first — this is the whole editorial archive
-sqlite3 ~/shikkha24-cms/data/payload.db ".backup /tmp/predeploy.db"
+sqlite3 ~/shikkha24-cms/data/payload.db ".backup /tmp/predeploy-$(date +%F).db"
 
-# 2. upload the new bundle (it does not contain data/, so the archive is untouched)
-rsync -az --delete ./ <user>@<host>:~/shikkha24-cms/
+# 2. zip the assembled bundle (NOT the app directory — see §3.3 for the traps)
+#    and upload + extract it via cPanel File Manager, overwriting ~/shikkha24-cms
 
-# 3. restart via cPanel (or, over SSH, without downtime:)
-kill -USR2 <passenger-pid>
+# 3. restart: cPanel → Software → Setup Node.js App → RESTART
 ```
 
-⚠️ **`--delete` is safe here only because `data/` is excluded from the bundle.** If you ever add
-`data/` to the artifact, this command deletes the archive. Consider `--exclude='data/'` as a
-belt-and-braces guard.
+⚠️ **There is no SSH, so there is no `kill -USR2`.** The cPanel **RESTART** button is the
+mechanism. Press it **once** — the cold start takes 5–15 s and a second restart does not help.
+
+⚠️ **The archive is safe only because `data/` is excluded from the bundle.** Extracting over the
+app directory is destructive to everything *else* there, including `node_modules/` — which is a
+CloudLinux symlink into the venv and must be recreated with the loop in
+`docs/deployment-runbook.md` §3.4 if the extraction disturbs it.
 
 Restart procedure in more detail, including what to do when the Restart button is missing:
 `docs/reliability.md` §7.1.
@@ -380,8 +396,11 @@ something rebuilds it — this is the whole reason `cms/src/lib/rebuild-trigger.
 2. Set `DEPLOY_WEBHOOK_TOKEN` to a GitHub token with `contents: write`
 3. Confirm `.github/workflows/deploy.yml` runs on `repository_dispatch` with type `rebuild`
 
-Then publishing an article fires the webhook, CI rebuilds against this CMS, and rsyncs the new
-HTML to `public_html`. **Unset means a silent no-op** — edits save correctly and never appear.
+Then publishing an article fires the webhook and CI rebuilds the site against this CMS. The new
+HTML is then shipped to `public_html` — see `docs/hosting-and-deployment.md` §4 for how, and note
+that this path is **not yet fully automated** (2026-10-04).
+
+**Unset means a silent no-op** — edits save correctly and never appear.
 
 Saves are debounced (`REBUILD_MIN_INTERVAL_MS`, default 5 min) so a 15–20 article day stays inside
 the 2,000 min/month GitHub Actions budget. Breaking news bypasses the wait.
@@ -406,7 +425,7 @@ the 2,000 min/month GitHub Actions budget. Breaking news bypasses the wait.
 ## 8. Do not
 
 - ❌ **Do not run the frontend build on the host.** Astro 7 and Vite 8 require Node ≥22.12;
-  DianaHost runs 20.18.2. The frontend is built in CI only.
+  the frontend is built in CI on Node 24 and shipped as static HTML.
 - ❌ **Do not put `data/` under a document root.** That is the entire editorial archive.
 - ❌ **Do not commit a real `.env`.** Only `.env.example`.
 - ❌ **Do not delete `data/`** to "clean up" — it holds every article, every reader account and
@@ -420,9 +439,11 @@ the 2,000 min/month GitHub Actions budget. Breaking news bypasses the wait.
 
 | Document | Covers |
 |---|---|
-| **`docs/dianahost-provisioning-checklist.md`** | **what to obtain from DianaHost, in dependency order — start here** |
+| **`docs/deployment-runbook.md`** | **the day-to-day deploy procedure — start here** |
+| **`docs/dianahost-provisioning-checklist.md`** | **what to obtain from DianaHost, in dependency order** |
 | `docs/hosting-and-deployment.md` | the whole hosting model, CI quotas, bandwidth ceilings |
 | `docs/reliability.md` §7 | CMS restart procedure, incident response |
 | `docs/security.md` §2–3 | why the database lives outside the web root; admin hardening |
 | `docs/backup-and-recovery.md` | the daily dump, restore runbook, DR scenarios |
 | `.sps/deployment-readiness.md` | the owner-action checklist this runbook feeds |
+| `docs/README.md` | the index of every document and its current status |

@@ -1,23 +1,45 @@
 # Hosting & Deployment Model — Shikkha24
 
-**Created:** 2026-09-11 · **Status:** S0 input. **Updated 2026-09-14** — all Cloudflare services removed per owner decision. Everything on DianaHost only.
-**Why this exists:** the owner asked a fair question — *"why do I need CI for an article to upload? The admin can't access GitHub, the admin is general people."* The answer is not obvious, and the quotas behind it were undocumented.
+**Created:** 2026-09-11 · **Updated 2026-10-04** — rewritten after the first real production deploy.
+**Status:** describes the deployment that is actually running on DianaHost.
+
+> **Read this before changing anything about deployment.** Every claim marked
+> **VERIFIED** was confirmed by the owner against the live host on 2026-10-04. Claims marked
+> **DESIGNED** describe a build that is written but has not yet been run against production —
+> treat them as the plan, not as evidence that it works.
+
+---
+
+## 0. The three facts that decide everything
+
+| # | Fact | Consequence |
+|---|---|---|
+| 1 | **DianaHost has no SSH.** TCP 22, 2222, 222, 2200 and 2022 are all closed. (VERIFIED) | No `rsync`, no `scp`, no `git push` to the host, no cPanel Git private-repo clone. Any deploy that ends in an SSH command **cannot run here**. |
+| 2 | **cPanel is the only control surface.** File Manager, Terminal (a shell *inside* cPanel, not SSH), Setup Node.js App, API Tokens, Git Version Control. (VERIFIED) | Deploys go through cPanel — by hand, or over its HTTPS API from CI. |
+| 3 | **Node ≥22.12 is needed to build, never to run.** Astro 7 / Vite 8 refuse to *build* on Node 20; Payload runs fine on it. | The frontend is built in CI on Node 24 and shipped as finished HTML. The CMS ships as a standalone bundle. |
+
+The old version of this document described a pipeline ending in `rsync over SSH`. **That pipeline
+has never worked on this host.** It is preserved in git history if you want to see it.
 
 ---
 
 ## 1. Why CI exists at all — the short version
 
-**Editors never touch GitHub.** They log into the Payload admin panel — a normal web CMS, like WordPress. Write, click Publish. That is the entire editor experience.
+**Editors never touch GitHub.** They log into the Payload admin panel — a normal web CMS, like
+WordPress. Write, click Publish. That is the entire editor experience.
 
-But the public website is **pre-built into HTML files ahead of time**. That is precisely why it is fast and cheap: Apache serves a finished file from `public_html`, and no server has to generate anything per reader.
+But the public website is **pre-built into HTML files ahead of time**. That is precisely why it is
+fast and cheap: Apache serves a finished file from `public_html`, and no server has to generate
+anything per reader.
 
-So when an editor publishes an article, a new HTML file must be **created**. That is what CI does, automatically and invisibly:
+So when an editor publishes an article, a new HTML file must be **created**. That is what CI does,
+automatically and invisibly:
 
 ```
 Editor clicks Publish (in Payload)
-   → Payload fires a webhook
-   → GitHub Actions rebuilds the site
-   → the new HTML is deployed (rsync to public_html)
+   → Payload fires a webhook  (cms/src/lib/rebuild-trigger.ts)
+   → GitHub Actions rebuilds the Astro site
+   → the new HTML is shipped to public_html
    → the article is live
 ```
 
@@ -25,132 +47,246 @@ Nobody sees GitHub. It is plumbing.
 
 ### The alternative, and why we are not using it
 
-A "dynamic" site generates each page when a reader requests it — no rebuild needed. But then **every reader request hits the 2 GB shared host**, which is slower, risks the TTFB and Lighthouse targets, and falls over under a viral spike.
+A "dynamic" site generates each page when a reader requests it — no rebuild needed. But then
+**every reader request hits the 2 GB shared host**, which is slower, risks the TTFB and Lighthouse
+targets, and falls over under a viral spike.
 
-Given Lighthouse ≥95 on a 2 GB shared host, **static is the right architecture**. The cost of that choice is: publishing needs a rebuild.
+Given Lighthouse ≥95 on a 2 GB shared host, **static is the right architecture**. The cost of that
+choice is: publishing needs a rebuild.
 
 ---
 
-## 2. The rebuild quota — one hard limit
+## 2. What actually runs where
+
+| Piece | Runs on | Started by | Survives an idle period? |
+|---|---|---|---|
+| **Public site** (static HTML, 3.8 MB) | DianaHost `public_html`, served by **Apache** | nothing — it is files | ✅ yes |
+| **CMS** (Payload admin + API) | `~/shikkha24-cms`, a Node process behind **Phusion Passenger** | cPanel *Setup Node.js App* | ❌ **no** — Passenger kills idle processes |
+| **Media** (`data/media/`) | host disk, outside the web root | — | ✅ yes |
+| **Database** (`data/payload.db`, SQLite) | host disk, outside the web root | — | ✅ yes |
+
+**The property that makes this architecture safe:** if the CMS is down, readers are unaffected.
+Apache serves the pre-built HTML without needing Node at all. Only the admin and publishing stop.
+See `docs/reliability.md` §1.
+
+---
+
+## 3. The deployment pipeline — as built
+
+### 3.1 The frontend (static site)
+
+```
+GitHub Actions (Node 24)
+   ├─ build Astro site + Pagefind index        → frontend/dist  (~156 pages, 3.8 MB)
+   ├─ run the dist-only verification harnesses
+   ├─ zip frontend/dist
+   ├─ upload the zip over HTTPS to cPanel      (UAPI Fileman::upload_files)
+   ├─ extract it where it sits                 (API 2.0 Fileman::fileop op=extract)
+   └─ swap it into public_html
+```
+
+Runbook: **`docs/deployment-runbook.md`**. Workflow: **`.github/workflows/deploy.yml`**.
+
+### 3.2 The CMS (Payload on Passenger)
+
+The CMS changes rarely — only on a dependency bump, a Payload upgrade, or a schema migration.
+It is **not** deployed on every publish. Runbook: **`docs/cms-deployment.md`**.
+
+| | |
+|---|---|
+| Artifact | Next.js `standalone` bundle, **161 MB** |
+| Entry point | `standalone/cms/server.js` — the `cms/` path segment is the pnpm workspace name and is **not** optional |
+| Install root | `~/shikkha24-cms` (outside `public_html`) |
+| Data | `~/shikkha24-cms/data/` — **never in the artifact**, so replacing the app cannot touch the archive |
+| Start | cPanel → *Setup Node.js App* → **RESTART** |
+
+### 3.3 The rebuild quota — one hard limit
 
 | Quota | Limit | Source |
 |---|---|---|
 | **GitHub Actions minutes** | **2,000 / month** (private repo) | GitHub free plan |
 
-~~Cloudflare Pages builds (500/month)~~ — **removed 2026-09-14.** No Cloudflare Pages. The frontend deploys to DianaHost `public_html` via rsync from CI. There is no separate build quota for the deploy target — only the GitHub Actions minutes cap applies.
-
-### The arithmetic
-
-At the owner's chosen **baseline 15–20 articles/day plus bursts**, expect roughly **600–900 publishes/month**.
+~~Cloudflare Pages builds~~ — **removed 2026-09-14.** There is no separate build quota for the
+deploy target; only the GitHub Actions minutes cap applies.
 
 | Scenario | Builds/month | Minutes used | Verdict |
 |---|---|---|---|
 | One build per publish, 30s incremental | 900 | ~450 | ✅ Fits 2,000 |
 | One build per publish, 2 min | 900 | ~1,800 | ⚠️ Tight |
 | One build per publish, 5 min full rebuild | 900 | ~4,500 | ❌ Over |
-| Batched every 10 min (worst case) | ~4,300 | 2,150+ | ❌ Over |
 
-⚠️ **If an Astro incremental build is genuinely ~30 seconds, the quota is comfortable.** The real number is unknown and must be measured — see §6.
+⚠️ **Measured 2026-10-04: a full clean frontend build takes 7.71 s** on a laptop. The 30 s
+assumption above is conservative; real usage will land near the first row.
+
+Publishing is debounced (`REBUILD_MIN_INTERVAL_MS`, default 5 min) by `cms/src/lib/rebuild-trigger.ts`.
+Editors see "published" in the CMS immediately; the public page appears within the batch window.
+The CMS must say so honestly rather than implying instant publication.
 
 ---
 
-## 3. Recommended deploy pipeline
+## 4. Deployment automation — what exists and what does not
+
+**This section corrects a belief that was widely held and is false.**
+
+| Claim | Reality (2026-10-04) |
+|---|---|
+| "Pushing to GitHub deploys the site." | ❌ **False.** See below. |
+| "`deploy.yml` deploys on every push." | ❌ **False.** It has no `push:` trigger at all. |
+| "The site is deployed by rsync over SSH." | ❌ **Never was.** The host has no SSH. |
+
+### 4.1 Why "push to GitHub and it goes live" does not work here
+
+Three independent blockers, any one of which is fatal:
+
+1. **No SSH.** cPanel's own Git Version Control documentation requires SSH Access for private
+   repositories — *"Because SSH keys allow access to the entire cPanel account, and not just a
+   single repository, exercise caution."* Not available on this host.
+2. **cPanel cannot receive a webhook.** There is no webhook endpoint. The Git "Update from Remote"
+   action is a UI button with **no API 2.0 or UAPI function behind it**, so nothing can trigger it.
+3. **cPanel's cron-based deploy does not fetch.** The documented cron command
+   (`uapi VersionControlDeployment create repository_root=…`) runs `.cpanel.yml` against the
+   repository's **existing HEAD**. It deploys what is already there; it never pulls from GitHub.
+
+Also ruled out: cloning a `deploy` branch directly into `public_html` — cPanel refuses to clone
+into a non-empty directory, and your `public_html` already contains `.htaccess`.
+
+### 4.2 What we use instead — the cPanel HTTPS API
+
+cPanel exposes **API Tokens** (`cPanel → Security → API Tokens`), which authenticate with a plain
+header — there is **no OAuth exchange and no token expiry**:
 
 ```
-GitHub Actions (Node 24)
-   ├─ build Astro site + Pagefind index
-   ├─ build Payload/Next standalone bundle
-   ├─ run quality gates (typecheck, lint, Lighthouse CI, link check, schema)
-   ├─ deploy static output → DianaHost public_html (rsync over SSH)
-   └─ deploy Payload bundle → DianaHost CMS directory (SSH)
+Authorization: cpanel <cpanel-user>:<api-token>
 ```
 
-**Key point:** both builds happen in CI on **Node 24**, and only the *artifacts* ship. This is not optional — see §5.
+That is the whole credential. From GitHub Actions we can therefore reach the host over HTTPS on
+port 2083 and move files, with no SSH, no card, and no paid service.
 
-**Batching strategy (adaptive):**
-- Quiet hours: one build every 15–30 minutes
-- Peak hours (results day, admission day, circular day): every 5 minutes
-- Breaking news: an on-demand build triggered by the `is_breaking` flag
-
-Editors see "published" immediately in the CMS; the public page appears within the batch window. The CMS must tell the editor this honestly ("প্রকাশিত — সাইটে যুক্ত হচ্ছে") rather than implying instant publication.
-
----
-
-## 4. Escalation ladder if the quota is hit
-
-In order of preference:
-
-1. **Batch harder** — increase the rebuild interval. Free, but content appears later.
-2. **Make the repository public** → unlimited GitHub Actions minutes. The code is not a competitive secret; no secrets are committed. **Owner decision.**
-3. **Self-hosted GitHub Actions runner** — no minutes limit, but requires a machine to run it.
-
----
-
-## 5. Node.js version — a real finding
-
-DianaHost runs **Node.js 20.18.2**.
-
-| Tool | Requires | Runs on 20.18.2? |
+| Operation | Function | API |
 |---|---|---|
-| `astro@7.3.2` | `>=22.12.0` | ❌ **No** |
-| `vite@8.3.0` | `^20.19.0 \|\| >=22.12.0` | ❌ **No** (20.18.2 < 20.19.0) |
-| `next@16.3.4` | `>=20.9.0` | ✅ Yes |
-| `@payloadcms/next@3.89.0` | `^18.20.2 \|\| >=20.9.0` | ✅ Yes |
-| `typescript@7.0.2` | `>=16.20.0` | ✅ Yes |
+| Upload the zip | `Fileman::upload_files` | UAPI — `POST /execute/Fileman/upload_files` |
+| Extract it | `Fileman::fileop` `op=extract` | API 2.0 (deprecated, but the **only** way) |
+| List a directory | `Fileman::list_files` | UAPI |
+| Delete (recursive) | `Fileman::delete_file` | UAPI |
+| Create a directory | `Fileman::mkdir` | API 2.0 (no UAPI equivalent) |
+
+⚠️ **Two traps, both verified in the cPanel API docs, both of which break a naive script:**
+
+- There is **no UAPI `mkdir` and no UAPI `extract`**. Both require the deprecated API 2.0.
+- `Fileman::fileop op=extract` has **no destination parameter**. The archive always extracts into
+  the directory it already sits in. Upload the zip into the directory you want it to land in.
+- Do **not** upload the zip into `public_html` — it would be publicly downloadable at
+  `https://shikkha24.com/<name>.zip` for the window between upload and extraction.
+
+### 4.3 Secrets this needs
+
+Set in **GitHub → Settings → Secrets and variables → Actions**. Never commit them.
+
+| Secret | Value |
+|---|---|
+| `CPANEL_USER` | the cPanel username (e.g. `shikkhac`) |
+| `CPANEL_TOKEN` | the API token from cPanel → Security → API Tokens |
+| `CPANEL_HOST` | the cPanel server hostname (e.g. `b201.serverdiana.com`) |
+| `CMS_URL` | build-time CMS origin, `https://cms.shikkha24.com` |
+| `PUBLIC_CMS_ORIGIN` | browser-facing CMS origin; must match the CSP `connect-src` |
+
+⚠️ **Never paste the API token into chat, a commit, a log, or a handoff file.** Put it straight
+into GitHub Secrets. If it is ever exposed, delete it in cPanel and create a new one.
+
+---
+
+## 5. Node.js version
+
+| Tool | Version in this repo | Requires | Builds on the host? |
+|---|---|---|---|
+| `astro` | 7.3.2 | `>=22.12.0` | ❌ No |
+| `vite` | 8.3.0 | `^20.19.0 \|\| >=22.12.0` | ❌ No |
+| `next` | 16.3.6 | `>=20.9.0` | ✅ yes |
+| `@payloadcms/next` | 3.89.0 | `^18.20.2 \|\| >=20.9.0` | ✅ yes |
+| `typescript` | 7.0.2 | `>=16.20.0` | ✅ yes |
 
 **Two consequences:**
 
-1. **Astro and Vite cannot run on DianaHost.** They must build in CI — which is already the architecture. The frontend is built in CI and deployed as static HTML to `public_html`.
-2. **Payload + Next 16 *can* run on Node 20.18.2** — the engines allow it.
+1. **Astro and Vite cannot build on the host.** They build in CI on Node 24 — which is already the
+   architecture. The frontend is shipped as finished HTML.
+2. **Payload + Next 16 run on the host.** The engines allow it.
 
-### But Node 20 is end-of-life
+### ⚠️ Unresolved: which Node is the host actually running?
 
-Node 20 reached **end of life on 2026-04-30** — over four months ago. It receives **no security patches**. Running a public-facing CMS admin that handles editor credentials and reader PII on an EOL runtime is a genuine security risk, and 20.18.2 itself is from late 2024.
+Nine documents state that DianaHost runs **Node.js 20.18.2, end-of-life since 2026-04-30**, and
+record it as *the largest unmitigated security issue in the stack* (`docs/security.md` §1). That
+claim was derived from a cPanel drop-down screenshot on 2026-09-11.
 
-### The fix is probably one click
+**It is now contradicted by live evidence.** The cPanel Terminal paths that successfully ran the
+CMS schema bootstrap and the seed on 2026-10-04 were:
 
-DianaHost's cPanel exposes a **Node.js Selector** with a *"Change Node.js version"* drop-down (documented in their knowledge base). 
+```
+/home/shikkhac/nodevenv/shikkha24-cms/24/lib/node_modules/payload/bin.js
+```
 
-**Owner action:** cPanel → Software → *Select Node.js Version* → Edit the application → **Change Node.js version** → check whether **22.x or 24.x** is offered.
+In CloudLinux's layout that directory is named for the Node **major version**, and it is `24`.
+Those commands worked; a Node 20 path did not exist on the account.
 
-- **If 22 or 24 is available** → select it. Problem solved.
-- **If only 20.x is available** → the stack still works (Next/Payload accept ≥20.9), but it runs on an EOL runtime. That becomes a **documented, accepted risk** with mitigations: keep the admin panel rate-limited, minimise exposed surface, and ask DianaHost to add a newer Node.
+**This is not yet confirmed.** Before any document is corrected to say Node 24, run in the cPanel
+Terminal:
+
+```sh
+node -v ; /home/shikkhac/nodevenv/shikkha24-cms/24/bin/node -v
+```
+
+If both print `v24.x.y`, the EOL-runtime finding is **resolved**, the "accepted risk" in
+`.sps/plan.md` (S0 exit) should be struck, and the security posture changes materially. Until
+then, treat Node 20.18.2 as the documented position and this as an open question.
 
 ---
 
-## 6. S0 gates this document creates
+## 6. Escalation ladder if the Actions quota is hit
 
-- [ ] **Measure a real Astro incremental build time** — this decides the entire batching strategy and whether the CI quota is comfortable or critical
-- [ ] **Check the cPanel Node.js Selector drop-down** for Node 22/24; select the newest available
-- [ ] Decide the repository visibility (private = quota risk; public = unlimited minutes)
+1. **Batch harder** — increase the rebuild interval. Free, but content appears later.
+2. **Make the repository public** → unlimited GitHub Actions minutes. **Owner decision** — note
+   that the site and all its content are already public, but the source is not.
+3. **Self-hosted GitHub Actions runner** — no minutes limit, but needs a machine to run on.
 
 ---
 
 ## 7. Bandwidth and storage ceilings
 
-With Cloudflare removed, the **200 GB/month bandwidth cap** applies to ALL traffic — HTML pages, CSS/JS assets, and media images. There is no CDN to absorb the load.
+With Cloudflare removed, the **200 GB/month bandwidth cap** applies to ALL traffic — HTML, CSS/JS,
+and media images. There is no CDN to absorb the load.
 
-**HTML bandwidth:** at ~50 KB/page × 100K pageviews/month = ~5 GB. Comfortable.
+**HTML bandwidth:** ~50 KB/page × 100K pageviews/month ≈ 5 GB. Comfortable.
 
-**Media bandwidth:** at ~100 KB per WebP image × 5 images per article view × 100K pageviews = ~50 GB. This is the real consumer. A result-day spike could add 20–30 GB in a single day.
+**Media bandwidth:** at ~100 KB per WebP × 5 images per article view × 100K pageviews ≈ 50 GB.
+This is the real consumer. A result-day spike could add 20–30 GB in a single day.
 
-**Storage:** 2 GB total, shared by the CMS standalone bundle (~114 MB), SQLite database, media library, and logs. Media grows 150–270 MB/month at the target publishing rate. On the 2 GB plan, storage fills in 7–13 months; on a 5 GB plan, 18–33 months.
-
-**Mitigations:**
-- Aggressive WebP conversion, originals discarded
-- Per-day upload cap
-- Browser caching via `Cache-Control` headers (set in `.htaccess`)
-- Monitor bandwidth via cPanel; alert at 80% of 200 GB
+**Storage:** 2 GB total, shared by the CMS standalone bundle (**161 MB**, measured), the SQLite
+database, the media library and logs. **Mitigations:** aggressive WebP conversion with originals
+discarded, a per-day upload cap, browser caching via `Cache-Control` in `.htaccess`, and an alert
+at 80 % of the 200 GB bandwidth cap.
 
 ---
 
 ## 8. DianaHost facts not published anywhere
 
-The vendor's knowledge base (18 Web Hosting articles) documents **none** of the following. They must be obtained from support:
+The vendor's knowledge base documents **none** of the following. They must be obtained from
+support, and until they are, they are unknowns:
 
-- **Inode / file-count quota** — critical, because a Next.js install contains tens of thousands of files
+- **Inode / file-count quota** — critical, a Next.js install is tens of thousands of files
 - CPU / memory / process (entry process) limits
+- **The maximum upload size for the cPanel API** (`file_upload_max_bytes`) — determines whether the
+  161 MB CMS bundle can ever be pushed by CI rather than by hand
 - Email sending limits per hour
 - Whether account-level backups exist and can be restored on request
 
-**Owner action:** raise one support ticket covering all four.
+---
+
+## 9. Related documents
+
+| Document | Covers |
+|---|---|
+| **`docs/deployment-runbook.md`** | **the day-to-day deploy procedure, start here** |
+| `docs/cms-deployment.md` | first-time CMS setup, schema bootstrap, seeding, updates |
+| `docs/reliability.md` | restart procedure, incident response, graceful degradation |
+| `docs/backup-and-recovery.md` | the daily dump, restore runbook, DR scenarios |
+| `docs/security.md` | headers/CSP, rate limiting, PII, the Node-EOL finding |
+| `.sps/plan.md` | the approved implementation plan |

@@ -6,16 +6,34 @@ Production-grade, Bengali-first **education** news portal. Domain: **shikkha24.c
 > 🌍 দেশ-বিদেশের শিক্ষার সর্বশেষ খবর ও সুযোগ
 > 📚 শিক্ষার খবর, সুযোগ ও সম্ভাবনা—এক ঠিকানায়।
 
-**Status: BUILT — S0→S21 complete and verified.** See `.sps/task.md` for the section
-checklist and `.sps/handoff.md` for the current state. What remains before launch is
-**owner actions only** (credentials, DNS, SMTP, and the production-only measurements) —
-they are listed as gates below and in `.sps/task.md`.
+**Status: LIVE — deployed to production 2026-10-04.** The frontend and the CMS are both running on
+DianaHost; the Payload admin is at `https://cms.shikkha24.com/admin`. See
+**[`docs/deployment-runbook.md`](docs/deployment-runbook.md)** for how it is deployed and maintained.
+
+> ⚠️ **The deployment is not fully automated.** Pushing to GitHub does **not** deploy the site.
+> `docs/hosting-and-deployment.md` §4 explains why, in detail, and what is being built instead.
+
+See `.sps/task.md` for the section checklist and `.sps/handoff.md` for the current state.
+
+> 📚 **New here?** Start at **[`docs/README.md`](docs/README.md)** — the index of every document and
+> whether it is current.
 
 > 🔐 **Deploying? Read [Secrets — read this before deploying](#secrets--read-this-before-deploying) first.**
 > Three values were previously hardcoded in source and are still recoverable from git
 > history; one of them means `PAYLOAD_SECRET` should be rotated before you go live.
 
 ## Documentation map
+
+📚 **[`docs/README.md`](docs/README.md) is the full index** — every document with a CURRENT /
+STALE / REFERENCE label. The most important three:
+
+| File | Purpose |
+|---|---|
+| **`docs/deployment-runbook.md`** | 🔴 **START HERE.** How the site is deployed, updated, verified, and seeded — and the traps that have each caused a failed deploy |
+| **`docs/hosting-and-deployment.md`** | Why CI exists, the real pipeline, the cPanel API, quotas, and the unresolved Node-version question |
+| **`docs/cms-deployment.md`** | The CMS: subdomain, Node app, standalone bundle, schema bootstrap, updates |
+
+Everything else:
 
 | File | Purpose |
 |---|---|
@@ -30,26 +48,31 @@ they are listed as gates below and in `.sps/task.md`.
 | `.sps/antigravity-export-prompt.md` | Prompt to recover planning artifacts from the prior Antigravity session |
 | `.sps/third-party-audit-prompt.md` | Prompt for an independent adversarial audit (read-only, no building) |
 | `AGENTS.md` / `GEMINI.md` / `CLAUDE.md` | **Mandatory agent rules** — three synced mirrors, rules 1–13 identical in all three |
-| `docs/education-feature-inventory.md` | ✅ **APPROVED** — education feature inventory: 8-category tree + level filter, 10 new education features |
-| `docs/education-competitors.md` | Education competitor landscape (5 groups) and where Shikkha24 can win |
-| **`docs/hosting-and-deployment.md`** | **Why CI exists** (editors never touch GitHub), the deploy pipeline, both rebuild quotas, the 20,000-file ceiling, the Node.js version finding, escalation ladder |
 | **`docs/performance-budget.md`** | Lighthouse/Web Vitals budgets, per-asset byte budgets, measurement method, CI gate |
 | **`docs/seo-plan.md`** | Full SEO plan: per-template metadata + schema matrix, sitemaps, keyword clusters, redirects |
 | **`docs/security.md`** | Threat model, attack surface, auth, headers/CSP, rate limiting, PII, supply chain, email auth |
 | **`docs/reliability.md`** | Failure modes, error pages, graceful degradation, capacity/overload, monitoring, incident playbook |
 | **`docs/backup-and-recovery.md`** | What is protected, backup tiers, RPO/RTO, restore runbook, DR scenarios |
 | **`docs/testing-and-qa.md`** | Quality gates, test strategy, WCAG AA accessibility, browser/device matrix, Bengali render audit |
-| **`docs/assets-prompt.md`** | **AI visual assets** — Google Flow prompt library for every news type. Includes the hard rule that generated images must never contain text (Bengali conjuncts garble) and the ethics red lines on real events/people |
+| **`docs/feature-register.md`** | Every feature with its status |
+| **`docs/feature-batch-2.md`** | The second feature batch |
+| **`docs/education-feature-inventory.md`** | ✅ **APPROVED** — education feature inventory: 8-category tree + level filter, 10 new education features |
+| **`docs/education-competitors.md`** | Education competitor landscape (5 groups) and where Shikkha24 can win |
+| **`docs/assets-prompt.md`** | **AI visual assets** — prompt library for every news type. Includes the hard rule that generated images must never contain text (Bengali conjuncts garble) and the ethics red lines on real events/people |
 | **`docs/image-optimization.md`** | **Image optimization** — AVIF+WebP via `<picture>`, responsive `srcset`, the `sizes` rule, zero-CLS dimensions, LCP `fetchpriority`, immutable caching. How to add new assets |
 | **`docs/gpa-calculator-landscape.md`** | **GPA/CGPA calculator landscape** — every grade-calculation tool found in Bangladesh and internationally: what each calculates, how it helps students, which are worth adopting, and how `/gpa` and `/cgpa` are positioned against them |
 | **`docs/university-directory.md`** | 📋 **PROPOSED — awaiting approval.** University directory spec: what already exists (S10's N4), the measured data survey of four candidate sources, and why "all 2,274 NU colleges" is not achievable on a Bengali-only site |
-| `docs/presentation-deck.html` | **Project presentation deck** for team/board approval — 18 slides, mobile-first, covers all aspects |
-| `docs/audit-third-party.md` | Independent adversarial audit of the docs and plans (2026-09-11) + remediation status |
+| `docs/dianahost-provisioning-checklist.md` | What to obtain from DianaHost, in dependency order |
 | `docs/data-sources.md` | Every live-data widget: provider, free-tier terms, rate limit, fallback |
+| `docs/stack-research.md` | Stack research notes (versions verified 2026-09-11) |
+| `docs/audit-third-party.md` | Independent adversarial audit of the docs and plans (2026-09-11) + remediation status |
+| `docs/qa-deploy-status-2026-10-02.md` | 📦 Point-in-time QA sweep, superseded by `docs/README.md` |
+| `docs/security-audit-2026-10-01.md` | 📦 Point-in-time security audit |
+| `docs/presentation-deck.html` | **Project presentation deck** for team/board approval — 18 slides, mobile-first |
 | `docs/master-plan.md` | ⚠️ **OBSOLETE as a build input** — 87-feature *general-news* inventory. Reference only |
 | `docs/competitive-analysis.md` | ⚠️ **OBSOLETE as a build input** — general-news competitor set. Reference only |
-| `docs/stack-research.md` | Stack research notes (versions verified 2026-09-11) |
 | `docs/task-checklist-original.md` | Original 198-item checklist from plan approval. Archive only |
+| `docs/team-leader-proposal-review.md` | Proposal review for the team. Archive only |
 
 ## Secrets — read this before deploying
 
@@ -110,16 +133,26 @@ harmless, and it is the correct trade against a forgeable key.
 |---|---|
 | **Education feature inventory approved** (S1 entry) | ✅ 2026-09-11 — 8-category tree + level filter, 10 new education features |
 | **Publishing velocity** (S1 entry) | ✅ 2026-09-11 — baseline 15–20/day + burst to 40+; 5-person team in place |
+| **Payload-on-cPanel-Passenger smoke test** (S0 exit) | ✅ **2026-10-04** — CMS live at `cms.shikkha24.com`, admin renders, 74 tables, 200s response |
+| **TypeScript 7 toolchain validation** (S0 exit) | ✅ Typecheck passes in CI for both frontend and CMS |
+| **Astro build time measured** (S0 exit) | ✅ **2026-10-04** — full clean build **7.71 s**, ~156 pages, 3.8 MB |
+| **Deployment to production** | ✅ **2026-10-04** — frontend and CMS both live; see `docs/deployment-runbook.md` |
 | Portal display name + logo (S2 entry) | ⏳ Domain ✅ registered; placeholder logo in place; final name + logo pending |
-| Payload-on-cPanel-Passenger smoke test (S0 exit) | ⏳ Pending |
-| TypeScript 7 toolchain validation (S0 exit) | ⏳ Pending |
-| Astro incremental build time measured (S0 exit) | ⏳ Pending — decides the CI/batching strategy |
-| `wrangler` direct upload vs the 500/month Pages quota (S0 exit) | ⏳ Pending |
-| DianaHost Node.js 22/24 available via cPanel selector (S0 exit) | ⏳ Host runs **20.18.2, which is EOL** |
+| ~~`wrangler` direct upload vs the Pages quota~~ | ✅ **MOOT.** Cloudflare removed 2026-09-14 |
+| **DianaHost Node.js version** (S0 exit) | ⚠️ **DISPUTED.** Nine docs say 20.18.2 (EOL); the live app runs under `nodevenv/shikkha24-cms/**24**/`, implying Node 24. **One command settles it** — `node -v` in the cPanel Terminal. See `docs/hosting-and-deployment.md` §5 |
+| **Auto-deploy on push** | ❌ **Does not work, and cannot** — no SSH, and cPanel has no webhook receiver. Being replaced with a cPanel-API deploy. See `docs/hosting-and-deployment.md` §4 |
 | DianaHost inode quota + other limits confirmed (S0 exit) | ⏳ Not published — needs a support ticket |
+| SQLite WAL 5-writer concurrency proven (S0 exit) | ✅ `verify:sqlite-wal` harness passes |
+| CI quality gates + backup automation + feature flags (S0 exit) | ✅ Gates in `ci.yml`; daily backup in `backup-db.yml` |
 | ~~Cloudflare R2 enabled + usage alert set~~ | ✅ **REMOVED 2026-09-14.** No Cloudflare. |
-| SQLite WAL 5-writer concurrency proven (S0 exit) | ⏳ Pending — moved from S12 |
-| CI quality gates + backup automation + feature flags (S0 exit) | ⏳ Pending |
+
+### Known open issues
+
+| Issue | Detail |
+|---|---|
+| **CI red on CLS** | `cumulative-layout-shift` measured **0.0436** against a 0.03 gate on the article template. The culprit is identified: the `<aside>` "মূল বিষয়সমূহ" box in `article.container-page > div.grid-12 > div.col-span-4`, moving at `top 510px, 380x227px`. Not yet fixed. |
+| **CMS runs a hand-patched host** | The host's `.next/routes-manifest.json` was edited directly to unblock the admin. The permanent fix is committed (`f267079`) but not yet deployed, so `/api/*` is still on the looser policy until it is. |
+| **Demo content is live** | 24 demo articles are published so the site can be reviewed. `cms/src/seed/demo-purge.ts` removes them with no fallback — but a purge must be followed by a frontend rebuild, or Apache keeps serving the deleted pages. |
 
 ## Workflow (summary — full rules in AGENTS.md)
 
