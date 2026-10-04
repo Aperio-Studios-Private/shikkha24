@@ -41,8 +41,9 @@
     "verify:sync": "node scripts/verify-cms-sync.mjs",
     "verify:endpoints": "pnpm --filter @shikkha24/cms verify:endpoints",
     "verify:reporter": "pnpm --filter @shikkha24/cms verify:reporter",
-    "verify": "pnpm run lint && pnpm run verify:astro-imports && pnpm run verify:gpa && pnpm run verify:cgpa && pnpm run verify:bookmarks && pnpm run verify:ad-split && pnpm run verify:client-ip && pnpm run verify:sqlite-wal && pnpm run typecheck && pnpm run build && pnpm run verify:build-output && pnpm run verify:links && pnpm run verify:search-init && pnpm run verify:apache && pnpm run verify:cpanel-deploy && pnpm run verify:deploy-mode && pnpm run verify:backup",
-    "audit:ci": "pnpm audit --audit-level=high"
+    "verify": "pnpm run lint && pnpm run verify:astro-imports && pnpm run verify:gpa && pnpm run verify:cgpa && pnpm run verify:bookmarks && pnpm run verify:ad-split && pnpm run verify:client-ip && pnpm run verify:sqlite-wal && pnpm run verify:origins && pnpm run typecheck && pnpm run build && pnpm run verify:build-output && pnpm run verify:links && pnpm run verify:search-init && pnpm run verify:apache && pnpm run verify:cpanel-deploy && pnpm run verify:deploy-mode && pnpm run verify:backup",
+    "audit:ci": "pnpm audit --audit-level=high",
+    "verify:origins": "pnpm --filter @shikkha24/cms verify:origins"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.13",

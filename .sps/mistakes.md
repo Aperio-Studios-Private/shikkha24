@@ -110,6 +110,20 @@ Each entry is a mistake that was actually made in this repository, with the rule
 
 ---
 
+## M20 — A security allow-list that omitted the server's own origin, reported by a client that always says "success"
+**What happened:** Two unrelated bugs were reported from the live CMS on 2026-10-04: *"i cannot logout"* and *"i cnnot upload any new assets."* One cause. `cms/src/payload.config.ts` built `ALLOWED_ORIGINS` for `cors` **and** `csrf` from `PUBLIC_SITE_URL` plus localhost — and never added `cms.shikkha24.com`, the origin the admin panel is actually served from. Payload's `auth/extractJWT.js` throws the cookie away whenever an `Origin` header is present and not listed, so *every* credentialed request the admin browser made was treated as anonymous.
+**Why it matters — three separate failures stacked, and only the first is the bug:**
+1. **The symptom and the cause were in different places.** A 403 on `/api/media` reads as an *access-control* problem (and `Media.ts` genuinely does have `create: isEditorial` — so the guess was reasonable and wrong). A non-functioning logout reads as a *session-store* problem. Nothing in either message pointed at origin configuration.
+2. **A silent client hid the second failure entirely.** `@payloadcms/ui`'s `logOut()` wraps the POST in `catch (_) { /* fail silently and log the user out in state */ }` — it clears local state, shows a **success** toast, and redirects to the login page, while the cookie and the server-side session both remain. The next page load re-authenticates. A failed logout and a working logout are indistinguishable from the outside. **The user's most accurate description — "it refresh the page and not logged out" — was the exact fingerprint of this, and it was still not believed until the source was read.**
+3. **A CSRF failure is not a blocked request.** Because the cookie is *discarded* rather than the request rejected, every call gets a clean `401/403` deep inside a normal-looking flow. There is no error naming origins anywhere in the stack.
+
+**Rule:** **An allow-list of trusted callers must contain the server's own caller.** The list exists to stop *other people's pages* riding your cookies; the admin panel is not another person's page, and omitting it does not fail open — it fails *closed*, quietly, in a way that surfaces as unrelated symptoms. Three corollaries:
+- **When one root cause produces several unrelated-looking symptoms, treat the set as the evidence.** "Cannot log out" and "cannot upload" have no plausible shared cause; that incoherence was the strongest signal available, and it was available *before* reading any source.
+- **Any client that swallows errors and reports success is a monitoring blind spot.** Find one in the stack and assume it is hiding something, then go to the *server* response rather than trusting the UI.
+- **A security control needs a check that can fail.** `verify:origins` asserts both directions and is counter-proved by reintroducing the defect (1 check red, exit 1 — measured, not asserted). Testing only that the admin is accepted would pass on `['*']` (M18's disease, one layer up).
+
+---
+
 ## Deliberately not done (and why)
 
 - **`.sps/lock.json` not created.** The `sps` skill references removing `./.sps/lock.json` (`SKILL.md`, `APPROVAL-PACKETS.md`) but defines no schema for it anywhere. Inventing one would violate rule 3. The `/sps` lock is asserted through the three root mirrors (`AGENTS.md`, `GEMINI.md`, `CLAUDE.md`), which is how it actually operates in this project. Revisit if the skill defines a schema.

@@ -49,6 +49,7 @@ import { reporterQuickDraftEndpoint } from './endpoints/reporter'
 import { SiteSettings } from './globals/SiteSettings'
 import { bn } from './i18n/bn'
 import { isMailConfigured } from './lib/mailer'
+import { ALLOWED_ORIGINS } from './lib/origins'
 import { withRebuildTrigger, withRebuildTriggerGlobal } from './lib/rebuild-trigger'
 // Extensionless on purpose. Every other import in this file is extensionless,
 // and that is load-bearing rather than stylistic: `payload run` resolves
@@ -88,35 +89,6 @@ function requireEnv(name: string, why: string): string {
   }
   return value
 }
-
-/**
- * Origins allowed to call this API from a browser.
- *
- * Payload's default is to allow every origin. That was fine while nothing but
- * the admin used the API, but S8 introduced **reader-facing** calls — the
- * live-blog refresh, the poll vote — and S9 adds the comment form, the newsletter
- * signup, the bookmark sync and the push subscription. So the allow-list is
- * explicit.
- *
- * The public site is on DianaHost `public_html`, a different origin from the
- * CMS, so without this the browser blocks the call before it is sent.
- */
-const ALLOWED_ORIGINS = [
-  process.env.PUBLIC_SITE_URL || 'https://shikkha24.com',
-  /*
-   * ⚠️ Local development only. These were unconditional until 2026-09-30, so a
-   * production deployment also trusted `http://localhost:4321` and
-   * `http://localhost:3000` — meaning a page served from a reader's own machine
-   * could call this API with their cookies attached. Narrow, but the whole point
-   * of an explicit allow-list is that it is explicit.
-   *
-   * `NODE_ENV` is `production` under `next start` (which is how DianaHost runs it)
-   * and `development` under `next dev`, so the switch follows the deployment.
-   */
-  ...(process.env.NODE_ENV === 'production'
-    ? []
-    : ['http://localhost:4321', 'http://localhost:3000']),
-]
 
 /**
  * Email transport — registered **only when SMTP is configured**.

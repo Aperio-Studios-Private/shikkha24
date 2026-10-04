@@ -164,6 +164,31 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
   - **Still unverified:** the private-repo Actions artifact quota. `docs.github.com` returned 404
     on every attempt and WebSearch was unavailable, so retention is set to 30 days and the
     workflow *warns* above 100 MB rather than asserting a ceiling it cannot prove.
+- **🔴 TWO LIVE CMS BUGS, ONE CAUSE — fixed in code, NOT YET DEPLOYED (2026-10-04).**
+  The owner reported *"i cannot logout"* and *"i cnnot upload any new assets"*. **One mistake
+  behind both.** `cms/src/payload.config.ts` built `ALLOWED_ORIGINS` (used for **both** `cors`
+  and `csrf`) from `PUBLIC_SITE_URL` + localhost — and **omitted `cms.shikkha24.com`**, the origin
+  the admin panel is actually served from. Payload's `auth/extractJWT.js` **discards the session
+  cookie** whenever `Origin` is present and not listed, so every credentialed request the admin
+  browser made was treated as anonymous.
+    - **Symptom 1 — `/api/media` → 403**, so nothing could be uploaded. *Not* access control:
+      `Media.ts` has `create: isEditorial`, but the check never ran, because the request arrived
+      with no user at all. (The owner's pasted console showed the 403 directly.)
+    - **Symptom 2 — logout does nothing**, and it *looks* successful. `@payloadcms/ui`'s
+      `logOut()` catches every error, clears local state, shows a **success** toast and
+      redirects — while the cookie and the server session both survive; the next load
+      re-authenticates. The owner's own words (*"it refresh the page and not logged out"*) were
+      the exact fingerprint and were still not believed until the source was read.
+  - **Fixed and verified:** allow-list moved to `cms/src/lib/origins.ts` with the CMS origin
+    present and localhost confined to non-production (localhost was trusted in production until
+    2026-09-30). Counter-proof, not assertion — `cms/src/verify/origins.ts` (16 checks) asserts
+    **both** directions, because a suite that only asserts the admin is accepted would pass on
+    `['*']`. **Reintroducing the defect turns exactly 1 check red and exits 1; restored, exits 0.**
+    Both measured. See `.sps/mistakes.md` **M20**.
+  - **⚠️ THE FIX CANNOT REACH PRODUCTION WITHOUT A CMS DEPLOY** — and push-to-live has the three
+    independent blockers in `docs/hosting-and-deployment.md` §4. **Until that is resolved, neither
+    reported bug is actually fixed for the owner**, and the deploy is now the critical path for
+    both of them. `verify:origins` still needs adding to the root `pnpm verify` chain.
 - **⚠️ One owner action settles a nine-document dispute.** The runtime Node version is asserted
   as `20.18.2` in nine documents and was **never measured** — it was inferred from the
   CloudLinux `nodevenv` path, whose directory number **is** the version, and that path reads
