@@ -426,7 +426,8 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
 - [x] ~~Education feature inventory + category tree approved~~ — ✅ 2026-09-11
 - [x] ~~Education competitor set~~ — ✅ 2026-09-11
 - [x] Domain purchase — ✅ `shikkha24.com` (reachability not verified from the audit environment)
-- [x] DianaHost plan purchase — ✅ PNR 2 GB SSD NVMe
+- [x] ✅ DianaHost plan purchase — ⚠️ **CORRECTED 2026-10-04: the plan is "DH 5GB SSD NVMe" (5120 M), not "PNR 2 GB".** Read off the client-area product page, not assumed: **Disk 2155 M / 5120 M (42%)**, **Bandwidth 0 M / 307200 M**, registered **11/09/2026**, recurring **TK 4899.00 BDT**. ⚠️ **Rule 7 in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` still says "2 GB PNR, ~$47/year" and is therefore wrong on both figures.** It is left unedited pending the owner's confirmation of the actual product name, because rule 7 is a constraint rather than a note and the three mirrors must change together (rule 12) — but the discrepancy is recorded here so it is not lost. *The budget constraint itself is unaffected: still one self-hosted plan plus the domain, no card, no third-party SaaS.*
+- [ ] 🔴 **Complete the eKYC identity check (DianaHost client area shows "Your services require identity verification before they can be used").** Unverified accounts commonly carry partial feature restrictions, and **a host restricting cron on an unverified account is a plausible cause of the 🔴 fork blocker above that has nothing to do with process limits.** Do this before opening the support ticket — it is free, fast, and it may make the ticket unnecessary.
 - [ ] Confirm with DianaHost: inode/file-count quota, and **the CloudLinux process (`nPROC`) limit — see the 🔴 BLOCKER above**
 - [x] ~~Confirm Cloudflare R2 can be enabled without a payment method~~ — **REMOVED 2026-09-14.** No Cloudflare R2.
 - [ ] Decide the CI rebuild strategy (debounce/batch vs public repo)
