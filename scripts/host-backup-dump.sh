@@ -62,16 +62,32 @@
 
 set -eu
 
-APP_DIR="$HOME/shikkha24-cms"
-DATA_DIR="$APP_DIR/data"
-OUT_DIR="$HOME/shikkha24-backup"
-DB="$DATA_DIR/payload.db"
 # How many daily archives to keep. The account has 2 GB; each archive is a few MB, so
 # this is ~50 MB. Pruning is not optional — without it the account fills and takes the
 # site down with it, which is the failure mode a backup must never cause.
 KEEP_DAYS=14
 
 log_stamp() { date -u '+%Y-%m-%dT%H:%M:%SZ'; }
+
+# ⚠️ The home directory is derived from the account name, NOT taken from `$HOME`.
+#
+# This script runs under `set -eu`, and `set -u` makes an unset `$HOME` a **fatal** error:
+# the script dies on its third line, before creating anything. The error goes to stderr,
+# which under cron is an email nobody reads — so the folder stays empty and the backup is
+# silent. That is what happened on this host: the 19:49 test run produced no `dump.log`,
+# no archive, and no visible error anywhere.
+#
+# cPanel does not reliably export HOME to cron, so the path is built from `id -un`, which
+# is always correct on cPanel (`/home/<account>`). `$HOME` is still preferred when it is
+# set *and* actually points at the CMS, so a local test run still works.
+HOME_DIR="${HOME:-}"
+if [ -z "$HOME_DIR" ] || [ ! -d "$HOME_DIR/shikkha24-cms" ]; then
+  HOME_DIR="/home/$(id -un)"
+fi
+APP_DIR="$HOME_DIR/shikkha24-cms"
+DATA_DIR="$APP_DIR/data"
+OUT_DIR="$HOME_DIR/shikkha24-backup"
+DB="$DATA_DIR/payload.db"
 
 # ⚠️ Every line goes to a FILE as well as to stdout, and that is not tidiness.
 #
