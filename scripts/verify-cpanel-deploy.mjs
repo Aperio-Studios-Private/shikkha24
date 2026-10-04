@@ -19,29 +19,41 @@
  *
  *   1. A `status: 0` failure throws, despite HTTP 200.       ← the big one
  *   2. A missing credential throws naming the variable, never its value.
- *   3. Dry run issues **zero** mutating calls.                ← proves it is safe
+ *   3. Dry run issues **zero** mutating calls — from *every* helper, so a
+ *      helper added later is covered by default.                ← proves it is safe
  *   4. Deletion is manifest-driven and collapses directories.
  *   5. `.htaccess` can never reach a delete set, even if it is in a build.
  *   6. A first deploy with no manifest deletes nothing.
  *   7. Extraction prefers the UAPI destination form and falls back cleanly.
  *   8. A CMS bundle containing `data/` is refused before upload.
  *
+ * ## ⚠️ Section 3 was once a false green
+ *
+ * It called only the three helpers that happened to have a dry-run guard, and
+ * passed while `extractArchive` fired a real extract and `uploadFile` a real
+ * upload against the host. Adversarial review proved the hole by running it. So
+ * section 3 now calls every mutating helper, and section 5 exists to prove that
+ * check is not vacuous. **When adding a mutating helper to the client, add it to
+ * that list** — the alternative is the same hole reopening under a new name.
+ *
  * Run: node scripts/verify-cpanel-deploy.mjs
  */
 
 import { execFile } from 'node:child_process'
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import {
+  api2,
   config,
   deletePath,
   extractArchive,
   restartApp,
   uapi,
+  uploadFile,
   writeTextFile,
 } from './cpanel-client.mjs'
 import {
@@ -205,8 +217,19 @@ async function main() {
     await deletePath(cfg, 'public_html/old/index.html')
     await writeTextFile(cfg, 'shikkha24-cms/tmp', 'restart.txt', '')
     await restartApp(cfg, 'shikkha24-cms')
+    await uploadFile(cfg, 'shikkha24-deploy', join(tmpdir(), 'no-such-file.zip'), 'frontend.zip')
+    await extractArchive(cfg, 'shikkha24-deploy/frontend.zip', 'public_html')
     const mutations = server.calls.filter((call) => MUTATING.some((name) => call.includes(name)))
-    check('zero mutating calls reached the server', mutations.length === 0, mutations.join(', '))
+    check(
+      'zero mutating calls reached the server',
+      mutations.length === 0,
+      `via: ${mutations.join(', ')}`,
+    )
+    // The `uploadFile` call above was given a path that does not exist, and did
+    // not throw. That is the proof it never opened the file: `readFile` on a
+    // missing path throws ENOENT, so a dry run that reached the read would have
+    // failed here rather than passing quietly.
+    check('a dry run does not even read the file it would have uploaded', true)
     delete process.env.DEPLOY_DRY_RUN
     restore()
     await server.close()
@@ -431,6 +454,81 @@ async function main() {
     )
 
     await server.close()
+  }
+
+  console.log('\n11. The dry-run detector is not itself broken (negative control)')
+  {
+    // A check that has never been seen to fail is not evidence. Section 4 asserts
+    // "zero mutating calls reached the server" — this proves that assertion can
+    // actually fail, by feeding the same server and the same `MUTATING` filter a
+    // deliberately unguarded client.
+    //
+    // It is a replica, not an edit to `cpanel-client.mjs`: weakening the shipped
+    // client, even temporarily, to run a test is how a test ends up accidentally
+    // deleting production. What is reproduced here is the exact pre-fix control
+    // flow — the dry-run guard wrapping only the UAPI branch, so control fell
+    // through to the API 2.0 extract below it.
+    async function unguardedExtractArchive(cfg, archivePath, destDir) {
+      if (!cfg.dryRun) {
+        await uapi(cfg, 'Fileman', 'extract_files', {
+          sourcefile: archivePath,
+          destination: destDir,
+        })
+        return { via: 'uapi-extract_files' }
+      }
+      await api2(cfg, 'Fileman', 'fileop', { op: 'extract', source: archivePath, path: destDir })
+      return { via: 'api2-fileop' }
+    }
+
+    const server = await startFakeCpanel()
+    const restore = useEndpoint(server.base)
+    process.env.DEPLOY_DRY_RUN = 'true'
+    const { via } = await unguardedExtractArchive(config(), 'a/frontend.zip', 'public_html')
+    const caught = server.calls.filter((call) => MUTATING.some((name) => call.includes(name)))
+    check('the unguarded replica reproduces the original bug', via === 'api2-fileop', via)
+    check(
+      'section 4 would have caught it',
+      caught.length > 0 && caught.some((call) => call.includes('fileop')),
+      caught.join(', '),
+    )
+    delete process.env.DEPLOY_DRY_RUN
+    restore()
+    await server.close()
+  }
+
+  console.log('\n12. The run summary reaches the GitHub summary file')
+  {
+    // Found by review: both orchestrators had a markdown report and sent it to
+    // console.log, so on a GitHub run it scrolled past in the step log and the
+    // summary panel stayed empty. This pins the fix in both directions — the
+    // file is written when GitHub provides one, and stdout is used when it does
+    // not, so the report is never lost and never printed twice.
+    const { summary: report } = await import('./deploy-summary.mjs')
+    const file = join(mkdtempSync(join(tmpdir(), 'summary-')), 'step-summary.md')
+
+    const saved = process.env.GITHUB_STEP_SUMMARY
+    process.env.GITHUB_STEP_SUMMARY = file
+    report(['## Static deploy', '- **Mode:** dry run'])
+    check('writes the report to $GITHUB_STEP_SUMMARY', readFileSync(file, 'utf8').includes('##'))
+    check(
+      'appends rather than overwriting',
+      (() => {
+        report(['- second line'])
+        return readFileSync(file, 'utf8').includes('second line')
+      })(),
+    )
+
+    delete process.env.GITHUB_STEP_SUMMARY
+    const logged = []
+    const realLog = console.log
+    console.log = (message) => logged.push(message)
+    try {
+      report(['## Static deploy'])
+    } finally {
+      console.log = realLog
+      if (saved !== undefined) process.env.GITHUB_STEP_SUMMARY = saved
+    }
+    check('falls back to stdout outside CI', logged.includes('## Static deploy'))
   }
 
   console.log(

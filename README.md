@@ -140,7 +140,7 @@ harmless, and it is the correct trade against a forgeable key.
 | Portal display name + logo (S2 entry) | ⏳ Domain ✅ registered; placeholder logo in place; final name + logo pending |
 | ~~`wrangler` direct upload vs the Pages quota~~ | ✅ **MOOT.** Cloudflare removed 2026-09-14 |
 | **DianaHost Node.js version** (S0 exit) | ⚠️ **DISPUTED.** Nine docs say 20.18.2 (EOL); the live app runs under `nodevenv/shikkha24-cms/**24**/`, implying Node 24. **One command settles it** — `node -v` in the cPanel Terminal. See `docs/hosting-and-deployment.md` §5 |
-| **Auto-deploy** | ✅ **Built 2026-10-04, not yet run live.** `deploy.yml` ships over the cPanel HTTPS API — the host refuses SSH, so rsync was never possible. **Dry run is the default** and publishing stays a no-op until `AUTO_DEPLOY=live` is set. See `docs/hosting-and-deployment.md` §4.2 |
+| **Auto-deploy** | ✅ **Built 2026-10-04, not yet run live.** `deploy.yml` ships over the cPanel HTTPS API — the host refuses SSH, so rsync was never possible. **Dry run is the default** and publishing stays a no-op until `AUTO_DEPLOY=live` is set. Counter-proved by `verify:cpanel-deploy` (40 checks) and `verify:deploy-mode` (37). See `docs/hosting-and-deployment.md` §4.2 |
 | DianaHost inode quota + other limits confirmed (S0 exit) | ⏳ Not published — needs a support ticket |
 | SQLite WAL 5-writer concurrency proven (S0 exit) | ✅ `verify:sqlite-wal` harness passes |
 | CI quality gates + feature flags (S0 exit) | ✅ Gates in `ci.yml` |

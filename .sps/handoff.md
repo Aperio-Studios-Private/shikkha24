@@ -30,8 +30,9 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
   `.github/workflows/deploy.yml` no longer contains a single `rsync` or `scp`. It ships over the
   **cPanel HTTPS API**, which is the only transport the host allows (auth is a static token in one
   plain header — **not** OAuth, no exchange, no expiry). `scripts/cpanel-client.mjs`,
-  `deploy-manifest.mjs`, `deploy-static.mjs`, `deploy-cms.mjs`, counter-proved by
-  `scripts/verify-cpanel-deploy.mjs` (34 checks, in `pnpm verify`).
+  `deploy-manifest.mjs`, `deploy-static.mjs`, `deploy-cms.mjs`, `deploy-summary.mjs`,
+  counter-proved by `scripts/verify-cpanel-deploy.mjs` (40 checks) and
+  `scripts/verify-deploy-mode.mjs` (37 checks), both in `pnpm verify`.
   - **`rsync --delete` was the hard part.** There is no `--delete` in the API, so the deploy keeps
     a **manifest** of the paths it last wrote, on the host, outside the docroot. Deletes are the
     diff against the current build, collapsed to directories — but only up to the first ancestor
@@ -49,6 +50,30 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
     probes and reports which one the host accepted rather than assuming. `docs/hosting-and-deployment.md` §4.2.
   - **Push-to-live on the host remains impossible**, not merely unused — three independent blockers.
     Do not spend time on it again; the reasoning is in `docs/hosting-and-deployment.md` §4.
+  - **🔴 Adversarial review found three real defects; all three are now fixed and counter-proved.**
+    - **A dry run could have mutated the host.** `extractArchive()` wrapped only its UAPI branch in
+      `if (!cfg.dryRun)`, so control fell straight through to the API 2.0 extract — a real extract
+      during a dry run. `uploadFile()` had no guard at all. Neither fired, because the
+      orchestrators return early, but both were one refactor from firing against the only copy of
+      the archive. The invariant now lives in the client, as `config()`'s docstring always claimed.
+    - **The dry-run harness gave a false green**, and that is the more instructive half: it called
+      only the three helpers that *had* guards, so it passed while the two that didn't were
+      unguarded. Every mutating helper is now covered, and section 11 is a **negative control** —
+      it feeds the same fake server a deliberately unguarded replica and asserts the "is this call
+      mutating?" filter catches it. *When adding a mutating helper to the client, add it to that
+      list, or the same hole reopens under a new name.*
+    - **`AUTO_DEPLOY=Live` published to production.** The mode was read twice in opposite senses:
+      `[ "$MODE" = "live" ]` gated confirm-risk and `mode == 'dry-run'` decided `DEPLOY_DRY_RUN`.
+      A casing slip made both false — the gate skipped **and** the deploy went live. Normalised
+      once against an allowlist (unknown values are refused, empty means dry run), with `dry_run`
+      emitted as a boolean so nothing re-derives it from the string.
+  - **⚠️ The lesson that generalises: a check never seen to fail is not evidence.** Two of the three
+    defects above were hidden by a passing harness, not by a missing one. Every new gate here now
+    gets run once against a deliberately broken copy of the thing it guards, and the result
+    recorded. `verify-deploy-mode.mjs` reports **27 failures** against the pre-fix step; the
+    negative control in `verify-cpanel-deploy.mjs` reproduces the original unguarded extract.
+    Neither required touching the shipped code to produce — the shipped workflow is read out of
+    `deploy.yml` and executed, and the replica is defined beside the test.
 - **🔴 THERE IS NO WORKING BACKUP. This is the highest operational risk in the project.**
   `.github/workflows/backup-db.yml` has **failed 6 runs out of 6** (2026-09-28 → 2026-10-03,
   every run under 10 seconds), each one using `ssh`/`scp` against a host that refuses both. The

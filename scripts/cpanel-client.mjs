@@ -219,6 +219,9 @@ export async function api2(cfg, module, func, params = {}) {
  * @returns {Promise<string>} the path cPanel reports it wrote.
  */
 export async function uploadFile(cfg, dir, localPath, remoteName) {
+  // Guard before the read, not after: a dry run must not even look at a file it
+  // is not going to send. This guard was missing once — see `extractArchive`.
+  if (cfg.dryRun) return `${dir}/${remoteName}`
   const { readFile } = await import('node:fs/promises')
   const bytes = await readFile(localPath)
   const form = new FormData()
@@ -252,25 +255,28 @@ export async function uploadFile(cfg, dir, localPath, remoteName) {
  * @param {ReturnType<typeof config>} cfg
  * @param {string} archivePath Path of the archive, relative to home.
  * @param {string} destDir Directory to expand into, relative to home.
- * @returns {Promise<{via: 'uapi-extract_files'|'api2-fileop'}>}
+ * @returns {Promise<{via: 'uapi-extract_files'|'api2-fileop'|'dry-run'}>}
  */
 export async function extractArchive(cfg, archivePath, destDir) {
-  if (!cfg.dryRun) {
-    try {
-      await uapi(cfg, 'Fileman', 'extract_files', {
-        sourcefile: archivePath,
-        destination: destDir,
-      })
-      return { via: 'uapi-extract_files' }
-    } catch (error) {
-      // An unknown function and a real failure are both `status: 0`. Falling
-      // through on a genuine error would mask it, so the reason is kept and
-      // only a missing-function error is allowed to fall through.
-      if (
-        !/unrecogni[sz]ed|not implemented|unknown function|Unknown function/i.test(error.message)
-      ) {
-        throw error
-      }
+  // ⚠️ This guard was missing, and an adversarial review proved the hole by
+  // running it: the dry-run check used to wrap only the UAPI branch, so control
+  // fell straight through to the API 2.0 extract below — a mutating call, in a
+  // dry run, against the host holding the only copy of the archive. The
+  // orchestrators happened to return before ever reaching here, so nothing had
+  // fired. It was one refactor away from firing.
+  if (cfg.dryRun) return { via: 'dry-run' }
+  try {
+    await uapi(cfg, 'Fileman', 'extract_files', {
+      sourcefile: archivePath,
+      destination: destDir,
+    })
+    return { via: 'uapi-extract_files' }
+  } catch (error) {
+    // An unknown function and a real failure are both `status: 0`. Falling
+    // through on a genuine error would mask it, so only a missing-function
+    // error is allowed to fall through.
+    if (!/unrecogni[sz]ed|not implemented|unknown function/i.test(error.message)) {
+      throw error
     }
   }
   await api2(cfg, 'Fileman', 'fileop', {

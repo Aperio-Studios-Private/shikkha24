@@ -136,8 +136,40 @@ jobs:
             REASON="$INPUT_REASON"
             CONFIRM="$INPUT_CONFIRM"
           fi
+
+          # ⚠️ Normalise BEFORE anything compares MODE.
+          #
+          # `AUTO_DEPLOY` is a free-text repository variable, and MODE was used
+          # verbatim by two independent comparisons: `[ "$MODE" = "live" ]` gates
+          # the confirm-risk check, and `mode == 'dry-run'` decides
+          # DEPLOY_DRY_RUN. Setting AUTO_DEPLOY to `Live` made the first false —
+          # skipping the gate — and the second false too, so a deploy nobody
+          # confirmed went live. Two comparisons reading the same string in
+          # opposite senses is the whole bug: normalise once, then compare once.
+          MODE=$(printf '%s' "$MODE" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+          case "$MODE" in
+            live|dry-run) ;;
+            *)
+              echo "::error::Unrecognised mode '$MODE'. Use 'live' or 'dry-run'. (AUTO_DEPLOY is set to '${AUTO_DEPLOY:-<unset>}' — it accepts 'live' or 'dry-run'.)"
+              exit 1
+              ;;
+          esac
+
+          case "$TARGET" in
+            all|static|cms) ;;
+            *)
+              echo "::error::Unrecognised target '$TARGET'. Use 'all', 'static' or 'cms'."
+              exit 1
+              ;;
+          esac
+
+          # Emitted as a boolean so no downstream step re-derives it from the
+          # string. This is the value that decides whether the host is mutated.
+          if [ "$MODE" = "live" ]; then DRY_RUN=false; else DRY_RUN=true; fi
+
           {
             echo "mode=$MODE"
+            echo "dry_run=$DRY_RUN"
             echo "target=$TARGET"
             echo "reason=$REASON"
           } >> "$GITHUB_OUTPUT"
@@ -210,7 +242,9 @@ jobs:
       - name: Verify the cPanel deploy path
         # The transport is new and the host has never seen it. These are the
         # checks that make a first live run plausible rather than reckless.
-        run: pnpm run verify:cpanel-deploy
+        run: |
+          pnpm run verify:cpanel-deploy
+          pnpm run verify:deploy-mode
 
       # ── Build the CMS (only when it is the target) ───────────────────────
       - name: Build (CMS, standalone)
@@ -281,7 +315,7 @@ jobs:
           CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
           CPANEL_USER: ${{ secrets.CPANEL_USER }}
           CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
-          DEPLOY_DRY_RUN: ${{ steps.cfg.outputs.mode == 'dry-run' }}
+          DEPLOY_DRY_RUN: ${{ steps.cfg.outputs.dry_run }}
           DEPLOY_CMS_DIST: cms/.next/standalone/cms
           CMS_URL: ${{ secrets.CMS_URL }}
         run: node scripts/deploy-cms.mjs
@@ -292,7 +326,7 @@ jobs:
           CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
           CPANEL_USER: ${{ secrets.CPANEL_USER }}
           CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
-          DEPLOY_DRY_RUN: ${{ steps.cfg.outputs.mode == 'dry-run' }}
+          DEPLOY_DRY_RUN: ${{ steps.cfg.outputs.dry_run }}
           SITE_URL: ${{ vars.PUBLIC_SITE_URL || 'https://shikkha24.com' }}
         run: node scripts/deploy-static.mjs
 

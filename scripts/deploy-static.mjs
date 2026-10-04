@@ -47,6 +47,7 @@ import {
   writeTextFile,
 } from './cpanel-client.mjs'
 import { buildManifest, planDeletes, serializeManifest } from './deploy-manifest.mjs'
+import { summary as report } from './deploy-summary.mjs'
 
 /** Directories on the host, relative to the account home. */
 const DOCROOT = process.env.DEPLOY_DOCROOT ?? 'public_html'
@@ -180,7 +181,7 @@ async function main() {
 
   if (cfg.dryRun) {
     summary.push('', '⚠️ Dry run — the host was not contacted for any change.')
-    console.log(summary.join('\n'))
+    report(summary)
     return
   }
 
@@ -200,7 +201,10 @@ async function main() {
 
   const target = hasDestination ? STAGING : DOCROOT
   const remoteZip = await uploadFile(cfg, target, zip, 'frontend.zip')
-  const { via } = await extractArchive(cfg, remoteZip, hasDestination ? DOCROOT : DOCROOT)
+  // The destination is the docroot either way. Only the *source* of the archive
+  // differs: with a destination parameter the zip stays in staging, without one
+  // it must already be inside the docroot for `fileop` to expand it.
+  const { via } = await extractArchive(cfg, remoteZip, DOCROOT)
   say(`Extracted via ${via}.`)
 
   // Only the no-destination fallback leaves an archive in the docroot.
@@ -215,7 +219,7 @@ async function main() {
   await verifyLive()
 
   summary.push('', `Extraction mechanism: \`${via}\``, '', `✅ ${SITE_URL} verified after deploy.`)
-  console.log(summary.join('\n'))
+  report(summary)
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

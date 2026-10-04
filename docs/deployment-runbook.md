@@ -104,6 +104,16 @@ also runs in **dry run** until you set the repository variable `AUTO_DEPLOY=live
 (Settings → Secrets and variables → Actions → Variables). Until then a publish shows you the plan
 and nothing else. There is still no `push:` trigger — pushing to GitHub does not deploy.
 
+⚠️ **`AUTO_DEPLOY` accepts exactly `live` or `dry-run`** (case and surrounding spaces don't
+matter). Anything else — `yes`, `true`, `on` — **fails the run with an error** rather than falling
+back to a default, because a typo must never be the thing that decides whether production is
+overwritten. Leave it empty for dry run.
+
+**Where the plan appears.** The report — files deployed, every path deleted, which extraction
+mechanism the host accepted, whether the site answered afterwards — goes to the **run summary
+panel**, not just the step log. Read that panel; it is the difference between the report scrolling
+past and being on the page.
+
 ---
 
 ## 3. Deploying the CMS (rare — only on a dependency or schema change)

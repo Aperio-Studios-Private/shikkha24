@@ -157,7 +157,7 @@ into a non-empty directory, and your `public_html` already contains `.htaccess`.
 > contains a single `rsync` or `scp`. Everything below describes working code.
 >
 > ⚠️ **But it has never touched the real host.** It is counter-proved against a local server that
-> reproduces cPanel's response envelopes (`scripts/verify-cpanel-deploy.mjs`, 34 checks), which
+> reproduces cPanel's response envelopes (`scripts/verify-cpanel-deploy.mjs`, 40 checks), which
 > proves the logic and the failure handling — **not** that the parameter names are right for this
 > cPanel build. `mode: dry-run` is the default for exactly that reason, and it contacts the host
 > (read-only) so the credentials, the path and the API shapes are all confirmed before a live run.
@@ -234,6 +234,48 @@ dry-run summary so it is on the page before it is needed.
 variable `AUTO_DEPLOY` is set to `live`. Publishing shows you the plan; it does not push to
 production until you flip one setting.
 
+#### ⚠️ `AUTO_DEPLOY` is normalised, and an unknown value is refused
+
+`AUTO_DEPLOY` is a **free-text** repository variable, and the mode it produces is the single switch
+that decides whether the host is mutated. It is lower-cased, stripped of surrounding whitespace and
+checked against an allowlist before anything compares it: `live` and `dry-run` are accepted, and
+anything else **fails the run** with an error naming both valid values. An empty or unset
+`AUTO_DEPLOY` means dry run — the safe default, not an error.
+
+This matters because the mode used to be read twice, in opposite senses:
+
+```bash
+[ "$MODE" = "live" ]      # gates the confirm-risk check
+mode == 'dry-run'         # decides DEPLOY_DRY_RUN
+```
+
+Setting `AUTO_DEPLOY` to `Live` made the first false — so the confirm-risk gate was skipped — and
+the second false too — so the deploy went live anyway. **A casing slip in one repository variable
+published to production without asking.** The step now normalises once and emits `dry_run` as a
+dedicated boolean, so no downstream step re-derives it from the string.
+
+`scripts/verify-deploy-mode.mjs` (37 checks) extracts that step's shell **out of `deploy.yml`** and
+runs it under every combination that matters — `Live`, `LIVE`, `" live "`, `yes`, `deploy`, empty,
+and each `workflow_dispatch` input combination. It reads the shipped file rather than a copy,
+because a test of a copy proves the copy. Against the pre-fix version of that step the same harness
+reports **27 failures**, which is how it was confirmed to detect the regression it guards against.
+
+#### What each harness covers
+
+| Harness | Checks | Proves |
+|---|---|---|
+| `verify:cpanel-deploy` | 40 | The client against a real HTTP server reproducing cPanel's envelopes, both APIs, success and failure |
+| `verify:deploy-mode` | 37 | The workflow's own mode resolution, run as shipped |
+
+`verify:cpanel-deploy` includes a **negative control** (section 11): it feeds the same fake server
+and the same "is this call mutating?" filter a deliberately unguarded replica of `extractArchive`,
+and asserts the filter catches it. A check that has never been seen to fail is not evidence.
+
+⚠️ **That control exists because the first version of that harness gave a false green.** It
+exercised only the three helpers that happened to have a dry-run guard, so it passed while
+`extractArchive` performed a real extract and `uploadFile` a real upload. Every mutating helper is
+now covered, and adding one to the client means adding it to that list.
+
 ### 4.3 Secrets this needs
 
 Set in **GitHub → Settings → Secrets and variables → Actions**. Never commit them.
@@ -253,7 +295,7 @@ Optional **variable** (GitHub → Settings → Secrets and variables → Actions
 
 | Variable | Value | Effect |
 |---|---|---|
-| `AUTO_DEPLOY` | `live` | lets the publish webhook deploy instead of only planning |
+| `AUTO_DEPLOY` | `live` | lets the publish webhook deploy instead of only planning. Case-insensitive; must be exactly `live` or `dry-run` or the run is refused |
 
 ⚠️ **Never paste the API token into chat, a commit, a log, or a handoff file.** Put it straight
 into GitHub Secrets. If it is ever exposed, delete it in cPanel and create a new one.

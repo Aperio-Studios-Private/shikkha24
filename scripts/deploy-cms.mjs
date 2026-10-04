@@ -31,6 +31,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { config, deletePath, extractArchive, uploadFile, writeTextFile } from './cpanel-client.mjs'
+import { summary as report } from './deploy-summary.mjs'
 
 const CMS_ROOT = process.env.DEPLOY_CMS_ROOT ?? 'shikkha24-cms'
 const CMS_DIST = process.env.DEPLOY_CMS_DIST ?? 'cms-dist'
@@ -170,7 +171,7 @@ async function main() {
       `V=/home/shikkhac/nodevenv/${CMS_ROOT}/24/lib/node_modules; N=/home/shikkhac/${CMS_ROOT}/node_modules; for d in "$V"/*; do t="$N/\${d#$V/}"; [ -e "$t" ] || { mkdir -p "\${t%/*}"; ln -sfn "$d" "$t"; }; done`,
       '```',
     )
-    console.log(summary.join('\n'))
+    report(summary)
     return
   }
 
@@ -192,7 +193,7 @@ async function main() {
   await verifyCms()
 
   summary.push('', `Extraction mechanism: \`${via}\``, '', `✅ ${CMS_URL} verified after restart.`)
-  console.log(summary.join('\n'))
+  report(summary)
 }
 
 // Imported by `scripts/verify-cpanel-deploy.mjs`, which needs `assertBundleIsSafe`
