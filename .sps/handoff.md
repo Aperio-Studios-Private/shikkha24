@@ -409,7 +409,8 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
 - [x] ✅ **Backup doc updated** (commit `1697caa`, updated 2026-09-14) — `docs/backup-and-recovery.md` now reflects host-disk media and no Cloudflare R2. Tier 1 includes `data/media/` alongside the SQLite file; backups go to GitHub Actions artifacts. All DR scenarios, verification checklist, and open-items updated.
 
 **Owner actions for S0 (all can be done in one sitting):**
-- [ ] **cPanel → Software → Select Node.js Version → Edit → Change Node.js version** — select 22.x or 24.x if offered. The host currently runs **20.18.2, which is end-of-life**
+- [x] ✅ **Node.js version — RESOLVED 2026-10-04, no action needed.** The host runs **24.18.0**, not the 20.18.2 recorded below. Confirmed on cPanel → Setup Node.js App: app `cms.shikkha24.com`, root `/home/shikkhac/shikkha24-cms`, mode **production**, startup file `cms/server.js`, status **started**, venv `/home/shikkhac/nodevenv/shikkha24-cms/24/`. The "20.18.2 is end-of-life" worry and the "Confirm with DianaHost: Node.js version availability (≥22.12 required)" item are **both closed** — measured, not assumed (M18's rule).
+- [ ] **One DianaHost support ticket** — inode/file-count quota, CPU/memory/**process** limits, hourly email send limits, and whether account-level backups exist. **None are published in their knowledge base.** ⚠️ **The process limit is no longer hypothetical — see the 🔴 BLOCKER above. This ticket is now the critical path.**
 - [ ] **One DianaHost support ticket** — inode/file-count quota, CPU/memory/process limits, hourly email send limits, and whether account-level backups exist. **None are published in their knowledge base**
 - [ ] **DNS configuration for shikkha24.com** — the domain is registered; point at DianaHost nameservers (not Cloudflare). The owner will supply the DNS details.
 
@@ -426,7 +427,7 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
 - [x] ~~Education competitor set~~ — ✅ 2026-09-11
 - [x] Domain purchase — ✅ `shikkha24.com` (reachability not verified from the audit environment)
 - [x] DianaHost plan purchase — ✅ PNR 2 GB SSD NVMe
-- [ ] Confirm with DianaHost: Node.js version availability (≥22.12 required) and the inode/file-count quota
+- [ ] Confirm with DianaHost: inode/file-count quota, and **the CloudLinux process (`nPROC`) limit — see the 🔴 BLOCKER above**
 - [x] ~~Confirm Cloudflare R2 can be enabled without a payment method~~ — **REMOVED 2026-09-14.** No Cloudflare R2.
 - [ ] Decide the CI rebuild strategy (debounce/batch vs public repo)
 - [ ] Reconcile the desk allocation with whatever velocity is chosen — the general-news desk split (which sums to 42–56/day) must be redrawn around education desks
