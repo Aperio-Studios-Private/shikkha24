@@ -82,12 +82,62 @@ Written to be followed under pressure, by one person, possibly years from now.
 > accepted.
 
 **Scenario A — database corrupt or lost, host intact**
-1. Download the most recent backup artifact from GitHub Actions (contains both the SQLite file and `data/media/`)
-2. Stop the CMS (cPanel → stop the Node app) so nothing writes mid-restore
-3. Replace the SQLite file (and delete stale `-wal` / `-shm` files)
-4. If the media directory was also lost, restore `data/media/` from the archive
-5. Start the CMS, verify `/admin` and a sample of articles (including their images)
-6. Re-run a build to confirm the frontend regenerates
+
+> ⚠️ **The `-C` flag is not optional.** The tarball holds `payload.db` and `media/` at its
+> **root**. Extracting it inside `data/` without `-C` puts them at `data/payload.db` and
+> `data/media` — one level too high, which is exactly where they already are, so it *looks*
+> like it worked and then silently restores the *broken* database you were trying to escape.
+> Always extract **into** `data/`, never into its parent.
+
+1. **Download the artifact.** GitHub → the repo → **Actions** → *Backup database + media* →
+   the newest green run → **Artifacts** → download `shikkha24-backup-<run id>` and unzip it
+   locally. You should see `shikkha24-<stamp>.tar.gz` inside.
+2. **Stop the CMS.** cPanel → **Setup Node.js App** → your app → **Stop**. Wait for it to go
+   red. Nothing may be writing to the database while you swap it.
+3. **Move the broken database aside FIRST, before extracting anything.**
+   ```sh
+   cd /home/shikkhac/shikkha24-cms/data
+   mv -n payload.db payload.db.broken-$(date +%F)
+   rm -f payload.db-wal payload.db-shm
+   ```
+   > ⚠️ **This step is first because of the next one.** `tar` **overwrites** whatever is
+   > already there, so extracting first and moving afterwards was tested and produces this
+   > exact state:
+   >
+   > ```
+   > payload.db                    0 bytes     ← the real one was overwritten by tar, then moved away
+   > payload.db.broken-2026-10-04  36 KB       ← the GOOD database, sitting in the file named "broken"
+   > ```
+   >
+   > The CMS would then either refuse to boot, or — worse — boot against the 0-byte file and
+   > come up as an **empty site with every article gone**. A 0-byte SQLite database is not a
+   > detectable error: `PRAGMA integrity_check` on it returns **`ok`**. This was not reasoned
+   > about; it was run.
+   >
+   > `-n` is *no clobber*: if `payload.db.broken-<date>` already exists, the `mv` refuses
+   > rather than overwriting it, so a second run cannot destroy your one remaining copy of
+   > the original.
+   >
+   > `rm -f payload.db-wal payload.db-shm` is not optional either. **A `-wal` left over from
+   > the old database is replayed over the one you just restored and can resurrect the
+   > corruption** — the site boots, `/admin` loads, and the damage is back.
+4. **Now extract into `data/`:**
+   ```sh
+   tar -xzf /path/to/shikkha24-20261004T190000Z.tar.gz -C /home/shikkhac/shikkha24-cms/data
+   ls -l payload.db && ls media | head
+   ```
+   Confirm `payload.db` is a few hundred KB or more and **not** 0 bytes. A 0-byte result
+   means the archive was the wrong file — go back to step 1, do not continue.
+5. **Start the CMS.** cPanel → **Setup Node.js App** → **Start**, wait ~30 s, then reload
+   `https://cms.shikkha24.com/admin`. A login page means it booted.
+   > The CMS applies its committed migrations at boot (`docs/cms-deployment.md` §3.7), so
+   > restoring an older archive forward-migrates it to the current schema on first start.
+   > That is expected. It also means the schema can only move *forward*, which is why the
+   > archive must be extracted before the app is started, not after.
+6. **Verify, then rebuild.** Check `/admin` and a sample of articles **including their
+   images** — a restored database with a missing media directory looks healthy until you
+   look at an article. Then re-run a frontend build (§6.3) so the public site matches.
+   Only once the site is confirmed good: `rm -f payload.db.broken-*`.
 
 **Scenario B — host account lost entirely**
 1. Provision a new DianaHost account (or equivalent) and note the new paths
@@ -114,7 +164,7 @@ Written to be followed under pressure, by one person, possibly years from now.
 >
 > The automation is written, reviewed and green: `backup-db.yml` runs nightly, the host script is
 > in `scripts/host-backup-dump.sh`, the fetcher refuses anything it cannot prove restorable, and
-> `pnpm verify:backup` counter-proves all of it with 38 checks.
+> `pnpm verify:backup` counter-proves all of it with 47 checks.
 >
 > **It cannot succeed until the owner completes the four setup steps in §6.4** — an FTP account, the
 > script installed on the host, a cron entry, and three GitHub Secrets. Until then there is still
@@ -186,7 +236,7 @@ this project does not have).
 | `scripts/host-backup-dump.sh` | host | POSIX `sh`. `sqlite3 ".backup"` (never `cp`), tars `payload.db` + `media/` **at the root**, writes `latest.txt`, prunes to 14 days, and **dies loudly** if `sqlite3` is missing, the DB is 0 bytes, or `media/` is absent |
 | `scripts/backup-verify.mjs` | CI | Decides whether an archive is worth keeping. `integrity_check`, core tables, row counts, media presence. Uses **`node:sqlite`** — no install step, no shell quoting, no version skew |
 | `scripts/backup-fetch.mjs` | CI | FTPS fetch. Writes a **`.netrc` mode 0600** in a temp dir (the password is never in `argv`, where `ps` would show it) and deletes it in a `finally` either way. Staleness check. Strict filename pattern — `latest.txt` cannot inject a path |
-| `scripts/verify-backup.mjs` | CI + local | **38 checks** that counter-prove the above. Run `pnpm verify:backup` |
+| `scripts/verify-backup.mjs` | CI + local | **47 checks** that counter-prove the above. Run `pnpm verify:backup` |
 | `.github/workflows/backup-db.yml` | CI | Nightly at 19:00 UTC (01:00 Dhaka). Runs the harness first, then the fetch, then stores the artifact |
 
 ### 6.4 ⚠️ SETUP — the owner must do this once, before anything works
@@ -195,14 +245,25 @@ this project does not have).
    `/home/shikkhac/shikkha24-backup`. Give it a **dedicated password — not the main account
    password.** This credential's only job is to read backups; it must never be able to reach
    `.env`. No privileges are needed.
-2. **cPanel → Terminal:**
-   ```sh
-   mkdir -p ~/bin ~/shikkha24-backup
-   # copy scripts/host-backup-dump.sh from this repo to ~/bin/, then:
-   chmod +x ~/bin/shikkha24-backup-dump.sh && ~/bin/shikkha24-backup-dump.sh
-   ```
-   ⚠️ **Run it by hand and read the output.** If it fails here it will fail 30 times a month,
+2. **Put the script on the host.**
+   - cPanel → **File Manager** → open **`/home/shikkhac`** → **+ Folder** → name it `bin`.
+   - With `bin` open, click **Upload** and upload `scripts/host-backup-dump.sh` from this
+     repo. It will land as `host-backup-dump.sh`; rename it to **`shikkha24-backup-dump.sh`**.
+   - cPanel → **Terminal**:
+     ```sh
+     mkdir -p ~/bin ~/shikkha24-backup
+     chmod +x ~/bin/shikkha24-backup-dump.sh
+     ~/bin/shikkha24-backup-dump.sh
+     ```
+   ⚠️ **There is deliberately no `cp` line to paste.** There is no SSH to this host, so the
+   file has to arrive through File Manager, and a `cp` left here as a comment is the kind of
+   instruction that gets pasted, appears to run, and silently does nothing.
+   ⚠️ **Run it by hand and read the output.** A good run ends with
+   `done — 1 archive(s) retained in …`. If it fails here it will fail 30 times a month,
    silently — except that the 30-hour staleness check now turns that silence into a red run.
+   If it reports that `sqlite3` is not installed, that is the one dependency it cannot work
+   around: installing it (CloudLinux: `yum install sqlite`) is the fix, **not** switching to
+   `cp`, which can capture a torn database.
 3. **cPanel → Cron Jobs →** once daily. **⚠️ The hour you type is SERVER-LOCAL time, and this
    account is on Asia/Dhaka (UTC+6)** — measured, not assumed: the host's FTP banner reported
    "Local time is now 18:19" at 12:19 UTC. Type **`23:00`**:
@@ -257,7 +318,7 @@ job, because this job's entire output is a decision made by `backup-verify.mjs`.
 quietly stopped rejecting bad input would make a week of green runs mean nothing.
 
 ```sh
-pnpm verify:backup     # 38 checks
+pnpm verify:backup     # 47 checks
 ```
 
 Every check is proved against the specific defect it claims to catch, using real SQLite files

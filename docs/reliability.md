@@ -165,7 +165,7 @@ DianaHost runs the CMS as a Node.js application behind Phusion Passenger via cPa
 - After deploying a new CMS bundle (Passenger may need a restart to pick it up)
 
 **Restart steps:**
-1. Log into cPanel (`https://<diana-host>:2083` — bookmark this URL)
+1. Log into cPanel (`https://b201.serverdiana.com:2083` — bookmark this URL)
 2. Navigate to **Software → Setup Node.js App** (or **Application Manager** — the exact label varies by cPanel version)
 3. Find the Shikkha24 CMS application in the list
 4. Click **Restart** (not "Stop" — a stop leaves it down until you start it again)
@@ -205,7 +205,7 @@ not exist on this host.
 - Dependency and security updates: reviewed deliberately, never auto-merged to production
 - Database maintenance: SQLite `VACUUM` occasionally; check WAL size
 - Backup verification: 🔴 **there is still no backup to restore from.** The automation was
-  built 2026-10-04 (host-cron snapshot + FTPS fetch, `pnpm verify:backup` at 38 checks) but needs
+  built 2026-10-04 (host-cron snapshot + FTPS fetch, `pnpm verify:backup` at 47 checks) but needs
   the owner's 4 setup steps before it runs. See `docs/backup-and-recovery.md` §6.4 — and a full
   restore has still never been tested, which is the item that matters
 - Certificate renewal: automatic via DianaHost AutoSSL (Let's Encrypt via cPanel), but verify

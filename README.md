@@ -145,7 +145,7 @@ harmless, and it is the correct trade against a forgeable key.
 | DianaHost inode quota + other limits confirmed (S0 exit) | ⏳ Not published — needs a support ticket |
 | SQLite WAL 5-writer concurrency proven (S0 exit) | ✅ `verify:sqlite-wal` harness passes |
 | CI quality gates + feature flags (S0 exit) | ✅ Gates in `ci.yml` |
-| **Automated backup** (S0 exit) | 🟡 **Automation built 2026-10-04, not yet running.** The `ssh`/`scp` workflow (6 runs, 6 failures) was replaced by a host-cron snapshot + **FTPS** fetch — port 21 is open, which an earlier doc wrongly said it was not. `pnpm verify:backup` counter-proves the gate with 38 checks. **🔴 Needs 4 owner setup steps before it works, so there is still no off-host copy today.** `docs/backup-and-recovery.md` §6 |
+| **Automated backup** (S0 exit) | 🟡 **Automation built 2026-10-04, not yet running.** The `ssh`/`scp` workflow (6 runs, 6 failures) was replaced by a host-cron snapshot + **FTPS** fetch — port 21 is open, which an earlier doc wrongly said it was not. `pnpm verify:backup` counter-proves the gate with 47 checks. **🔴 Needs 4 owner setup steps before it works, so there is still no off-host copy today.** `docs/backup-and-recovery.md` §6 |
 | ~~Cloudflare R2 enabled + usage alert set~~ | ✅ **REMOVED 2026-09-14.** No Cloudflare. |
 
 ### Known open issues

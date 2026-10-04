@@ -31,7 +31,7 @@ See `docs/reliability.md` §1.
 
 ## 2. Prerequisites
 
-- [ ] cPanel login for the DianaHost account (bookmark `https://<host>:2083`)
+- [ ] cPanel login for the DianaHost account (bookmark `https://b201.serverdiana.com:2083`)
 - [ ] The cPanel **Terminal** available (cPanel → **Advanced → Terminal**) — this is a shell
       *inside* cPanel, **not** SSH, and nothing can connect to it from outside
 - [ ] The `shikkha24.com` domain pointed at DianaHost nameservers
@@ -102,20 +102,34 @@ modules actually imported, which is what makes the 2 GB plan viable (114 MB meas
 
 ### 3.4 Upload and assemble
 
-Upload the bundle contents into the application root (`shikkha24-cms/`) — over SSH with `rsync`
-or `scp`, which is far more reliable than cPanel's File Manager for tens of thousands of files.
+> ⚠️ **This section used to say `rsync -az --delete ./ <user>@<host>:~/shikkha24-cms/`.**
+> That was wrong twice over. **This host refuses SSH** — ports 22, 2222, 222, 2200 and 2022 all
+> reject — so the command could never run; and `--delete` would have removed files from a live
+> application directory had it connected. It is the same defect as the `ssh`/`scp` backup
+> workflow that failed 6 runs out of 6: documentation that reads as authoritative and
+> describes a transport this account does not have.
 
-```sh
-# from the unzipped artifact directory
-rsync -az --delete ./ <user>@<host>:~/shikkha24-cms/
-```
+Upload the bundle as a **zip through cPanel File Manager** — the method the live CMS was
+actually deployed with, and the only one available:
 
-Then, on the host:
+1. Zip the assembled bundle **locally** (`shikkha24-cms-bundle.zip`).
+2. cPanel → **File Manager** → open **`/home/shikkhac`** → **Upload** the zip.
+3. Select the zip → **Extract** → extract into **`shikkha24-cms`**, choosing to **overwrite**
+   existing files.
+
+Then, in cPanel → **Terminal**:
 
 ```sh
 cd ~/shikkha24-cms
 mkdir -p data/media
 ```
+
+⚠️ **Check the zip before you upload it.** It must contain `.next/`, `server.js` and
+`node_modules/`, and it must **not** contain `data/` or `.env` — those belong to the host and
+are overwritten by the real archive. See §3.3 and `docs/deployment-runbook.md`.
+
+⚠️ **Deleting the zip afterwards is safe; deleting `shikkha24-cms/` is not.** The 2 GB account
+cannot hold the bundle, the archive and the `node_modules` symlink comfortably at once.
 
 ### 3.5 Set the environment variables
 

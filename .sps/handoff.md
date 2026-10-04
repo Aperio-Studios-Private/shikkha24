@@ -95,7 +95,7 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
     transfer truncates → **`PRAGMA integrity_check` + a full extract test**; media is silently
     omitted → **refusal**. A fourth — a valid but entirely empty database that restores to a blank
     site with no error — is caught by core-table presence plus non-zero row counts.
-  - **`pnpm verify:backup` — 38 checks**, every one proved against the specific defect it claims
+  - **`pnpm verify:backup` — 47 checks**, every one proved against the specific defect it claims
     to catch using real SQLite files, not mocks. It runs in CI *and* inside the backup job, because
     that job's entire output is a decision made by `backup-verify.mjs`.
   - **⚠️ The check that had to be weakened, and why.** `foreign_key_check` findings are a

@@ -63,10 +63,15 @@ panel (the site your hosting company gave you, usually called **cPanel**):
 
 | # | Do this | Why |
 |---|---|---|
-| 1 | **FTP Accounts** → create an account named anything, with its **own new password** — not your main one — pointing at the folder `shikkha24-backup` | This is the door the backup comes through. Its own password means it can never reach your other files. |
-| 2 | **Terminal** → run the backup script once by hand | To prove it works *before* trusting it to run by itself. |
+| 1 | **FTP Accounts** → **Create FTP Account**. The **username** can be anything. The **Directory** must be exactly `shikkha24-backup`. Give it a **new password** of its own — not your main one | This is the door the backup comes through. Its own password means it can never reach your other files. |
+| 2 | **File Manager** → `/home/shikkhac` → make a folder `bin` → upload the backup script into it, renamed to `shikkha24-backup-dump.sh`. Then **Terminal** → make it runnable and run it once | To prove it works *before* trusting it to run by itself. |
 | 3 | **Cron Jobs** → add a daily job at **23:00** | This is the "every night" job above. |
 | 4 | GitHub → **Settings → Secrets and variables → Actions** → add three entries: `FTP_HOST`, `FTP_USER`, `FTP_PASSWORD` | Tells GitHub how to use that door. |
+
+> ⚠️ **In step 1 the username is free but the Directory is not.** The fetch asks for
+> `latest.txt` relative to wherever the account logs in, so the account must land *inside*
+> `shikkha24-backup`. Pick a different folder and the backup will report "no such file"
+> every single night, while looking correctly configured.
 
 **Full click-by-click instructions are in [`docs/backup-and-recovery.md` §6.4](backup-and-recovery.md).**
 Ask me and I will walk you through it one screen at a time.
