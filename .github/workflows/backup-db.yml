@@ -1,23 +1,77 @@
-# Shikkha24 — daily off-host database + media backup
+# Shikkha24 — daily off-host backup of the database + media library
 #
-# Source: docs/backup-and-recovery.md §3 (tier 1) and §6 (automating the dump).
+# Source: docs/backup-and-recovery.md §3 (tier 1) and §6.
 #
-# WHY THIS IS CRITICAL: the ENTIRE editorial archive — every article, every
-# education record, every reader account — lives in ONE SQLite file on a 2 GB
-# shared hosting account. Losing it ends the business. There is no redundancy.
+# WHY THIS IS CRITICAL: the ENTIRE editorial archive — every article, every education
+# record, every reader account — lives in ONE SQLite file on a 2 GB shared hosting
+# account. Losing it ends the business. There is no redundancy.
 #
-# The rule from §2: "an untested backup is not a backup." A backup that has never
-# been restored is an assumption. The restore drill is a separate S12 gate.
+# ## What changed, and why the previous version could never work
 #
-# Targets (§4): RPO 24h (this runs daily), RTO 4h.
+# The old workflow pulled the dump with `ssh` and `scp`. **This host has no SSH** —
+# ports 22, 2222, 222, 2200 and 2022 all reject. It failed 6 runs out of 6.
 #
-# OFF-HOST DESTINATION: GitHub Actions artifacts (7-day retention, 500 MB limit).
-# Cloudflare R2 was removed 2026-09-14. The owner must download artifacts to
-# local storage for longer retention. See docs/backup-and-recovery.md §3.
+# The replacement is FTPS. `docs/hosting-and-deployment.md` recorded "only 443, 2083 and
+# 2087 are open"; that was wrong — **port 21 is open** and answers as Pure-FTPd with TLS.
+# FTP is the only transport on this host that can move a binary file out without a shell.
 #
-# CI-minutes note: this consumes the same 2,000 min/month budget as the build
-# pipeline, so it is kept deliberately tiny — a single SSH pull and an upload,
-# typically well under a minute.
+# ## The split, and why it is a split
+#
+#   ON THE HOST   cPanel cron runs scripts/host-backup-dump.sh, which uses SQLite's own
+#                 online backup API (`.backup`) to take a consistent snapshot while the
+#                 CMS is serving traffic, and tars it with the media library.
+#   IN CI         this workflow fetches that one archive and refuses to store anything it
+#                 cannot prove is restorable.
+#
+# Neither half can do the other's job: FTP cannot run `sqlite3`, and an HTTP client
+# cannot produce a consistent snapshot of a database being written to.
+#
+# ## ⚠️ Three ways this can lie to you, and how each is prevented
+#
+#   1. The host cron silently stops running. The fetch would keep succeeding on an old
+#      archive forever — a green run and no backup. **Prevented by a staleness check:**
+#      an archive older than 30 hours fails the run with a message naming cPanel's cron
+#      page. (`scripts/backup-fetch.mjs`, MAX_AGE_HOURS.)
+#   2. The archive is truncated in transit. **Prevented by `PRAGMA integrity_check`**
+#      plus a full extract test before anything is stored. (`scripts/backup-verify.mjs`.)
+#   3. The archive is missing the media library, so every image is gone but the database
+#      looks healthy. **Prevented by refusing an archive with no media/** — the failure
+#      docs/backup-and-recovery.md §7 calls "worse than no backup, because it hides the
+#      gap".
+#
+# ## SETUP — the owner must do this once
+#
+# 1. cPanel → **FTP Accounts** → create an account whose Directory is
+#    `/home/shikkhac/shikkha24-backup`. Use a *dedicated* password, not the main account
+#    password: this credential's only job is to read backups, and it must not be able to
+#    reach `.env`. Give it **no privileges** (FTP accounts do not need them here).
+# 2. cPanel → **Terminal**:
+#        mkdir -p ~/bin && mkdir -p ~/shikkha24-backup
+#        # copy scripts/host-backup-dump.sh to ~/bin/ and:
+#        chmod +x ~/bin/shikkha24-backup-dump.sh && ~/bin/shikkha24-backup-dump.sh
+#    ⚠️ Run it by hand and read the output. If it fails, cron will fail 30 times a month
+#    and nothing will look wrong until the day it is needed.
+# 3. cPanel → **Cron Jobs** → once daily at **23:00 SERVER-LOCAL time**:
+#        0  23  *  *  *   /bin/sh /home/shikkhac/bin/shikkha24-backup-dump.sh
+#    ⚠️ That hour is not a guess. cPanel schedules in the account's local time and this
+#    account is **Asia/Dhaka (UTC+6)** — measured: the host's FTP banner read
+#    "Local time is now 18:19" at 12:19 UTC. So 23:00 local = 17:00 UTC, two hours
+#    before this workflow's 19:00 UTC fetch. Run the dump AFTER the fetch and CI keeps
+#    picking up yesterday's archive, which still passes the staleness check — so
+#    nothing goes red and a day of freshness is lost every cycle, silently.
+# 4. GitHub → **Settings → Secrets and variables → Actions → Secrets**: FTP_HOST,
+#    FTP_USER, FTP_PASSWORD.
+#
+# ⚠️ Never put FTP_PASSWORD in a commit, an issue, or chat. If it is exposed, delete the
+# FTP account in cPanel and create a new one.
+#
+# ## ⚠️ Artifacts are not archival storage
+#
+# GitHub Actions artifacts expire, and the storage quota on a private repository is not
+# documented anywhere I could verify (docs.github.com returned 404 for every attempt —
+# this is an assumption, not a fact). Retention is therefore set to 30 days and the job
+# warns as the archive grows. **Download the artifact and keep it somewhere else.** The
+# copy that matters is the one you have moved.
 
 name: Backup database + media
 
@@ -31,98 +85,67 @@ permissions:
   contents: read
 
 jobs:
-  dump-and-upload:
-    name: Dump SQLite + media → GitHub Actions artifact
+  backup:
+    name: Fetch + verify the host backup
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
-      - name: Prepare SSH key
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.DIANAHOST_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          # Pin the host key so a MITM cannot silently capture the archive.
-          ssh-keyscan -H "${{ secrets.DIANAHOST_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+      - uses: actions/checkout@v7
 
-      - name: Dump the database over SSH
-        # `.backup` is used instead of a plain file copy: it is safe to run while
-        # the CMS is live, whereas copying a WAL-mode SQLite file can capture a
-        # torn state.
-        run: |
-          set -euo pipefail
-          STAMP=$(date -u +%Y-%m-%d)
-          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
-          ssh -i ~/.ssh/id_ed25519 \
-              "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}" \
-              "sqlite3 '${{ secrets.DIANAHOST_APP_PATH }}/data/payload.db' \".backup '/tmp/payload-${STAMP}.db'\""
-          scp -i ~/.ssh/id_ed25519 \
-              "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}:/tmp/payload-${STAMP}.db" \
-              "./payload-${STAMP}.db"
-          ssh -i ~/.ssh/id_ed25519 \
-              "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}" \
-              "rm -f /tmp/payload-${STAMP}.db"
-          ls -lh "./payload-${STAMP}.db"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
 
-      - name: Verify the dump is a readable SQLite database
-        # A dump that cannot be opened is not a backup. Fail loudly here rather
-        # than discovering it during a restore.
-        run: |
-          set -euo pipefail
-          FILE=$(ls payload-*.db | head -1)
-          sudo apt-get update -qq && sudo apt-get install -y -qq sqlite3
-          sqlite3 "$FILE" "PRAGMA integrity_check;" | tee /tmp/integrity.txt
-          grep -q '^ok$' /tmp/integrity.txt
+      - name: Verify the backup verifier still works
+        # ⚠️ Runs here, not only in `pnpm verify`. This job's entire output is a decision
+        # made by backup-verify.mjs; a gate that quietly stopped rejecting bad input
+        # would let a week of green runs mean nothing. It costs seconds and no pnpm
+        # install — these scripts have no dependencies.
+        run: node scripts/verify-backup.mjs
 
-      - name: Tar the media directory
-        # docs/backup-and-recovery.md §6: "The backup must include data/media/,
-        # not just the SQLite file." Media moved to the host disk in S9.
-        # If the media directory is empty or missing, the tar still succeeds
-        # (empty archive) — the database is the critical asset.
-        run: |
-          set -euo pipefail
-          ssh -i ~/.ssh/id_ed25519 \
-              "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}" \
-              "cd '${{ secrets.DIANAHOST_APP_PATH }}/data' && tar cf /tmp/media-${STAMP}.tar media/ 2>/dev/null || tar cf /tmp/media-${STAMP}.tar --files-from=/dev/null"
-          scp -i ~/.ssh/id_ed25519 \
-              "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}:/tmp/media-${STAMP}.tar" \
-              "./media-${STAMP}.tar"
-          ssh -i ~/.ssh/id_ed25519 \
-              "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}" \
-              "rm -f /tmp/media-${STAMP}.tar"
-          ls -lh "./media-${STAMP}.tar"
+      - name: Fetch the newest archive over FTPS and verify it
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: node scripts/backup-fetch.mjs .
 
-      - name: Check total size against 500 MB artifact limit
-        # GitHub Actions free-tier artifacts are capped at 500 MB. If the DB +
-        # media tar exceed this, the artifact upload will fail. Warn early.
-        run: |
-          set -euo pipefail
-          DB_KB=$(du -sk payload-*.db | cut -f1)
-          MEDIA_KB=$(du -sk media-*.tar | cut -f1)
-          TOTAL_KB=$((DB_KB + MEDIA_KB))
-          TOTAL_MB=$((TOTAL_KB / 1024))
-          echo "DB: ${DB_KB} KB, Media: ${MEDIA_KB} KB, Total: ${TOTAL_MB} MB"
-          if [ "$TOTAL_KB" -gt 512000 ]; then
-            echo "::warning::Backup total (${TOTAL_MB} MB) exceeds the 500 MB artifact limit. The upload may fail. Consider splitting the media tar or excluding media from the daily dump."
-          fi
-
-      - name: Upload backup as GitHub Actions artifact
-        # 7-day retention per GitHub Actions free tier. The owner must download
-        # artifacts to local storage for longer retention.
+      - name: Store the verified archive
+        # `if: always()` so a successful fetch is still stored when a *later* step
+        # fails — the file is already verified at this point, so storing it is safe and
+        # losing it would be the worse outcome.
+        if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: backup-${{ env.STAMP }}
-          path: |
-            payload-*.db
-            media-*.tar
-          retention-days: 7
+          name: shikkha24-backup-${{ github.run_id }}
+          path: shikkha24-*.tar.gz
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Warn about size
+        if: always()
+        run: |
+          set -euo pipefail
+          FILE=$(ls -1 shikkha24-*.tar.gz 2>/dev/null | head -1 || true)
+          if [ -z "$FILE" ]; then
+            echo "::warning::No archive was produced — there is nothing to store."
+            exit 0
+          fi
+          MB=$(( $(stat -c %s "$FILE") / 1024 / 1024 ))
+          echo "Archive: ${MB} MB"
+          # Reported rather than asserted. The quota on a private repository could not be
+          # verified from GitHub's documentation, so this is a prompt to go and look, not
+          # a claim about a limit.
+          if [ "$MB" -gt 100 ]; then
+            echo "::warning::Archive is ${MB} MB. Confirm this repository's artifact storage quota — a quota breach stops the *upload*, not this workflow, so the failure would be easy to miss."
+          fi
 
       - name: Alert on failure
-        # docs/backup-and-recovery.md §7: alert if the daily dump fails or has
-        # not run in 48 hours. GitHub notifies on a failed scheduled run; the
-        # 48-hour silence case needs the uptime monitor (docs/reliability.md §6).
+        # docs/backup-and-recovery.md §7: alert if the daily dump fails or has not run
+        # in 48 hours. GitHub notifies on a failed scheduled run; the staleness check in
+        # backup-fetch.mjs is what covers the "did not run" case.
         if: failure()
         run: |
-          echo "::error::Daily database + media backup FAILED — the archive is unprotected. Investigate immediately."
-          echo "::error::Check SSH connectivity, DianaHost account status, and disk space."
+          echo "::error::Daily database + media backup FAILED — the editorial archive is unprotected."
+          echo "::error::Diagnose in this order: (1) does cPanel → Cron Jobs list the job, and did it pass? (2) run ~/bin/shikkha24-backup-dump.sh by hand and read the error. (3) if the fetch failed, check the FTP account and the FTP_* secrets."

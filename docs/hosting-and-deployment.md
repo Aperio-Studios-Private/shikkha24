@@ -256,9 +256,28 @@ directory can disturb the CloudLinux venv symlinks in `node_modules` and take th
 Recovery is a shell loop (`docs/deployment-runbook.md` §3.4); the workflow prints it in the
 dry-run summary so it is on the page before it is needed.
 
-`repository_dispatch` — the publish webhook — **runs in dry run too**, unless the repository
-variable `AUTO_DEPLOY` is set to `live`. Publishing shows you the plan; it does not push to
-production until you flip one setting.
+**Two triggers fire on their own: a push to `main`, and `repository_dispatch`** — the publish
+webhook, when an editor clicks Publish. **Both run in dry run** unless the repository variable
+`AUTO_DEPLOY` is set to `live`; until then each builds, verifies and prints the plan, including
+every path it would delete, without touching the host. Flip that one setting and a push publishes
+the frontend automatically.
+
+**A push deploys the frontend only — never the CMS.** The frontend is finished HTML dropped into
+`public_html`: idempotent, and a bad build is replaced by the next one, so it is safe to run
+unattended. The CMS bundle is extracted over the app directory, which can disturb the CloudLinux
+venv symlinks in `node_modules` and take `/admin` down overnight. That stays behind
+`workflow_dispatch` + `confirm-risk`. A commit that changes CMS code therefore needs a manual CMS
+deploy (`docs/deployment-runbook.md` §3).
+
+**No deploy can touch the database.** The CMS bundle is assembled with `data/` and `.env`
+excluded, and `deploy-cms.mjs` throws if either is present at the bundle root. The frontend half
+only ever writes into `public_html`. This is the property that makes it safe to let a machine push
+to production unattended.
+
+`verify-deploy-mode.mjs` extracts the `Resolve mode and target` step straight out of `deploy.yml`
+and executes it, asserting the push branch in full — including that a push **cannot** be
+redirected at the CMS by any input. Counter-proof: **10 failures** against a fixture with the push
+branch deleted, 0 against the shipped workflow.
 
 #### ⚠️ `AUTO_DEPLOY` is normalised, and an unknown value is refused
 

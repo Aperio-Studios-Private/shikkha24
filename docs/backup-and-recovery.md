@@ -203,8 +203,21 @@ this project does not have).
    ```
    ⚠️ **Run it by hand and read the output.** If it fails here it will fail 30 times a month,
    silently — except that the 30-hour staleness check now turns that silence into a red run.
-3. **cPanel → Cron Jobs →** once daily, 19:00 UTC:
-   `/bin/sh /home/shikkhac/bin/shikkha24-backup-dump.sh`
+3. **cPanel → Cron Jobs →** once daily. **⚠️ The hour you type is SERVER-LOCAL time, and this
+   account is on Asia/Dhaka (UTC+6)** — measured, not assumed: the host's FTP banner reported
+   "Local time is now 18:19" at 12:19 UTC. Type **`23:00`**:
+
+   ```
+   Minutes   Hour   Day   Month   Weekday   Command
+   0         23     *     *       *         /bin/sh /home/shikkhac/bin/shikkha24-backup-dump.sh
+   ```
+
+   That is 17:00 UTC, two hours before the 19:00 UTC GitHub fetch. **The order matters:** if the
+   dump runs *after* the fetch, CI picks up yesterday's archive — which still passes the 30-hour
+   staleness check, so **nothing goes red and you quietly lose a day of freshness every cycle.**
+
+   The dump script prints both clocks on its first line, so a wrong schedule is visible in the
+   output rather than something to work out later.
 4. **GitHub → Settings → Secrets and variables → Actions → Secrets:** `FTP_HOST`, `FTP_USER`,
    `FTP_PASSWORD`.
 

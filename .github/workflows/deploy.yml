@@ -8,9 +8,11 @@
 # ## Why the transport is the cPanel API and not SSH
 #
 # The previous version of this file ended in `rsync --delete … -e "ssh -i …"` and
-# `scp`. **The host refuses SSH** — ports 22, 2222, 222, 2200 and 2022 all reject;
-# only 443, 2083 and 2087 are open. That workflow could never have deployed
-# anything, and every deploy since was done by hand through cPanel File Manager.
+# `scp`. **The host refuses SSH** — ports 22, 2222, 222, 2200 and 2022 all reject.
+# (Port 21/FTPS *is* open, but that moves files and cannot run a build; it is what
+# the backup uses, not this. See `docs/hosting-and-deployment.md` §0.) That workflow
+# could never have deployed anything, and every deploy since was done by hand
+# through cPanel File Manager.
 #
 # The replacement is the cPanel HTTPS API. Authentication is a static token in one
 # plain header (`Authorization: cpanel <user>:<token>`) — not OAuth, no exchange,
@@ -29,9 +31,15 @@
 #
 # ## Automatic deploys are off until you turn them on
 #
-# `repository_dispatch` (the CMS publish webhook) runs in **dry run** unless the
-# repository variable `AUTO_DEPLOY` is set to `live`. Publishing rebuilds and
-# shows you the plan; it does not push to production until you flip one setting.
+# Two things fire on their own: a **push to main**, and `repository_dispatch`
+# (the CMS publish webhook, when an editor clicks Publish). Both run in **dry
+# run** unless the repository variable `AUTO_DEPLOY` is set to `live`. Until you
+# flip that one setting, every automatic trigger rebuilds, verifies, and prints
+# the plan — including every path it would delete — without touching the host.
+#
+# Set `AUTO_DEPLOY=live` and a push to main publishes the frontend by itself.
+# The CMS half stays manual either way; see the `push` branch in "Resolve mode
+# and target" for why.
 #
 # SECRETS REQUIRED (GitHub → Settings → Secrets and variables → Actions):
 #   CMS_URL             — build-time CMS origin the build fetches content from
@@ -50,6 +58,16 @@
 name: Deploy
 
 on:
+  # ⚠️ A push to main is the owner's "ship it" button. It builds, verifies, and —
+  # once AUTO_DEPLOY is `live` — deploys the frontend with no further action.
+  #
+  # Every push runs, including a docs-only one. A `paths` filter would save a few
+  # CI minutes and would also create a silent failure: edit code and docs
+  # together, the docs path matches, nothing deploys, and the site looks broken
+  # for a reason nobody can see. Predictable beats clever here.
+  push:
+    branches: [main]
+
   # The CMS webhook calls this when an editor publishes.
   # `client_payload` is `{ reason: 'debounced'|'breaking'|'max-wait', at }`.
   repository_dispatch:
@@ -129,6 +147,25 @@ jobs:
             MODE="${AUTO_DEPLOY:-dry-run}"
             TARGET="static"
             REASON="${PAYLOAD_REASON:-publish}"
+            CONFIRM="false"
+          elif [ "$EVENT" = "push" ]; then
+            # ⚠️ A push deploys the FRONTEND ONLY, and never without AUTO_DEPLOY.
+            #
+            # Frontend = finished HTML dropped into public_html. Idempotent, and a
+            # bad build is replaced by the next one — safe to do unattended.
+            #
+            # The CMS half is deliberately NOT automatic. Its bundle is extracted
+            # over `~/shikkha24-cms`, which can disturb the CloudLinux venv
+            # symlinks in node_modules and take /admin down with nobody awake to
+            # fix it. That stays behind workflow_dispatch + confirm-risk.
+            #
+            # ⚠️ This branch had no coverage when it was added. A gate that only
+            # ever exercises the paths it knows about is the exact defect that let
+            # the first three deploy bugs through, so `verify-deploy-mode.mjs`
+            # asserts this whole branch — including that push CANNOT reach the CMS.
+            MODE="${AUTO_DEPLOY:-dry-run}"
+            TARGET="static"
+            REASON="push"
             CONFIRM="false"
           else
             MODE="$INPUT_MODE"

@@ -99,10 +99,29 @@ gh run watch
 disturb the CloudLinux venv symlinks in `node_modules`, which takes the CMS down. It is recoverable,
 but only with a terminal (§3.4). The confirmation exists so that happens deliberately.
 
-**Publishing does not deploy yet.** `repository_dispatch` fires on every editor publish, but it
-also runs in **dry run** until you set the repository variable `AUTO_DEPLOY=live`
-(Settings → Secrets and variables → Actions → Variables). Until then a publish shows you the plan
-and nothing else. There is still no `push:` trigger — pushing to GitHub does not deploy.
+**How to turn auto-deploy on — one setting.** Two things now fire on their own:
+
+| Trigger | Fires when | Deploys |
+|---|---|---|
+| **push to `main`** | You (or Claude Code) push a commit | **Frontend only** |
+| `repository_dispatch` | An editor clicks Publish in the CMS | **Frontend only** |
+
+Both run in **dry run** until you set the repository variable `AUTO_DEPLOY=live`
+(Settings → Secrets and variables → Actions → Variables). Until then each one builds, verifies, and
+prints the plan — including every path it *would* delete — without touching the host. Set it to
+`live` and a push to `main` publishes the website by itself.
+
+⚠️ **The CMS half is never automatic, even with `AUTO_DEPLOY=live`.** A push deploys the frontend
+only. The CMS bundle is extracted over `~/shikkha24-cms`, which can disturb the CloudLinux venv
+symlinks in `node_modules` and take `/admin` down with nobody awake to fix it — so it stays behind
+the manual **Deploy** button with `confirm-risk`. **If a commit changes CMS code, you must deploy
+the CMS by hand** (§3). Everything else — pages, styles, scripts, SEO, the CMS's *content* — goes
+out on its own.
+
+**Nothing you push can change the database.** The CMS bundle is assembled with `data/` and `.env`
+**excluded**, and the build fails if either appears at the bundle root. The frontend deploy only
+ever writes into `public_html`. Articles, reader accounts and uploaded images are not touched by a
+deploy.
 
 ⚠️ **`AUTO_DEPLOY` accepts exactly `live` or `dry-run`** (case and surrounding spaces don't
 matter). Anything else — `yes`, `true`, `on` — **fails the run with an error** rather than falling

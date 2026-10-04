@@ -264,6 +264,63 @@ function main() {
     check('names the valid values', stdout.includes("Use 'all', 'static' or 'cms'"), stdout)
   }
 
+  console.log('\n7. ⚠️ A push to main follows AUTO_DEPLOY, and can never reach the CMS')
+  {
+    // ⚠️ This section exists because the `push` branch was added with NO coverage.
+    // That is the same defect that hid all three deploy bugs: a harness that only
+    // exercises the branches it was written against passes forever while the new
+    // one is wrong. So the push path is asserted in full — including the two
+    // properties that actually protect the site.
+    const pushed = (extra) => run(script, { EVENT: 'push', ...extra })
+
+    const byDefault = pushed({})
+    check('exits cleanly', byDefault.code === 0, byDefault.stdout)
+    check(
+      'defaults to a dry run, so a push cannot publish by accident',
+      readOut(byDefault.output, 'dry_run') === 'true',
+      byDefault.output,
+    )
+    check('mode is dry-run', readOut(byDefault.output, 'mode') === 'dry-run', byDefault.output)
+
+    const live = pushed({ AUTO_DEPLOY: 'live' })
+    check('AUTO_DEPLOY=live is honoured', readOut(live.output, 'dry_run') === 'false', live.output)
+    check('mode is live', readOut(live.output, 'mode') === 'live', live.output)
+
+    // The property that matters most: a push is a *frontend* deploy. The CMS
+    // bundle is extracted over the app directory and can disturb the CloudLinux
+    // venv symlinks in node_modules, taking /admin down unattended.
+    for (const [label, vars] of [
+      ['a default push', {}],
+      ['a live push', { AUTO_DEPLOY: 'live' }],
+      ['a mis-cased live push', { AUTO_DEPLOY: 'Live' }],
+    ]) {
+      const result = pushed(vars)
+      check(
+        `${label} targets static only — never the CMS`,
+        readOut(result.output, 'target') === 'static',
+        `${label}: ${result.output || result.stdout}`,
+      )
+    }
+
+    // `confirm-risk` is a workflow_dispatch input. A push has no inputs at all,
+    // so if the branch ever fell through to the input branch it would see an
+    // empty INPUT_MODE and be REFUSED for an unrecognised mode. A push that
+    // exits non-zero would silently stop deploying the website.
+    check(
+      'a push needs no confirm-risk and is not refused for a missing input',
+      byDefault.code === 0,
+      byDefault.stdout,
+    )
+
+    // A push cannot smuggle a live CMS deploy through by naming a target.
+    const sneaky = pushed({ AUTO_DEPLOY: 'live', INPUT_TARGET: 'cms', INPUT_CONFIRM: 'true' })
+    check(
+      'an input cannot redirect a push at the CMS',
+      readOut(sneaky.output, 'target') === 'static',
+      sneaky.output,
+    )
+  }
+
   console.log(
     `\n${failures.length === 0 ? '✅' : '❌'} ${passed} passed, ${failures.length} failed`,
   )
