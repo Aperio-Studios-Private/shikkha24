@@ -223,11 +223,31 @@ attempted here**: it is a real optimisation task that changes the rendering
 architecture, and it needs its own section rather than being smuggled into a QA
 fix.
 
-### 8.3a ⚠️ CLS is higher on the CI runner than on a laptop — UNRESOLVED
+### 8.3a ⚠️ CLS is higher on the CI runner than on a laptop — **CULPRIT FOUND, NOT YET FIXED**
 
-**Measured, not fixed.** The article template measures **CLS 0.0069** on this
-machine across three runs, but **0.0381** on the GitHub runner for the *same
-commit and the same fresh build*. Both are real; the 5× difference is not.
+**Measured, not fixed.** The article template measures **CLS 0.0069** on a developer
+machine across three runs, but **0.0436** on the GitHub runner for the *same
+commit and the same fresh build*. Both are real; the difference is not.
+
+**The culprit is now identified.** `scripts/verify-lighthouse.sh`'s `diagnose_layout_shifts()` reads
+the `layout-shifts` audit from the saved LHR and names the element that moved. From CI run
+`37179059884`, on `/education-news/20/demo-madrasa-new-syllabus/`:
+
+```
+score 0.0436: <aside class="mb-8 rounded-lg border border-rule bg-surface-raised p-5 …"
+                aria-label="মূল বিষয়সমূহ">
+selector: article.container-page > div.grid-12 > div.col-span-4 > aside.mb-8
+moved:   top 510px, 380x227px
+```
+
+One element accounts for **the entire failure**. The other two templates are fine —
+`/` scores 0.0091 and `/latest/` 0.0007, both far under the 0.03 gate. So this is a single
+component's layout, not a systemic runner problem. It renders from
+`frontend/src/components/KeyTakeaways.astro`, used at
+`frontend/src/pages/[category]/[id]/[slug].astro:456`.
+
+⚠️ Note the audit that produces this is `layout-shifts`, **not** `cumulative-layout-shift` — the
+latter's audit details carry only a bare number, with no node attribution.
 
 This is why the gate's CLS ceiling was **not** raised to make the build green.
 The gate exists to hold the environment that actually ships, and the runner is a

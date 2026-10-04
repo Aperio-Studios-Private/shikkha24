@@ -44,7 +44,7 @@ the approved inventory, not part of it — each carries its date and reason.
 | Question | Decision | Decided by |
 |---|---|---|
 | 8 categories, or split out স্কুল-কলেজ? | **8 categories + a cross-cutting level filter.** স্কুল-কলেজ is an audience segment, not a topic — splitting it out would overlap three categories and split SEO authority. | Agent (delegated) |
-| Which `[NEW]` features for Day 1? | **All 10** (12 proposed, 2 pairs merged). Two ship with a curated starter dataset. | Agent (delegated) |
+| Which `[NEW]` features for Day 1? | **All 11** (12 proposed, 2 pairs merged; N6b the CGPA calculator was added 2026-09-28 and is in the table below). Two ship with a curated starter dataset. | Agent (delegated) |
 | Weather and prayer times? | **Keep** as light header utilities. | Owner |
 | BCS / job-circular content? | **In scope.** High traffic, and it matches the direct competitor's own positioning. | Owner |
 | Publishing velocity? | ✅ **Baseline 15–20/day + burst to 40+ on event days** — replaces the 45–70/day flat target. 5-person team already in place. | Owner |

@@ -46,7 +46,7 @@ message maps one-to-one onto this table.
 | 11 | Multiple Advertisement Placement | ✅ **Built** | S7 | `cms/src/collections/AdUnits.ts`, `frontend/src/components/AdSlot.astro`, `AdCreative.astro`, `frontend/src/lib/ads.ts` |
 | 12 | Secure Admin Panel & Security System | ✅ **Built** | S0 / S1 / S7 | see §4 |
 
-**Summary: 9 of 15 rows built · 6 not built · 0 descoped.**
+**Summary: 16 of 16 rows built · 0 not built · 0 descoped.** *(Corrected 2026-10-04 — this line said "9 of 15 built · 6 not built", which contradicted every row of its own table above, each of which reads ✅ Built.)*
 
 ---
 

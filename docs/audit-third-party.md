@@ -1,5 +1,11 @@
 # Third-Party Audit Report — NewPortal
 
+> ⚠️ **ARCHIVED (banner added 2026-10-04).** This audit was of a **pre-build** repository. Its
+> statements below include "No application code exists — the project is pre-build" and
+> "Verdict: not-ready", both of which were true on 2026-09-11 and are long obsolete. The site has
+> been in production since 2026-10-04. The **findings and their remediation status** remain
+> valuable; the verdict does not.
+
 **Audit date:** 2026-09-11
 **Repository state audited:** commit `c5e9e49` (branch `main`), working tree clean
 **Scope:** all documentation and plans. No application code exists — the project is pre-build.

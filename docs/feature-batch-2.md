@@ -1,6 +1,9 @@
 # Feature Batch 2 — Reporter System, Photocard, Live TV, Reactions, Photo Story
 
-**Created:** 2026-09-18 · **Status:** 🚧 **S13 BUILT · S14–S17 specified and approved, not started**
+**Created:** 2026-09-18 · **Status:** ✅ **S13–S17 all BUILT** (2026-09-28)
+
+> ⚠️ **Corrected 2026-10-04.** This line previously said S14–S17 were "not started", contradicting
+> lines 19–23 of this same file, which record them as built on 2026-09-28.
 **Requested by:** owner, 2026-09-18
 **Builds on:** `docs/education-feature-inventory.md` (approved 2026-09-11) + `.sps/plan.md` S0–S12
 **Index:** `docs/feature-register.md` — the single answer to *"is feature X built, and where?"*

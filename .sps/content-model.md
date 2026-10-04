@@ -7,7 +7,11 @@
 
 Field names below are written in `snake_case`, which is how they appear as **database columns**. In code they are **`camelCase`** — the JavaScript convention, and what Payload expects. Payload's Drizzle layer converts between the two, so `name_bn` in the DB is `nameBn` in `Articles.ts`.
 
-## Implemented — 30 collections + 1 global
+## Implemented — 33 collections + 1 global
+
+> ⚠️ **Count corrected 2026-10-04.** This heading previously said 30, and line 215 said 26, while
+> `cms/src/collections/` actually holds 33. Verified by counting the collection files, not by
+> reading the prose.
 
 | Group (admin sidebar) | Collections |
 |---|---|
@@ -212,7 +216,7 @@ Editor-in-Chief may publish directly.
 
 ## Collections added after S1 (2026-09-18)
 
-The S1 model shipped 26 collections + 1 global. These were added later. **Full
+The S1 model shipped 26 collections + 1 global. These were added later, bringing the total to 33. **Full
 detail in `docs/feature-register.md`; this is the content-model summary.**
 
 ### `Assignments` — the editor → reporter work queue

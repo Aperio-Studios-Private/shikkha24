@@ -23,7 +23,7 @@
 
 ### 2.1 Frontend hosting: Cloudflare Pages → DianaHost `public_html`
 
-The static Astro output (`frontend/dist/*`) is deployed to DianaHost's `public_html` directory via SSH/rsync from CI. Apache serves it directly.
+The static Astro output (`frontend/dist/*`) is deployed to DianaHost's `public_html` directory. Apache serves it directly. *(Corrected 2026-10-04 — this line read "via SSH/rsync from CI". **The host grants no SSH** (ports 22/2222/222/2200/2022 all refused), so rsync was never available. The frontend ships by **cPanel File Manager upload**, then a Passenger restart; automating that over the cPanel HTTPS API is the next build item — see `docs/hosting-and-deployment.md` §4.2.)*
 
 **Impact:**
 - The 200 GB/month bandwidth cap now applies to ALL traffic, including static HTML and media.

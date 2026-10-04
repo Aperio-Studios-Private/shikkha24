@@ -3,6 +3,13 @@
 **Created:** 2026-09-11 · **Status:** S11 input. Consolidates what was scattered across `docs/master-plan.md` §"Google News & SEO Battle Plan", `docs/competitive-analysis.md` Part 3, and `docs/education-feature-inventory.md`.
 **Why this exists:** the SEO strategy existed in three fragments and had no per-template plan, no keyword mapping and no redirect policy.
 
+> ⚠️ **Two of the three source fragments are general-news artifacts — reference only, never build
+> inputs** *(marked 2026-10-04).* `docs/master-plan.md` and `docs/competitive-analysis.md` were
+> written for a general-news portal; Shikkha24 is an **education portal** (CLAUDE.md). Any
+> keyword list, competitor score or category that comes from those two files describes desks this
+> site does not have. Use `docs/education-feature-inventory.md` and `docs/education-competitors.md`
+> instead.
+
 ---
 
 ## 1. Goal and honest expectation

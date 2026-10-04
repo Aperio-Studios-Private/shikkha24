@@ -29,7 +29,7 @@
 - **Security headers → Apache `.htaccess`** — replaces the Cloudflare Pages `_headers` format. Same CSP two-profile design, different delivery mechanism. Apache does NOT have the Cloudflare comma-join CSP bug.
 - **No Cloudflare services at all** (owner decision 2026-09-14). All data, databases, media, and hosting reside on DianaHost infrastructure only. See `.sps/cloudflare-removal-plan.md` for the full removal plan and accepted limitations.
 - Rationale: the owner wants zero dependency on third-party services for storage or data management, to maintain security and avoid payment-related issues.
-- **Deployment model:** both builds run in GitHub Actions on **Node 24**; frontend `dist/` deploys to DianaHost `public_html` via rsync/SSH; CMS standalone bundle deploys via SSH. Full detail in **`docs/hosting-and-deployment.md`**.
+- **Deployment model:** both builds run in GitHub Actions on **Node 24**. ⚠️ **Corrected 2026-10-04** — this line previously said the frontend deploys "via rsync/SSH" and the CMS "via SSH". **Neither is possible: DianaHost refuses SSH.** The real mechanism is a zip uploaded through the cPanel File Manager (or, being built, the cPanel HTTPS API). Full detail in **`docs/deployment-runbook.md`**.
 - **Repository: PRIVATE** (owner decision). This caps GitHub Actions at 2,000 minutes/month and makes the rebuild strategy load-bearing.
 
 ## Node.js version on DianaHost — open risk

@@ -147,18 +147,30 @@ One eager + `fetchpriority="high"` (the LCP lead); twelve lazy.
 
 Currently rendered as a plain `<img>` with explicit `width`/`height` and lazy
 loading. Astro cannot optimise remote images until the CMS media hostname is
-declared in `astro.config.mjs`:
+declared in `astro.config.mjs`.
+
+⚠️ **Correction (2026-10-04).** An earlier version of this section showed this config to add:
+
+```js
+image: { remotePatterns: [{ protocol: 'https', hostname: 'media.shikkha24.com' }] }
+```
+
+**Neither the config block nor the hostname is real.** `frontend/astro.config.mjs` has no `image`
+key at all, and `media.shikkha24.com` appears nowhere in the repository. Media is served from the
+CMS origin — the same host as the API — because R2 was descoped in S9. That is
+`cms.shikkha24.com`, which is what the CSP `img-src` and `media-src` in `frontend/public/.htaccess`
+already point at.
+
+To enable optimisation of CMS images, add to `frontend/astro.config.mjs`:
 
 ```js
 image: {
-  remotePatterns: [{ protocol: 'https', hostname: 'media.shikkha24.com' }],
+  remotePatterns: [{ protocol: 'https', hostname: 'cms.shikkha24.com' }],
 }
 ```
 
-**To do once the CMS media hostname is confirmed** (`PUBLIC_MEDIA_BASE_URL`) —
-then CMS images get the same AVIF/WebP/srcset treatment automatically. Note:
-media is served from the DianaHost CMS origin (R2 was descoped in S9), so the
-hostname is the CMS host, not an R2 bucket domain.
+This is **not done** — CMS images are still plain `<img>`. Record it here so the next person does
+not go looking for a config block that does not exist.
 
 ---
 

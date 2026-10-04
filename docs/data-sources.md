@@ -1,7 +1,7 @@
 # Data Sources — Live Widgets
 
 **Created:** 2026-09-11 (fixes audit finding H1 — ten Day-1 widgets had no identified data provider)
-**Status:** draft for S10. **Every row must be re-confirmed at S10** — free tiers change without notice.
+**Status:** ✅ **shipped.** *(Corrected 2026-10-04 — this line read "draft for S10; every row must be re-confirmed at S10". S10 is long past: weather and prayer data are live in S3, the university directory shipped with 724 Wikidata rows, and `/gpa` + `/cgpa` are live.)* Free tiers still change without notice, so re-verify any endpoint before quoting a figure from §1.
 
 ## The rule
 

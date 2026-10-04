@@ -4,8 +4,8 @@
 - **Prior host:** Antigravity (original discovery and planning session, 2026-09-11)
 - **SPS Version:** 4.0.0 (skill version stamp; `sps-cms` 2.3.0)
 - **Session Started:** 2026-09-11T19:58+06:00
-- **Last refreshed:** 2026-09-15T12:50+06:00
-- **Phase:** **S11 build complete; S12 local verification complete — owner-only items remaining.** All buildable work across S0–S12 is done. Every agent-buildable defect in the production-readiness audit is fixed (0 blocking open, 0 significant open). The CI pipeline runs all 14 harnesses and the deploy workflow exists; `docs/cms-deployment.md` is the runbook for the remaining blocker (deploy the CMS first — the frontend is built *from* it). Next: owner actions, then LAUNCH.
+- **Last refreshed:** 2026-10-04T12:50+06:00
+- **Phase:** **S0–S12 all built; the site is LIVE on DianaHost since 2026-10-04.** *(Corrected 2026-10-04 — this line still read "S12 local verification complete — owner-only items remaining… Next: owner actions, then LAUNCH." Launch happened.)* The deployment was completed **by hand through cPanel**, because the host grants **no SSH**. `.github/workflows/deploy.yml` still ends in `rsync`/`scp` and **does not work**; it is the next build item. Day-to-day procedure: `docs/deployment-runbook.md`.
 - **Package manager:** **pnpm 11.22.0** (`pnpm-workspace.yaml`). npm is unusable in the build environment — a filesystem broker refuses its `mkdir` calls. See `.sps/handoff.md`.
 - **`/sps` required for this project:** YES
 - **Plan approved:** 2026-09-11T20:41+06:00 — **scope amended 2026-09-11 (education portal)**

@@ -42,7 +42,7 @@
 - [x] **GATE: education feature inventory approved** — ✅ 2026-09-11 (`docs/education-feature-inventory.md`)
 - [x] **GATE: education category tree approved** — ✅ 8 categories + cross-cutting level filter
 - [x] **GATE: publishing velocity decided** — ✅ 2026-09-11: **baseline 15–20/day + burst to 40+ on event days**, with the existing 5-person team
-- [x] Collections — ✅ **26 collections + 1 global** (`cms/src/collections/`, `cms/src/globals/SiteSettings.ts`)
+- [x] Collections — ✅ **33 collections + 1 global** (`cms/src/collections/`, `cms/src/globals/SiteSettings.ts`). *Count corrected 2026-10-04; the figure was 26 and had drifted as collections were added in S13–S21.*
   - *(the four bolded collections were restored by the audit. Two changes from this list, both owner-flagged: **Subcategories is a self-relation on Categories, not a separate collection** — the approved tree is flat; and **Readers was ADDED** — social login, bookmarks, saved deadlines and push all need a reader identity. See `.sps/section-todos/S1.md`.)*
 - [x] **Education collections:** Scholarships, Deadlines / Academic Calendar, Institutions, Circulars, Result Links, Study Abroad Guides, Saved Deadlines — ✅ all built
 - [x] **Taxonomies seeded:** Category (8) + Level (5) + District (64) — ✅ **77 rows**, idempotent (`pnpm --filter @shikkha24/cms seed`)

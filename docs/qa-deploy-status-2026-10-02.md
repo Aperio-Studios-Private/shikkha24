@@ -1,6 +1,15 @@
 # QA Audit & DianaHost Deployment Status — 2026-10-02
 
-**Status:** 🟡 **BLOCKED — one CI failure, one branch defect, one infra unknown.**
+> ⚠️ **SUPERSEDED (banner added 2026-10-04).** This is a point-in-time sweep from **two days before
+> the site launched**. Every "BLOCKED", "PARKED", "not yet created" and "0 bytes" statement below
+> was true on 2026-10-02 and is now false. Retained as a record; for current status see
+> **`docs/README.md`** and **`.sps/handoff.md`**.
+>
+> Two things in it are still true and still matter: the **CI CLS gate is red**, and **no working
+> backup exists** — both documented now in `docs/performance-budget.md` §8.3a and
+> `docs/backup-and-recovery.md` §6.
+
+**Status (as of 2026-10-02, now superseded):** 🟡 **BLOCKED — one CI failure, one branch defect, one infra unknown.**
 **Branch audited:** `agents/deploy-project-dianahost-ssh-key` @ `3bec83e`
 **Baseline:** `main` @ `2d90a96` (contains the F-04 fix)
 

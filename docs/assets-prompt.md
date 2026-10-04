@@ -214,6 +214,13 @@ professional photography
 
 ### 5.2 General news categories (reusable the same way)
 
+> ⚠️ **These categories do not exist on this site — corrected 2026-10-04.** This block carries
+> **14 image prompts for politics, economy, health, science, crime, sports and similar desks**.
+> Shikkha24 is an **education portal**: the eight categories in §5.1 are the real ones. Nothing
+> below is reachable, and no editor will ever need these prompts. They are kept **verbatim and
+> un-deleted** as reusable stock for any future general-news expansion — they were written
+> well and cost nothing to keep.
+
 #### Breaking / Urgent
 ```
 A close-up photograph of a blank dark slate surface with a single warm beam of

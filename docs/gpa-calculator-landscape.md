@@ -1,6 +1,6 @@
 # GPA / CGPA calculator landscape — and where ours sits
 
-**Created:** 2026-09-28 · **Status:** research complete, no build commitments made
+**Created:** 2026-09-28 · **Status:** ✅ research complete **and both calculators built and live** at `/gpa` and `/cgpa`. *(Corrected 2026-10-04 — this line previously said "no build commitments made".)*
 **Question it answers:** what grade-calculation tools already exist for Bangladeshi and
 international students, which of them are genuinely useful, and how do `/gpa` and `/cgpa`
 compare?

@@ -70,8 +70,8 @@ Positioning (owner's words):
 | Newsletter | Self-built Payload module + free-tier ESP API | — |
 | Push | Web Push API | — |
 | Analytics | None (Apache access logs via cPanel) | — |
-| Bengali Fonts | Hind Siliguri + Noto Sans Bengali | Google Fonts WOFF2 |
-| English Font | Inter | v4 variable |
+| Bengali Fonts | SolaimanLipi 400/700 | self-hosted WOFF2 — *corrected 2026-10-04; this row previously said "Hind Siliguri + Noto Sans Bengali", but `frontend/src/styles/fonts.css` declares SolaimanLipi only, and line 249 of this same file already recorded the others as removed. The file contradicted itself.* |
+| English Font | SolaimanLipi (same face) | *corrected 2026-10-04; this row previously said "Inter", which is not used* |
 | CI/CD | GitHub Actions | — |
 | Hosting (CMS) | DianaHost PNR 2 GB SSD NVMe | 2 GB / 200 GB / 50 DB |
 

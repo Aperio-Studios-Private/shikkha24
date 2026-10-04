@@ -204,7 +204,9 @@ not exist on this host.
 
 - Dependency and security updates: reviewed deliberately, never auto-merged to production
 - Database maintenance: SQLite `VACUUM` occasionally; check WAL size
-- Backup verification: see `docs/backup-and-recovery.md` — restore is tested, not assumed
+- Backup verification: 🔴 **there is no backup to verify.** `backup-db.yml` has failed 6 runs out
+  of 6 because it uses SSH. See `docs/backup-and-recovery.md` §6 — a restore has never been
+  tested because there is nothing to restore from
 - Certificate renewal: automatic via DianaHost AutoSSL (Let's Encrypt via cPanel), but verify
 
 ---
