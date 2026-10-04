@@ -330,17 +330,25 @@ jobs:
             exit 1
           fi
 
-          # 5. pnpm's hoisted fallback has to sit at the TOP level. Turbopack
-          #    copies @libsql/client in as a real directory, which severs pnpm's
-          #    sibling-symlink layout, so @libsql/core is no longer reachable by
-          #    Node's upward resolution. On the host that is a hard boot failure
-          #    (ERR_MODULE_NOT_FOUND) that dev and CI never reproduce.
-          if [ -d "$ROOT/node_modules/.pnpm/node_modules" ]; then
-            cp -Rn "$ROOT/node_modules/.pnpm/node_modules/." "$ROOT/node_modules/"
-            if [ ! -e "$ROOT/node_modules/@libsql/core" ]; then
-              echo "::error::pnpm hoist not promoted - the host could not resolve @libsql/core"
-              exit 1
-            fi
+          # 5. pnpm's hoisted fallback has to be reachable from the TOP level.
+          #    Turbopack copies @libsql/client in as a real directory, which
+          #    severs pnpm's sibling-symlink layout, so @libsql/core is no longer
+          #    reachable by Node's upward resolution. On the host that is a hard
+          #    boot failure (ERR_MODULE_NOT_FOUND) that dev never reproduces.
+          #
+          #    ⚠️ This was `cp -Rn .pnpm/node_modules/. node_modules/`, and it was
+          #    wrong: those entries are symlinks whose targets are relative to
+          #    their own depth, so copying the contents up one level leaves every
+          #    link dangling. It failed here on 2026-10-04, the first time this
+          #    step had ever run. Dereferencing is not the alternative either —
+          #    224 KB of links into a store that is already present dereferences
+          #    to 3.1 GB. `promote-pnpm-fallback.mjs` links the top level *back
+          #    into* the fallback so pnpm's own layout keeps resolving, and exits
+          #    non-zero listing anything still broken. See scripts/verify-pnpm-fallback.mjs.
+          node scripts/promote-pnpm-fallback.mjs "$ROOT/node_modules"
+          if [ ! -e "$ROOT/node_modules/@libsql/core" ]; then
+            echo "::error::pnpm hoist not promoted - the host could not resolve @libsql/core"
+            exit 1
           fi
 
           echo "CMS bundle = $(du -sm "$ROOT/cms" | cut -f1) MB"
