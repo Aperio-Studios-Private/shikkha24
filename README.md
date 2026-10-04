@@ -53,6 +53,7 @@ Everything else:
 | **`docs/security.md`** | Threat model, attack surface, auth, headers/CSP, rate limiting, PII, supply chain, email auth |
 | **`docs/reliability.md`** | Failure modes, error pages, graceful degradation, capacity/overload, monitoring, incident playbook |
 | **`docs/backup-and-recovery.md`** | What is protected, backup tiers, RPO/RTO, restore runbook, DR scenarios |
+| **`docs/backup-card.md`** | **The plain-English one-pager: is it working, what do I do, how do I restore** |
 | **`docs/testing-and-qa.md`** | Quality gates, test strategy, WCAG AA accessibility, browser/device matrix, Bengali render audit |
 | **`docs/feature-register.md`** | Every feature with its status |
 | **`docs/feature-batch-2.md`** | The second feature batch |

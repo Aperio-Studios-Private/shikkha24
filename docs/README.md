@@ -39,6 +39,7 @@ read these three files in this order:
 |---|---|---|
 | `reliability.md` | ⚠️ STALE | Failure modes, error pages, restart procedure, incident playbook. Still the best incident doc; check its deploy claims against the runbook. |
 | `backup-and-recovery.md` | 🟡 BUILT, NOT RUNNING | The daily dump, restore runbook, RPO/RTO, DR scenarios. Automation built 2026-10-04; **needs 4 owner setup steps** (§6.4) before any off-host copy exists. |
+| **`backup-card.md`** | ✅ START HERE | **The one-page plain-English version for the owner.** No jargon. Start with this, not with `backup-and-recovery.md`. |
 | `dianahost-provisioning-checklist.md` | ⚠️ STALE | What to obtain from DianaHost, in dependency order. Its Node-version conclusion is disputed — see `hosting-and-deployment.md` §5. |
 
 ## Quality and correctness
