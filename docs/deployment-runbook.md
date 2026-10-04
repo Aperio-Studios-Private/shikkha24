@@ -69,22 +69,40 @@ directory. Delete the archive and rebuild — do not upload it.
 
 ### 2.2 By automation — `.github/workflows/deploy.yml`
 
-> ⚠️ **NOT WORKING.** `deploy.yml` builds the site and then tries to ship it with `rsync` and
-> `scp` over SSH. There is no SSH on this host, so the deploy step **cannot succeed**. The
-> workflow is being rewritten to use the cPanel HTTPS API described in
-> `docs/hosting-and-deployment.md` §4.2, which is the replacement transport.
-
-Until that rewrite lands, **use §2.1**. The build half of the workflow is fine; only the shipping
-half is broken.
+> ✅ **Rewritten 2026-10-04.** It no longer contains a single `rsync` or `scp`. It builds the site,
+> runs every harness, and ships it over the cPanel HTTPS API — the only transport this host allows,
+> since it refuses SSH. `docs/hosting-and-deployment.md` §4.2 has the mechanism.
+>
+> ⚠️ **It has never been run against production.** The logic is counter-proved against a local
+> server that reproduces cPanel's response envelopes (34 checks), which proves the failure handling
+> — **not** that the parameter names match this cPanel build. Run a dry run first, every time, until
+> one live run has succeeded.
 
 ```sh
-# trigger a deploy by hand from a terminal
-gh workflow run deploy.yml -f reason='manual fix'
+# Plan it: builds, verifies, prints every path that would be deleted, changes nothing.
+gh workflow run deploy.yml -f mode=dry-run -f target=all -f reason='manual fix'
+
+# Apply it. The CMS half additionally needs the risk acknowledgement.
+gh workflow run deploy.yml -f mode=live -f target=all -f confirm-risk=true -f reason='manual fix'
+
+# Follow it.
+gh run watch
 ```
 
-**It is not automatic even in principle.** It fires on `repository_dispatch` (from the CMS publish
-webhook) and `workflow_dispatch`. There is no `push:` trigger — pushing to GitHub does **not**
-deploy.
+| Input | Default | Meaning |
+|---|---|---|
+| `mode` | `dry-run` | `dry-run` plans and verifies; `live` pushes to production |
+| `target` | `all` | `all`, `static` (the public site) or `cms` |
+| `confirm-risk` | `false` | required for a live CMS deploy — see below |
+
+**Why a live CMS deploy needs confirming.** Extracting the bundle over `~/shikkha24-cms` can
+disturb the CloudLinux venv symlinks in `node_modules`, which takes the CMS down. It is recoverable,
+but only with a terminal (§3.4). The confirmation exists so that happens deliberately.
+
+**Publishing does not deploy yet.** `repository_dispatch` fires on every editor publish, but it
+also runs in **dry run** until you set the repository variable `AUTO_DEPLOY=live`
+(Settings → Secrets and variables → Actions → Variables). Until then a publish shows you the plan
+and nothing else. There is still no `push:` trigger — pushing to GitHub does not deploy.
 
 ---
 

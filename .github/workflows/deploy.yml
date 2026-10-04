@@ -1,63 +1,89 @@
 # Shikkha24 — deploy workflow
 #
-# Source: docs/hosting-and-deployment.md §3 (recommended deploy pipeline).
+# ## What this deploys
 #
-# This workflow is the second half of the publishing pipeline. The CMS fires
-# a webhook (cms/src/lib/rebuild-trigger.ts) when an editor publishes, and
-# this workflow rebuilds the static site and deploys it to DianaHost.
+#   1. The Astro static build → `public_html` on DianaHost
+#   2. The Payload CMS standalone bundle → `~/shikkha24-cms` (only when asked)
 #
-# TRIGGER: `repository_dispatch` (fired by the CMS webhook) or manual
-# `workflow_dispatch`. The webhook sends `{ reason, at }` — we use `reason`
-# in the GitHub Actions summary so the owner can see why a build ran.
+# ## Why the transport is the cPanel API and not SSH
 #
-# WHAT IT DOES:
-#   1. Build the Astro frontend (on Node 24, which DianaHost does not have)
-#   2. Run the dist-only verification harnesses
-#   3. Deploy the static output to DianaHost `public_html` via rsync over SSH
+# The previous version of this file ended in `rsync --delete … -e "ssh -i …"` and
+# `scp`. **The host refuses SSH** — ports 22, 2222, 222, 2200 and 2022 all reject;
+# only 443, 2083 and 2087 are open. That workflow could never have deployed
+# anything, and every deploy since was done by hand through cPanel File Manager.
 #
-# WHAT IT DOES NOT DO:
-#   - Build or deploy the CMS (that is a manual SSH step — the standalone
-#     bundle changes rarely, only on dependency upgrades or Payload updates)
-#   - Run Lighthouse CI (needs a served origin — deferred to S12 production)
-#   - Run the CMS-based harnesses (need a running Payload + seeded DB)
+# The replacement is the cPanel HTTPS API. Authentication is a static token in one
+# plain header (`Authorization: cpanel <user>:<token>`) — not OAuth, no exchange,
+# no expiry. See `docs/hosting-and-deployment.md` §4.2.
 #
-# CI-MINUTES BUDGET: this consumes the same 2,000 min/month as ci.yml and
-# backup-db.yml. At ~1 min per build and 600–900 publishes/month (debounced
-# to far fewer builds), the budget is comfortable. See
-# docs/hosting-and-deployment.md §2 for the arithmetic.
+# ## Dry run is the default
 #
-# SECRETS REQUIRED (set in GitHub → Settings → Secrets and variables → Actions):
-#   CMS_URL                 — build-time CMS origin the build fetches content from
-#                             (e.g. https://cms.shikkha24.com). Without it the
-#                             build produces a thin site and the harnesses fail.
-#   PUBLIC_CMS_ORIGIN       — browser-facing CMS origin for the interactive
-#                             islands. Must match the CSP `connect-src`.
-#   DIANAHOST_SSH_KEY       — private SSH key (ed25519 recommended)
-#   DIANAHOST_SSH_HOST      — host name (e.g. server1.dianahost.com)
-#   DIANAHOST_SSH_USER      — cPanel username
-#   DIANAHOST_PUBLIC_HTML   — absolute path to public_html on the host
-#   DEPLOY_WEBHOOK_TOKEN    — bearer token (optional, if set on the CMS side)
+# `mode` defaults to `dry-run`. A dry run builds, verifies, prints the exact
+# plan — including every path that would be deleted — and contacts the host for
+# nothing but a directory listing. Going live requires passing `mode: live`,
+# which is a deliberate act, not the path of least resistance.
+#
+# The CMS half additionally refuses to go live unless `confirm-risk: true`,
+# because extracting over the app directory can disturb the CloudLinux venv
+# symlinks in `node_modules` and take the editorial workflow down with it.
+#
+# ## Automatic deploys are off until you turn them on
+#
+# `repository_dispatch` (the CMS publish webhook) runs in **dry run** unless the
+# repository variable `AUTO_DEPLOY` is set to `live`. Publishing rebuilds and
+# shows you the plan; it does not push to production until you flip one setting.
+#
+# SECRETS REQUIRED (GitHub → Settings → Secrets and variables → Actions):
+#   CMS_URL             — build-time CMS origin the build fetches content from
+#   PUBLIC_CMS_ORIGIN   — browser-facing origin for interactive islands; must
+#                         match the CSP `connect-src` in `.htaccess`
+#   CPANEL_HOST         — e.g. b201.serverdiana.com
+#   CPANEL_USER         — cPanel username
+#   CPANEL_TOKEN        — cPanel → Security → API Tokens
+#
+# VARIABLES (optional):
+#   AUTO_DEPLOY=live    — let the publish webhook deploy instead of only planning
+#
+# ⚠️ Never paste CPANEL_TOKEN into a commit, an issue, or chat. If it is exposed,
+# delete it in cPanel and create a new one.
 
 name: Deploy
 
 on:
-  # The CMS webhook calls this via repository_dispatch.
-  # The `client_payload` contains `{ reason: 'debounced'|'breaking'|'max-wait', at: ISO-string }`.
+  # The CMS webhook calls this when an editor publishes.
+  # `client_payload` is `{ reason: 'debounced'|'breaking'|'max-wait', at }`.
   repository_dispatch:
     types: [rebuild]
-  # Manual trigger for testing or emergency redeploy.
+
   workflow_dispatch:
     inputs:
       reason:
         description: 'Why this deploy was triggered'
         required: false
         default: 'manual'
+      mode:
+        description: 'dry-run plans and verifies; live pushes to production'
+        required: false
+        default: 'dry-run'
+        type: choice
+        options: [dry-run, live]
+      target:
+        description: 'Which half to build and deploy'
+        required: false
+        default: 'all'
+        type: choice
+        options: [all, static, cms]
+      confirm-risk:
+        description: 'Confirm the CMS deploy may disturb node_modules (required for target=all/cms + live)'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
-  # Only one deploy at a time per ref. A new deploy cancels a pending one
-  # (the rebuild trigger is debounced, so a cancelled deploy's content will
-  # be picked up by the next one).
   group: deploy-${{ github.ref }}
+  # A publish burst debounces to one build; cancelling a superseded one keeps
+  # the 2,000 min/month budget. The live deploy always completes — the group is
+  # per-ref and only a newer run cancels a *pending* one.
   cancel-in-progress: true
 
 permissions:
@@ -65,9 +91,9 @@ permissions:
 
 jobs:
   deploy:
-    name: Build + deploy to DianaHost public_html
+    name: Build + deploy to DianaHost
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v7
@@ -84,43 +110,80 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # ── Build ──────────────────────────────────────────────────────────────
+      # ── Resolve the effective mode ────────────────────────────────────────
+      - name: Resolve mode and target
+        id: cfg
+        env:
+          # An explicit input wins. A webhook has no input, so it falls back to
+          # the AUTO_DEPLOY variable — which defaults to planning only.
+          EVENT: ${{ github.event_name }}
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_TARGET: ${{ inputs.target }}
+          INPUT_REASON: ${{ inputs.reason }}
+          INPUT_CONFIRM: ${{ inputs.confirm-risk }}
+          PAYLOAD_REASON: ${{ github.event.client_payload.reason }}
+          AUTO_DEPLOY: ${{ vars.AUTO_DEPLOY }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "repository_dispatch" ]; then
+            MODE="${AUTO_DEPLOY:-dry-run}"
+            TARGET="static"
+            REASON="${PAYLOAD_REASON:-publish}"
+            CONFIRM="false"
+          else
+            MODE="$INPUT_MODE"
+            TARGET="$INPUT_TARGET"
+            REASON="$INPUT_REASON"
+            CONFIRM="$INPUT_CONFIRM"
+          fi
+          {
+            echo "mode=$MODE"
+            echo "target=$TARGET"
+            echo "reason=$REASON"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "mode:    $MODE"
+          echo "target:  $TARGET"
+          echo "reason:  $REASON"
+
+          if [ "$MODE" = "live" ] && [ "$TARGET" != "static" ] && [ "$CONFIRM" != "true" ]; then
+            echo "::error::A live CMS deploy can disturb the venv symlinks in node_modules and take the CMS down. Re-run with confirm-risk: true, or use target: static."
+            exit 1
+          fi
+          if [ "$MODE" = "live" ]; then
+            echo "::warning::LIVE DEPLOY — this pushes to production."
+          else
+            echo "Dry run: the host will be listed and planned, but nothing will be changed."
+          fi
+
+      # ── Build the frontend ───────────────────────────────────────────────
       - name: Astro sync (generate content + env types)
         run: pnpm --filter @shikkha24/frontend exec astro sync
 
       - name: Build (frontend)
         env:
-          # ⚠️ Two different origins, and the build needs BOTH:
+          # ⚠️ Three CMS-host values, and the build needs all three:
           #
           #   CMS_URL          — read at BUILD time; every article, category and
           #                      setting is fetched from here and baked into the
-          #                      static HTML. If it is unset or unreachable the
-          #                      build still exits 0 but emits a fraction of the
-          #                      pages ("thin build") and this workflow would
-          #                      deploy that. The harnesses below are the guard.
+          #                      static HTML. Unset or unreachable, the build
+          #                      still exits 0 but emits a fraction of the pages
+          #                      ("thin build"). The harnesses below are the guard.
           #
-          #   PUBLIC_CMS_ORIGIN — the browser-facing origin for the interactive
-          #                      islands (live-blog refresh, poll, comments,
-          #                      newsletter, bookmarks, push). Empty means those
-          #                      controls self-hide rather than fail. It must also
-          #                      be in the CSP `connect-src` in `.htaccess`.
+          #   PUBLIC_CMS_ORIGIN — browser-facing origin for the interactive
+          #                      islands. Empty means those controls self-hide.
+          #
+          #   PUBLIC_MEDIA_BASE_URL — prefixes the CMS's relative
+          #                      `/api/media/file/…` path. **Unset, every article
+          #                      image 404s** — the static host serves no `/api/`.
           CMS_URL: ${{ secrets.CMS_URL }}
           PUBLIC_CMS_ORIGIN: ${{ secrets.PUBLIC_CMS_ORIGIN }}
           PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL || 'https://shikkha24.com' }}
-          # Browser-facing media origin — the third of the three CMS-host values.
-          # `mediaUrl()` prefixes the CMS's relative `/api/media/file/...` path
-          # with this. **Unset, it emits that path as-is and every article image
-          # 404s** — the static host serves no `/api/`. Set it here or the deploy
-          # ships a site with no pictures. `verify:links` fails the run if it is
-          # missing, which is how this was found.
           PUBLIC_MEDIA_BASE_URL: ${{ vars.PUBLIC_MEDIA_BASE_URL || 'https://cms.shikkha24.com' }}
         run: pnpm run build:frontend
 
-      # ── Verify ─────────────────────────────────────────────────────────────
+      # ── Verify, before anything is transferred ───────────────────────────
       - name: Verify .htaccess against a real Apache
-        # The deploy path ships `.htaccess` verbatim, and a context error in it
-        # takes the whole site down with HTTP 500. This is the last chance to
-        # catch that before it reaches the host.
         run: |
           set -euo pipefail
           if ! command -v apache2 >/dev/null && [ ! -x /usr/sbin/apache2 ]; then
@@ -129,100 +192,127 @@ jobs:
           fi
           pnpm run verify:apache
 
-      - name: Verify build output
-        # ⚠️ `CMS_URL` is set here on purpose, and this is the whole point of the
-        # step. Without it the thin-build guard can only apply an absolute floor.
-        # With it, the guard asks the CMS how many articles are published and
-        # requires the build to contain at least that many article pages — the
-        # exact, self-calibrating check.
-        #
-        # This must run BEFORE the `rsync --delete` below. A CMS outage at rebuild
-        # time does not fail the Astro build (`lib/cms.ts` is deliberately built
-        # so it cannot), so without this the deploy would delete every article
-        # the live site currently has and Google would re-index the loss.
+      - name: Verify build output (thin-build guard)
+        # ⚠️ Must run before any delete. A CMS outage at rebuild time does not
+        # fail the Astro build (`lib/cms.ts` is deliberately built so it cannot),
+        # so without this the manifest would mark every article stale and the
+        # deploy would remove the whole live site, and Google would re-index it.
         env:
           CMS_URL: ${{ secrets.CMS_URL }}
         run: pnpm run verify:build-output
 
       - name: Verify internal links
-        # A broken internal link is still valid HTML, so nothing upstream fails on
-        # it — it just 404s for the reader after deploy. Checked here so it cannot.
         run: pnpm run verify:links
 
-      # ── Deploy ─────────────────────────────────────────────────────────────
-      - name: Prepare SSH key
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.DIANAHOST_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "${{ secrets.DIANAHOST_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+      - name: Verify search bootstrap
+        run: pnpm run verify:search-init
 
-      - name: Deploy to DianaHost public_html (rsync)
-        # rsync is the right tool: it transfers only changed files, deletes
-        # files that no longer exist ( --delete), and preserves the directory
-        # structure. --checksum is overkill for HTML; --times is enough and
-        # far faster.
-        #
-        # The --delete flag is essential: without it, deleted articles would
-        # remain on the live site. With it, the host mirrors the build output
-        # exactly.
-        #
-        # We exclude .htaccess from rsync so a manual edit on the host (e.g.
-        # an emergency CSP fix) is not overwritten by CI. The .htaccess in
-        # the build output is the canonical source, but a hotfix on the host
-        # should survive until the next deliberate deploy.
-        run: |
-          set -euo pipefail
-          rsync -azP --delete \
-            --exclude='.htaccess' \
-            -e "ssh -i ~/.ssh/id_ed25519" \
-            frontend/dist/ \
-            "${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}:${{ secrets.DIANAHOST_PUBLIC_HTML }}/"
-          echo "Deploy complete."
-          echo "Reason: ${{ github.event.client_payload.reason || inputs.reason || 'unknown' }}"
+      - name: Verify the cPanel deploy path
+        # The transport is new and the host has never seen it. These are the
+        # checks that make a first live run plausible rather than reckless.
+        run: pnpm run verify:cpanel-deploy
 
-      - name: Deploy .htaccess (honours a host-side hotfix)
-        # The rsync step above excludes `.htaccess`, so this step is the *only*
-        # thing that ever updates it on the host. That makes this the one place
-        # the escape hatch can live — and until now it did not exist, so the
-        # exclusion above was decorative: this step overwrote the host file
-        # unconditionally, on every run.
-        #
-        # ⚠️ Why an escape hatch is needed at all: the header file is the one
-        # artefact an operator may have to fix *on the host* during an incident.
-        # A `<LocationMatch>` pattern that fails to match does not error — the
-        # page still returns 200 under the strict policy and AdSense is silently
-        # blocked (docs/security.md §5). An emergency edit would otherwise be
-        # wiped by the next automated deploy, which is the worst possible moment
-        # to discover it.
-        #
-        # Contract: put `# NO-DEPLOY` in the host's `.htaccess` and this step
-        # skips, leaving the host copy in place. Remove the marker and the repo's
-        # file wins again — so the repo stays the source of truth by default and
-        # any deviation is explicit and greppable in the host file, and surfaces
-        # as a run **annotation** (the `::warning::` below), not a silent pass.
-        #
-        # The probe can only ever *preserve* a hotfix: if the SSH check fails for
-        # any reason (unreachable host, no file yet) the canonical file is
-        # deployed — exactly the behaviour before this guard existed. It cannot
-        # block a deploy.
+      # ── Build the CMS (only when it is the target) ───────────────────────
+      - name: Build (CMS, standalone)
+        if: ${{ steps.cfg.outputs.target == 'all' || steps.cfg.outputs.target == 'cms' }}
+        run: pnpm run build:cms
+        env:
+          PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
+          DATABASE_URI: file:./data/ci.db
+
+      - name: Assemble the standalone deploy bundle
+        # Four traps, each of which reached production once. Comments carry the
+        # detail; the assertions are the point — every one of these copies a
+        # file the host needs and silently produces a dead deploy if it misses.
+        if: ${{ steps.cfg.outputs.target == 'all' || steps.cfg.outputs.target == 'cms' }}
         run: |
           set -euo pipefail
-          HOST="${{ secrets.DIANAHOST_SSH_USER }}@${{ secrets.DIANAHOST_SSH_HOST }}"
-          REMOTE="${{ secrets.DIANAHOST_PUBLIC_HTML }}/.htaccess"
-          if ssh -i ~/.ssh/id_ed25519 "$HOST" "grep -q 'NO-DEPLOY' '$REMOTE'" 2>/dev/null; then
-            echo "::warning::$REMOTE carries '# NO-DEPLOY' — skipping, so the host hotfix survives. Remove the marker to hand control back to CI."
-            exit 0
+          ROOT=cms/.next/standalone
+
+          # 1. In a pnpm monorepo the entry point is standalone/cms/server.js,
+          #    NOT standalone/server.js. Upload the wrong one and every route 500s.
+          if [ ! -f "$ROOT/cms/server.js" ]; then
+            echo "::error::standalone entry point missing at $ROOT/cms/server.js"
+            exit 1
           fi
-          scp -i ~/.ssh/id_ed25519 frontend/dist/.htaccess "$HOST:$REMOTE"
-          echo ".htaccess deployed."
+
+          # 2. Next does not copy .next/static into the bundle. Without it the
+          #    admin loads and every asset 404s.
+          mkdir -p "$ROOT/cms/.next/static"
+          cp -R cms/.next/static/. "$ROOT/cms/.next/static/"
+
+          # 3. The Bengali card font is not traced by Next. The ID-card
+          #    endpoints read it relative to the bundle root at runtime, so
+          #    /api/idcard/:id.png answers 503 instead of rendering the card.
+          mkdir -p "$ROOT/cms/fonts"
+          cp assets/fonts/vendor/solaimanlipi-400.woff2 assets/fonts/vendor/solaimanlipi-700.woff2 "$ROOT/cms/fonts/"
+
+          # 4. The migrations. `payload migrate` locates them at src/migrations,
+          #    dist/migrations or migrations relative to the working directory,
+          #    and nothing in next.config.ts asks for it to be traced in — so
+          #    relying on tracing would bet production on undocumented
+          #    behaviour. Without them the host cannot build its schema at all.
+          mkdir -p "$ROOT/cms/src/migrations"
+          cp -R cms/src/migrations/. "$ROOT/cms/src/migrations/"
+          if [ ! -f "$ROOT/cms/src/migrations/index.ts" ]; then
+            echo "::error::migrations missing from the deploy bundle - the host could not build its schema"
+            exit 1
+          fi
+
+          # 5. pnpm's hoisted fallback has to sit at the TOP level. Turbopack
+          #    copies @libsql/client in as a real directory, which severs pnpm's
+          #    sibling-symlink layout, so @libsql/core is no longer reachable by
+          #    Node's upward resolution. On the host that is a hard boot failure
+          #    (ERR_MODULE_NOT_FOUND) that dev and CI never reproduce.
+          if [ -d "$ROOT/node_modules/.pnpm/node_modules" ]; then
+            cp -Rn "$ROOT/node_modules/.pnpm/node_modules/." "$ROOT/node_modules/"
+            if [ ! -e "$ROOT/node_modules/@libsql/core" ]; then
+              echo "::error::pnpm hoist not promoted - the host could not resolve @libsql/core"
+              exit 1
+            fi
+          fi
+
+          echo "CMS bundle = $(du -sm "$ROOT/cms" | cut -f1) MB"
+
+      # ── Deploy ───────────────────────────────────────────────────────────
+      - name: Deploy the CMS to ~/shikkha24-cms
+        if: ${{ steps.cfg.outputs.target == 'all' || steps.cfg.outputs.target == 'cms' }}
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
+          CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
+          DEPLOY_DRY_RUN: ${{ steps.cfg.outputs.mode == 'dry-run' }}
+          DEPLOY_CMS_DIST: cms/.next/standalone/cms
+          CMS_URL: ${{ secrets.CMS_URL }}
+        run: node scripts/deploy-cms.mjs
+
+      - name: Deploy the static site to public_html
+        if: ${{ steps.cfg.outputs.target == 'all' || steps.cfg.outputs.target == 'static' }}
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
+          CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
+          DEPLOY_DRY_RUN: ${{ steps.cfg.outputs.mode == 'dry-run' }}
+          SITE_URL: ${{ vars.PUBLIC_SITE_URL || 'https://shikkha24.com' }}
+        run: node scripts/deploy-static.mjs
 
       - name: Summary
         if: always()
+        env:
+          MODE: ${{ steps.cfg.outputs.mode }}
+          TARGET: ${{ steps.cfg.outputs.target }}
+          REASON: ${{ steps.cfg.outputs.reason }}
         run: |
-          echo "## Deploy summary" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Reason:** ${{ github.event.client_payload.reason || inputs.reason || 'unknown' }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Timestamp:** ${{ github.event.client_payload.at || github.event.head_commit.timestamp }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Status:** ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo '## Deploy summary'
+            echo ''
+            echo "- **Reason:** $REASON"
+            echo "- **Target:** $TARGET"
+            echo "- **Mode:** $MODE"
+            echo "- **Timestamp:** $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "- **Status:** ${{ job.status }}"
+            if [ "$MODE" = "dry-run" ]; then
+              echo ''
+              echo 'Nothing was changed on the host. Re-run with `mode: live` to apply this plan.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

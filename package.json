@@ -2,7 +2,7 @@
   "name": "shikkha24",
   "version": "0.0.0",
   "private": true,
-  "description": "Shikkha24 (শিক্ষা২৪) — Bengali-first education news portal. Monorepo: Astro static frontend + Payload CMS 3.",
+  "description": "Shikkha24 (\u09b6\u09bf\u0995\u09cd\u09b7\u09be\u09e8\u09ea) \u2014 Bengali-first education news portal. Monorepo: Astro static frontend + Payload CMS 3.",
   "license": "UNLICENSED",
   "packageManager": "pnpm@11.22.0",
   "engines": {
@@ -22,6 +22,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "verify:apache": "node scripts/verify-apache.mjs",
+    "verify:cpanel-deploy": "node scripts/verify-cpanel-deploy.mjs",
     "verify:astro-imports": "node scripts/verify-astro-imports.mjs",
     "verify:build-output": "node scripts/verify-build-output.mjs",
     "verify:links": "node scripts/verify-links.mjs",
@@ -38,7 +39,7 @@
     "verify:sync": "node scripts/verify-cms-sync.mjs",
     "verify:endpoints": "pnpm --filter @shikkha24/cms verify:endpoints",
     "verify:reporter": "pnpm --filter @shikkha24/cms verify:reporter",
-    "verify": "pnpm run lint && pnpm run verify:astro-imports && pnpm run verify:gpa && pnpm run verify:cgpa && pnpm run verify:bookmarks && pnpm run verify:ad-split && pnpm run verify:client-ip && pnpm run verify:sqlite-wal && pnpm run typecheck && pnpm run build && pnpm run verify:build-output && pnpm run verify:links && pnpm run verify:search-init && pnpm run verify:apache",
+    "verify": "pnpm run lint && pnpm run verify:astro-imports && pnpm run verify:gpa && pnpm run verify:cgpa && pnpm run verify:bookmarks && pnpm run verify:ad-split && pnpm run verify:client-ip && pnpm run verify:sqlite-wal && pnpm run typecheck && pnpm run build && pnpm run verify:build-output && pnpm run verify:links && pnpm run verify:search-init && pnpm run verify:apache && pnpm run verify:cpanel-deploy",
     "audit:ci": "pnpm audit --audit-level=high"
   },
   "devDependencies": {

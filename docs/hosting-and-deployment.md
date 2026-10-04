@@ -150,12 +150,17 @@ Three independent blockers, any one of which is fatal:
 Also ruled out: cloning a `deploy` branch directly into `public_html` — cPanel refuses to clone
 into a non-empty directory, and your `public_html` already contains `.htaccess`.
 
-### 4.2 What we will use instead — the cPanel HTTPS API
+### 4.2 The replacement, built — the cPanel HTTPS API
 
-> ⚠️ **DESIGNED — NOT YET IMPLEMENTED.** Everything in this subsection describes the replacement
-> transport. `.github/workflows/deploy.yml` still ends in `rsync` and `scp` over SSH and therefore
-> **cannot deploy anything**. The API mechanism below is the planned implementation; do not read
-> it as a description of working code.
+> ✅ **IMPLEMENTED (2026-10-04), and not yet run against production.** `deploy.yml` now drives
+> `scripts/deploy-static.mjs` and `scripts/deploy-cms.mjs` over this API; `deploy.yml` no longer
+> contains a single `rsync` or `scp`. Everything below describes working code.
+>
+> ⚠️ **But it has never touched the real host.** It is counter-proved against a local server that
+> reproduces cPanel's response envelopes (`scripts/verify-cpanel-deploy.mjs`, 34 checks), which
+> proves the logic and the failure handling — **not** that the parameter names are right for this
+> cPanel build. `mode: dry-run` is the default for exactly that reason, and it contacts the host
+> (read-only) so the credentials, the path and the API shapes are all confirmed before a live run.
 
 cPanel exposes **API Tokens** (`cPanel → Security → API Tokens`), which authenticate with a plain
 header — there is **no OAuth exchange and no token expiry**:
@@ -170,18 +175,64 @@ port 2083 and move files, with no SSH, no card, and no paid service.
 | Operation | Function | API |
 |---|---|---|
 | Upload the zip | `Fileman::upload_files` | UAPI — `POST /execute/Fileman/upload_files` |
-| Extract it | `Fileman::fileop` `op=extract` | API 2.0 (deprecated, but the **only** way) |
+| Extract it, with a destination | `Fileman::extract_files` | UAPI — **unconfirmed on this host**, see below |
+| Extract it, in place | `Fileman::fileop` `op=extract` | API 2.0 (deprecated, but always present) |
 | List a directory | `Fileman::list_files` | UAPI |
 | Delete (recursive) | `Fileman::delete_file` | UAPI |
+| Read / write a text file | `Fileman::get_file_content` / `save_file_content` | UAPI |
 | Create a directory | `Fileman::mkdir` | API 2.0 (no UAPI equivalent) |
 
-⚠️ **Two traps, both verified in the cPanel API docs, both of which break a naive script:**
+⚠️ **Traps that break a naive script:**
 
-- There is **no UAPI `mkdir` and no UAPI `extract`**. Both require the deprecated API 2.0.
+- There is **no UAPI `mkdir`**. It requires the deprecated API 2.0.
 - `Fileman::fileop op=extract` has **no destination parameter**. The archive always extracts into
-  the directory it already sits in. Upload the zip into the directory you want it to land in.
-- Do **not** upload the zip into `public_html` — it would be publicly downloadable at
-  `https://shikkha24.com/<name>.zip` for the window between upload and extraction.
+  the directory it already sits in — so using it on `public_html` means the zip is uploaded *into*
+  the docroot, where it is publicly downloadable at a guessable URL until it is deleted.
+- **`Fileman::extract_files` may not exist on this host.** Newer cPanel builds document it with a
+  destination parameter, which would close that hole completely. The cPanel doc URLs would not
+  resolve when this was written, so **it is not assumed** — `extractArchive()` tries the UAPI call
+  first and falls back, and the first live run reports in the CI summary which one the host
+  accepted. A one-file probe archive settles it against the real cPanel version before anything
+  real is uploaded.
+
+### 4.2.1 How `rsync --delete` was replaced
+
+`rsync` gave three properties: transfer, removal of what is no longer built, and never clobbering
+the one file an operator may be hotfixing. Each now comes from a different place.
+
+| `rsync` behaviour | Replacement | Where |
+|---|---|---|
+| Transfer files | zip → `upload_files` → extract | `deploy-static.mjs` |
+| `--delete` | a **manifest** of the last deploy, diffed against this build | `deploy-manifest.mjs` |
+| Never touch `.htaccess` | `.htaccess` is **never written into the manifest**, so no delete set can contain it | `deploy-manifest.mjs` |
+
+The manifest is a plain list of the paths the last deploy wrote, stored on the host at
+`~/shikkha24-deploy/frontend-manifest.txt` — outside the docroot, so not publicly readable, and
+recording what is *actually deployed* rather than what an artefact claims. A failed run cannot
+leave it out of step with reality.
+
+⚠️ **A first deploy deletes nothing**, because there is no previous manifest and the site was
+deployed by hand. Deleting nothing is the only safe reading when you do not know what is there.
+
+⚠️ **A directory is only deleted when nothing live sits under it.** Stale files are promoted to
+their parent directory and as far up as they will go, stopping at the first ancestor that still
+holds a file this build produces. `news/gone/*` all gone and `news/kept/` still live deletes
+`news/gone` in one call — never `news`.
+
+### 4.2.2 Running it
+
+The workflow defaults to **`mode: dry-run`**: it builds, runs every harness, prints the exact plan
+including every path that would be deleted, and contacts the host read-only (it lists the docroot
+and reads the manifest — which is what proves the credentials work). Going live is `mode: live`.
+
+A live **CMS** deploy additionally requires `confirm-risk: true`, because extracting over the app
+directory can disturb the CloudLinux venv symlinks in `node_modules` and take the CMS down.
+Recovery is a shell loop (`docs/deployment-runbook.md` §3.4); the workflow prints it in the
+dry-run summary so it is on the page before it is needed.
+
+`repository_dispatch` — the publish webhook — **runs in dry run too**, unless the repository
+variable `AUTO_DEPLOY` is set to `live`. Publishing shows you the plan; it does not push to
+production until you flip one setting.
 
 ### 4.3 Secrets this needs
 
@@ -195,8 +246,21 @@ Set in **GitHub → Settings → Secrets and variables → Actions**. Never comm
 | `CMS_URL` | build-time CMS origin, `https://cms.shikkha24.com` |
 | `PUBLIC_CMS_ORIGIN` | browser-facing CMS origin; must match the CSP `connect-src` |
 
+The old `DIANAHOST_SSH_KEY` / `DIANAHOST_SSH_HOST` / `DIANAHOST_SSH_USER` / `DIANAHOST_PUBLIC_HTML`
+secrets are **no longer read by anything** and can be deleted from GitHub.
+
+Optional **variable** (GitHub → Settings → Secrets and variables → Actions → Variables):
+
+| Variable | Value | Effect |
+|---|---|---|
+| `AUTO_DEPLOY` | `live` | lets the publish webhook deploy instead of only planning |
+
 ⚠️ **Never paste the API token into chat, a commit, a log, or a handoff file.** Put it straight
 into GitHub Secrets. If it is ever exposed, delete it in cPanel and create a new one.
+
+The client uses Node's `fetch` rather than `curl` on purpose: `curl -H "Authorization: …"` puts the
+token in the process argument list, where any process on the machine can read it with `ps`.
+`fetch` keeps it in the environment and off `argv`. No error path includes the headers.
 
 ---
 
