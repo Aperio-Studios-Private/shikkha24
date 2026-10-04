@@ -26,18 +26,28 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
 - **✅ THE SITE IS LIVE (2026-10-04).** Deployed to DianaHost and verified on the host, not
   assumed: `shikkha24.com` serving static HTML, `cms.shikkha24.com/api/articles` → 200,
   `/admin` → 200, 74 tables, taxonomy seed 77 rows.
-- **🔴 NO AUTOMATED DEPLOY EXISTS, and the CI workflow that claims to does nothing.**
-  `.github/workflows/deploy.yml` has **no `push:` trigger** and its final steps are
-  `rsync -azP … -e "ssh -i ~/.ssh/id_ed25519"` (line 177) and `scp` (line 218). **The host
-  grants no SSH** — ports 22/2222/222/2200/2022 all refuse; only 443/2083/2087 are open. Every
-  deploy so far has been done **by hand through cPanel File Manager + a Passenger restart**.
-  - **The replacement transport is settled and documented, not built:** the cPanel HTTPS API
-    (token auth is a plain `Authorization: cpanel <user>:<token>` header — **not** OAuth, no
-    exchange, no expiry), `UAPI::Fileman::upload_files` for the transfer, API 2.0
-    `Fileman::fileop op=extract` to unpack, and `UAPI::Fileman::save_file_content` writing
-    `~/shikkha24-cms/tmp/restart.txt` to restart Passenger (`WebApp::restart` needs cPanel 138;
-    this host is 134). See `docs/hosting-and-deployment.md` §4.2.
-  - **Push-to-live on the host is impossible**, not merely unused — three independent blockers.
+- **✅ THE DEPLOY AUTOMATION IS BUILT (2026-10-04) — and has never run against production.**
+  `.github/workflows/deploy.yml` no longer contains a single `rsync` or `scp`. It ships over the
+  **cPanel HTTPS API**, which is the only transport the host allows (auth is a static token in one
+  plain header — **not** OAuth, no exchange, no expiry). `scripts/cpanel-client.mjs`,
+  `deploy-manifest.mjs`, `deploy-static.mjs`, `deploy-cms.mjs`, counter-proved by
+  `scripts/verify-cpanel-deploy.mjs` (34 checks, in `pnpm verify`).
+  - **`rsync --delete` was the hard part.** There is no `--delete` in the API, so the deploy keeps
+    a **manifest** of the paths it last wrote, on the host, outside the docroot. Deletes are the
+    diff against the current build, collapsed to directories — but only up to the first ancestor
+    that still holds a live file. `.htaccess` is never written into the manifest, so no delete set
+    can contain it; that is structural, not a marker someone has to remember.
+  - **Dry run is the default.** It builds, verifies, prints every path it would delete, and lists
+    the docroot read-only — which is also how the credentials get proven before anything is live.
+    A live CMS deploy additionally needs `confirm-risk: true`, because extracting over the app
+    directory can disturb the venv symlinks in `node_modules`.
+  - **Publishing still does not deploy.** `repository_dispatch` runs in dry run until the
+    repository variable `AUTO_DEPLOY=live` is set. That is a deliberate switch the owner flips
+    after the first successful live run, not a default.
+  - **Unverified against the real host:** whether `Fileman::extract_files` exists there (it takes a
+    destination, which would keep the zip out of `public_html`; the fallback cannot). The script
+    probes and reports which one the host accepted rather than assuming. `docs/hosting-and-deployment.md` §4.2.
+  - **Push-to-live on the host remains impossible**, not merely unused — three independent blockers.
     Do not spend time on it again; the reasoning is in `docs/hosting-and-deployment.md` §4.
 - **🔴 THERE IS NO WORKING BACKUP. This is the highest operational risk in the project.**
   `.github/workflows/backup-db.yml` has **failed 6 runs out of 6** (2026-09-28 → 2026-10-03,
