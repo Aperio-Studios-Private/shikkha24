@@ -139,6 +139,28 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
       measurement, and it must not be relied on.
     - **Next:** read **cPanel → Site Quality Monitoring** for live CPU/memory/**process** usage,
       and **Setup Node.js App** for a Passenger restart loop, before proposing any workaround.
+  - **⚠️ 2026-10-04, found while waiting on the support ticket — an age-only prune rule would
+    have filled the disk.** The cron job was left at `* * * * *` as a diagnostic. The script
+    prunes archives **older than 14 days**, which silently assumes one run per day and enforces
+    nothing: 1,440 × 14 = 20,160 archives, ~80 GB, on a **5 GB** disk with 2,155 M already used —
+    roughly 740 archives of headroom, so **under half a day** to a full disk, and a full disk takes
+    the site down. It was inert only because *every run was failing*. **Any fix to the fork
+    blocker would have armed it.** A hard **`MAX_ARCHIVES=30`** cap now enforces the count
+    independently of schedule, and both rules are kept (a count cap alone would pin the newest 30
+    forever if the script stopped running). Counter-proved by extracting the shipped prune block
+    and running it over 45 real archives: 10 kept, and they were the **10 newest**; a control run
+    with a high cap pruned nothing. ⚠️ The **first** fixture gave every archive the same mtime
+    (`touch -t` is minute-precision) so `ls -t` tie-broke arbitrarily — the test passed on count
+    while proving nothing about ordering, which is exactly M17. **The owner must put the cron back
+    to `0 23 * * *`** regardless of the cap, since 30 archives is still 30× the intended one-per-day.
+    - **No CloudLinux/resource page is exposed to customers on this host** — Site Quality
+      Monitoring is a website *scanner* and Awstats is visitor statistics; neither reports
+      process usage. Only DianaHost can see the limit, so the ticket is the only route.
+    - **Owner opened the ticket (2026-10-04)**, also asking for cPanel Terminal to be re-enabled,
+      and completed the **eKYC** prompt the client area was showing ("Your services require
+      identity verification before they can be used") — an unverified account can carry partial
+      feature restrictions, which is a candidate explanation for cron-only breakage with no fork
+      of our own making. DianaHost is working on it.
   - **Still unverified:** the private-repo Actions artifact quota. `docs.github.com` returned 404
     on every attempt and WebSearch was unavailable, so retention is set to 30 days and the
     workflow *warns* above 100 MB rather than asserting a ceiling it cannot prove.

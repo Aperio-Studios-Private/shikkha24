@@ -33,7 +33,7 @@ A 2 GB shared hosting account with a single SQLite file **and the entire media l
 
 | Tier | What | Where | Frequency | Retention |
 |---|---|---|---|---|
-| **1. Database + media dump** | SQLite online backup (`.backup`, **never `cp`**) **+ `media/` directory**, tarred with both **at the archive root** | Host-side cPanel cron → `/home/shikkhac/shikkha24-backup/` → fetched by CI over **FTPS** → **GitHub Actions artifact** (30-day retention) + owner local download | **Daily, 19:00 UTC** | 14 days on the host + 30 days as an artifact + owner-managed longer retention |
+| **1. Database + media dump** | SQLite online backup (`.backup`, **never `cp`**) **+ `media/` directory**, tarred with both **at the archive root** | Host-side cPanel cron → `/home/shikkhac/shikkha24-backup/` → fetched by CI over **FTPS** → **GitHub Actions artifact** (30-day retention) + owner local download | **Daily, 19:00 UTC** | 14 days / 30 archives on the host + 30 days as an artifact + owner-managed longer retention |
 | **2. Code & config** | Git repository | GitHub | Every commit | Indefinite |
 | **3. Secrets** | Encrypted export of `.env` and service credentials | Encrypted archive, stored offline by the owner (password manager or encrypted USB) | On change | Current + 1 previous |
 | **4. Vendor backup** | cPanel's own backup tool | Vendor infrastructure | Weekly, if available | Confirm with DianaHost |
@@ -48,7 +48,9 @@ retention and *warns* rather than asserts when the archive passes 100 MB. **Down
 and keep it somewhere else.** The copy that matters is the one you have moved.
 
 ⚠️ **Retention on the host is 14 days, and that is the ceiling for "the host dies but the backups
-survive."** Beyond 14 days the only copies are artifacts the owner has downloaded. There is no
+survive."** A **hard cap of 30 archives** is enforced as well as the age rule — the age rule alone
+assumes one run a day and nothing enforces that, so a job left on a short schedule can fill the
+disk. Both are in `scripts/host-backup-dump.sh`. Beyond 14 days the only copies are artifacts the owner has downloaded. There is no
 second off-host store — see §8.
 
 ---
@@ -191,7 +193,7 @@ there.
        while serving)     │        └─ 3. upload-artifact    (30-day retention)
       tar payload.db media┘
       write latest.txt
-      prune to 14 days
+      prune to 14 days AND to the newest 30 archives, whichever bites first
 ```
 
 **Why it has to be a split, and not one clever job:**
@@ -233,7 +235,7 @@ this project does not have).
 
 | File | Side | Job |
 |---|---|---|
-| `scripts/host-backup-dump.sh` | host | POSIX `sh`. `sqlite3 ".backup"` (never `cp`), tars `payload.db` + `media/` **at the root**, writes `latest.txt`, prunes to 14 days, and **dies loudly** if `sqlite3` is missing, the DB is 0 bytes, or `media/` is absent |
+| `scripts/host-backup-dump.sh` | host | POSIX `sh`. `sqlite3 ".backup"` (never `cp`), tars `payload.db` + `media/` **at the root**, writes `latest.txt`, prunes to 14 days **and** a hard 30-archive cap, and **dies loudly** if `sqlite3` is missing, the DB is 0 bytes, or `media/` is absent |
 | `scripts/backup-verify.mjs` | CI | Decides whether an archive is worth keeping. `integrity_check`, core tables, row counts, media presence. Uses **`node:sqlite`** — no install step, no shell quoting, no version skew |
 | `scripts/backup-fetch.mjs` | CI | FTPS fetch. Writes a **`.netrc` mode 0600** in a temp dir (the password is never in `argv`, where `ps` would show it) and deletes it in a `finally` either way. Staleness check. Strict filename pattern — `latest.txt` cannot inject a path |
 | `scripts/verify-backup.mjs` | CI + local | **47 checks** that counter-prove the above. Run `pnpm verify:backup` |

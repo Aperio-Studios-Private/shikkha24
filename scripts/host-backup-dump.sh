@@ -67,6 +67,19 @@ set -eu
 # site down with it, which is the failure mode a backup must never cause.
 KEEP_DAYS=14
 
+# ⚠️ A hard cap on archive COUNT, not only on age.
+#
+# Age alone is the wrong safety net, because it silently assumes one run per day and
+# nothing enforces that. Schedule this job every minute "just to test it" and the age
+# rule permits 1,440 x 14 = 20,160 archives — roughly 80 GB, on a 5 GB disk with 2 GB
+# already used. The account fills in under half a day and the site dies with it.
+#
+# This actually happened on 2026-10-04: the job was left at `* * * * *` while diagnosing
+# a host fault, and the host fault's fix would have turned it into a live disk-filler.
+# The age rule is kept as well — a count cap alone would pin the newest 30 forever and
+# never release space if the script stopped running.
+MAX_ARCHIVES=30
+
 log_stamp() { date -u '+%Y-%m-%dT%H:%M:%SZ'; }
 
 # ⚠️ The home directory is derived from the account name, NOT taken from `$HOME`.
@@ -165,8 +178,17 @@ log "wrote $(basename "$ARCHIVE") ($(du -h "$ARCHIVE" | cut -f1))"
 # Prune by age, newest first is irrelevant — anything older than KEEP_DAYS is dropped.
 # `find -mtime` compares against mtime, which is exactly the archive's creation time.
 find "$OUT_DIR" -maxdepth 1 -name 'shikkha24-*.tar.gz' -mtime "+$KEEP_DAYS" -print -delete 2>/dev/null | while read -r old; do
-  log "pruned $old"
+  log "pruned $old (older than $KEEP_DAYS days)"
+done
+
+# ⚠️ Then cap the COUNT. `tail -n "+N"` emits from line N onward, so on a newest-first
+# listing this drops everything past the cap and keeps the 30 most recent. `ls -1t` is
+# sorted by mtime, and these names are timestamp-derived with no spaces, so a plain
+# `read -r` splits them safely.
+ls -1t "$OUT_DIR"/shikkha24-*.tar.gz 2>/dev/null | tail -n "+$((MAX_ARCHIVES + 1))" | while read -r old; do
+  rm -f "$old"
+  log "pruned $(basename "$old") (past the $MAX_ARCHIVES-archive cap)"
 done
 
 REMAINING=$(find "$OUT_DIR" -maxdepth 1 -name 'shikkha24-*.tar.gz' | wc -l)
-log "done — $REMAINING archive(s) retained in $OUT_DIR"
+log "done — $REMAINING archive(s) retained in $OUT_DIR (cap $MAX_ARCHIVES, age $KEEP_DAYS days)"
