@@ -505,6 +505,23 @@ jobs:
             echo "::error::migrations missing from the deploy bundle - the host could not build its schema"
             exit 1
           fi
+          # 5. pnpm's hoisted fallback has to sit at the TOP level, not under .pnpm.
+          #    Turbopack copies @libsql/client into cms/.next/node_modules/ as a real
+          #    directory, which severs pnpm's sibling-symlink layout, so its
+          #    dependency @libsql/core is no longer reachable by Node's upward
+          #    resolution. On the host that is a hard boot failure:
+          #      ERR_MODULE_NOT_FOUND: Cannot find package '@libsql/core'
+          #    Dev and CI never see it, because there the sibling link is intact.
+          #    The `.pnpm/node_modules` hoist exists precisely to be on that
+          #    resolution path; standalone just does not put it there.
+          if [ -d "$ROOT/node_modules/.pnpm/node_modules" ]; then
+            cp -Rn "$ROOT/node_modules/.pnpm/node_modules/." "$ROOT/node_modules/"
+            if [ ! -e "$ROOT/node_modules/@libsql/core" ]; then
+              echo "::error::pnpm hoist not promoted - the host could not resolve @libsql/core"
+              exit 1
+            fi
+            echo "promoted pnpm hoist to top level: $(ls "$ROOT/node_modules" | wc -l) entries"
+          fi
           mb=$(du -sm "$ROOT" | cut -f1)
           echo "standalone bundle = ${mb} MB (target 300-600 MB)"
           echo "Measured at S0 on this exact stack: 114 MB."
