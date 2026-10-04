@@ -194,9 +194,10 @@ Run at S2 (when fonts land) and again at S12 (full audit). Check:
 >
 > - **"Every CI gate green on the release commit"** — ❌ **currently red.** The Lighthouse
 >   `cumulative-layout-shift` gate fails at 0.0436 against a 0.03 limit on the article template.
-> - **"A full restore from backup performed and timed"** — ⚠️ **cannot be done.** There is no
->   backup to restore from; `backup-db.yml` has failed 6 runs out of 6. See
->   `docs/backup-and-recovery.md` §6.
+> - **"A full restore from backup performed and timed"** — ⚠️ **still cannot be done.** The
+>   backup automation was built 2026-10-04, but it cannot run until the owner completes its 4
+>   setup steps, so there is still no off-host backup to restore from. See
+>   `docs/backup-and-recovery.md` §6.4.
 
 - [ ] ❌ Every CI gate green on the release commit — **known red on CLS**
 - [ ] Lighthouse budgets met on all measured templates (both ad and no-ad profiles)

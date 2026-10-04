@@ -21,6 +21,32 @@
 The old version of this document described a pipeline ending in `rsync over SSH`. **That pipeline
 has never worked on this host.** It is preserved in git history if you want to see it.
 
+### ⚠️ Correction 2026-10-04 — port 21 is open
+
+An earlier revision of this document (and `.sps/handoff.md`) recorded the open ports as
+**"only 443, 2083 and 2087"**. That was wrong, and the error is expensive: it is what kept
+`backup-db.yml` on an `ssh`/`scp` transport that has never worked here.
+
+**TCP 21 is open**, and the server answers as **Pure-FTPd with TLS**:
+
+```
+220---------- Welcome to Pure-FTPd [privsep] [TLS] ----------
+530 Login authentication failed      (expected — anonymous login is refused)
+```
+
+| Port | Service | Use |
+|---|---|---|
+| 443 | HTTPS | The site |
+| 2083 | cPanel over HTTPS | The deploy API (`scripts/cpanel-client.mjs`) |
+| 2087 | cPanel over HTTPS (alt) | — |
+| **21** | **FTPS** | **The only way to move a binary file off the host without a shell.** Used by `scripts/backup-fetch.mjs` |
+| 22, 2222, 222, 2200, 2022 | SSH | **Closed.** Confirmed still closed |
+
+**What FTPS is and is not for.** It moves files. It cannot run `sqlite3`, so it cannot *take* a
+consistent snapshot of a database that is being written to — that is why the backup is split
+between a host-side cron (which runs `sqlite3 .backup`) and CI (which only fetches the result).
+`docs/backup-and-recovery.md` §6 has the full design.
+
 ---
 
 ## 1. Why CI exists at all — the short version

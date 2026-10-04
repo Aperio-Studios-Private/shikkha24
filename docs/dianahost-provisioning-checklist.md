@@ -14,10 +14,10 @@
 |---|---|---|---|
 | 0.1 | **cPanel login URL, username, password** | Welcome email, or `http://<yourdomain>/cpanel` / `http://<server-ip>/cpanel` | DianaHost KB #18. cPanel also answers on **port 2083** (`https://<host>:2083`). Bookmark it. |
 | 0.2 | **Server IP address** | cPanel right sidebar, or welcome email | Needed for DNS and for SSH if the hostname does not resolve yet. |
-| 0.3 | **⚠️ Request SSH / Shell access** | Support ticket | **This is the one item that is not self-service.** The PNR plan lists *"SSH/Shell Access: Yes **(On Demand)**"* — it is not enabled by default. Without it there is no `rsync` deploy, no backup pull, and no `kill -USR2` restart. Ask for it explicitly. |
-| 0.4 | **SSH connection details**: hostname, port, username | Support ticket (with 0.3) | Confirm whether it is port 22 or a non-standard port, and whether key-based auth is allowed. |
-| 0.5 | **Your public key installed** on the account | cPanel → *SSH Access → Manage SSH Keys*, or ask support | CI authenticates with `DIANAHOST_SSH_KEY`. Generate the keypair locally, upload the **public** half, keep the private half for GitHub. |
-| 0.6 | Fallback: **cPanel → Terminal** | cPanel → Advanced | Some cPanel builds expose a browser terminal. Confirm it exists — it is the fallback if 0.3 is refused. |
+| 0.3 | ~~**Request SSH / Shell access**~~ | — | **⚠️ ANSWERED 2026-10-04: no. SSH is not available on this account.** TCP 22, 2222, 222, 2200 and 2022 all refuse. The PNR plan lists *"SSH/Shell Access: Yes **(On Demand)**"*, but on-demand was never granted and the host has been reconfigured without it. **Do not spend a support ticket on this** — the deploy runs over the cPanel HTTPS API and the backup over FTPS instead. |
+| 0.4 | ~~SSH connection details~~ | — | Not obtainable, per 0.3. |
+| 0.5 | ~~Your public key installed~~ | — | Not possible, per 0.3. **CI authenticates with a cPanel API token instead** — `CPANEL_USER` + `CPANEL_API_TOKEN`, not `DIANAHOST_SSH_KEY`. See `docs/hosting-and-deployment.md` §4.2. |
+| 0.6 | **cPanel → Terminal** — a shell *inside* cPanel | cPanel → Advanced | ✅ **This is the shell, and it exists.** It is how the host-side backup cron is installed and how `sqlite3` is run by hand. **This is not a fallback — it is the only shell on this account.** |
 
 ---
 
@@ -87,13 +87,18 @@ Every value below comes *from* Phases 0–4. Nothing here can be filled in befor
 
 | Secret | Value | Source |
 |---|---|---|
-| `DIANAHOST_SSH_HOST` | server hostname or IP | Phase 0.2 / 0.4 |
-| `DIANAHOST_SSH_USER` | cPanel username | Phase 0.1 |
-| `DIANAHOST_SSH_KEY` | the **private** key | Phase 0.5 |
-| `DIANAHOST_PUBLIC_HTML` | absolute path to `public_html` | Phase 0.4 |
-| `DIANAHOST_APP_PATH` | absolute path to the CMS app root | Phase 2.3 |
+| `CPANEL_HOST` | `b201.serverdiana.com` (cPanel answers on **:2083**) | Phase 0.1 / 0.2 |
+| `CPANEL_USER` | cPanel username | Phase 0.1 |
+| `CPANEL_TOKEN` | a cPanel API token — cPanel → *API Tokens* | Phase 0.1 |
 | `CMS_URL` | `https://cms.shikkha24.com` | Phase 2.3 + 2.5 |
 | `PUBLIC_CMS_ORIGIN` | `https://cms.shikkha24.com` | same |
+| `FTP_HOST` / `FTP_USER` / `FTP_PASSWORD` | the **dedicated, jailed** backup FTP account | `docs/backup-and-recovery.md` §6.4 |
+
+> ⚠️ **Corrected 2026-10-04.** This table used to require `DIANAHOST_SSH_HOST`, `DIANAHOST_SSH_USER`,
+> `DIANAHOST_SSH_KEY` and `DIANAHOST_PUBLIC_HTML`. **None of those exist and none can be set** —
+> this host has no SSH (Phase 0.3). The deploy authenticates with a **cPanel API token**, which is
+> *not* OAuth: it is a plain `Authorization: cpanel <user>:<token>` header, and the paths the
+> deploy uses are configured inside the workflow rather than in a secret.
 
 ### Repository variables
 
@@ -115,7 +120,7 @@ Every value below comes *from* Phases 0–4. Nothing here can be filled in befor
 | 6.1 | **Set the CMS environment variables** | cPanel → Setup Node.js App → your app → *Add Environment variables* (KB #6 confirms this UI). Values: `docs/cms-deployment.md` §3.5. |
 | 6.2 | **Generate `PAYLOAD_SECRET`** | Local: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | 6.3 | **Set up the rebuild webhook** (`DEPLOY_WEBHOOK_URL` + token) | Without it, **publishing saves correctly and the live site never changes** — the single most confusing failure mode in this architecture. |
-| 6.4 | **Create the three cron jobs** | cPanel → Cron Jobs. Targets and cadence: `cms/src/endpoints/newsletter.ts`, `cms/src/endpoints/push.ts`, `.github/workflows/backup-db.yml`. |
+| 6.4 | **Create the cron jobs** | cPanel → Cron Jobs. Two host jobs: `cms/src/endpoints/newsletter.ts`, `cms/src/endpoints/push.ts`. ⚠️ **The backup is a third host job, not a GitHub workflow** — `/bin/sh /home/shikkhac/bin/shikkha24-backup-dump.sh` at 19:00 UTC. FTPS cannot run `sqlite3`, so the snapshot has to be taken on the host; CI only fetches the result. Full setup in `docs/backup-and-recovery.md` §6.4. |
 | 6.5 | **Set bandwidth and storage alerts at 80%** | cPanel. 200 GB/month bandwidth; media images are the dominant consumer. |
 | 6.6 | **Confirm `data/` is not reachable over HTTP** | `curl https://cms.shikkha24.com/data/payload.db` must return **404**. If it returns the file, stop and fix before announcing the site. |
 

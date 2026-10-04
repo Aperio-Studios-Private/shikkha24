@@ -144,7 +144,7 @@ harmless, and it is the correct trade against a forgeable key.
 | DianaHost inode quota + other limits confirmed (S0 exit) | ⏳ Not published — needs a support ticket |
 | SQLite WAL 5-writer concurrency proven (S0 exit) | ✅ `verify:sqlite-wal` harness passes |
 | CI quality gates + feature flags (S0 exit) | ✅ Gates in `ci.yml` |
-| **Automated backup** (S0 exit) | ❌ **`backup-db.yml` has failed 6 runs out of 6** — every run used `ssh`/`scp` against a host that refuses both. **There is no off-host copy of the editorial archive.** `docs/backup-and-recovery.md` §6 |
+| **Automated backup** (S0 exit) | 🟡 **Automation built 2026-10-04, not yet running.** The `ssh`/`scp` workflow (6 runs, 6 failures) was replaced by a host-cron snapshot + **FTPS** fetch — port 21 is open, which an earlier doc wrongly said it was not. `pnpm verify:backup` counter-proves the gate with 38 checks. **🔴 Needs 4 owner setup steps before it works, so there is still no off-host copy today.** `docs/backup-and-recovery.md` §6 |
 | ~~Cloudflare R2 enabled + usage alert set~~ | ✅ **REMOVED 2026-09-14.** No Cloudflare. |
 
 ### Known open issues
@@ -152,7 +152,8 @@ harmless, and it is the correct trade against a forgeable key.
 | Issue | Detail |
 |---|---|
 | **CI red on CLS** | `layout-shifts` measured **0.0436** against a 0.03 gate on the article template. The culprit is identified: the `<aside>` "মূল বিষয়সমূহ" box in `article.container-page > div.grid-12 > div.col-span-4`, moving at `top 510px, 380x227px`. Not yet fixed. |
-| **No working backup** | The highest operational risk in the project. Every article and upload lives in one `payload.db` on one host with no off-host copy. Manual procedure in `docs/backup-and-recovery.md` §6. |
+| **Backup not yet running** | The automation is built and green but **needs 4 owner setup steps** (FTP account, host script, cron entry, 3 GitHub Secrets) — until they are done there is no off-host copy, and the manual procedure in `docs/backup-and-recovery.md` §6.5 is the only thing protecting the archive. Run it. |
+| **Only one off-host copy** | Archives live as GitHub Actions artifacts, which **expire** (30-day retention) and whose private-repo quota could not be verified. Two copies in two places, one of them not a GitHub artifact. |
 | **CMS runs a hand-patched host** | The host's `.next/routes-manifest.json` was edited directly to unblock the admin. The permanent fix is committed (`f267079`) but not yet deployed, so `/api/*` is still on the looser policy until it is. |
 | **Demo content is live** | 24 demo articles are published so the site can be reviewed. `cms/src/seed/demo-purge.ts` removes them with no fallback — but a purge must be followed by a frontend rebuild, or Apache keeps serving the deleted pages. |
 

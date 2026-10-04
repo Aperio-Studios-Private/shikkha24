@@ -311,6 +311,6 @@ most important step in the purge and the easiest to forget.
 | `docs/hosting-and-deployment.md` | why CI exists, the pipeline, quotas, the Node question |
 | `docs/cms-deployment.md` | first-time CMS setup in full, schema bootstrap, seeding |
 | `docs/reliability.md` | incident response, restart procedure |
-| `docs/backup-and-recovery.md` | daily dumps and restore |
+| `docs/backup-and-recovery.md` | daily dumps and restore — **start at §6.4 if you are setting the backup up for the first time** |
 | `docs/security.md` | headers, CSP, rate limiting, PII |
 | `docs/README.md` | the index of every document and its status |

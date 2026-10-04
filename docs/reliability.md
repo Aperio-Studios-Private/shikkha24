@@ -204,9 +204,10 @@ not exist on this host.
 
 - Dependency and security updates: reviewed deliberately, never auto-merged to production
 - Database maintenance: SQLite `VACUUM` occasionally; check WAL size
-- Backup verification: 🔴 **there is no backup to verify.** `backup-db.yml` has failed 6 runs out
-  of 6 because it uses SSH. See `docs/backup-and-recovery.md` §6 — a restore has never been
-  tested because there is nothing to restore from
+- Backup verification: 🔴 **there is still no backup to restore from.** The automation was
+  built 2026-10-04 (host-cron snapshot + FTPS fetch, `pnpm verify:backup` at 38 checks) but needs
+  the owner's 4 setup steps before it runs. See `docs/backup-and-recovery.md` §6.4 — and a full
+  restore has still never been tested, which is the item that matters
 - Certificate renewal: automatic via DianaHost AutoSSL (Let's Encrypt via cPanel), but verify
 
 ---

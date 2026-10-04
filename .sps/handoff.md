@@ -74,16 +74,46 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
     negative control in `verify-cpanel-deploy.mjs` reproduces the original unguarded extract.
     Neither required touching the shipped code to produce — the shipped workflow is read out of
     `deploy.yml` and executed, and the replica is defined beside the test.
-- **🔴 THERE IS NO WORKING BACKUP. This is the highest operational risk in the project.**
-  `.github/workflows/backup-db.yml` has **failed 6 runs out of 6** (2026-09-28 → 2026-10-03,
-  every run under 10 seconds), each one using `ssh`/`scp` against a host that refuses both. The
-  live site therefore has **zero off-host copies of the editorial archive** — every article,
-  every upload, one `payload.db` away from total loss, with no restore path.
-  - **The manual procedure that does work** is in `docs/backup-and-recovery.md` §6 and needs a
-    cPanel Terminal, one command.
-  - **The planned fix is not built yet.** The CMS already runs on the host, can read `data/`,
-    and has outbound HTTPS — so it can tar the database and POST it somewhere off-host. That is
-    the next item after deploy automation, and it is not decided which destination.
+- **🟡 BACKUP AUTOMATION IS BUILT (2026-10-04) — and cannot run until the owner does 4 setup
+  steps. The live site still has no off-host copy.**
+  - **What was wrong:** `backup-db.yml` failed 6 runs out of 6 (2026-09-28 → 2026-10-03), each
+    using `ssh`/`scp` against a host that refuses both.
+  - **⚠️ The root cause was a wrong fact in our own docs.** `docs/hosting-and-deployment.md`
+    recorded the open ports as "only 443/2083/2087". **Port 21 is open**, and the server answers
+    as `220---------- Welcome to Pure-FTPd [privsep] [TLS] ----------`. FTPS is the only
+    transport on this host that moves a binary file out without a shell. The port table is now
+    corrected in that doc and in this file. *A documented fact nobody re-tested was more
+    expensive than the missing feature.*
+  - **Built:** a two-part split. A cPanel cron runs `scripts/host-backup-dump.sh`, which takes a
+    consistent snapshot with SQLite's own `.backup` API (**never `cp`** — that can capture a torn
+    state), tars `payload.db` + `media/` **at the archive root**, writes `latest.txt`, and prunes
+    to 14 days. `.github/workflows/backup-db.yml` then fetches that one archive over FTPS and
+    refuses to store anything it cannot prove restorable. **The split is forced:** FTP cannot run
+    `sqlite3`, and no HTTP client can snapshot a database that is being written to.
+  - **Three ways a backup can lie, each mechanically prevented:** the host cron silently stops →
+    **30-hour staleness check** fails the run instead of fetching last week's file forever; the
+    transfer truncates → **`PRAGMA integrity_check` + a full extract test**; media is silently
+    omitted → **refusal**. A fourth — a valid but entirely empty database that restores to a blank
+    site with no error — is caught by core-table presence plus non-zero row counts.
+  - **`pnpm verify:backup` — 38 checks**, every one proved against the specific defect it claims
+    to catch using real SQLite files, not mocks. It runs in CI *and* inside the backup job, because
+    that job's entire output is a decision made by `backup-verify.mjs`.
+  - **⚠️ The check that had to be weakened, and why.** `foreign_key_check` findings are a
+    **warning, not a rejection.** The live `payload.db` has 3 orphaned rows in `users_sessions`
+    (deleted reader accounts Payload does not cascade); the first version rejected a perfectly good
+    backup of the real database. *A gate that rejects every real backup is as useless as one that
+    accepts everything.* `integrity_check` is the check that means it.
+  - **The credential never enters `argv`** — `curl -u user:pass` is visible via `ps`, so the
+    password goes in a `.netrc` at mode 0600 in a temp dir, removed in a `finally` either way.
+    The FTP account must be **dedicated and jailed to `/home/shikkhac/shikkha24-backup`**, with
+    its own password, so it can never reach `.env`.
+  - **🔴 Owner setup, four steps** (`docs/backup-and-recovery.md` §6.4): create the jailed FTP
+    account; hand-run the dump script in cPanel Terminal **and read the output**; add the 19:00
+    UTC cron entry; add `FTP_HOST` / `FTP_USER` / `FTP_PASSWORD` as GitHub Secrets. Until then
+    **run the manual procedure in §6.5 — it is the only thing protecting the archive.**
+  - **Still unverified:** the private-repo Actions artifact quota. `docs.github.com` returned 404
+    on every attempt and WebSearch was unavailable, so retention is set to 30 days and the
+    workflow *warns* above 100 MB rather than asserting a ceiling it cannot prove.
 - **⚠️ One owner action settles a nine-document dispute.** The runtime Node version is asserted
   as `20.18.2` in nine documents and was **never measured** — it was inferred from the
   CloudLinux `nodevenv` path, whose directory number **is** the version, and that path reads
@@ -132,10 +162,11 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
     `PAYLOAD_BOOTSTRAP_SCHEMA=true`. Measured on an empty database in production
     mode: **74 tables on boot; unset, 0 tables** (counter-proof). So the deploy is
     now *upload zip → set 4 env vars → Restart*. This matters because DianaHost
-    refuses SSH (ports 22/2222/222/2200/2022 all closed; only 443/2083/2087 open) and
+    refuses SSH (ports 22/2222/222/2200/2022 all closed) and
     cPanel Terminal was announced as expiring — the schema must not depend on shell
     access it might lose. Only the taxonomy seed still needs a terminal, and it is
-    one command.
+    one command. **⚠️ The "only 443/2083/2087 open" note this line used to carry was
+    wrong — port 21 (FTPS) is open too. See `docs/hosting-and-deployment.md` §0.**
   - **Gated off by default on purpose.** It works, which is what makes it a footgun:
     left on, every boot applies pending migrations unattended with no backup first —
     exactly what `push: false` exists to prevent. Bootstrap switch, not a deployment
@@ -239,7 +270,7 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
 - **✅ GIT INDEX CORRUPTION REPAIRED (2026-10-02) — no work was lost.** Symptom: `git diff` died with `fatal: unable to read 9f25340…`, so **nothing could be committed at all**. **Diagnosis (do not re-derive):** not a shallow clone, not a partial clone, no alternates, no in-progress rebase/merge, no stale lock files. The index pointed at **54 blobs that no longer existed in the object store** (of 393 entries) — a *partial* object deletion, almost certainly the sandbox bulk-delete guard documented above (threshold 50/turn) catching a git maintenance operation. `git log` and `git log --oneline` still worked, so the damage was invisible until you diffed. **Repair, in order (all non-destructive):** 1. backed up `.git/index` and the 3 divergent working-tree files to `/tmp/newsportal-gitbackup/` **before touching anything**; 2. proved recoverability first — **51 of the 54 missing blobs were byte-identical to the working tree** (`git hash-object <file>` == the index hash), so they were rewritten with `git hash-object -w`; 3. the 3 that differed were files **edited after being staged**, so `git add` on them (index should match the working tree — that is the desired state, not a loss); 4. `git write-tree` then succeeded, proving every index object was readable; 5. rebuilt the stale index cache-tree (derived data only) via `read-tree HEAD` + re-stage. **Also cleared:** 24 stale `origin/dependabot/*` remote-tracking refs (branches deleted upstream). **Remaining `fsck` noise is cosmetic and was deliberately left alone:** ~214 invalid reflog entries and ~30 dead commits referenced by the commit-graph — all *unreachable* history. **Verified every reachable commit is intact** (`git rev-list --all` → 0 missing), `HEAD == origin/main == ad217c5`, 377 files in the HEAD tree, `git status`/`diff`/`log` all functional. **Lesson:** after any bulk git operation in this sandbox, run `git fsck --connectivity-only` — a partial object deletion fails *silently* on every read command until you actually diff.
 - **✅ F-04 FIXED — the thin-build guard the docs promised but never had (2026-10-02).** The most destructive latent failure in the pipeline, found by audit. `docs/feature-register.md` §7 standing rule 1 has said *"A green build is not a full build… Assert the page count"* since 2026-09-18, and `.github/workflows/ci.yml` claimed the step *"Catches a thin build (dead CMS → green exit code but missing pages)"* — **but no such assertion existed.** The only check was `articlePages.length > 0`, which a 25-page build passes exactly as comfortably as a 2,000-page one. `htmlFiles.length` appeared solely in `console.log`. **Why it mattered:** `lib/cms.ts` is deliberately built so a CMS outage *cannot* fail the Astro build, and `deploy.yml` then runs `rsync --delete` — so a CMS blip during a rebuild would **delete every published article from the live site** and Google would re-index the loss. **Fix (`scripts/verify-build-output.mjs` §3a), two tiers:** with `CMS_URL` set (**deploy path**) ask the CMS for its published-article count and require the build to hold at least that many article pages — exact and self-calibrating as the archive grows; with no `CMS_URL` (**CI path**) apply a low absolute floor (10) that cannot false-fail. **A configured-but-unreachable CMS FAILS rather than falling back** — falling back would recreate exactly the silence the check exists to remove. **`deploy.yml` also had to pass `CMS_URL` to the verify step** (it was set only on the *build* step), otherwise the exact tier would never have run in production. **Counter-proved all four branches** (project rule: a check never seen to fail is not evidence) — thin build now exits 1, healthy build passes, no-CMS floor passes, unreachable CMS exits 1.
 - **✅ CI REGRESSION FIXED (2026-09-20) — S13's publish guard had broken the seed, and therefore CI itself.** Found by re-running the audit rather than trusting this file: the handoff still said *"✅ CI IS GREEN on the runner"* (true 2026-09-15, **false from 2026-09-18**). The last CI push (`e2b6312`) failed at *Seed the CMS database* with `APIError: সংবাদ প্রকাশ করা যায় শুধু সম্পাদকের অনুমোদনের পর।` — the verbatim string from `guardPublishStatus`. **The chain:** `cms/src/seed/demo.ts` creates demo articles with `_status: 'published'`; S13 added `hooks/publish.ts`, which throws on any transition to `published` by a non-editor; `payload run` has **no session**, so the seed was rejected. **Why the first fix attempt failed (recorded so it is not retried):** `overrideAccess: true` does **not** reach a *collection-level* `beforeChange` hook — Payload forwards it to field-level hooks only (`dist/collections/operations/create.js` builds the collection-hook args from `{ collection, context, data, operation, originalDoc, req }`). The seed already passed `overrideAccess: true`, so the flag looked like the obvious marker and was not. What **is** forwarded is `context` — `createLocalReq` merges it onto `req.context`, which the collection hook receives. Fix: an exported `PROGRAMMATIC_CONTEXT` marker key in `hooks/publish.ts`; the seed passes `context: { [PROGRAMMATIC_CONTEXT]: true }`; the guard stands down for it. **Not attacker-controllable:** `req.context` for an HTTP request is initialised by Payload core and is never populated from a body, query or header (verified in the express/REST layer). **Counter-proved both directions on a FRESH database** (the local DB was already seeded, so it would have hidden this — M12): without the marker `seed:demo` exits 1 with the APIError; with it, exit 0 and 24 articles. **`verify:reporter` still passes** — "reporter cannot publish their own article" holds, because a reader session cannot set the context. Lesson added to the pile: a security hook that does not exempt programmatic writes will eventually break the seed, and CI is where it surfaces.
-- **⚠️ `backup-db.yml` has failed every day since 2026-09-15 (5 straight) at "Prepare SSH key" — this is expected, not a bug.** DianaHost SSH is on-demand and not yet granted, so `DIANAHOST_SSH_KEY` is unset. The workflow fails *loudly* by design ("the archive is unprotected"). Consequence to keep in view: **there is no working backup of any kind right now**, and each failure spends private-repo CI minutes.
+- **⚠️ `backup-db.yml` has failed every day since 2026-09-15 (5 straight) at "Prepare SSH key" — this is expected, not a bug.** DianaHost SSH is on-demand and not yet granted, so `DIANAHOST_SSH_KEY` is unset. The workflow fails *loudly* by design ("the archive is unprotected"). Consequence to keep in view: **there is no working backup of any kind right now**, and each failure spends private-repo CI minutes. **⚠️ Superseded 2026-10-04** — the `ssh`/`scp` transport was the wrong idea for this host; the workflow was rewritten to use FTPS. Kept as history, not as current state.
 - **✅ Doc drift corrected (2026-09-20):** `docs/seo-plan.md` still flagged `getAllArticleSlugs()` as capped at 500/unfixed — it was fixed in S11 (`getAllArticlePaths()` paginates); the warning is now marked fixed. `.sps/task.md` S2 still named Hind Siliguri + Noto Sans Bengali — replaced by the SolaimanLipi-only decision. (Two more known-but-cosmetic: the feature register still calls the logo a "placeholder" when it is supplied and rendering — only "is it final" is open; and the `docs/image-optimization.md` §2 markup example still shows a `.jpg` fallback `<img>`, stale next to the `fallbackFormat="webp"` fix.)
 - **✅ CMS→storefront audit (2026-09-18, commit `517b69f`).** Owner reported "I have edited lots of things but those are not reflecting to the storefront." **Audited rather than assumed — the pipeline is FINE.** Every CMS field tested (siteName, tagline, contact email/phone/address) is present in the built HTML. **Three separate things were making it look broken:**
   1. **🚨 A CMS-uploaded ad banner was 404ing.** `AdCreative.astro` rendered `src={image.url}` **raw**; Payload stores media as a relative `/api/media/file/…` and the static host serves no `/api/`, so the owner's "Marsus" banner was a broken image on the homepage. Every other image already went through `mediaUrl()` — this was the one exception, which is exactly what a "we always use `mediaUrl()`" assumption hides. **Audited project-wide: it was the only instance** (the three `SocialLinks` `href`s are external URLs, already validated as absolute). Found by `verify:links` (`missing: /api/media/file/3.webp ← /`) — the gate worked; it had no broken link to find until the ad unit existed.
@@ -333,8 +364,10 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
 > both complete. "Confirm with DianaHost: Node.js version availability" is *still* open and is
 > the same dispute recorded at the top of this file.
 >
-> The highest-priority item is **not on this list** — it is the absent backup, recorded in
-> `docs/backup-and-recovery.md` §6 and in the Current Phase above.
+> The highest-priority item is **not on this list** — it is the backup, recorded in
+> `docs/backup-and-recovery.md` §6 and in the Current Phase above. ⚠️ **Updated 2026-10-04:** it
+> was "the *absent* backup"; the automation is now built but still needs 4 owner setup steps
+> before any off-host copy exists.
 
 **S9 owner actions (2026-09-13) — full detail in `.sps/section-todos/S9.md`:**
 
