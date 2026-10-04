@@ -20,15 +20,26 @@
 # of journal mode (WAL included). A plain `cp` is the single most common way a SQLite
 # backup turns out to be unrestorable.
 #
-# ## Install (cPanel → Terminal, once)
+# ## Install (cPanel, once — no Terminal required)
 #
-#   mkdir -p ~/bin && cp host-backup-dump.sh ~/bin/shikkha24-backup-dump.sh
-#   chmod +x ~/bin/shikkha24-backup-dump.sh
-#   ~/bin/shikkha24-backup-dump.sh          # run it once, by hand, and read the output
+#   File Manager -> /home/shikkhac -> make folder `bin` -> upload this file into it,
+#   renamed to `shikkha24-backup-dump.sh`.
 #
 # Then cPanel → Cron Jobs → once daily:
 #
 #   /bin/sh /home/shikkhac/bin/shikkha24-backup-dump.sh
+#
+# `/bin/sh script` **reads** the file, so unlike `./script` it does not need the execute
+# bit — which is why this still works when the upload lands as 0644 and there is no
+# Terminal available to `chmod` it.
+#
+# ## ⚠️ Read the result in `~/shikkha24-backup/dump.log`, not on a screen
+#
+# Every line this script prints also goes to that file, which is visible in **cPanel File
+# Manager**. That is the only place a failure can be seen on this host: cron output goes to
+# email, and the cPanel Terminal is not reliably available. Checking this one file is how
+# the owner knows whether the backup ran, without a terminal — check it after adding the
+# cron job and once a month after that.
 #
 # ## ⚠️ The hour you type into cPanel is SERVER-LOCAL time, not UTC
 #
@@ -60,7 +71,33 @@ DB="$DATA_DIR/payload.db"
 # site down with it, which is the failure mode a backup must never cause.
 KEEP_DAYS=14
 
-log() { printf '%s %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*"; }
+log_stamp() { date -u '+%Y-%m-%dT%H:%M:%SZ'; }
+
+# ⚠️ Every line goes to a FILE as well as to stdout, and that is not tidiness.
+#
+# "Run it by hand and read the output" was advice that could not be followed: this host's
+# cPanel Terminal is not reliably available, and cron output goes to email. So when the
+# dump failed, the only way to see why was a terminal that might not exist — which is how
+# a backup that stopped working stays invisible.
+#
+# `~/shikkha24-backup/dump.log` is readable in **cPanel File Manager**, which always is.
+# It holds the success and the FATAL lines alike.
+if ! mkdir -p "$OUT_DIR" 2>/dev/null; then
+  printf '%s FATAL: cannot create %s — there is nowhere to write a backup\n' \
+    "$(log_stamp)" "$OUT_DIR" >&2
+  exit 1
+fi
+LOG_FILE="$OUT_DIR/dump.log"
+
+log() {
+  line="$(log_stamp) $*"
+  printf '%s\n' "$line"
+  # Bounded: one rotated copy, so a long-lived account cannot fill its own disk with logs.
+  if [ -f "$LOG_FILE" ] && [ "$(wc -c < "$LOG_FILE")" -gt 262144 ]; then
+    mv -f "$LOG_FILE" "$LOG_FILE.1" 2>/dev/null || :
+  fi
+  printf '%s\n' "$line" >> "$LOG_FILE" 2>/dev/null || :
+}
 die() { log "FATAL: $*"; exit 1; }
 
 # Both clocks on the first line. This account runs on Asia/Dhaka (UTC+6) while every
@@ -74,8 +111,6 @@ log "starting — local $(date '+%Y-%m-%d %H:%M:%S %Z'), UTC $(date -u '+%Y-%m-%
 [ -d "$DATA_DIR/media" ] || die "no media directory at $DATA_DIR/media — a backup without media silently loses every uploaded image (docs/backup-and-recovery.md section 7)"
 
 command -v sqlite3 >/dev/null 2>&1 || die "the sqlite3 command is not installed on this host. Without it the only alternative is 'cp' against a live database, which can capture a torn state. Install sqlite3 (CloudLinux: yum install sqlite) rather than falling back."
-
-mkdir -p "$OUT_DIR"
 
 STAMP=$(date -u '+%Y%m%dT%H%M%SZ')
 WORK=$(mktemp -d "$OUT_DIR/.build.XXXXXX")
