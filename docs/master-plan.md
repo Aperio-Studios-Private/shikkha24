@@ -23,7 +23,7 @@
 | **Comments** | ✅ Custom Payload comments (social login) | Facebook/Google login, no GitHub dependency |
 | **Categories** | ✅ Fully editable via admin — "very flexible" | Dynamic categories + subcategories in Payload |
 | **Newsletter** | ✅ Listmonk (best, complexity OK) | Self-hosted email marketing — full control |
-| **Build pipeline** | ✅ GitHub Actions (automated) | Push → build → deploy to cPanel automatically |
+| **Build pipeline** | ⚠️ ~~✅ GitHub Actions (automated)~~ — **NEVER WORKED.** This row was written 2026-09-11 and is the origin of a belief that survived three months: **pushing to GitHub does not deploy this site.** `deploy.yml` has no `push:` trigger, and its deploy step uses SSH, which the host does not have. See `docs/hosting-and-deployment.md` §4. |
 | **Language** | ✅ Bengali-only UI | No language toggle; English articles optional |
 | **Portal name** | ⏳ TBD | Placeholder branding until decided |
 

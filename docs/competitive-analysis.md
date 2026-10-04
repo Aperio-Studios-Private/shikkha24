@@ -1,5 +1,12 @@
 # Competitive Analysis — 15+ News Portals
 
+> [!WARNING]
+> **OBSOLETE AS A BUILD INPUT (marked 2026-09-11; banner added 2026-10-04).**
+> This is a **general-news** competitor set. Shikkha24 is an **education** portal — see
+> `docs/education-competitors.md` for the competitor set that actually applies.
+> This file previously carried **no warning banner at all**, which meant a reader could open it
+> cold and mistake it for current analysis. It is retained for reference only.
+
 > Compiled from 4 parallel research subagents (2026-09-11).
 > Source conversation: `f20130b8-a34c-4c80-af5c-19e1aa38859c` *(external session reference — not resolvable from this repository)*
 

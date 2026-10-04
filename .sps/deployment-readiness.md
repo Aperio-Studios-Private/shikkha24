@@ -171,12 +171,15 @@ until configured:
 |---|---|
 | **Set `DEPLOY_WEBHOOK_URL`** on the CMS host to the CI endpoint that starts a rebuild (GitHub Actions `repository_dispatch` / `workflow_dispatch`) | Unset means a **no-op** — edits will save correctly and still never appear |
 | **Set `DEPLOY_WEBHOOK_TOKEN`** if the endpoint requires auth | Optional |
-| **Create the GitHub Actions workflow** that rebuilds and deploys (rsync to `public_html`) | ✅ Created: `.github/workflows/deploy.yml`. Triggers on `repository_dispatch` (fired by the CMS webhook). Builds on Node 24, runs dist-only harnesses, deploys via rsync to DianaHost `public_html` over SSH. The CMS standalone bundle is deployed manually (it changes rarely). |
+| **Create the GitHub Actions workflow** that rebuilds and deploys | ⚠️ **Created but CANNOT DEPLOY.** `.github/workflows/deploy.yml` triggers on `repository_dispatch` and `workflow_dispatch`, builds on Node 24 and runs the dist-only harnesses correctly — then ships the result with `rsync` and `scp` **over SSH, which this host does not have.** It has therefore never deployed anything. It is being rewritten to use the cPanel HTTPS API. See `docs/hosting-and-deployment.md` §4. |
 | **Tune `REBUILD_MIN_INTERVAL_MS`** (default 300000 = 5 min) | Quota guard: GitHub Actions allows 2,000 min/month; at 15–20 articles/day, per-save triggering would be wasteful. Debouncing collapses a burst into one build |
 
 Note: the `wrangler pages deploy` quota question is now moot — Cloudflare was removed
-entirely (2026-09-14). The deploy pipeline uses rsync to DianaHost `public_html` from CI.
-The only quota that applies is GitHub Actions 2,000 min/month.
+entirely (2026-09-14). **The only quota that applies is GitHub Actions, 2,000 min/month.**
+
+⚠️ **Superseded 2026-10-04.** This document was written before the production deploy and still
+describes it as pending. It is retained as a launch-readiness record; for how the site is
+actually deployed and maintained, read **`docs/deployment-runbook.md`**.
 
 ### Verification that can only happen in production
 

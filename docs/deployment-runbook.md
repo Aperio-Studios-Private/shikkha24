@@ -69,16 +69,22 @@ directory. Delete the archive and rebuild — do not upload it.
 
 ### 2.2 By automation — `.github/workflows/deploy.yml`
 
-The workflow builds the site and ships it through the cPanel HTTPS API. See
-`docs/hosting-and-deployment.md` §4.2 for the API mechanics and §4.3 for the required secrets.
+> ⚠️ **NOT WORKING.** `deploy.yml` builds the site and then tries to ship it with `rsync` and
+> `scp` over SSH. There is no SSH on this host, so the deploy step **cannot succeed**. The
+> workflow is being rewritten to use the cPanel HTTPS API described in
+> `docs/hosting-and-deployment.md` §4.2, which is the replacement transport.
+
+Until that rewrite lands, **use §2.1**. The build half of the workflow is fine; only the shipping
+half is broken.
 
 ```sh
 # trigger a deploy by hand from a terminal
 gh workflow run deploy.yml -f reason='manual fix'
 ```
 
-**It is not automatic yet.** Today it fires on `repository_dispatch` (from the CMS publish webhook)
-and `workflow_dispatch`. There is no `push:` trigger — pushing to GitHub does **not** deploy.
+**It is not automatic even in principle.** It fires on `repository_dispatch` (from the CMS publish
+webhook) and `workflow_dispatch`. There is no `push:` trigger — pushing to GitHub does **not**
+deploy.
 
 ---
 

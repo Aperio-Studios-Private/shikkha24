@@ -266,6 +266,11 @@
 
 ## S12: Deployment, QA & Launch
 - [ ] GitHub Actions deploy pipeline (push to main → Astro build → upload to cPanel)
+      - ⚠️ **CORRECTION (2026-10-04).** This line is the origin of the belief that pushing to
+        GitHub auto-deploys the site. **It does not, and did not ever.** `deploy.yml` has no
+        `push:` trigger — only `repository_dispatch` and `workflow_dispatch` — and its deploy step
+        uses `rsync`/`scp` over SSH, which the host does not have. `ci.yml` *does* run on push, but
+        it deploys nothing. The two are routinely confused. See `docs/hosting-and-deployment.md` §4.
 - [ ] cPanel Passenger config for Payload CMS
 - [ ] Cloudflare DNS + SSL setup documentation
 - [ ] Cloudflare page rules (cache static HTML, bypass admin)

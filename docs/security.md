@@ -34,20 +34,50 @@
 | Contact / citizen-journalism forms | Public | Spam + file-upload risk |
 | Host media directory | Served via CMS origin (public read intended) | Must not allow directory listing or direct write; only Payload's upload pipeline can create files |
 | SQLite file | **Must not be web-accessible** | Verify the document root does not cover the CMS data directory |
-| cPanel + SSH | Vendor-controlled | SSH is "on demand" — keep it off when unused |
+| cPanel + SSH | Vendor-controlled | ⚠️ **SSH was requested and REFUSED on this host** (verified 2026-10-04). Not an available control — see `docs/hosting-and-deployment.md` §0 |
 | GitHub repo + Actions | Depends on visibility | Secrets must be Actions secrets, never in the repo |
 
 ---
 
 ## 3. Authentication and access control
 
-### ⚠️ Runtime is end-of-life — an open risk
+### ⚠️ Runtime version — DISPUTED, verify with one command
 
-DianaHost runs **Node.js 20.18.2**. Node 20 reached **end of life on 2026-04-30**, so it receives **no security patches**. This is the single largest unmitigated security issue in the stack, because that runtime hosts the CMS admin — the highest-value target in the system.
+This section previously stated as fact that "DianaHost runs **Node.js 20.18.2**, which reached
+end-of-life on 2026-04-30, making it the single largest unmitigated security issue in the stack."
+**That claim is now disputed and must not be relied on.**
 
-- `next@16.3.4` and `@payloadcms/next@3.89.0` both accept `>=20.9.0`, so the stack *functions*.
-- The cPanel **Node.js Selector** has a version drop-down; selecting 22.x or 24.x resolves this if DianaHost offers it.
-- If it does not, this becomes an **accepted risk** requiring compensating controls: rate-limited and ideally IP-restricted admin, 2FA, dependency monitoring, and a note to DianaHost requesting a newer runtime.
+It was derived from a cPanel Node.js Selector screenshot on 2026-09-11. Live evidence from
+2026-10-04 contradicts it: the application that actually ran is installed under
+
+```
+/home/shikkhac/nodevenv/shikkha24-cms/24/lib/node_modules/
+/opt/alt/alt-nodejs24/root/usr/bin/node
+```
+
+and both of those paths name the Node **major version** — `24`. Those commands succeeded; no
+Node 20 path existed on the account. If this holds, the EOL-runtime risk **does not exist**.
+
+**Settle it with one command in the cPanel Terminal:**
+
+```sh
+node -v ; /home/shikkhac/nodevenv/shikkha24-cms/24/bin/node -v
+```
+
+- If both print **`v24.x.y`** → this risk is **closed**. Strike it here and in the eight other
+  documents that repeat it (`.sps/plan.md` §S0 exit, `.sps/profile.md`, `.sps/task.md`,
+  `docs/reliability.md`, `docs/dianahost-provisioning-checklist.md`, `docs/stack-research.md`,
+  `docs/hosting-and-deployment.md` §5, `.sps/handoff.md`), and remove the accepted-risk entry.
+- If either prints **`v20.x`** → the risk stands, and the compensating controls below apply.
+
+Until it is run, treat the runtime as **unverified** and keep the compensating controls active:
+
+- `next@16.3.6` and `@payloadcms/next@3.89.0` both accept `>=20.9.0`, so the stack *functions* on
+  either runtime.
+- Rate-limit the admin panel; consider IP-restricting `/admin` if the owner is willing to accept
+  the access cost.
+- Keep the compensating controls listed under **Controls** regardless — they are good practice on
+  a supported runtime too.
 
 ### Controls
 
@@ -272,7 +302,7 @@ This was undocumented before. It is an S9 dependency.
 - [ ] Set SPF/DKIM/DMARC and choose the bulk-sending subdomain
 - [ ] Decide whether `/admin` can be IP-restricted
 - [ ] Draft the privacy policy content (needs the owner's data-handling decisions)
-- [ ] **S15 will require a THIRD CSP profile** — see §5.1 below
+- ~~**S15 will require a THIRD CSP profile**~~ — ✅ built 2026-09-28; see §5.1
 
 ---
 

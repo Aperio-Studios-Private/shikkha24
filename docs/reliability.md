@@ -27,9 +27,10 @@ Ranked by realistic likelihood × impact.
 |---|---|---|---|---|---|
 | 1 | **Passenger kills the idle Node process** (common on shared hosting) | CMS offline; publishing stops | **High** | Uptime monitor on `/admin` | Auto-restart via cPanel; accept a cold-start delay; document the manual restart step |
 | 2 | **CI minutes exhausted** (2,000/month, private repo) | No new content published | **Medium** — depends on measured build time | Actions quota warning | Adaptive batching; or public repo for unlimited minutes. See `docs/hosting-and-deployment.md` |
-| 2b | ~~Cloudflare Pages 500 builds/month exhausted~~ | ~~No new deployments~~ | **Removed 2026-09-14.** No Cloudflare Pages. Frontend deploys via rsync to `public_html`. |
+| 2b | ~~Cloudflare Pages 500 builds/month exhausted~~ | ~~No new deployments~~ | **Removed 2026-09-14.** No Cloudflare Pages. |
 | 2c | ~~Cloudflare Pages 20,000-file ceiling reached~~ | ~~Cannot deploy new pages~~ | **Removed 2026-09-14.** No Cloudflare Pages file ceiling. DianaHost inode quota is the new ceiling (ask support). |
-| 2d | **Node.js 20 end-of-life on the host** | Unpatched vulnerabilities in the CMS runtime | **Standing** | Not detectable by monitoring | Select Node 22/24 in the cPanel Node.js Selector; otherwise compensate with admin hardening (`docs/security.md` §3) |
+| 2d | **Node.js runtime version unverified** | *If* the host runs EOL Node 20, unpatched vulnerabilities in the CMS runtime | **Standing** | Not detectable by monitoring | Run `node -v` in the cPanel Terminal — see `docs/security.md` §3. The evidence now points to **Node 24**, which would close this entirely |
+| 2e | **No working off-host backup** | The entire editorial archive is unrecoverable if the host is lost | **Critical — live** | ⚠️ `backup-db.yml` has failed **6 runs out of 6** (2026-09-28 → 2026-10-03), every run, because it uses SSH | **Do not rely on any automated backup today.** Manual `sqlite3 .backup` to off-host storage is the only working method. See `docs/backup-and-recovery.md` |
 | 3 | **2 GB storage full** | Uploads fail; account may be suspended | **High** over months | Storage alert at 80% | Media is on host disk now (R2 descoped in S9) — monitor disk usage; media cleanup keeps only WebP |
 | 4 | **Payload 3.89.0 regression** (pinned one day after release) | Varies | Medium | Smoke test after deploy | S0 hold-vs-pin decision; pin and upgrade deliberately |
 | 5 | **SQLite lock contention** during simultaneous publishes | Individual publish failures | Medium | Editor reports; logs | WAL mode (validated at S0); serialise heavy writes |
@@ -50,7 +51,7 @@ Ranked by realistic likelihood × impact.
 | Case | Behaviour |
 |---|---|
 | **404** | Branded Bengali page, search box, links to the 8 categories and the education hubs. **Never a bare server default.** |
-| **500 / build failure** | Static site: the last good deployment stays live. CI does not replace the working `public_html` with a failed build — the rsync only runs after all gates pass. |
+| **500 / build failure** | Static site: the last good deployment stays live. Nothing replaces `public_html` unless someone deliberately uploads a new zip, so a failed build cannot take the site down. |
 | **CMS unavailable** | Editors see a clear error; readers unaffected. |
 | **Widget/data failure** | Hide the widget or show the last cached value. Never render a broken box. |
 | **Image failure** | Serve a branded placeholder at the correct dimensions — **preserve layout, never shift** (CLS). |
@@ -82,7 +83,7 @@ Ranked by realistic likelihood × impact.
   1. **Publishing throughput** — bounded by **one** quota: GitHub Actions (2,000 min/month). Full detail in `docs/hosting-and-deployment.md`.
   2. **Storage** — 2 GB on the host, shared by the app, the SQLite database, **and the media library** (media moved to host disk in S9 — R2 was descoped due to card-on-file overage risk). This is the tightest constraint: WebP conversion keeps image sizes small, but the directory grows with every article. A daily off-host backup of `data/media/` (see `docs/backup-and-recovery.md`) is the safety net; a host-disk usage alert (via DianaHost support) is the early warning.
   3. **Simultaneous editors** — SQLite WAL, validated at S0 for 5+ concurrent writers.
-  4. **Runtime patch level** — Node 20 is end-of-life on the host.
+  4. **Runtime patch level** — the host's Node version is currently **unverified**; evidence points to 24. See `docs/security.md` §3.
 - **The CMS origin sees only editor traffic.** A reader spike does not touch it.
 
 ### Traffic spike playbook
@@ -147,7 +148,7 @@ Researched 2026-09-13 against the three leading free uptime monitors:
 1. **Detect** — alert fires, or a reader/editor reports it
 2. **Assess** — is the reader-facing site affected, or only the CMS? (Usually only the CMS.)
 3. **Mitigate before diagnosing** — if the site is down, roll back first, investigate after
-4. **Roll back** — `git revert` and let CI redeploy (rsync replaces `public_html`). For a bad `.htaccess`, fix and redeploy.
+4. **Roll back** — ⚠️ **there is no automatic redeploy.** `git revert` does nothing to production here: `deploy.yml` cannot reach the host (no SSH). Roll back by **rebuilding from the previous commit and re-uploading the zip** — `git checkout <last-good-sha> && pnpm --filter frontend build`, then `docs/deployment-runbook.md` §2.1. For a bad `.htaccess`, fix it directly in cPanel File Manager.
 5. **Communicate** — if readers are affected, post a short Bengali notice
 6. **Record** — write it into `.sps/mistakes.md` with the root cause and the prevention
 7. **Fix forward** — then restore the feature
@@ -173,20 +174,29 @@ DianaHost runs the CMS as a Node.js application behind Phusion Passenger via cPa
 7. If it does not load within 60 seconds, check the application logs (cPanel → **Terminal** or **Logs** section)
 
 **If the restart button is not visible:**
-- The application may be managed via **Passenger App** under the **Software** section instead
-- Or via **Terminal/SSH**: find the Passenger process (`ps aux | grep node`) and send `SIGUSR2` to restart without downtime (`kill -USR2 <pid>`); if that fails, `kill -TERM <pid>` and Passenger will respawn it
+- The application may be managed via **Passenger App** or **Application Manager** under the
+  **Software** section instead
+- ⚠️ **There is no SSH on this host** (verified 2026-10-04), so the `kill -USR2` fallback that
+  earlier versions of this document recommended **does not exist**. The cPanel Terminal is a shell
+  *inside* cPanel; nothing can connect to it from outside, and there is no documented API to
+  restart a Passenger app headlessly. **The button is the mechanism.** If it is genuinely absent,
+  the escalation is a support ticket to DianaHost.
 
 **Cold start note:** the first request after a restart takes 5–15 seconds while Node initializes and Payload boots. This is normal — do not restart again thinking it failed.
 
 **After a code deploy:**
-1. SSH in (or use cPanel Terminal)
-2. Navigate to the CMS application directory
-3. `pnpm install --frozen-lockfile` (if dependencies changed)
-4. Copy the new standalone build: `cp -r ../../.next/standalone/cms/* .` (adjust paths)
-5. Copy static assets: `cp -r ../../.next/static ./.next/static`
-6. Restart via cPanel (steps 1–6 above)
+1. Build the standalone bundle locally and assemble it (the traps — the `cms/` path segment, the
+   missing `.next/static`, the venv symlink loop — are documented in
+   `docs/deployment-runbook.md` §3.1–§3.4)
+2. Zip the assembled bundle, confirming it contains **no `data/` directory**
+3. Upload and extract via the cPanel **File Manager** (there is no `rsync`/`scp` — no SSH)
+4. Recreate the venv symlinks if the extraction disturbed `node_modules`
+   (`docs/deployment-runbook.md` §3.4)
+5. **RESTART** via cPanel — once. A second restart does not help and delays recovery.
 
-**Keep written down offline:** the cPanel URL, username, the CMS application name, and the SSH path to the app directory. An operator under pressure should not be searching for these.
+**Keep written down offline:** the cPanel URL, username, and CMS application name. An operator
+under pressure should not be searching for these. ⚠️ There is **no SSH path** to record — it does
+not exist on this host.
 
 ---
 

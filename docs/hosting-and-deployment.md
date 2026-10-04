@@ -150,7 +150,12 @@ Three independent blockers, any one of which is fatal:
 Also ruled out: cloning a `deploy` branch directly into `public_html` — cPanel refuses to clone
 into a non-empty directory, and your `public_html` already contains `.htaccess`.
 
-### 4.2 What we use instead — the cPanel HTTPS API
+### 4.2 What we will use instead — the cPanel HTTPS API
+
+> ⚠️ **DESIGNED — NOT YET IMPLEMENTED.** Everything in this subsection describes the replacement
+> transport. `.github/workflows/deploy.yml` still ends in `rsync` and `scp` over SSH and therefore
+> **cannot deploy anything**. The API mechanism below is the planned implementation; do not read
+> it as a description of working code.
 
 cPanel exposes **API Tokens** (`cPanel → Security → API Tokens`), which authenticate with a plain
 header — there is **no OAuth exchange and no token expiry**:

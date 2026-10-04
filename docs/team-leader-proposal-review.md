@@ -1,5 +1,10 @@
 # Team Leader Proposal — Review Against the Approved Plan
 
+> [!WARNING]
+> **SUPERSEDED (banner added 2026-10-04).** This review predates the production deployment of
+> 2026-10-04 and still says "nothing in this document has been built". That is no longer true.
+> See `docs/README.md` for the current document index.
+
 **Reviewed:** 2026-09-12 · **Reviewer:** agent · **Status:** ⏳ **awaiting owner decision — nothing in this document has been built**
 
 **Source:** the 17-point proposal supplied by the team leader (header, slogan, homepage

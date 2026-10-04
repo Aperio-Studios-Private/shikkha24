@@ -15,8 +15,8 @@
 | **GPA calculation** (`pnpm verify:gpa`) | Every CI run | Merge |
 | Production build | Every CI run | Deploy |
 | Lighthouse CI (perf + a11y budgets) | Every CI run | Deploy |
-| HTML validation | Every CI run | Deploy (warn first) |
-| JSON-LD / schema validation | Every CI run | Deploy |
+| ~~HTML validation~~ | ⚠️ **DOES NOT EXIST.** Documented here until 2026-10-04; no such step is in `ci.yml`. Either add it or stop claiming it | — |
+| ~~JSON-LD / schema validation~~ | ⚠️ **DOES NOT EXIST.** Documented here until 2026-10-04; no such step is in `ci.yml`. The Rich Results Test is still a manual checklist item (§6) | — |
 | Build-output check (`pnpm verify:build-output`) | Every CI run | Deploy |
 | **`.htaccess` served through a real Apache** (`pnpm verify:apache`) | Every CI run | Deploy |
 | **Internal links** (`pnpm verify:links`) | Every CI run | Deploy |
@@ -188,7 +188,17 @@ Run at S2 (when fonts land) and again at S12 (full audit). Check:
 
 ## 6. Pre-launch QA checklist
 
-- [ ] Every CI gate green on the release commit
+> ⚠️ **The site launched 2026-10-04 with this checklist entirely unticked, and it remains
+> unticked.** That is not a record of a passed check. Two items are now known-failed rather than
+> unknown:
+>
+> - **"Every CI gate green on the release commit"** — ❌ **currently red.** The Lighthouse
+>   `cumulative-layout-shift` gate fails at 0.0436 against a 0.03 limit on the article template.
+> - **"A full restore from backup performed and timed"** — ⚠️ **cannot be done.** There is no
+>   backup to restore from; `backup-db.yml` has failed 6 runs out of 6. See
+>   `docs/backup-and-recovery.md` §6.
+
+- [ ] ❌ Every CI gate green on the release commit — **known red on CLS**
 - [ ] Lighthouse budgets met on all measured templates (both ad and no-ad profiles)
 - [ ] Manual keyboard pass on homepage, article, category, search, quiz
 - [ ] Screen-reader pass with Bengali content
@@ -196,8 +206,8 @@ Run at S2 (when fonts land) and again at S12 (full audit). Check:
 - [ ] Bengali rendering audit completed
 - [ ] Rich Results Test passes on every template
 - [ ] News sitemap and RSS validate
-- [ ] 404 and error pages verified
-- [ ] A full restore from backup performed and timed
+- [ ] 404 and error pages verified — ✅ **done 2026-10-04** (`/` 200 153 KB, `sitemap.xml`, `rss.xml`, `archive/`, `search/` all 200)
+- [ ] A full restore from backup performed and timed — 🔴 **blocked: no backup exists**
 - [ ] Every editor role verified with a real account
 - [ ] Social share debuggers (Facebook, X) render the correct card
 - [ ] Dark mode audited for contrast
@@ -217,4 +227,8 @@ After each section (S0–S12), re-run the CI gates **and** spot-check the previo
 - [ ] Decide whether Payload collection tests are worth the setup at S1 or deferred
 - [ ] Source a low-end Android device for testing (or a device lab service)
 - [ ] Confirm whether any free screen reader handles Bengali adequately on Android
-- [ ] Add the CI gates to the build workflow at S0
+- [ ] ~~Add the CI gates to the build workflow at S0~~ — ✅ done; 30 steps in `ci.yml`
+- [ ] Add HTML validation and JSON-LD/schema validation, or delete their rows from §1. Right now
+      this document promises two gates that do not exist
+- [ ] Add the missing pre-launch checks that were skipped at launch (§6), now that it is overdue
+      rather than pending
