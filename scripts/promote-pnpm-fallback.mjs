@@ -67,6 +67,7 @@ export function promotePnpmFallback(nodeModules) {
 
   let linked = 0
   let skipped = 0
+  let untraced = 0
 
   /**
    * Point `dest` at `target` using a relative link, unless `dest` already works.
@@ -101,6 +102,14 @@ export function promotePnpmFallback(nodeModules) {
     const dest = join(nodeModules, entry)
 
     if (!entry.startsWith('@')) {
+      // Skip anything Next never traced: its store target is not in the
+      // bundle, so a link to it would dangle on arrival. Linking it anyway was
+      // what broke idempotency — the second run found a dangling symlink it had
+      // made itself, and dutifully replaced it with an identical one.
+      if (!existsSync(source)) {
+        untraced += 1
+        continue
+      }
       linkIfMissing(dest, source)
       continue
     }
@@ -108,48 +117,70 @@ export function promotePnpmFallback(nodeModules) {
     // A scoped dir is a namespace, not a package — it is never a link target
     // itself. It may already exist as a real directory (Turbopack copies the
     // packages it traced), so promote its children individually.
-    if (!existsSync(dest)) {
-      mkdirSync(dest, { recursive: true })
-    }
     for (const child of readdirSync(source)) {
-      linkIfMissing(join(dest, child), join(source, child))
+      const childSource = join(source, child)
+      if (!existsSync(childSource)) {
+        untraced += 1
+        continue
+      }
+      if (!existsSync(dest)) {
+        mkdirSync(dest, { recursive: true })
+      }
+      linkIfMissing(join(dest, child), childSource)
     }
   }
 
-  return { linked, skipped, missingFallback: false }
+  return { linked, skipped, untraced, missingFallback: false }
 }
 
 /**
- * Whether every top-level entry of the fallback resolves after promotion.
+ * Fallback entries that **Next traced into the bundle** but that still do not
+ * resolve from the top level.
  *
- * Exported so the caller can fail loudly: a promotion that silently linked
- * nothing is the failure this whole step exists to catch.
+ * ⚠️ **This deliberately does not report every dangling entry, and the first
+ * version did — which failed the deploy on 2026-10-04 for `@esbuild/linux-x64`.**
+ *
+ * The fallback directory is copied wholesale, so it lists packages the bundle
+ * does not actually contain. `@esbuild/linux-x64` is a **build-time** binary:
+ * Next never traced it, so its store directory is absent and its fallback link
+ * dangles *before this script runs*. Demanding that it resolve asserts something
+ * untrue about the bundle, and would have meant either failing every deploy or
+ * deleting the check.
+ *
+ * So the question is not "does every fallback entry resolve?" but **"is every
+ * entry the bundle actually contains reachable from the top level?"** An entry
+ * whose store target is missing was never traced and is not this step's
+ * business. An entry Next *did* trace, that promotion failed to link, is a real
+ * defect and is reported — which is exactly the `@libsql/core` case.
  *
  * @param {string} nodeModules Absolute path to the bundle's `node_modules`.
- * @returns {{checked: number, broken: string[]}}
+ * @returns {{checked: number, untraced: number, broken: string[]}}
  */
 export function unresolvedFallbackEntries(nodeModules) {
   const fallback = join(nodeModules, '.pnpm', 'node_modules')
-  if (!existsSync(fallback)) return { checked: 0, broken: [] }
+  if (!existsSync(fallback)) return { checked: 0, untraced: 0, broken: [] }
 
   const broken = []
   let checked = 0
+  let untraced = 0
   for (const entry of readdirSync(fallback)) {
     const source = join(fallback, entry)
-    const children = entry.startsWith('@')
-      ? readdirSync(source).map((c) => join(source, c))
-      : [source]
-    for (const child of children) {
-      const dest = entry.startsWith('@')
-        ? join(nodeModules, entry, child.slice(source.length + 1))
-        : child
+    const names = entry.startsWith('@') ? readdirSync(source) : [null]
+    for (const name of names) {
+      const child = name === null ? source : join(source, name)
+      // Not traced into the bundle → nothing to link, and nothing to report.
+      if (!existsSync(child)) {
+        untraced += 1
+        continue
+      }
+      const dest = name === null ? join(nodeModules, entry) : join(nodeModules, entry, name)
       checked += 1
       if (lstatSync(dest, { throwIfNoEntry: false }) && !existsSync(dest)) {
         broken.push(relative(nodeModules, dest))
       }
     }
   }
-  return { checked, broken }
+  return { checked, untraced, broken }
 }
 
 // Run as a script: `node scripts/promote-pnpm-fallback.mjs <node_modules>`
@@ -164,14 +195,18 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log('No pnpm fallback in this bundle — nothing to promote (this is fine).')
     process.exit(0)
   }
-  const { checked, broken } = unresolvedFallbackEntries(target)
+  const { checked, untraced, broken } = unresolvedFallbackEntries(target)
   console.log(
     `promoted ${result.linked} entr${result.linked === 1 ? 'y' : 'ies'}, ${result.skipped} already present`,
   )
   if (broken.length > 0) {
-    console.error(`::error::${broken.length} pnpm fallback entries still do not resolve:`)
+    console.error(`::error::${broken.length} traced pnpm fallback entries still do not resolve:`)
     for (const path of broken.slice(0, 10)) console.error(`  ${path}`)
     process.exit(1)
   }
-  console.log(`all ${checked} fallback entries resolve`)
+  // The untraced count is printed rather than swallowed: a number nobody can
+  // account for is how the @esbuild case hid here the first time.
+  console.log(
+    `all ${checked} traced fallback entries resolve (${untraced} untraced build-time entries skipped)`,
+  )
 }

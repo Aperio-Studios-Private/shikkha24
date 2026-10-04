@@ -84,6 +84,24 @@ function makeFixture() {
   mkdirSync(join(nm, '@libsql', 'client'), { recursive: true })
   writeFileSync(join(nm, '@libsql', 'client', 'index.js'), '')
 
+  // An UNTRACED entry, exactly as Next leaves one. The fallback directory is
+  // copied wholesale, so it also lists packages the bundle does not contain:
+  // `@esbuild/linux-x64` is a build-time binary, its store directory was never
+  // traced, and its fallback link dangles *before this script runs*.
+  //
+  // This is what failed the deploy on 2026-10-04 — the first version of the
+  // gate demanded that every fallback entry resolve, which asserts something
+  // untrue about a real bundle. Without this fixture line, the assertion could
+  // be tightened again and pass, and the failure would return on the next run.
+  symlinkSync(
+    relative(
+      fallbackScope,
+      join(nm, '.pnpm', '@esbuild+linux-x64@0.21.5', 'node_modules', '@esbuild', 'linux-x64'),
+    ),
+    join(fallbackScope, 'linux-x64'),
+    'dir',
+  )
+
   return nm
 }
 
@@ -106,10 +124,18 @@ console.log('\n=== promotion makes every entry resolve ===')
   check('it reports work to do', result.linked > 0)
   check('it did not consider the fallback missing', result.missingFallback, false)
 
-  const { checked, broken } = unresolvedFallbackEntries(nm)
+  const { checked, untraced, broken } = unresolvedFallbackEntries(nm)
   check('nothing is left dangling', broken.length === 0, true)
   if (broken.length) console.log(`       dangling: ${broken.join(', ')}`)
   check('the fixture actually had entries to check', checked >= 2)
+
+  console.log('\n=== an UNTRACED entry is skipped, not reported broken ===')
+  // The esbuild case. `@esbuild/linux-x64` has no store directory in the
+  // bundle, so it is not this step's business — reporting it would fail every
+  // deploy, and the fix would have been to delete the check.
+  check('the untraced entry is counted separately', untraced === 1, true)
+  check('and it is NOT reported as broken', broken.includes(join('@esbuild', 'linux-x64')), false)
+  check('the traced @libsql/core IS checked', checked >= 2)
 
   console.log('\n=== promotion did not destroy what was already there ===')
   check(
