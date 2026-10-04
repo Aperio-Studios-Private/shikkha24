@@ -36,7 +36,12 @@ BOLD=$'\033[1m'; DIM=$'\033[2m'; GREEN=$'\033[32m'; YELLOW=$'\033[33m'; RED=$'\0
 say()  { printf '%s\n' "$*"; }
 head_() { printf '\n%s%s%s\n' "$BOLD" "$*" "$OFF"; }
 ok()   { printf '  %s✓%s %s\n' "$GREEN" "$OFF" "$*"; }
-skip() { printf '  %s·%s %s %s(already set)%s\n' "$DIM" "$OFF" "$*" "$DIM" "$OFF"; }
+# ⚠️ The reason is an argument, not baked into the message. It was hardcoded as
+# "(already set)" and reused for the empty-input path too, so pressing Enter at a
+# secret you had not created yet printed "already set" — telling a non-technical
+# owner their backup was configured when it was not. Found by reading the owner's
+# screenshot, not the code.
+skip() { printf '  %s·%s %s %s(%s)%s\n' "$DIM" "$OFF" "$1" "$DIM" "$2" "$OFF"; }
 todo() { printf '  %s→%s %s\n' "$YELLOW" "$OFF" "$*"; }
 
 # ── 0. Prerequisites ───────────────────────────────────────────────────────────
@@ -82,12 +87,11 @@ for entry in "${secrets[@]}"; do
   name="${entry%%|*}"
   desc="${entry#*|}"
   if printf '%s\n' "$existing" | grep -qx "$name"; then
-    skip "$name"
+    skip "$name" "already set"
     continue
   fi
   say "  ${BOLD}$name${OFF}"
   say "  ${DIM}$desc${OFF}"
-  # Hidden prompt. `--body` is deliberately absent — see the header.
   # ⚠️ Do NOT use `gh secret set NAME` with no argument and let gh do the prompting.
   #
   # It races the terminal. gh has to start up, then disable echo, and anything typed in that
@@ -102,7 +106,7 @@ for entry in "${secrets[@]}"; do
   IFS= read -r -s value || value=''
   printf '\n'
   if [ -z "$value" ]; then
-    skip "$name"
+    skip "$name" "not set yet - press Enter here to skip, or paste a value"
     continue
   fi
   if printf '%s' "$value" | gh secret set "$name" --repo "$REPO" >/dev/null 2>&1; then
@@ -135,13 +139,23 @@ cat <<'EOF'
   These are clicks in your web host's control panel. They come first, because the
   secrets above are meaningless without them.
 
-  1. FTP Accounts -> create an account whose folder is  shikkha24-backup
-     Use its OWN password, not your main cPanel password.
-  2. Terminal -> run  bash ~/bin/shikkha24-backup-dump.sh  once, and read the output.
-     It prints a line starting "wrote shikkha24-...tar.gz" when it worked.
+  1. FTP Accounts -> create an account.  The USERNAME can be anything.
+     The DIRECTORY must be exactly  shikkha24-backup  -- the fetch asks for
+     latest.txt relative to wherever the account logs in, so the folder is what
+     matters, not the name.  Use its OWN new password, not your main one.
+
+  2. File Manager -> /home/USER -> make a folder called  bin  -> upload
+     scripts/host-backup-dump.sh into it, renamed to  shikkha24-backup-dump.sh
+     (there is no SSH to this host, so the file has to arrive this way).
+     Then Terminal ->  chmod +x ~/bin/shikkha24-backup-dump.sh
+     and run it once by hand.  A good run ends:
+       done -- 1 archive(s) retained in ...
+
   3. Cron Jobs -> once daily at 23:00:
        0  23  *  *  *   /bin/sh /home/USER/bin/shikkha24-backup-dump.sh
-     (The host clock is UTC+6, so 23:00 local is 17:00 UTC.)
+     (The host clock is UTC+6, so 23:00 local is 17:00 UTC -- two hours before
+      the 19:00 UTC fetch.  If the dump runs after the fetch you lose a day of
+      freshness every cycle and nothing ever goes red.)
 EOF
 
 # ── 4. Report ──────────────────────────────────────────────────────────────────

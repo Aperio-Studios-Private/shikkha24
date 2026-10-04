@@ -45,12 +45,18 @@
 #    `/home/shikkhac/shikkha24-backup`. Use a *dedicated* password, not the main account
 #    password: this credential's only job is to read backups, and it must not be able to
 #    reach `.env`. Give it **no privileges** (FTP accounts do not need them here).
-# 2. cPanel → **Terminal**:
-#        mkdir -p ~/bin && mkdir -p ~/shikkha24-backup
-#        # copy scripts/host-backup-dump.sh to ~/bin/ and:
-#        chmod +x ~/bin/shikkha24-backup-dump.sh && ~/bin/shikkha24-backup-dump.sh
-#    ⚠️ Run it by hand and read the output. If it fails, cron will fail 30 times a month
-#    and nothing will look wrong until the day it is needed.
+# 2. cPanel → **File Manager** → `/home/shikkhac` → make a folder `bin` → upload
+#    scripts/host-backup-dump.sh into it, renamed to shikkha24-backup-dump.sh.
+#    Then cPanel → **Terminal**:
+#        mkdir -p ~/bin ~/shikkha24-backup
+#        chmod +x ~/bin/shikkha24-backup-dump.sh
+#        ~/bin/shikkha24-backup-dump.sh
+#    ⚠️ There is no `cp` line because there is no SSH to this host — the file has to
+#    arrive through File Manager. A `cp` left as a comment here gets pasted, appears to
+#    run, and silently does nothing.
+#    ⚠️ Run it by hand and READ the output. A good run ends "done — N archive(s) retained".
+#    If it fails, cron will fail 30 times a month and nothing will look wrong until the
+#    day it is needed. If it says sqlite3 is missing, install it — do NOT fall back to cp.
 # 3. cPanel → **Cron Jobs** → once daily at **23:00 SERVER-LOCAL time**:
 #        0  23  *  *  *   /bin/sh /home/shikkhac/bin/shikkha24-backup-dump.sh
 #    ⚠️ That hour is not a guess. cPanel schedules in the account's local time and this
@@ -112,10 +118,17 @@ jobs:
         run: node scripts/backup-fetch.mjs .
 
       - name: Store the verified archive
-        # `if: always()` so a successful fetch is still stored when a *later* step
-        # fails — the file is already verified at this point, so storing it is safe and
-        # losing it would be the worse outcome.
-        if: always()
+        # ⚠️ No `if: always()` here, and the reason is not tidiness.
+        #
+        # `if: always()` was here with a comment claiming "the file is already verified at
+        # this point, so storing it is safe". **That was false.** When the verifier rejects
+        # an archive, `backup-fetch.mjs` throws, this step's *predecessor* fails — and
+        # `always()` overrode that, uploading the exact file that had just been rejected.
+        # It landed under a normal-looking name: `shikkha24-backup-<run_id>`. At 3am, during
+        # a restore, that is the file a tired person grabs first.
+        #
+        # Default gating (`success()`) is the correct behaviour: an archive is stored only
+        # when something said it was restorable.
         uses: actions/upload-artifact@v7
         with:
           name: shikkha24-backup-${{ github.run_id }}
