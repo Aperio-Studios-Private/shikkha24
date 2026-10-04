@@ -188,7 +188,39 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
   - **⚠️ THE FIX CANNOT REACH PRODUCTION WITHOUT A CMS DEPLOY** — and push-to-live has the three
     independent blockers in `docs/hosting-and-deployment.md` §4. **Until that is resolved, neither
     reported bug is actually fixed for the owner**, and the deploy is now the critical path for
-    both of them. `verify:origins` still needs adding to the root `pnpm verify` chain.
+    both of them.
+  - **✅ `verify:origins` is wired into the root `pnpm verify` chain** (`1fa2a4d`).
+  - **🔴 24 COMMITS WERE NEVER PUSHED (found 2026-10-04, `97a18fb..1fa2a4d`).** The eight
+    commits before it were in the same state — the whole backup rewrite, the `MAX_ARCHIVES` cap,
+    and `f267079`, which is why `.next/routes-manifest.json` had to be **hand-patched on the
+    host**: the fix existed and simply could not be deployed. The signal was a manual dispatch
+    failing with `HTTP 422: Unexpected inputs provided: ["confirm-risk","mode","target"]` —
+    inputs that were plainly in the committed file. **Every local gate was green and every one
+    of them ran against code production had never seen.** See `.sps/mistakes.md` **M21**.
+    - **The three deploy blockers do not apply to a manual dispatch.** All three are about
+      *automatic* deploys (no SSH, no webhook receiver, cron that never fetches).
+      `workflow_dispatch` needs none of them — a human presses the button in the Actions tab and
+      the run has its own credentials. **This is the route to the first live CMS deploy, and it
+      needs neither the terminal DianaHost disabled nor the ticket they are waiting on.**
+    - **Safety verified before pushing, not assumed:** `AUTO_DEPLOY` is **not** set, so a push to
+      `main` runs the deploy in **dry-run**; `backup-db.yml` triggers only on schedule/dispatch,
+      not on push; `deploy.yml` is a single job with no `needs:`, so the red CI gate cannot block
+      it. `ci.yml` *will* go red on the known parked CLS gate — expected, not new.
+    - **Owner setup, done 2026-10-04:** `CPANEL_HOST` (`b201.serverdiana.com`), `CPANEL_USER`
+      (`shikkhac`), `CPANEL_TOKEN` as repository secrets. ⚠️ **The earlier token was pasted into
+      chat and is considered exposed — the owner deleted it and created a fresh one.** Never
+      reproduce or use the old value.
+    - **The delete set is provably empty for this first deploy:** `planDeletes({previous: [],
+      current: [...]})` → `firstDeploy: true`, `delete: []`. The site was deployed by hand, so no
+      previous manifest exists, and only paths a *previous* deploy recorded can ever be deleted.
+      **`node_modules` — the venv symlinks, the one thing that can take the CMS down — cannot be
+      in that set**, because it was never recorded. Measured, not reasoned (see `scripts/`).
+    - **Remaining live risk, stated plainly:** the dry run does not extract. If DianaHost's fork
+      limit (`nPROC`) is still active, the extraction itself — thousands of file operations run
+      as this account — could stall partway and leave the CMS half-deployed. The deploy script
+      detects this (`${CMS_URL}/api/articles` health check) and prints a venv-repair command,
+      ⚠️ **but that repair needs the cPanel Terminal, which DianaHost disabled.** Do not treat a
+      passing dry run as proof that a live deploy is safe; it proves credentials and plan only.
 - **⚠️ One owner action settles a nine-document dispute.** The runtime Node version is asserted
   as `20.18.2` in nine documents and was **never measured** — it was inferred from the
   CloudLinux `nodevenv` path, whose directory number **is** the version, and that path reads
