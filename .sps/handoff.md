@@ -15,6 +15,57 @@
 | **What grade calculators already exist, and how do ours compare?** | **`docs/gpa-calculator-landscape.md`** — BD + international landscape, and the positioning |
 
 ## Current Phase
+- **✅ DEPLOY UNBLOCKED — the terminal is no longer on the critical path (2026-10-03).**
+  - **The production schema no longer needs a shell.** `@payloadcms/db-sqlite` has a
+    documented option (`dist/connect.js:56`) that applies migrations at
+    `NODE_ENV=production` when `prodMigrations` is set. `cms/src/payload.config.ts`
+    now passes the committed migrations through it, gated on
+    `PAYLOAD_BOOTSTRAP_SCHEMA=true`. Measured on an empty database in production
+    mode: **74 tables on boot; unset, 0 tables** (counter-proof). So the deploy is
+    now *upload zip → set 4 env vars → Restart*. This matters because DianaHost
+    refuses SSH (ports 22/2222/222/2200/2022 all closed; only 443/2083/2087 open) and
+    cPanel Terminal was announced as expiring — the schema must not depend on shell
+    access it might lose. Only the taxonomy seed still needs a terminal, and it is
+    one command.
+  - **Gated off by default on purpose.** It works, which is what makes it a footgun:
+    left on, every boot applies pending migrations unattended with no backup first —
+    exactly what `push: false` exists to prevent. Bootstrap switch, not a deployment
+    mode; the runbook says to remove it.
+  - **⚠️ First push of this broke CI, and the reason is worth not rediscovering.**
+    `import { migrations } from './migrations/index.js'` resolved under `payload run`
+    (which maps `.js`→`.ts`) but **not** under Next's bundler — surfacing as a 500
+    from every API route, which reads as "the CMS is broken" rather than "one import
+    path is wrong". Fixed extensionless (every other import in that file is), verified
+    both directions: `.js` → 500 (CI 37139257348), extensionless → 200 locally.
+  - **A page-speed budget was deciding whether a deployable artifact existed.** The
+    Lighthouse CLS gate was step 20 of 30 with both uploads at 26 and 30, so a red
+    *performance* assertion silently produced no artifact — the actual reason
+    "deployment keeps failing". Three separate causes, fixed separately:
+    1. Uploads now `always() && steps.<build>.outcome == 'success'` — a finished
+       artifact is a property of the build, not of later assertions.
+    2. The CMS build/typecheck/assemble were **after** the Lighthouse step, so they
+       were skipped and there was nothing to assemble (run 37140158266 proved
+       direction 1 while showing this).
+    3. The Lighthouse gate was step 21 of 32 with five **functional** verifications
+       after it (`.htaccess` against a real Apache, build output, links, search
+       bootstrap, CMS read/write) — so a CLS failure skipped them and shipped a
+       `frontend-dist` whose `.htaccess` had never been validated. The gate is now
+       second-to-last: the only assertion measuring speed rather than correctness,
+       and the only one that may fail after everything it depends on is checked.
+    - **No threshold was lowered and the gate still fails the job.** It only stopped
+      deciding whether an artifact exists.
+  - **Deployable now:** run `37140824631` produced `cms-standalone` (80 MB) and
+    `frontend-dist` (3 MB) from a run red only on CLS. Assemble asserted
+    `cms/server.js` and `cms/src/migrations/index.ts`; bundle measured **108 MB**
+    (S0 measured 114 MB, ceiling 700 MB).
+  - **⚠️ The `frontend-dist` in that run is under-verified** — the five functional
+    checks were skipped (cause 3 above). Deploy the CMS from it freely; prefer a
+    later green run for the frontend.
+  - **SSH remains on-demand.** `docs/dianahost-provisioning-checklist.md` item 0.3:
+    the PNR plan lists *"SSH/Shell Access: Yes (On Demand)"*, not enabled by default.
+    The owner generated an RSA-2048 pair on the host (`~/.ssh/shahid`); it needs
+    `~/.ssh/authorized_keys` and a support ticket, but **no longer blocks this deploy.**
+
 - **✅✅ BRANCH RECONCILIATION — one branch now produces the deployable artifact (2026-10-03).**
   - **Most of the feared divergence did not exist.** The dependency work had already converged onto `main`: `@swc/helpers@0.5.23` (the fix for the HTTP 503 boot failure) at `cms/package.json:49`, `next@16.3.6`, and the `devalue@5.9.2 → 5.9.4` override in `pnpm-workspace.yaml:66`. **So the deploy-critical risk was not "main is missing the SWC fix" — it was narrower than that, and worth stating precisely rather than merging 17 commits on a guess.**
   - **Exactly one real gap, and it was silent.** `0ecbeda` added `include-hidden-files: true` to the `cms-standalone` upload; `main` never had it. GitHub excludes hidden files from artifacts by default, and Next's bundle is full of hidden `.next` trees — so **every CMS artifact ever built from `main` has been missing `.next/static`**: it downloads, it looks fine, and the deployed admin loads its HTML and 404s every asset. Recovered onto `main` in the commit below.
