@@ -109,27 +109,27 @@ const status = reporter?.verificationStatus ?? null
   <div class="container-page py-8">
     <div class="mx-auto max-w-2xl">
       <h1 class="mb-2 text-2xl font-bold text-ink dark:text-dark-ink">পরিচয়পত্র যাচাই</h1>
-      <p class="mb-6 text-base text-ink-soft dark:text-dark-ink-soft">
+      <p class="mb-6 text-base text-ink-subtle dark:text-dark-ink-muted">
         নিচের তথ্য শিক্ষা২৪-এর অফিসিয়াল রেকর্ড থেকে নেওয়া।
       </p>
 
       {
         !reporter ? (
-          <div class="rounded-lg border border-rule bg-surface-raised p-6 dark:border-dark-rule dark:bg-dark-surface-raised">
+          <div class="rounded-lg border border-rule bg-surface-raised p-6 dark:border-dark-rule dark:bg-dark-raised">
             <div class="flex items-center gap-3">
               <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-xl text-brand-red dark:bg-red-900/30">
                 ✕
               </span>
               <div>
                 <p class="font-semibold text-ink dark:text-dark-ink">যাচাই করা যায়নি</p>
-                <p class="text-sm text-ink-soft dark:text-dark-ink-soft">
+                <p class="text-sm text-ink-subtle dark:text-dark-ink-muted">
                   এই আইডির কোনো প্রতিবেদক পাওয়া যায়নি। কার্ডটি সঠিক নয় অথবা বাতিল হয়েছে।
                 </p>
               </div>
             </div>
           </div>
         ) : (
-          <div class="overflow-hidden rounded-lg border border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-surface-raised">
+          <div class="overflow-hidden rounded-lg border border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-raised">
             <div class="border-b border-rule p-6 dark:border-dark-rule">
               <div class="flex items-center gap-5">
                 {photo ? (
@@ -143,14 +143,14 @@ const status = reporter?.verificationStatus ?? null
                     loading="eager"
                   />
                 ) : (
-                  <div class="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-rule text-3xl text-ink-soft dark:bg-dark-rule dark:text-dark-ink-soft">
+                  <div class="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-rule text-3xl text-ink-subtle dark:bg-dark-rule dark:text-dark-ink-muted">
                     {reporter.nameBn.charAt(0)}
                   </div>
                 )}
                 <div class="min-w-0">
                   <p class="text-xl font-bold text-ink dark:text-dark-ink">{reporter.nameBn}</p>
                   {reporter.designation ? (
-                    <p class="text-sm text-ink-soft dark:text-dark-ink-soft">{reporter.designation}</p>
+                    <p class="text-sm text-ink-subtle dark:text-dark-ink-muted">{reporter.designation}</p>
                   ) : null}
                   <div class="mt-2">
                     <VerificationBadge status={reporter.verificationStatus ?? 'unverified'} />
@@ -161,20 +161,20 @@ const status = reporter?.verificationStatus ?? null
 
             <dl class="divide-y divide-rule dark:divide-dark-rule">
               <div class="flex items-center justify-between gap-4 p-4">
-                <dt class="text-sm text-ink-soft dark:text-dark-ink-soft">প্রতিবেদক আইডি</dt>
+                <dt class="text-sm text-ink-subtle dark:text-dark-ink-muted">প্রতিবেদক আইডি</dt>
                 <dd class="font-mono text-sm font-medium text-ink dark:text-dark-ink">
                   {reporter.reporterId ?? '—'}
                 </dd>
               </div>
               {reporter.pressCardNo ? (
                 <div class="flex items-center justify-between gap-4 p-4">
-                  <dt class="text-sm text-ink-soft dark:text-dark-ink-soft">প্রেস কার্ড নম্বর</dt>
+                  <dt class="text-sm text-ink-subtle dark:text-dark-ink-muted">প্রেস কার্ড নম্বর</dt>
                   <dd class="text-sm font-medium text-ink dark:text-dark-ink">{reporter.pressCardNo}</dd>
                 </div>
               ) : null}
               {validUntilLabel ? (
                 <div class="flex items-center justify-between gap-4 p-4">
-                  <dt class="text-sm text-ink-soft dark:text-dark-ink-soft">মেয়াদ শেষ</dt>
+                  <dt class="text-sm text-ink-subtle dark:text-dark-ink-muted">মেয়াদ শেষ</dt>
                   <dd
                     class:list={[
                       'text-sm font-medium',
@@ -190,7 +190,7 @@ const status = reporter?.verificationStatus ?? null
               ) : null}
               {reporter.beat && reporter.beat.length > 0 ? (
                 <div class="flex items-center justify-between gap-4 p-4">
-                  <dt class="text-sm text-ink-soft dark:text-dark-ink-soft">বিট</dt>
+                  <dt class="text-sm text-ink-subtle dark:text-dark-ink-muted">বিট</dt>
                   <dd class="text-right text-sm font-medium text-ink dark:text-dark-ink">
                     {reporter.beat.join(', ')}
                   </dd>
@@ -210,7 +210,7 @@ const status = reporter?.verificationStatus ?? null
         ) : null
       }
 
-      <p class="mt-6 text-sm text-ink-soft dark:text-dark-ink-soft">
+      <p class="mt-6 text-sm text-ink-subtle dark:text-dark-ink-muted">
         এই তথ্যের কোনো প্রশ্ন থাকলে{' '}
         <a href="/contact" class="font-medium text-brand-red hover:underline">যোগাযোগ</a> পাতায়
         জানান।
