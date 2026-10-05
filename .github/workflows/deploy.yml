@@ -96,6 +96,10 @@ on:
         required: false
         default: false
         type: boolean
+      cms-root:
+        description: 'Host directory for the CMS. Leave empty for shikkha24-cms; set shikkha24-cms-staging to rehearse a first live run without touching production'
+        required: false
+        type: string
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -282,6 +286,7 @@ jobs:
         run: |
           pnpm run verify:cpanel-deploy
           pnpm run verify:deploy-mode
+          pnpm run verify:deploy-inputs
 
       # ── Build the CMS (only when it is the target) ───────────────────────
       - name: Build (CMS, standalone)
@@ -363,6 +368,21 @@ jobs:
           DEPLOY_DRY_RUN: ${{ steps.cfg.outputs.dry_run }}
           DEPLOY_CMS_DIST: cms/.next/standalone/cms
           CMS_URL: ${{ secrets.CMS_URL }}
+          # ⚠️ Overridable so the FIRST live run can target a staging directory.
+          #
+          # Everything above the deploy step is proven — credentials, the host,
+          # the docroot listing, the bundle. What is NOT proven is the part that
+          # writes: `Fileman::extract_files` is documented as possibly absent on
+          # this cPanel build, and the API 2.0 fallback extracts **in place**, with
+          # no destination. If either stalls partway over `~/shikkha24-cms`, the
+          # CMS is left half-extracted and the venv repair needs the cPanel
+          # Terminal — which DianaHost disabled on 2026-10-04.
+          #
+          # So the first live run goes to `shikkha24-cms-staging`. It exercises
+          # the same upload, the same extract and the same 588 files, and if the
+          # fork limit is still active we find out there instead of in production.
+          # The default is unchanged; only an explicit override redirects.
+          DEPLOY_CMS_ROOT: ${{ inputs.cms-root || vars.DEPLOY_CMS_ROOT }}
         run: node scripts/deploy-cms.mjs
 
       - name: Deploy the static site to public_html
