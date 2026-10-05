@@ -51,7 +51,7 @@ const cardUrl = cardPath && cmsOrigin ? `${cmsOrigin}${cardPath}` : null
 ---
 
 <div
-  class="mt-8 flex flex-wrap items-center gap-2 border-y border-rule py-4 dark:border-dark-rule"
+  class="flex flex-wrap items-center gap-2"
   aria-label="শেয়ার করুন"
 >
   <span class="mr-1 text-sm font-semibold text-ink-muted dark:text-dark-ink-muted">শেয়ার:</span>
@@ -60,7 +60,7 @@ const cardUrl = cardPath && cmsOrigin ? `${cmsOrigin}${cardPath}` : null
     href={`https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`}
     target="_blank"
     rel="noopener noreferrer"
-    class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#25d366] px-3 text-sm font-medium text-white"
+    class="inline-flex h-12 items-center gap-1.5 rounded-md bg-[#25d366] px-3 text-sm font-medium text-white"
     aria-label="হোয়াটসঅ্যাপে শেয়ার করুন"
   >
     <ShareIcon name="whatsapp" />
@@ -71,7 +71,7 @@ const cardUrl = cardPath && cmsOrigin ? `${cmsOrigin}${cardPath}` : null
     href={`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`}
     target="_blank"
     rel="noopener noreferrer"
-    class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#1877f2] px-3 text-sm font-medium text-white"
+    class="inline-flex h-12 items-center gap-1.5 rounded-md bg-[#1877f2] px-3 text-sm font-medium text-white"
     aria-label="ফেসবুকে শেয়ার করুন"
   >
     <ShareIcon name="facebook" />
@@ -82,7 +82,7 @@ const cardUrl = cardPath && cmsOrigin ? `${cmsOrigin}${cardPath}` : null
     href={`https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`}
     target="_blank"
     rel="noopener noreferrer"
-    class="inline-flex h-9 items-center gap-1.5 rounded-md bg-ink px-3 text-sm font-medium text-white"
+    class="inline-flex h-12 items-center gap-1.5 rounded-md bg-ink px-3 text-sm font-medium text-white"
     aria-label="এক্স-এ শেয়ার করুন"
   >
     <ShareIcon name="x" />
@@ -92,7 +92,7 @@ const cardUrl = cardPath && cmsOrigin ? `${cmsOrigin}${cardPath}` : null
   <button
     type="button"
     id="copy-article-link"
-    class="inline-flex h-9 items-center gap-1.5 rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
+    class="inline-flex h-12 items-center gap-1.5 rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
     aria-label="লিংক কপি করুন"
   >
     {/*
@@ -108,7 +108,7 @@ const cardUrl = cardPath && cmsOrigin ? `${cmsOrigin}${cardPath}` : null
   <button
     type="button"
     onclick="window.print()"
-    class="inline-flex h-9 items-center gap-1.5 rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
+    class="inline-flex h-12 items-center gap-1.5 rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
     aria-label="প্রিন্ট করুন"
   >
     <ShareIcon name="printer" />
@@ -121,7 +121,7 @@ const cardUrl = cardPath && cmsOrigin ? `${cmsOrigin}${cardPath}` : null
         href={cardUrl}
         target="_blank"
         rel="noopener"
-        class="inline-flex h-9 items-center gap-1.5 rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
+        class="inline-flex h-12 items-center gap-1.5 rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
         aria-label="সোশ্যাল কার্ড দেখুন এবং সংরক্ষণ করুন"
         title="সোশ্যাল কার্ড দেখুন এবং সংরক্ষণ করুন"
       >
