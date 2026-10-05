@@ -18,6 +18,7 @@
  * Graph API post — no page token, no app review, no third-party request on load.
  */
 import { getPublicCmsOrigin } from '../lib/interactive'
+import ShareIcon from './ShareIcon.astro'
 
 interface Props {
   url: string
@@ -62,6 +63,7 @@ const cardUrl = cardPath && cmsOrigin ? `${cmsOrigin}${cardPath}` : null
     class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#25d366] px-3 text-sm font-medium text-white"
     aria-label="হোয়াটসঅ্যাপে শেয়ার করুন"
   >
+    <ShareIcon name="whatsapp" />
     হোয়াটসঅ্যাপ
   </a>
 
@@ -72,6 +74,7 @@ const cardUrl = cardPath && cmsOrigin ? `${cmsOrigin}${cardPath}` : null
     class="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#1877f2] px-3 text-sm font-medium text-white"
     aria-label="ফেসবুকে শেয়ার করুন"
   >
+    <ShareIcon name="facebook" />
     ফেসবুক
   </a>
 
@@ -82,6 +85,7 @@ const cardUrl = cardPath && cmsOrigin ? `${cmsOrigin}${cardPath}` : null
     class="inline-flex h-9 items-center gap-1.5 rounded-md bg-ink px-3 text-sm font-medium text-white"
     aria-label="এক্স-এ শেয়ার করুন"
   >
+    <ShareIcon name="x" />
     এক্স
   </a>
 
@@ -91,6 +95,13 @@ const cardUrl = cardPath && cmsOrigin ? `${cmsOrigin}${cardPath}` : null
     class="inline-flex h-9 items-center gap-1.5 rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
     aria-label="লিংক কপি করুন"
   >
+    {/*
+      ⚠️ The icon sits OUTSIDE `#copy-article-label` on purpose. The script
+      swaps that span's `textContent` to "কপি হয়েছে", and an icon placed inside
+      it would be destroyed by the first click — leaving a button that lost its
+      mark the moment it was used.
+    */}
+    <ShareIcon name="link" />
     <span id="copy-article-label">লিংক কপি</span>
   </button>
 
@@ -100,6 +111,7 @@ const cardUrl = cardPath && cmsOrigin ? `${cmsOrigin}${cardPath}` : null
     class="inline-flex h-9 items-center gap-1.5 rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
     aria-label="প্রিন্ট করুন"
   >
+    <ShareIcon name="printer" />
     প্রিন্ট
   </button>
 
@@ -113,6 +125,7 @@ const cardUrl = cardPath && cmsOrigin ? `${cmsOrigin}${cardPath}` : null
         aria-label="সোশ্যাল কার্ড দেখুন এবং সংরক্ষণ করুন"
         title="সোশ্যাল কার্ড দেখুন এবং সংরক্ষণ করুন"
       >
+        <ShareIcon name="card" />
         কার্ড
       </a>
     ) : null

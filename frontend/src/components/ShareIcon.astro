@@ -1,0 +1,95 @@
+---
+/**
+ * One icon for a share/utility control.
+ *
+ * ## ⚠️ Why inline SVG and not an icon font or sprite
+ *
+ * Six marks is not worth a webfont. A font is a render-blocking third-party
+ * request on a page with a 1.2 MB budget (`docs/performance-budget.md`), and
+ * the strict CSP allows no external stylesheet at all. Inline SVG costs
+ * nothing at request time and inherits `currentColor`, so one icon works on
+ * the brand-coloured buttons and the outline buttons alike.
+ *
+ * This is the same reasoning — and the same 24×24 grid — as `SocialLinks.astro`.
+ *
+ * ## ⚠️ Every icon here is decorative
+ *
+ * Each one is `aria-hidden` and `focusable="false"`. The accessible name comes
+ * from the control's own Bengali `aria-label` / visible text, so a screen reader
+ * says "হোয়াটসঅ্যাপে শেয়ার করুন" once — never "whatsapp icon, হোয়াটসঅ্যাপে শেয়ার করুন".
+ *
+ * ## Provenance and licence
+ *
+ * - **Brand marks** (`whatsapp`, `facebook`, `x`) — [Simple Icons](https://simpleicons.org), **CC0 1.0**.
+ * - **Utility marks** (`link`, `printer`, `card`) — [Heroicons](https://heroicons.com) v2 outline, **MIT**.
+ *
+ * Both are inlined path data, not dependencies: nothing is added to
+ * `package.json`, and there is no runtime fetch. `scripts/verify-share-icons.mjs`
+ * asserts both licences and that every icon named by a share control exists.
+ */
+interface Props {
+  /** Which mark to draw. Must be a key of `FILLED` or `STROKED`. */
+  name: 'whatsapp' | 'facebook' | 'x' | 'link' | 'printer' | 'card'
+  /** Square edge length in px. */
+  size?: number
+  class?: string
+}
+
+const { name, size = 18, class: className } = Astro.props
+
+/** Brand marks — solid glyphs, filled with `currentColor`. Simple Icons, CC0. */
+const FILLED: Record<string, string> = {
+  whatsapp:
+    'M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z',
+  facebook:
+    'M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 011.141.195v3.325a8.623 8.623 0 00-.653-.036 26.805 26.805 0 00-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 00-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z',
+  x: 'M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z',
+}
+
+/**
+ * Utility marks — outlined glyphs, stroked with `currentColor`. Heroicons v2, MIT.
+ *
+ * ⚠️ Stroke marks sit on the **outline** buttons, which have no background of
+ * their own, so they must stroke with `currentColor` and not `fill`. Mixing the
+ * two is why the brand buttons read as solid chips and these as outlines.
+ */
+const STROKED: Record<string, string> = {
+  link: 'M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244',
+  printer:
+    'M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z',
+  card: 'M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5Zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0Zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0Z',
+}
+
+const filled = FILLED[name]
+const stroked = STROKED[name]
+---
+
+{
+  filled ? (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      focusable="false"
+      class={className}
+    >
+      <path d={filled} />
+    </svg>
+  ) : (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      aria-hidden="true"
+      focusable="false"
+      class={className}
+    >
+      <path stroke-linecap="round" stroke-linejoin="round" d={stroked} />
+    </svg>
+  )
+}
