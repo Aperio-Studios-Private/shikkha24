@@ -40,8 +40,7 @@
  *
  * Run: node scripts/verify-site-name.mjs
  */
-import { readFileSync } from 'node:fs'
-import { globSync } from 'node:fs'
+import { globSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const root = new URL('..', import.meta.url).pathname
@@ -60,17 +59,35 @@ const ALLOWED_FALLBACKS = new Map([
     'frontend/src/lib/cms.ts',
     'FALLBACK_SETTINGS — rendered whenever the CMS is unreachable, and it is what CI builds render (no settings row in ci.db)',
   ],
-  ['frontend/src/pages/rss.xml.ts', "`||` guard after a successful CMS read; covers an empty string"],
-  ['frontend/src/pages/news-sitemap.xml.ts', "`||` guard after a successful CMS read; covers an empty string"],
+  [
+    'frontend/src/pages/rss.xml.ts',
+    '`||` guard after a successful CMS read; covers an empty string',
+  ],
+  [
+    'frontend/src/pages/news-sitemap.xml.ts',
+    '`||` guard after a successful CMS read; covers an empty string',
+  ],
   ['cms/src/endpoints/id-card.ts', 'offline fallback after a successful CMS read (2 sites)'],
   ['cms/src/endpoints/newsletter.ts', 'FALLBACK_SITE_NAME — used only if the settings read throws'],
-  ['cms/src/payload.config.ts', 'SMTP sender name + admin tab suffix; both are evaluated before any DB access'],
+  [
+    'cms/src/payload.config.ts',
+    'SMTP sender name + admin tab suffix; both are evaluated before any DB access',
+  ],
   ['cms/src/lib/campaign.ts', 'SMTP sender name; same reason'],
-  ['cms/src/seed/universities.ts', 'User-Agent header value — a protocol identifier for the directory importer, not a rendered brand name; changing it would break server-side allow-lists'],
+  [
+    'cms/src/seed/universities.ts',
+    'User-Agent header value — a protocol identifier for the directory importer, not a rendered brand name; changing it would break server-side allow-lists',
+  ],
   ['cms/src/verify/', 'test fixtures that assert the renderer output'],
   ['cms/src/seed/', 'demo corpus content written into the database'],
-  ['frontend/public/sw.js', 'FALLBACK_TITLE — a service worker is not bundled and cannot read the CMS'],
-  ['frontend/public/og-default.svg', 'static share image; a route would change the URL social platforms cache'],
+  [
+    'frontend/public/sw.js',
+    'FALLBACK_TITLE — a service worker is not bundled and cannot read the CMS',
+  ],
+  [
+    'frontend/public/og-default.svg',
+    'static share image; a route would change the URL social platforms cache',
+  ],
   ['frontend/public/llms.txt', 'static crawler metadata'],
   ['cms/src/migrations/', 'migration history — rewriting a committed migration is not allowed'],
   ['cms/src/payload-types.ts', 'generated from the CMS config by verify:payload-types'],
@@ -88,7 +105,9 @@ const note = (file, line, text) => failures.push({ file, line, text })
  * a source of its own false negatives.
  */
 function stripComments(text) {
-  return text.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' ')).replace(/\/\/[^\n]*/g, (m) => ' '.repeat(m.length))
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+    .replace(/\/\/[^\n]*/g, (m) => ' '.repeat(m.length))
 }
 
 /** Line number of `index` within `text`. */
@@ -101,10 +120,11 @@ const isAllowed = (rel) => {
 
 // --- Section 1: no reader-visible literal outside the allow-list -----------
 let scanned = 0
-let found = 0
 
 for (const dir of ['frontend/src', 'cms/src']) {
-  for (const rel of globSync('**/*.{astro,tsx,ts,js}', { cwd: join(root, dir) }).map((f) => `${dir}/${f}`)) {
+  for (const rel of globSync('**/*.{astro,tsx,ts,js}', { cwd: join(root, dir) }).map(
+    (f) => `${dir}/${f}`,
+  )) {
     if (isAllowed(rel)) continue
     const raw = readFileSync(join(root, rel), 'utf8')
     const text = stripComments(raw)
@@ -114,12 +134,13 @@ for (const dir of ['frontend/src', 'cms/src']) {
     // reported, so the negative lookahead skips it. It is written in escapes on
     // purpose: this exact value was once written as Latin `om` by mistake, and a
     // readable Bengali literal in a heredoc is exactly how that happened.
-    for (const m of text.matchAll(/\u09b6\u09bf\u0995\u09cd\u09b7\u09be\u09e8\u09ea(?!\.\u0995\u09ae)|Shikkha24(?!\.com|\w)/g)) {
+    for (const m of text.matchAll(
+      /\u09b6\u09bf\u0995\u09cd\u09b7\u09be\u09e8\u09ea(?!\.\u0995\u09ae)|Shikkha24(?!\.com|\w)/g,
+    )) {
       // A Latin "Shikkha24" in prose is still worth surfacing outside comments;
       // Bengali digits ২৪ and Latin 24 are the two spellings in circulation.
       const line = lineOf(text, m.index)
       note(rel, line, `hardcoded display name "${m[0]}" — read settings.siteName instead`)
-      found += 1
     }
   }
 }
@@ -141,8 +162,11 @@ const CANONICAL_BYTES = [...CANONICAL].map((c) => c.codePointAt(0).toString(16))
   const hasLatinTail = /[A-Za-z]/.test(CANONICAL)
   const hasBengali = /[\u0980-\u09FF]/.test(CANONICAL)
   if (hasLatinTail && hasBengali) {
-    note('scripts/verify-site-name.mjs', 50,
-      `CANONICAL mixes scripts: "${CANONICAL}" — verify the bytes, not the terminal`)
+    note(
+      'scripts/verify-site-name.mjs',
+      50,
+      `CANONICAL mixes scripts: "${CANONICAL}" — verify the bytes, not the terminal`,
+    )
   }
   // The exact codepoints, printed so a silent edit is visible in CI logs.
   console.log(`  canonical codepoints: ${bytes.join(' ')}`)
@@ -163,7 +187,6 @@ for (const [rel, re] of FALLBACK_LOCATIONS) {
     scanned += 1
     if (m[1] !== CANONICAL) {
       note(rel, lineOf(text, m.index), `fallback "${m[1]}" != owner value "${CANONICAL}"`)
-      found += 1
     }
   }
 }
@@ -179,12 +202,16 @@ if (failures.length === 0) {
   console.log(`  canonical name: ${CANONICAL}`)
   console.log(`  files scanned: ${scanned}`)
   console.log(`  literals found outside the allow-list: 0`)
-  console.log(`  allow-listed fallback locations: ${FALLBACK_LOCATIONS.length} (all equal to canonical)`)
+  console.log(
+    `  allow-listed fallback locations: ${FALLBACK_LOCATIONS.length} (all equal to canonical)`,
+  )
   console.log(`  allow-listed paths (comments/identifiers excluded): ${ALLOWED_FALLBACKS.size}`)
 } else {
   console.error(`verify:site-name — FAILED (${failures.length})`)
   for (const f of failures) console.error(`  ${f.file}:${f.line}  ${f.text}`)
   console.error(`\n  Fix: read settings.siteName. If a literal is genuinely required,`)
-  console.error(`  add the file to ALLOWED_FALLBACKS in scripts/verify-site-name.mjs with a reason.`)
+  console.error(
+    `  add the file to ALLOWED_FALLBACKS in scripts/verify-site-name.mjs with a reason.`,
+  )
   process.exitCode = 1
 }

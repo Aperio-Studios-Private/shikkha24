@@ -16,7 +16,6 @@ import ThemeToggle from './ThemeToggle.astro'
 import TextResizer from './TextResizer.astro'
 import type { CmsSiteSettings, CmsCategory } from '../lib/cms'
 import { isEnabled } from '../lib/feature-flags'
-import { getWeather, getPrayerTimes } from '../lib/widgets'
 import { formatBanglaDate, formatBnBd } from '../lib/bangla-date'
 import SocialLinks from './SocialLinks.astro'
 import HeaderWidgets from './HeaderWidgets.astro'
@@ -29,18 +28,13 @@ interface Props {
 const { settings, categories } = Astro.props
 
 /**
- * Header utilities are fetched here but memoised in `lib/widgets.ts`, so the
- * whole build costs two requests no matter how many pages are rendered.
- * Both return `null` on failure and the ribbon simply omits them — a dead
- * weather API must never take the newsroom offline or fail the build.
+ * The weather and prayer flags still gate the widgets — but they no longer gate
+ * a build-time fetch. Both widgets render a neutral placeholder and resolve the
+ * reader's own location in the browser, because a build can only ever know one
+ * city. See `lib/widgets.ts` for why that moved.
  */
 const showWeather = isEnabled('weatherWidget')
 const showPrayer = isEnabled('prayerWidget')
-
-const [weather, prayer] = await Promise.all([
-  showWeather ? getWeather() : Promise.resolve(null),
-  showPrayer ? getPrayerTimes() : Promise.resolve(null),
-])
 
 /*
  * Bengali date — the masthead shows BOTH calendars, as a Bengali newspaper does:
@@ -66,10 +60,10 @@ const gregorianDate = formatBnBd(now, { year: 'numeric', month: 'long', day: 'nu
           <span class="hidden text-ink-subtle sm:inline dark:text-dark-ink-muted"> · {gregorianDate}</span>
         </time>
 
-        {/* Weather, prayer and location. Renders the build-time value, then
-            refines it for the reader's own location in the browser. */}
+        {/* Weather, prayer and location. Each renders a neutral placeholder and
+            resolves the reader's own location in the browser. */}
         <div class="hidden sm:block">
-          <HeaderWidgets weather={weather} prayer={prayer} />
+          <HeaderWidgets showWeather={showWeather} showPrayer={showPrayer} />
         </div>
       </div>
 

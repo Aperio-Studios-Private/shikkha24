@@ -34,8 +34,7 @@
  *
  * Run: node scripts/verify-bengali-spacing.mjs
  */
-import { readFileSync } from 'node:fs'
-import { globSync } from 'node:fs'
+import { globSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const root = new URL('..', import.meta.url).pathname
@@ -51,10 +50,7 @@ const INLINE = 'a|button|span|strong|em|b|i'
  * positives: a line ending in `">` or `}` or a Bengali *preceding* an
  * attribute is not a fused word.
  */
-const FUSED = new RegExp(
-  `([ঀ-৿][^\\n<>]*[^\\sঀ-৿<>])\\n\\s*(?=<(?:${INLINE})\\b)`,
-  'g',
-)
+const FUSED = new RegExp(`([ঀ-৿][^\\n<>]*[^\\sঀ-৿<>])\\n\\s*(?=<(?:${INLINE})\\b)`, 'g')
 
 /** `{' '}` already inserted — the fix. Matched against the tail of the run. */
 const HAS_FIX = /\{\s*'\s'\s*\}|\{" "\}/

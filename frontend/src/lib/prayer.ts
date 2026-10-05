@@ -10,6 +10,13 @@
  * tomorrow. Returning "none" would blank the widget every night, which is
  * exactly when a reader checking sehri times most needs it. So the answer wraps
  * to tomorrow's ফজর and is flagged `isTomorrow` so the UI can say "আগামীকাল".
+ *
+ * ⚠️ **Tomorrow's ফজর is not today's ফজর.** They drift by a minute or two most
+ * days, and by more than that near the solstices. The rollover therefore takes
+ * the *next day's* Fajr as a separate argument: showing today's time beside an
+ * "আগামীকাল" label is how the widget ends up confidently displaying a time
+ * for the wrong day — in the one window a reader is most likely to be reading
+ * it, since after Isha is exactly when sehri matters.
  */
 
 /** The five daily prayers, in order. */
@@ -59,11 +66,18 @@ function parseTime(value: string | undefined | null): number | null {
 /**
  * Find the next prayer from the current time.
  *
- * @param times    Today's five times as "HH:MM".
- * @param now      The moment to compare against. Defaults to now.
- * @returns The next prayer, or `null` if nothing in `times` is parseable.
+ * @param times       Today's five times as "HH:MM".
+ * @param now         The moment to compare against. Defaults to now.
+ * @param tomorrowFajr **Tomorrow's** ফজর as "HH:MM". Only used on the wrap-around
+ *                     path after ইশা. Falls back to today's ফজর when absent, which
+ *                     is a minute-level error rather than a blank widget.
+ * @returns The next prayer, or `null` if nothing parseable is available.
  */
-export function getNextPrayer(times: PrayerTimes, now: Date = new Date()): NextPrayer | null {
+export function getNextPrayer(
+  times: PrayerTimes,
+  now: Date = new Date(),
+  tomorrowFajr?: string,
+): NextPrayer | null {
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
 
   for (const name of PRAYER_NAMES) {
@@ -80,14 +94,14 @@ export function getNextPrayer(times: PrayerTimes, now: Date = new Date()): NextP
     }
   }
 
-  // Everything today has passed → tomorrow's Fajr.
-  const fajr = parseTime(times.fajr)
+  // Everything today has passed → tomorrow's ফজর, at tomorrow's own time.
+  const fajr = parseTime(tomorrowFajr ?? times.fajr)
   if (fajr === null) return null
 
   return {
     name: 'fajr',
     label: PRAYER_LABELS_BN.fajr,
-    time: times.fajr!,
+    time: (tomorrowFajr ?? times.fajr)!,
     minutesUntil: 24 * 60 - nowMinutes + fajr,
     isTomorrow: true,
   }

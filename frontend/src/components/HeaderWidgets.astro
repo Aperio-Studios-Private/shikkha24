@@ -2,44 +2,43 @@
 /**
  * Header utilities — weather, prayer times, location.
  *
- * Renders the build-time value first (correct for Dhaka, never blank), then
- * refines it in the browser for the reader's actual location.
+ * ## Why nothing is rendered server-side
  *
- * ## The ordering is deliberate
+ * Both widgets answer a question about **the reader's** city, and a static build
+ * knows exactly one place: Dhaka, baked whenever the site was last deployed.
+ * Rendering that value is what produced the owner's report — a Sylhet reader
+ * saw their own city label beside Dhaka's temperature, because the label was
+ * written from a resolved location while the number beside it was never
+ * refetched. Even with a matching label the number could be days old.
  *
- * Server value → instant paint, no empty widget, no layout shift.
- * Client value → replaces it once known.
- *
- * A widget that waits on the network is a widget that flashes empty, and this
- * one sits in the masthead where a flicker is most visible.
+ * So the server renders a **neutral placeholder** and the browser fills it in.
+ * Owner decision, 2026-10-05: a second of blankness is preferable to showing
+ * another city's number with confidence.
  *
  * ## What the reader gets
  *
  * - The **next** prayer with a live countdown, not a fixed one — after ইশা it
- *   rolls over to tomorrow's ফজর rather than going blank.
- * - A **dropdown** with all five times and the Hijri date.
+ *   rolls over to *tomorrow's* ফজর at tomorrow's own time, not today's.
+ * - A **dropdown** with all five times and the Hijri date, both fetched on
+ *   demand so the common case costs one request, not two.
  * - A **location selector**, because a Chattogram reader should see Chattogram.
  */
-import type { Weather, PrayerTimes as PrayerApiTimes } from '../lib/widgets'
-import { toBnDigits } from '../lib/widgets'
 import { CITIES } from '../lib/geo'
 import { PRAYER_NAMES, PRAYER_LABELS_BN } from '../lib/prayer'
 
 interface Props {
-  weather: Weather | null
-  prayer: PrayerApiTimes | null
+  /** `weatherWidget` feature flag — when off, the weather pill is not rendered. */
+  showWeather?: boolean
+  /** `prayerWidget` feature flag — when off, the prayer pill is not rendered. */
+  showPrayer?: boolean
 }
 
-const { weather, prayer } = Astro.props
-
-/** Build-time values, used for the first paint. */
-const initialCity = 'ঢাকা'
-const initialTemp = weather ? `${toBnDigits(weather.tempC)}°` : null
+const { showWeather = true, showPrayer = true } = Astro.props
 ---
 
 <div class="flex items-center gap-3" id="header-widgets">
   {
-    initialTemp && (
+    showWeather && (
       <span class="hidden items-center gap-1 sm:inline-flex">
         <span class="text-ink-subtle dark:text-dark-ink-muted" aria-hidden="true">
           ·
@@ -49,62 +48,61 @@ const initialTemp = weather ? `${toBnDigits(weather.tempC)}°` : null
           id="hw-weather"
           class="hover:text-brand-red"
           aria-label="আবহাওয়া"
+          aria-busy="true"
         >
-          <span id="hw-city">{initialCity}</span>{' '}
-          <span class="font-medium text-ink dark:text-dark-ink" id="hw-temp">
-            {initialTemp}
-          </span>{' '}
-          <span class="text-ink-subtle dark:text-dark-ink-muted" id="hw-cond">
-            {weather?.label}
-          </span>
+          <span id="hw-city">—</span>{' '}
+          <span class="font-medium text-ink dark:text-dark-ink" id="hw-temp">—</span>{' '}
+          <span class="text-ink-subtle dark:text-dark-ink-muted" id="hw-cond" />
         </button>
       </span>
     )
   }
 
   {
-    prayer && (
+    showPrayer && (
       <span class="relative hidden items-center gap-1 lg:inline-flex">
         <span class="text-ink-subtle dark:text-dark-ink-muted" aria-hidden="true">
           ·
         </span>
-        <button
-          type="button"
-          id="hw-prayer-btn"
-          aria-expanded="false"
-          aria-controls="hw-prayer-panel"
-          class="hover:text-brand-red"
-        >
-          <span id="hw-next-label">নামাজ</span>{' '}
-          <span class="font-medium text-ink dark:text-dark-ink" id="hw-next-time">
-            {prayer.maghrib}
-          </span>
-        </button>
+    <button
+      type="button"
+      id="hw-prayer-btn"
+      aria-expanded="false"
+      aria-controls="hw-prayer-panel"
+      class="hover:text-brand-red"
+      aria-busy="true"
+    >
+      <span id="hw-next-label">নামাজ</span>{' '}
+      <span class="font-medium text-ink dark:text-dark-ink" id="hw-next-time">—</span>
+    </button>
 
-        <div
-          id="hw-prayer-panel"
-          hidden
-          class="absolute right-0 top-full z-50 mt-1 w-56 rounded-md border border-rule bg-surface p-3 text-sm shadow-lg dark:border-dark-rule dark:bg-dark-surface"
-        >
-          <p class="mb-2 text-xs font-semibold text-ink-subtle dark:text-dark-ink-muted">
-            আজকের নামাজের সময়সূচি
-          </p>
-          <ul class="flex flex-col gap-1">
-            {PRAYER_NAMES.map((name) => (
-              <li class="flex items-center justify-between">
-                <span>{PRAYER_LABELS_BN[name]}</span>
-                <span class="font-medium text-ink dark:text-dark-ink" data-prayer={name}>
-                  {prayer[name]}
-                </span>
-              </li>
-            ))}
-          </ul>
-          {prayer.hijri && (
-            <p class="mt-2 border-t border-rule pt-2 text-xs text-ink-subtle dark:border-dark-rule dark:text-dark-ink-muted">
-              {prayer.hijri}
-            </p>
-          )}
-        </div>
+    <div
+      id="hw-prayer-panel"
+      hidden
+      class="absolute right-0 top-full z-50 mt-1 w-56 rounded-md border border-rule bg-surface p-3 text-sm shadow-lg dark:border-dark-rule dark:bg-dark-surface"
+    >
+      <p class="mb-2 text-xs font-semibold text-ink-subtle dark:text-dark-ink-muted">
+        আজকের নামাজের সময়সূচি
+      </p>
+      <ul class="flex flex-col gap-1">
+        {
+          PRAYER_NAMES.map((name) => (
+            <li class="flex items-center justify-between">
+              <span>{PRAYER_LABELS_BN[name]}</span>
+              <span class="font-medium text-ink dark:text-dark-ink" data-prayer={name}>
+                —
+              </span>
+            </li>
+          ))
+        }
+      </ul>
+      <p
+        id="hw-hijri"
+        hidden
+        class="mt-2 border-t border-rule pt-2 text-xs text-ink-subtle dark:border-dark-rule dark:text-dark-ink-muted"
+      >
+      </p>
+    </div>
       </span>
     )
   }
@@ -116,9 +114,7 @@ const initialTemp = weather ? `${toBnDigits(weather.tempC)}°` : null
       id="hw-location"
       class="rounded border border-rule bg-surface px-1.5 py-0.5 text-xs text-ink dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink"
     >
-      {CITIES.map((city) => (
-        <option value={`${city.lat},${city.lon}`}>{city.labelBn}</option>
-      ))}
+      {CITIES.map((city) => <option value={`${city.lat},${city.lon}`}>{city.labelBn}</option>)}
       <option value="">সনাক্ত করুন</option>
     </select>
   </span>
@@ -126,6 +122,8 @@ const initialTemp = weather ? `${toBnDigits(weather.tempC)}°` : null
 
 <script>
   import { getNextPrayer, formatCountdown, PRAYER_NAMES } from '../lib/prayer'
+  import { weatherLabel } from '../lib/weather-codes'
+  import { formatHijri, HIJRI_OFFSET } from '../lib/hijri'
   import {
     CITIES,
     readStoredLocation,
@@ -134,6 +132,31 @@ const initialTemp = weather ? `${toBnDigits(weather.tempC)}°` : null
     getDefaultLocation,
     nearestCity,
   } from '../lib/geo'
+
+  /**
+   * Aladhan calculation method: **15 = Moonsighting Committee Worldwide**,
+   * owner-selected for Bangladesh on 2026-10-05.
+   *
+   * ⚠️ **Three upstream traps, all verified against the live API.** Read these
+   * before changing this number — each one silently produces wrong times rather
+   * than an error:
+   *
+   * 1. **`13` is Turkey, not Moonsighting.** Moonsighting is `15`. Enumerating
+   *    indices `0…20` is the only reliable way to check.
+   * 2. **`/v1/methods` is ordered differently from the numeric `method=`
+   *    parameter.** In that object, position 14 is `MOONSIGHTING`; through the
+   *    parameter, 14 is *Russia* and 15 is *Moonsighting*. Never pick the index
+   *    by reading that list — it is the single easiest way to get this wrong.
+   * 3. **The `method=` name parameter is broken.** Every name tried
+   *    (`MOONSIGHTING`, `MWL`, `KARACHI`, `ISNA`, `EGYPT`, `MAKKAH`, `GULF`,
+   *    `TURKEY`, `QATAR`, `SINGAPORE`) returned ISNA. Only the number varies.
+   *    `timingsByCity` and `timingsByCoordinates` are both dead.
+   *
+   * `scripts/verify-prayer-times.mjs` asserts the API reports this method back
+   * **by name**, so a silent upstream remap fails the build instead of quietly
+   * changing every prayer time on the site.
+   */
+  const ALADHAN_METHOD = 15
 
   const toBn = (v: string | number) =>
     String(v).replace(/\d/g, (d) => '০১২৩৪৫৬৭৮৯'[Number(d)]!)
@@ -144,88 +167,136 @@ const initialTemp = weather ? `${toBnDigits(weather.tempC)}°` : null
   const condEl = el('hw-cond')
   const nextLabelEl = el('hw-next-label')
   const nextTimeEl = el('hw-next-time')
+  const hijriEl = el('hw-hijri')
   const prayerBtn = el('hw-prayer-btn')
   const prayerPanel = el('hw-prayer-panel')
   const locationSelect = el('hw-location') as HTMLSelectElement | null
 
-  /** Prayer dropdown. */
-  prayerBtn?.addEventListener('click', () => {
-    if (!prayerPanel) return
-    const open = prayerPanel.hasAttribute('hidden')
-    if (open) prayerPanel.removeAttribute('hidden')
-    else prayerPanel.setAttribute('hidden', '')
-    prayerBtn.setAttribute('aria-expanded', String(open))
-  })
+  /** Clear the "loading" affordance once real data is on screen. */
+  function markReady(...nodes: (HTMLElement | null)[]) {
+    for (const node of nodes) node?.setAttribute('aria-busy', 'false')
+  }
 
-  document.addEventListener('click', (event) => {
-    if (!prayerPanel || !prayerBtn) return
-    const target = event.target as Node
-    if (!prayerBtn.contains(target) && !prayerPanel.contains(target)) {
-      prayerPanel.setAttribute('hidden', '')
-      prayerBtn.setAttribute('aria-expanded', 'false')
+  /** "DD-MM-YYYY" — the shape Aladhan puts in its path. */
+  const ddmmyyyy = (d: Date) =>
+    `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`
+
+  /** Today's timings from Aladhan. */
+  interface AladhanDay {
+    times: Record<string, string>
+    hijri: { hijri?: { day?: string; month?: { en?: string }; year?: string } }
+  }
+
+  /**
+   * Fetch one date's timings from Aladhan.
+   *
+   * @returns `null` on any failure — a lookup must never break the header.
+   */
+  async function fetchDay(date: Date, lat: number, lon: number): Promise<AladhanDay | null> {
+    try {
+      const url =
+        `https://api.aladhan.com/v1/timings/${ddmmyyyy(date)}` +
+        `?latitude=${lat}&longitude=${lon}&method=${ALADHAN_METHOD}`
+      const response = await fetch(url, { signal: AbortSignal.timeout(5000) })
+      if (!response.ok) return null
+      const body = await response.json()
+      const timings = body?.data?.timings
+      if (body?.code !== 200 || !timings?.Fajr) return null
+
+      // Aladhan appends a timezone suffix ("05:12 (+06)") — strip it.
+      const clean = (v: string | undefined) => (v ?? '').split(' ')[0]
+      return {
+        times: {
+          fajr: clean(timings.Fajr),
+          dhuhr: clean(timings.Dhuhr),
+          asr: clean(timings.Asr),
+          maghrib: clean(timings.Maghrib),
+          isha: clean(timings.Isha),
+        },
+        hijri: body.data.date ?? {},
+      }
+    } catch {
+      return null
     }
-  })
+  }
 
-  /** Render the next prayer and keep it current. */
+  /** Render the next prayer and keep the countdown ticking. */
   let countdownTimer: number | undefined
 
-  function renderNextPrayer(times: Record<string, string>) {
-    const next = getNextPrayer(times as never)
-    if (!next || !nextTimeEl || !nextLabelEl) return
+  function renderNextPrayer(times: Record<string, string>, tomorrowFajr?: string) {
+    const paint = (next: ReturnType<typeof getNextPrayer>) => {
+      if (!next || !nextTimeEl || !nextLabelEl) return
+      nextTimeEl.textContent = toBn(next.time)
+      nextLabelEl.textContent = next.isTomorrow
+        ? `${next.label} (আগামীকাল)`
+        : `${next.label} ${formatCountdown(next.minutesUntil, toBn)}`
+    }
 
-    nextTimeEl.textContent = toBn(next.time)
-    nextLabelEl.textContent = next.isTomorrow
-      ? `${next.label} (আগামীকাল)`
-      : `${next.label} ${formatCountdown(next.minutesUntil, toBn)}`
+    paint(getNextPrayer(times as never, new Date(), tomorrowFajr))
 
     window.clearInterval(countdownTimer)
     countdownTimer = window.setInterval(() => {
-      const refreshed = getNextPrayer(times as never)
-      if (refreshed && nextTimeEl && nextLabelEl) {
-        nextTimeEl.textContent = toBn(refreshed.time)
-        nextLabelEl.textContent = refreshed.isTomorrow
-          ? `${refreshed.label} (আগামীকাল)`
-          : `${refreshed.label} ${formatCountdown(refreshed.minutesUntil, toBn)}`
-      }
+      paint(getNextPrayer(times as never, new Date(), tomorrowFajr))
     }, 30_000)
   }
 
   /** Fetch prayer times for a point and update both the pill and the panel. */
   async function loadPrayer(lat: number, lon: number) {
-    const now = new Date()
-    const dd = String(now.getDate()).padStart(2, '0')
-    const mm = String(now.getMonth() + 1).padStart(2, '0')
-    const url =
-      `https://api.aladhan.com/v1/timings/${dd}-${mm}-${now.getFullYear()}` +
-      `?latitude=${lat}&longitude=${lon}&method=1`
-    try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(5000) })
-      if (!response.ok) return
-      const data = (await response.json()) as {
-        data?: { timings?: Record<string, string> }
-      }
-      const timings = data.data?.timings
-      if (!timings?.Fajr) return
+    const today = await fetchDay(new Date(), lat, lon)
+    if (!today) return
 
-      const clean = (v: string) => v.split(' ')[0]
-      const times = {
-        fajr: clean(timings.Fajr ?? ''),
-        dhuhr: clean(timings.Dhuhr ?? ''),
-        asr: clean(timings.Asr ?? ''),
-        maghrib: clean(timings.Maghrib ?? ''),
-        isha: clean(timings.Isha ?? ''),
-      }
-      for (const name of PRAYER_NAMES) {
-        const node = document.querySelector(`[data-prayer="${name}"]`)
-        if (node) node.textContent = toBn(times[name])
-      }
-      renderNextPrayer(times)
-    } catch {
-      // Keep the build-time value — a failed lookup must not blank the widget.
+    for (const name of PRAYER_NAMES) {
+      const node = document.querySelector(`[data-prayer="${name}"]`)
+      if (node) node.textContent = toBn(today.times[name] ?? '')
     }
+
+    // After ইশা the next prayer is tomorrow's ফজর, and tomorrow's ফজর is not
+    // today's. Fetching it costs one extra request, but only in that window —
+    // which is exactly when a reader is checking sehri.
+    let tomorrowFajr: string | undefined
+    let next = getNextPrayer(today.times as never)
+    if (next?.isTomorrow) {
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      tomorrowFajr = (await fetchDay(tomorrow, lat, lon))?.times.fajr
+    }
+
+    renderNextPrayer(today.times, tomorrowFajr)
+    markReady(el('hw-prayer-btn'))
+    lastPrayerPoint = { lat, lon }
   }
 
-  /** Fetch weather for a point. */
+  /** The point the current times were fetched for, so the Hijri date can be reused. */
+  let lastPrayerPoint: { lat: number; lon: number } | null = null
+
+  /**
+   * Load the Hijri date — **on demand**.
+   *
+   * It needs its own request, because `HIJRI_OFFSET` shifts the Gregorian date
+   * we ask about and Aladhan does the Hijri month arithmetic. Doing that on
+   * every page view would double the widget's cost for a line hidden behind a
+   * dropdown, which also counts against the data-saver budget.
+   */
+  async function loadHijriOnce(lat: number, lon: number) {
+    if (!hijriEl || !hijriEl.hidden) return
+    const date = new Date()
+    date.setDate(date.getDate() + HIJRI_OFFSET)
+    const day = await fetchDay(date, lat, lon)
+    const text = formatHijri(day?.hijri, HIJRI_OFFSET)
+    if (!text) return
+    hijriEl.textContent = text
+    hijriEl.hidden = false
+  }
+
+  /**
+   * Fetch weather for a point.
+   *
+   * ⚠️ `weather_code` was requested here for as long as the widget existed and
+   * the response type never declared it, so the condition beside the
+   * temperature was frozen at whatever the build had baked. It is now read and
+   * written — and an unknown code renders **nothing** rather than defaulting to
+   * WMO `0`, which means "clear sky".
+   */
   async function loadWeather(lat: number, lon: number) {
     try {
       const url =
@@ -233,14 +304,19 @@ const initialTemp = weather ? `${toBnDigits(weather.tempC)}°` : null
         `&current=temperature_2m,weather_code`
       const response = await fetch(url, { signal: AbortSignal.timeout(5000) })
       if (!response.ok) return
-      const data = (await response.json()) as {
-        current?: { temperature_2m?: number }
+      const current = (await response.json())?.current
+
+      const temp = current?.temperature_2m
+      if (typeof temp === 'number' && tempEl) {
+        tempEl.textContent = `${toBn(Math.round(temp))}°`
       }
-      const temp = data.current?.temperature_2m
-      if (typeof temp !== 'number') return
-      if (tempEl) tempEl.textContent = `${toBn(Math.round(temp))}°`
+
+      const label = weatherLabel(current?.weather_code)
+      if (label && condEl) condEl.textContent = label
+
+      markReady(el('hw-weather'))
     } catch {
-      // Same: keep what we have.
+      // Keep the placeholder — a failed lookup must not blank the widget.
     }
   }
 
@@ -254,9 +330,34 @@ const initialTemp = weather ? `${toBnDigits(weather.tempC)}°` : null
     if (remember) {
       storeLocation({ labelBn: label, lat, lon, source: 'user' })
     }
-    void loadPrayer(lat, lon)
-    void loadWeather(lat, lon)
+    lastPrayerPoint = null
+    // A disabled widget is not in the DOM, so its nodes are null and there is
+    // neither anything to fill nor a reason to spend a request on it. Checking
+    // the elements avoids threading the feature flags into this module.
+    if (nextTimeEl) void loadPrayer(lat, lon)
+    if (tempEl) void loadWeather(lat, lon)
   }
+
+  /** Prayer dropdown. */
+  prayerBtn?.addEventListener('click', () => {
+    if (!prayerPanel) return
+    const open = prayerPanel.hasAttribute('hidden')
+    if (open) prayerPanel.removeAttribute('hidden')
+    else prayerPanel.setAttribute('hidden', '')
+    prayerBtn.setAttribute('aria-expanded', String(open))
+    if (open && lastPrayerPoint) {
+      void loadHijriOnce(lastPrayerPoint.lat, lastPrayerPoint.lon)
+    }
+  })
+
+  document.addEventListener('click', (event) => {
+    if (!prayerPanel || !prayerBtn) return
+    const target = event.target as Node
+    if (!prayerBtn.contains(target) && !prayerPanel.contains(target)) {
+      prayerPanel.setAttribute('hidden', '')
+      prayerBtn.setAttribute('aria-expanded', 'false')
+    }
+  })
 
   /** Resolve the reader's location, then refresh both widgets. */
   async function init() {
@@ -294,9 +395,14 @@ const initialTemp = weather ? `${toBnDigits(weather.tempC)}°` : null
   })
 
   // Deferred: never compete with first paint.
-  if ('requestIdleCallback' in window) {
-    ;(window as unknown as { requestIdleCallback: (cb: () => void) => void })
-      .requestIdleCallback(() => void init())
+  //
+  // ⚠️ The capability is read off a *separate* binding on purpose. Testing
+  // `'requestIdleCallback' in window` narrows `window` itself, and in the else
+  // branch TypeScript narrows it all the way to `never` — which silently
+  // disables type checking on every later use of `window` in this scope.
+  const idle = window as Window & { requestIdleCallback?: (cb: () => void) => void }
+  if (typeof idle.requestIdleCallback === 'function') {
+    idle.requestIdleCallback(() => void init())
   } else {
     window.addEventListener('load', () => void init())
   }

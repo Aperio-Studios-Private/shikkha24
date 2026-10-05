@@ -21,11 +21,24 @@
  * permission dialog on a news homepage is hostile; IP city-level accuracy is
  * easily good enough for weather and prayer times and asks the reader nothing.
  *
+ * ## Why an auto-detected location expires
+ *
+ * A stored location used to be permanent, and the IP lookup only runs when
+ * there is none — so a reader who resolved to Sylhet once kept that label
+ * forever, including from a different connection in a different city. The
+ * widget would confidently report the wrong city indefinitely.
+ *
+ * `storedAt` now bounds it: an **auto-detected** location is re-resolved after
+ * `LOCATION_TTL_MS`. A location the reader **chose** from the selector is
+ * deliberate and never expires — silently discarding a deliberate choice would
+ * be worse than keeping it.
+ *
  * ## Privacy
  *
  * The resolved city name and coordinates stay in `localStorage` on the reader's
  * own device. Nothing is transmitted to us — there is no server in the request
- * path to send it to.
+ * path to send it to. The IP-based lookup does send the reader's IP to
+ * `ipwho.is`, which is disclosed in `privacy-policy.astro`.
  */
 
 export interface Location {
@@ -35,6 +48,8 @@ export interface Location {
   lon: number
   /** How we learned it — used to decide whether to keep asking. */
   source: 'user' | 'ip' | 'default'
+  /** Epoch ms when this was written to `localStorage`. Absent on older entries. */
+  storedAt?: number
 }
 
 /**
@@ -56,27 +71,45 @@ export const CITIES: ReadonlyArray<Omit<Location, 'source'>> = [
 const STORAGE_KEY = 'shikkha24-location'
 const DEFAULT_INDEX = 0 // Dhaka
 
-/** How long a cached prayer-times lookup stays fresh. */
-export const PRAYER_CACHE_MS = 6 * 60 * 60 * 1000
-/** Weather changes faster than prayer times. */
-export const WEATHER_CACHE_MS = 60 * 60 * 1000
+/**
+ * How long an **auto-detected** location stays valid before it is looked up
+ * again. One day is short enough to follow a reader who travels and long
+ * enough that an unchanged IP costs one lookup, not one per page.
+ */
+const LOCATION_TTL_MS = 24 * 60 * 60 * 1000
 
 export function getDefaultLocation(): Location {
   return { ...CITIES[DEFAULT_INDEX]!, source: 'default' }
 }
 
-/** Restore a previously chosen or detected location. */
+/**
+ * Restore a previously chosen or detected location.
+ *
+ * @returns `null` when nothing is stored, or when an **auto-detected** entry is
+ *          older than {@link LOCATION_TTL_MS} — which makes the caller run a
+ *          fresh lookup rather than trust a stale city.
+ */
 export function readStoredLocation(): Location | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<Location>
     if (typeof parsed.lat !== 'number' || typeof parsed.lon !== 'number') return null
+
+    const source = parsed.source === 'user' || parsed.source === 'ip' ? parsed.source : 'default'
+
+    // A deliberate choice never expires; only a guess does.
+    if (source === 'ip') {
+      const age = typeof parsed.storedAt === 'number' ? Date.now() - parsed.storedAt : Infinity
+      if (age > LOCATION_TTL_MS) return null
+    }
+
     return {
       labelBn: parsed.labelBn ?? 'আপনার এলাকা',
       lat: parsed.lat,
       lon: parsed.lon,
-      source: parsed.source === 'user' || parsed.source === 'ip' ? parsed.source : 'default',
+      source,
+      ...(typeof parsed.storedAt === 'number' ? { storedAt: parsed.storedAt } : {}),
     }
   } catch {
     return null
@@ -85,7 +118,7 @@ export function readStoredLocation(): Location | null {
 
 export function storeLocation(location: Location): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(location))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...location, storedAt: Date.now() }))
   } catch {
     // Private browsing or a full quota — the widget still works, just unpersisted.
   }
