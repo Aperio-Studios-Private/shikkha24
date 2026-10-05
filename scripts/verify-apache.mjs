@@ -231,6 +231,53 @@ check(
   'a stale copy means the build predates the last .htaccess edit',
 )
 
+// --- CSP: the header widgets' three data sources ---------------------------
+/**
+ * The weather, prayer and location widgets fetch in the reader's browser, so
+ * every host they call must appear in `connect-src` **in every profile**.
+ *
+ * They were missing from all four. That is not a cosmetic gap: the browser
+ * blocked all three fetches in production, so the masthead silently showed
+ * build-time values — and it looked correct, because the *city label* was
+ * written by a different code path than the temperature beside it. Nothing
+ * errored, nothing logged, and the site simply disagreed with reality.
+ *
+ * Owner-authorised 2026-10-05. `ipwho.is` discloses that it receives the
+ * reader's IP; that is stated in `privacy-policy.astro` and was intended all
+ * along — the CSP was stricter than our own published policy.
+ */
+const WIDGET_API_HOSTS = [
+  ['api.open-meteo.com', 'weather'],
+  ['api.aladhan.com', 'prayer times'],
+  ['ipwho.is', 'IP-based location'],
+]
+
+// Only lines that *emit* a header count as a profile. A `# Header always set …`
+// line is a comment Apache never reads, but it still matches a bare
+// `connect-src …` search — so a commented-out profile would be counted as live,
+// and this guard would pass on a CSP that no longer protects anything.
+const connectSrcs = readFileSync(shipped, 'utf8')
+  .split('\n')
+  .filter((line) => line.trimStart().startsWith('Header always set'))
+  .flatMap((line) => [...line.matchAll(/connect-src ([^;]+)/g)].map((m) => m[1]))
+
+check(
+  `every connect-src profile is present (${connectSrcs.length} found, expected 4)`,
+  connectSrcs.length === 4,
+  'a profile added without a connect-src would silently block the widgets',
+)
+
+for (const [host, purpose] of WIDGET_API_HOSTS) {
+  const missing = connectSrcs.filter((directive) => !directive.includes(host))
+  check(
+    `${host} (${purpose}) is allowed by every connect-src profile`,
+    connectSrcs.length > 0 && missing.length === 0,
+    missing.length
+      ? `missing from ${missing.length} of ${connectSrcs.length} profiles — the browser will block it there`
+      : '',
+  )
+}
+
 const bin = firstExisting(BINARIES)
 if (!bin) {
   console.error(
