@@ -204,7 +204,7 @@ export const Articles: CollectionConfig = {
           name: 'credit',
           type: 'text',
           label: { en: 'Credit', bn: 'কৃতিত্ব' },
-          admin: { description: 'যেমন: সংগৃহীত / শিক্ষা২৪।' },
+          admin: { description: 'যেমন: সংগৃহীত / শিক্ষা২৪.কম।' },
         },
         {
           name: 'fullBleed',

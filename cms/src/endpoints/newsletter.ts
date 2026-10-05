@@ -49,8 +49,45 @@ const SIGNUP_ATTEMPTS_PER_MINUTE = 5
 /** Confirmation links expire after 3 days — long enough for a weekend inbox. */
 const CONFIRMATION_TTL_MS = 3 * 24 * 60 * 60 * 1000
 
+/**
+ * Last-resort display name if the CMS settings read fails.
+ *
+ * ⚠️ A deliberate duplicate of `siteName` in `frontend/src/lib/cms.ts` and of
+ * `const FALLBACK_TITLE` in `frontend/public/sw.js`. Three copies exist because
+ * three runtimes read it — the frontend build, the Node CMS, and the service
+ * worker — and none can import from another. `scripts/verify-site-name.mjs`
+ * allow-lists all three and fails if they disagree, so they cannot rot apart.
+ */
+const FALLBACK_SITE_NAME = 'শিক্ষা২৪.কম'
+
 function siteUrl(): string {
   return (process.env.NEWSLETTER_SITE_URL || 'https://shikkha24.com').replace(/\/$/, '')
+}
+
+/**
+ * The portal's display name, for anything a **reader** receives.
+ *
+ * A confirmation email is as reader-visible as a web page: it lands in an inbox
+ * the owner has no other way to update. Hardcoding the name here meant an admin
+ * rename fixed the site and left every email saying the old one — and unlike a
+ * stale web page, a stale email is already sitting in a subscriber's mailbox.
+ *
+ * Same CMS read as `endpoints/id-card.ts`. Falls back on any error because a
+ * confirmation email must still be sent if the settings row is unreadable —
+ * losing the double opt-in would silently break the consent record.
+ */
+async function siteNameFor(req: { payload: PayloadRequest['payload'] }): Promise<string> {
+  try {
+    const settings = await req.payload.findGlobal({
+      slug: 'site-settings',
+      depth: 0,
+      overrideAccess: true,
+    })
+    const name = (settings.siteName as string | undefined)?.trim()
+    return name || FALLBACK_SITE_NAME
+  } catch {
+    return FALLBACK_SITE_NAME
+  }
 }
 
 /** A fresh, unguessable token. 32 bytes → 64 hex characters. */
@@ -149,14 +186,16 @@ const subscribe: Endpoint = {
     const confirmUrl = `${siteUrl()}/newsletter/confirm?token=${token}`
 
     try {
+      const siteName = await siteNameFor(req)
+
       await sendMail(req.payload, {
         to: email,
-        subject: 'শিক্ষা২৪ নিউজলেটার — সাবস্ক্রিপশন নিশ্চিত করুন',
+        subject: `${siteName} নিউজলেটার — সাবস্ক্রিপশন নিশ্চিত করুন`,
         text:
-          `শিক্ষা২৪ নিউজলেটারে সাবস্ক্রাইব করার জন্য ধন্যবাদ।\n\n` +
+          `${siteName} নিউজলেটারে সাবস্ক্রাইব করার জন্য ধন্যবাদ।\n\n` +
           `নিচের লিংকে ক্লিক করে সাবস্ক্রিপশন নিশ্চিত করুন:\n${confirmUrl}\n\n` +
           `লিংকটি ৩ দিন পর্যন্ত কাজ করবে। আপনি যদি সাবস্ক্রাইব না করে থাকেন, এই ইমেইলটি উপেক্ষা করুন।`,
-        html: `<p>শিক্ষা২৪ নিউজলেটারে সাবস্ক্রাইব করার জন্য ধন্যবাদ।</p>
+        html: `<p>${siteName} নিউজলেটারে সাবস্ক্রাইব করার জন্য ধন্যবাদ।</p>
 <p><a href="${confirmUrl}" style="color:#DA1C25">সাবস্ক্রিপশন নিশ্চিত করুন</a></p>
 <p style="color:#6b7280;font-size:13px">লিংকটি ৩ দিন পর্যন্ত কাজ করবে। আপনি যদি সাবস্ক্রাইব না করে থাকেন, এই ইমেইলটি উপেক্ষা করুন।</p>`,
       })

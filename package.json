@@ -26,6 +26,8 @@
     "verify:deploy-mode": "node scripts/verify-deploy-mode.mjs",
     "verify:deploy-inputs": "node scripts/verify-deploy-inputs.mjs",
     "verify:dark-tokens": "node scripts/verify-dark-tokens.mjs",
+    "verify:site-name": "node scripts/verify-site-name.mjs",
+    "verify:bengali-spacing": "node scripts/verify-bengali-spacing.mjs",
     "verify:backup": "node scripts/verify-backup.mjs",
     "verify:astro-imports": "node scripts/verify-astro-imports.mjs",
     "verify:build-output": "node scripts/verify-build-output.mjs",
@@ -43,7 +45,7 @@
     "verify:sync": "node scripts/verify-cms-sync.mjs",
     "verify:endpoints": "pnpm --filter @shikkha24/cms verify:endpoints",
     "verify:reporter": "pnpm --filter @shikkha24/cms verify:reporter",
-    "verify": "pnpm run lint && pnpm run verify:astro-imports && pnpm run verify:dark-tokens && pnpm run verify:gpa && pnpm run verify:cgpa && pnpm run verify:bookmarks && pnpm run verify:ad-split && pnpm run verify:client-ip && pnpm run verify:sqlite-wal && pnpm run verify:origins && pnpm run verify:pnpm-fallback && pnpm run typecheck && pnpm run build && pnpm run verify:build-output && pnpm run verify:links && pnpm run verify:search-init && pnpm run verify:apache && pnpm run verify:cpanel-deploy && pnpm run verify:deploy-mode && pnpm run verify:deploy-inputs && pnpm run verify:backup",
+    "verify": "pnpm run lint && pnpm run verify:astro-imports && pnpm run verify:dark-tokens && pnpm run verify:site-name && pnpm run verify:bengali-spacing && pnpm run verify:gpa && pnpm run verify:cgpa && pnpm run verify:bookmarks && pnpm run verify:ad-split && pnpm run verify:client-ip && pnpm run verify:sqlite-wal && pnpm run verify:origins && pnpm run verify:pnpm-fallback && pnpm run typecheck && pnpm run build && pnpm run verify:build-output && pnpm run verify:links && pnpm run verify:search-init && pnpm run verify:apache && pnpm run verify:cpanel-deploy && pnpm run verify:deploy-mode && pnpm run verify:deploy-inputs && pnpm run verify:backup",
     "audit:ci": "pnpm audit --audit-level=high",
     "verify:origins": "pnpm --filter @shikkha24/cms verify:origins",
     "verify:pnpm-fallback": "node scripts/verify-pnpm-fallback.mjs"

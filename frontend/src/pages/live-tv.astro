@@ -77,7 +77,7 @@ const scheduledLabel = (value: string | null | undefined): string | null =>
 
 <Layout
   title="লাইভ টিভি"
-  description="শিক্ষা২৪-এর সরাসরি সম্প্রচার — ভর্তি, ফলাফল ও বাজেটের লাইভ কভারেজ।"
+  description={`${settings.siteName}-এর সরাসরি সম্প্রচার — ভর্তি, ফলাফল ও বাজেটের লাইভ কভারেজ।`}
   settings={settings}
   categories={categories}
   footerPages={footerPages}
@@ -86,7 +86,7 @@ const scheduledLabel = (value: string | null | undefined): string | null =>
     <header class="mb-6">
       <h1 class="text-2xl font-bold text-ink dark:text-dark-ink">লাইভ টিভি</h1>
       <p class="mt-1 text-base text-ink-subtle dark:text-dark-ink-muted">
-        শিক্ষা২৪-এর সরাসরি সম্প্রচার ও সাম্প্রতিক সম্প্রচারের রেকর্ডিং।
+        {settings.siteName}-এর সরাসরি সম্প্রচার ও সাম্প্রতিক সম্প্রচারের রেকর্ডিং।
       </p>
     </header>
 
@@ -130,7 +130,7 @@ const scheduledLabel = (value: string | null | undefined): string | null =>
         <div class="mx-auto max-w-2xl rounded-lg border border-rule bg-surface-raised p-6 dark:border-dark-rule dark:bg-dark-raised">
           <p class="font-semibold text-ink dark:text-dark-ink">এখন কোনো সম্প্রচার নেই</p>
           <p class="mt-1 text-sm text-ink-subtle dark:text-dark-ink-muted">
-            শিক্ষা২৪-এর পরবর্তী সরাসরি সম্প্রচারের সময় এখানে জানানো হবে।
+            {settings.siteName}-এর পরবর্তী সরাসরি সম্প্রচারের সময় এখানে জানানো হবে।
           </p>
         </div>
       )

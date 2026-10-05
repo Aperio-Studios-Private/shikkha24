@@ -51,7 +51,7 @@ export const GET: APIRoute = async () => {
     })
     .slice(0, 1000)
 
-  const publicationName = settings.siteName || 'শিক্ষা২৪'
+  const publicationName = settings.siteName || 'শিক্ষা২৪.কম'
 
   const entries = recent
     .map(({ article, published }) => {

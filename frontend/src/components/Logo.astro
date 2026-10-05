@@ -52,12 +52,21 @@ const showName = showNameWithLogo !== false || !logoSrc
  * Split around the **last digit run**, keeping an optional trailing TLD-like
  * suffix outside the accent. The lazy `.*?` makes the digit run as long as
  * possible, so:
+ *   শিক্ষা২৪.কম → ["শিক্ষা", "২৪", ".কম"]
  *   শিক্ষা২৪.com → ["শিক্ষা", "২৪", ".com"]
  *   Shikkha24    → ["Shikkha", "24", ""]
  *   শিক্ষা ২৪ ডট কম → no match (the run is not at the end) → single colour
  * An empty prefix means the whole name is digits — also treated as unsplit.
+ *
+ * ⚠️ **The TLD class must include the Bengali block, not just `[A-Za-z]`.** It
+ * did not, and the portal name ends `.কম` in Bengali. That suffix made the
+ * whole regex fail, `hasAccent` went false, and the **entire name rendered in
+ * one colour** instead of the intended charcoal `শিক্ষা` + red `২৪.কম` — present
+ * in the built `dist/` as a lone `<span class="text-brand-red">`. It survived
+ * review because the example above used `শিক্ষা২৪.com`, a *Latin* TLD, which
+ * matched fine: the comment documented the one case that worked.
  */
-const match = siteName.match(/^(.*?)([0-9\u09E6-\u09EF]+)((?:\.[A-Za-z]{2,6})+)?$/u)
+const match = siteName.match(/^(.*?)([0-9\u09E6-\u09EF]+)((?:\.[A-Za-z\u0995-\u09F9]{2,6})+)?$/u)
 const hasAccent = Boolean(match && match[1].length > 0)
 const namePrefix = hasAccent ? match![1] : siteName
 const nameAccent = hasAccent ? match![2] : ''

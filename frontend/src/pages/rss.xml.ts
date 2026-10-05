@@ -30,7 +30,7 @@ export const GET: APIRoute = async () => {
     getArticles({ limit: 50 }).catch(() => []),
   ])
 
-  const channelTitle = settings.siteName || 'শিক্ষা২৪'
+  const channelTitle = settings.siteName || 'শিক্ষা২৪.কম'
   const channelDescription = settings.tagline || 'দেশ-বিদেশের শিক্ষার সর্বশেষ খবর ও সুযোগ'
 
   const items = articles

@@ -269,7 +269,7 @@ export interface Article {
          */
         caption?: string | null;
         /**
-         * যেমন: সংগৃহীত / শিক্ষা২৪।
+         * যেমন: সংগৃহীত / শিক্ষা২৪.কম।
          */
         credit?: string | null;
         /**
@@ -2724,7 +2724,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 export interface SiteSetting {
   id: number;
   /**
-   * প্রদর্শিত নাম এখনো চূড়ান্ত হয়নি — "শিক্ষা২৪" অনুমান করা হয়েছে ডোমেইন থেকে। নিশ্চিত হলে এখানে বদলান।
+   * সাইটের নাম — পাতার শিরোনাম, হেডার, ফুটার, নিউজলেটার ইমেইল ও পুশ নোটিফিকেশন সবখানে এটিই দেখাবে। নাম বদলালে পরের বিল্ড থেকে পুরো সাইটে বদলে যাবে।
    */
   siteName: string;
   siteNameEn?: string | null;

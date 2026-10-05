@@ -89,7 +89,7 @@ const idCardEndpoint: Endpoint = {
       depth: 0,
       overrideAccess: true,
     })
-    const siteName = (settings.siteName as string | undefined) || 'শিক্ষা২৪'
+    const siteName = (settings.siteName as string | undefined) || 'শিক্ষা২৪.কম'
 
     const photoFilename =
       typeof author.photo === 'object' && author.photo !== null
@@ -148,7 +148,7 @@ const photocardEndpoint: Endpoint = {
       depth: 0,
       overrideAccess: true,
     })
-    const siteName = (settings.siteName as string | undefined) || 'শিক্ষা২৪'
+    const siteName = (settings.siteName as string | undefined) || 'শিক্ষা২৪.কম'
 
     const category =
       typeof article.category === 'object' && article.category !== null

@@ -153,7 +153,7 @@ check('allowedNow() clamps to the budget', allowedNow(50) === 3)
 console.log('\n── template and escaping ───────────────────────────────────────')
 
 const shell = renderCampaignHtml({
-  siteName: 'শিক্ষা২৪',
+  siteName: 'শিক্ষা২৪.কম',
   preheader: 'নতুন সুযোগ',
   body: '<p>বৃত্তির খবর</p>',
   unsubscribeUrl: 'https://shikkha24.com/newsletter/unsubscribe?token=abc',

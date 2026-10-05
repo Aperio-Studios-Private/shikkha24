@@ -137,7 +137,7 @@ const smtpTransportOptions = {
 const emailConfig = isMailConfigured()
   ? nodemailerAdapter({
       defaultFromAddress: process.env.SMTP_FROM_EMAIL ?? '',
-      defaultFromName: process.env.SMTP_FROM_NAME || 'শিক্ষা২৪',
+      defaultFromName: process.env.SMTP_FROM_NAME || 'শিক্ষা২৪.কম',
       transportOptions: smtpTransportOptions,
     })
   : undefined
@@ -165,7 +165,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
     meta: {
-      titleSuffix: ' — শিক্ষা২৪',
+      titleSuffix: ' — শিক্ষা২৪.কম',
     },
     components: {
       /*

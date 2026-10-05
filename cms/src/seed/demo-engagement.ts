@@ -300,7 +300,7 @@ async function attachDemoPhotoStory(db: SlugAgnosticPayload): Promise<void> {
       photoStory: ids.map((image, index) => ({
         image,
         caption: CAPTIONS[index] ?? 'ডেমো ছবি।',
-        credit: 'ডেমো — শিক্ষা২৪',
+        credit: 'ডেমো — শিক্ষা২৪.কম',
         // Alternating, so both presentations are rendered by the fixture rather
         // than only the one an editor happens to pick.
         fullBleed: index % 2 === 0,

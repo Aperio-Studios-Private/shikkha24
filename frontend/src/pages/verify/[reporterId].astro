@@ -98,8 +98,8 @@ const status = reporter?.verificationStatus ?? null
   title={reporter ? `${reporter.nameBn} — পরিচয়পত্র যাচাই` : 'পরিচয়পত্র যাচাই'}
   description={
     reporter
-      ? `${reporter.nameBn} — শিক্ষা২৪ প্রতিবেদক। আইডি ${reporter.reporterId ?? ''}।`
-      : 'শিক্ষা২৪ প্রতিবেদক পরিচয়পত্র যাচাই।'
+      ? `${reporter.nameBn} — ${settings.siteName} প্রতিবেদক। আইডি ${reporter.reporterId ?? ''}।`
+      : `${settings.siteName} প্রতিবেদক পরিচয়পত্র যাচাই।`
   }
   settings={settings}
   categories={categories}
@@ -110,7 +110,7 @@ const status = reporter?.verificationStatus ?? null
     <div class="mx-auto max-w-2xl">
       <h1 class="mb-2 text-2xl font-bold text-ink dark:text-dark-ink">পরিচয়পত্র যাচাই</h1>
       <p class="mb-6 text-base text-ink-subtle dark:text-dark-ink-muted">
-        নিচের তথ্য শিক্ষা২৪-এর অফিসিয়াল রেকর্ড থেকে নেওয়া।
+        নিচের তথ্য {settings.siteName}-এর অফিসিয়াল রেকর্ড থেকে নেওয়া।
       </p>
 
       {
@@ -204,7 +204,7 @@ const status = reporter?.verificationStatus ?? null
       {
         reporter && status !== 'verified' ? (
           <p class="mt-4 rounded-md bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-900/20 dark:text-amber-100">
-            ⚠️ এই পরিচয়পত্রটি বর্তমানে সক্রিয় যাচাইকৃত নয়। কার্ডের তথ্য ব্যবহার করার আগে শিক্ষা২৪
+            ⚠️ এই পরিচয়পত্রটি বর্তমানে সক্রিয় যাচাইকৃত নয়। কার্ডের তথ্য ব্যবহার করার আগে {settings.siteName}
             সম্পাদকালয়ের সাথে যোগাযোগ করুন।
           </p>
         ) : null

@@ -78,7 +78,7 @@ async function withAuthor(next: (author: IdCardAuthor) => Promise<void>): Promis
     validUntil: new Date(Date.now() + 365 * 86_400_000).toISOString(),
     beat: ['school', 'admission'],
     photoFilename: null,
-    siteName: (settings.siteName as string | undefined) || 'শিক্ষা২৪',
+    siteName: (settings.siteName as string | undefined) || 'শিক্ষা২৪.কম',
   }
   await next(author)
 }
@@ -113,7 +113,7 @@ await withAuthor(async (author) => {
     publishedAt: new Date().toISOString(),
     photoFilename: null,
     canonicalUrl: 'https://shikkha24.com/exams-results/1/ssc-result',
-    siteName: 'শিক্ষা২৪',
+    siteName: 'শিক্ষা২৪.কম',
   }
   const a = await composePhotocard(article)
   const b = await composePhotocard(article)

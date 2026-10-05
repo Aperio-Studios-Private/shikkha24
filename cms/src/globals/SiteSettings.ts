@@ -121,17 +121,17 @@ export const SiteSettings: GlobalConfig = {
       name: 'siteName',
       type: 'text',
       required: true,
-      defaultValue: 'শিক্ষা২৪',
+      defaultValue: 'শিক্ষা২৪.কম',
       label: { en: 'Site name', bn: 'সাইটের নাম' },
       admin: {
         description:
-          'প্রদর্শিত নাম এখনো চূড়ান্ত হয়নি — "শিক্ষা২৪" অনুমান করা হয়েছে ডোমেইন থেকে। নিশ্চিত হলে এখানে বদলান।',
+          'সাইটের নাম — পাতার শিরোনাম, হেডার, ফুটার, নিউজলেটার ইমেইল ও পুশ নোটিফিকেশন সবখানে এটিই দেখাবে। নাম বদলালে পরের বিল্ড থেকে পুরো সাইটে বদলে যাবে।',
       },
     },
     {
       name: 'siteNameEn',
       type: 'text',
-      defaultValue: 'Shikkha24',
+      defaultValue: 'Shikkha24.com',
       label: { en: 'Site name (English)', bn: 'সাইটের নাম (ইংরেজি)' },
     },
     {

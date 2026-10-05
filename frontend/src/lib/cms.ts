@@ -126,11 +126,18 @@ export interface CmsPage {
  * These are the values the site falls back to when the CMS cannot be reached.
  * They are NOT placeholders to be replaced later — they are the real defaults,
  * matching the owner-confirmed name and the approved brand line
- * (`.sps/profile.md`, owner decision 2026-09-12).
+ * (`.sps/profile.md`, owner decision 2026-09-12; name amended 2026-10-05).
+ *
+ * ⚠️ **`siteName` here is not a rarely-read safety net — it is what CI builds
+ * ship.** `cms/data/ci.db` has no `site_settings` row and no seed creates one,
+ * so every CI build and every deploy rehearsal renders exactly this value. A
+ * rename applied only in the CMS admin is therefore *absent from every build
+ * that ships*, which is the M21 failure shape ("24 commits that never left the
+ * laptop") in a new costume. Keep this equal to the owner's `siteName`.
  */
 export const FALLBACK_SETTINGS: CmsSiteSettings = {
-  siteName: 'শিক্ষা২৪',
-  siteNameEn: 'Shikkha24',
+  siteName: 'শিক্ষা২৪.কম',
+  siteNameEn: 'Shikkha24.com',
   tagline: 'দেশ-বিদেশের শিক্ষার সর্বশেষ খবর ও সুযোগ',
   showNameWithLogo: true,
   contact: {},

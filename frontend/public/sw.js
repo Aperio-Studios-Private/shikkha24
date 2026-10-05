@@ -24,8 +24,20 @@
  * at the origin root** — required for the worker to control the whole scope.
  */
 
-/** Fallback title; the CMS does not expose a site name to the worker. */
-const FALLBACK_TITLE = 'শিক্ষা২৪'
+/**
+ * Fallback title; the CMS does not expose a site name to the worker.
+ *
+ * ⚠️ **A service worker cannot read the CMS** — it is not bundled (see the note
+ * above) and fetching it would add a request and a version-skew risk to every
+ * notification. So this constant *is* a deliberate duplicate of the CMS
+ * `siteName` and must be changed by hand when the owner renames the portal.
+ * `scripts/verify-site-name.mjs` allow-lists it explicitly and fails if the
+ * value drifts from `FALLBACK_SETTINGS`, so the duplicate cannot rot unnoticed.
+ *
+ * It is only reached when a push payload carries no `title`; the reminder
+ * endpoint always sends one, so this is the malformed-payload path.
+ */
+const FALLBACK_TITLE = 'শিক্ষা২৪.কম'
 
 /**
  * A push arrived. Show it.

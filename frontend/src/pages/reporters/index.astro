@@ -87,7 +87,7 @@ const cards = reporters.map((r) => {
 
 <Layout
   title="সম্পাদকীয় দল — যাচাইকৃত প্রতিবেদক"
-  description="শিক্ষা২৪-এর যাচাইকৃত প্রতিবেদকদের তালিকা — আইডি নম্বর, বিট ও কার্যক্ষেত্রসহ।"
+  description={`${settings.siteName}-এর যাচাইকৃত প্রতিবেদকদের তালিকা — আইডি নম্বর, বিট ও কার্যক্ষেত্রসহ।`}
   settings={settings}
   categories={categories}
   footerPages={footerPages}
@@ -100,7 +100,7 @@ const cards = reporters.map((r) => {
         সম্পাদকীয় দল
       </h1>
       <p class="mt-2 max-w-2xl text-sm text-ink-muted dark:text-dark-ink-muted">
-        শিক্ষা২৪-এর যাচাইকৃত প্রতিবেদকেরা এখানে তালিকাভুক্ত। প্রত্যেকের একটি স্থায়ী আইডি নম্বর
+        {settings.siteName}-এর যাচাইকৃত প্রতিবেদকেরা এখানে তালিকাভুক্ত। প্রত্যেকের একটি স্থায়ী আইডি নম্বর
         রয়েছে, যা তাঁদের পরিচয়পত্রে থাকা QR কোড দিয়ে যাচাই করা যায়।
       </p>
     </header>

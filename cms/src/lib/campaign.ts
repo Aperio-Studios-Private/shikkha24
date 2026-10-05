@@ -84,7 +84,7 @@ async function siteName(payload: Payload): Promise<string> {
   } catch {
     // A settings read must never be the reason a campaign cannot go out.
   }
-  return process.env.SMTP_FROM_NAME || 'শিক্ষা২৪'
+  return process.env.SMTP_FROM_NAME || 'শিক্ষা২৪.কম'
 }
 
 /** Absolute unsubscribe URL for one subscriber. */
