@@ -32,3 +32,23 @@ export const REACTION_LABELS_BN: Record<ReactionType, string> = {
   sad: 'দুঃখ',
   angry: 'ক্ষোভ',
 }
+
+/**
+ * Emoji shown beside each label in the reader-facing control.
+ *
+ * ⚠️ **Deliberately NOT in `REACTION_LABELS_BN`, and not in the CMS.** The CMS
+ * copy of this vocabulary (`cms/src/collections/Reactions.ts`) is what editors
+ * see and what a stored reaction is keyed by, and an emoji in it would put a
+ * glyph inside admin UI, stored labels, and anywhere else these strings are
+ * reused. This map is presentation only: it decorates the one surface that
+ * needs it and leaves the three-label-copies contract above untouched.
+ *
+ * Owner request 2026-10-05 — make the control obvious to a reader at a glance.
+ */
+export const REACTION_EMOJI: Record<ReactionType, string> = {
+  like: '👍',
+  love: '❤️',
+  wow: '😮',
+  sad: '😢',
+  angry: '😠',
+}

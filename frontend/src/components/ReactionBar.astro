@@ -32,7 +32,7 @@
  * only to paint the control before the first request, and the response's `mine`
  * overwrites it.
  */
-import { REACTION_LABELS_BN, REACTION_TYPES } from '../lib/reactions'
+import { REACTION_EMOJI, REACTION_LABELS_BN, REACTION_TYPES } from '../lib/reactions'
 
 interface Props {
   /** The Payload article id — the shortlink `/a/:id` uses the same value. */
@@ -49,7 +49,7 @@ const renderable = Boolean(cmsOrigin)
 {
   renderable && (
     <section
-      class="reaction-bar mt-6 rounded-lg border border-rule bg-surface-raised p-4 dark:border-dark-rule dark:bg-dark-surface-raised"
+      class="reaction-bar mt-6 rounded-lg border-2 border-rule bg-surface-raised p-5 dark:border-dark-rule dark:bg-dark-raised"
       data-reaction-bar
       data-article={String(articleId)}
       data-origin={cmsOrigin ?? ''}
@@ -61,8 +61,9 @@ const renderable = Boolean(cmsOrigin)
 
       <h2
         id="reaction-heading"
-        class="text-sm font-semibold text-ink dark:text-dark-ink"
+        class="flex items-center gap-2 text-base font-bold text-ink dark:text-dark-ink"
       >
+        <span aria-hidden="true">💬</span>
         এই সংবাদটি আপনার কেমন লাগল?
       </h2>
 
@@ -78,10 +79,11 @@ const renderable = Boolean(cmsOrigin)
             role="radio"
             aria-checked="false"
             tabindex={index === 0 ? 0 : -1}
-            class="reaction-option inline-flex min-h-12 items-center gap-2 rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red dark:border-dark-rule dark:text-dark-ink"
+            class="reaction-option inline-flex min-h-12 items-center gap-2 rounded-md border-2 border-rule bg-surface px-3 text-sm font-semibold text-ink transition-colors hover:border-brand-red hover:bg-surface-raised dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink dark:hover:bg-dark-raised"
             data-reaction-option
             data-type={type}
           >
+            <span aria-hidden="true" class="text-lg leading-none">{REACTION_EMOJI[type]}</span>
             <span>{REACTION_LABELS_BN[type]}</span>
             {/*
               Reserved and empty. The count is written here at runtime, and the
@@ -252,5 +254,6 @@ const renderable = Boolean(cmsOrigin)
   [data-reaction-option].is-selected {
     border-color: var(--color-brand-red);
     color: var(--color-brand-red);
+    background-color: color-mix(in srgb, var(--color-brand-red) 10%, transparent);
   }
 </style>
