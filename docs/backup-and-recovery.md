@@ -284,6 +284,28 @@ this project does not have).
 4. **GitHub → Settings → Secrets and variables → Actions → Secrets:** `FTP_HOST`, `FTP_USER`,
    `FTP_PASSWORD`.
 
+   #### ⚠️ `FTP_HOST` is `b201.serverdiana.com` — and **not** the `ftp.shikkha24.com` cPanel displays
+
+   Measured 2026-10-05 from a failed run. cPanel's FTP Accounts page shows
+   *"FTP server: ftp.shikkha24.com"*, and that value does not work, because the server's
+   certificate is issued for a different name:
+
+   ```
+   subject: CN=b201.serverdiana.com
+   subjectAltName does not match host name ftp.shikkha24.com
+   ```
+
+   With `ftp.shikkha24.com` the fetch dies at `curl: (60)` before it authenticates. With
+   `b201.serverdiana.com` the same probe reports `SSL certificate verify ok` — it is the same
+   account, the same `CPANEL_HOST` value, and the cPanel URL is `b201.serverdiana.com:2083`.
+
+   **The value must be a bare hostname.** `backup-fetch.mjs` builds `ftp://${FTP_HOST}/${remote}`,
+   so entering `ftp://b201.serverdiana.com` yields `ftp://ftp://…` and fails with
+   `curl: (3) URL rejected: Bad hostname` — an error that names neither the scheme nor the secret.
+
+   These three distinct failures were one mis-copied value. Verify a change to this secret by
+   running the workflow manually: **Actions → "Backup database + media" → Run workflow**.
+
 > ⚠️ **Never put `FTP_PASSWORD` in a commit, an issue, or chat.** If it is ever exposed, delete the
 > FTP account in cPanel and create a new one.
 

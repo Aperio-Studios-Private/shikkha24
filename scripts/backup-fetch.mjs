@@ -176,11 +176,42 @@ export function protocolAllowed(flags, url) {
  * the server sends a plaintext `220-` banner before any TLS handshake, so AUTH TLS follows a
  * normal login exchange. `--ssl-reqd` is what upgrades that connection.
  *
- * @param {string} host
+ * `host` must be a **bare hostname**. This function supplies the scheme, so an owner who pastes
+ * `ftp://…` (natural to do — that is how a URL is normally written, and it is what cPanel's own
+ * FTP Accounts page invites) produces `ftp://ftp://…` and curl dies with
+ * `curl: (3) URL rejected: Bad hostname` — which names neither the secret nor the mistake.
+ * Measured 2026-10-05, after exactly that paste. Reject it here, where the message can say which
+ * value is wrong.
+ *
+ * @param {string} host Bare hostname, e.g. `b201.serverdiana.com`.
  * @param {string} remote Path relative to the FTP home.
  * @returns {string}
+ * @throws {Error} if `host` is empty or carries a scheme, path, port or credentials.
  */
-export const ftpUrl = (host, remote) => `ftp://${host}/${remote}`
+export const ftpUrl = (host, remote) => {
+  const trimmed = String(host ?? '').trim()
+  if (trimmed !== host) {
+    throw new Error('FTP_HOST has surrounding whitespace — paste the bare hostname only.')
+  }
+  if (!trimmed) {
+    throw new Error('FTP_HOST is empty.')
+  }
+  // A host is a hostname and nothing else: no scheme, no path, no port, no credentials, no query.
+  // Anything containing one of these characters is not a bare hostname.
+  if (
+    !/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*$/.test(
+      trimmed,
+    )
+  ) {
+    throw new Error(
+      `FTP_HOST must be a bare hostname — no "ftp://" scheme, no path, no port, no credentials. ` +
+        `Got ${JSON.stringify(trimmed)}, which would build ftp://${trimmed}/${remote}. ` +
+        `On this host the value is "b201.serverdiana.com" — NOT the "ftp.shikkha24.com" cPanel ` +
+        `displays, whose certificate is issued for a different name.`,
+    )
+  }
+  return `ftp://${trimmed}/${remote}`
+}
 
 /**
  * Fetch one file over FTPS into `dest`.

@@ -54,6 +54,25 @@ function check(name, condition, detail = '') {
 }
 
 /**
+ * Whether `fn` throws.
+ *
+ * Used to assert that a guard refuses bad input. Paired with a check that the message names
+ * the right values, because "it threw" and "it threw for the correct reason" are different
+ * claims and only the second is worth anything.
+ *
+ * @param {() => unknown} fn
+ * @returns {boolean}
+ */
+function rejects(fn) {
+  try {
+    fn()
+    return false
+  } catch {
+    return true
+  }
+}
+
+/**
  * Build a directory that looks exactly like an extracted backup.
  *
  * Uses the project's real table names from the live schema — `articles`, not Payload's
@@ -433,6 +452,76 @@ function main() {
     check(
       'no --proto at all means curl permits every scheme',
       protocolAllowed([], 'ftp://h/f') === true,
+    )
+  }
+
+  console.log('\n15. ⚠️ FTP_HOST must be a bare hostname — a pasted scheme fails as "Bad hostname"')
+  {
+    // ⚠️ This section exists because a real run failed on 2026-10-05 with THREE distinct
+    // errors — `curl: (3) Bad hostname`, `curl: (60)` and then an absent archive — all from
+    // one mis-pasted value. `curl: (3)` names neither the secret nor the mistake, and the
+    // operator's first move is to blame the FTP password, which is not the cause.
+    //
+    // The value has to be `b201.serverdiana.com`: cPanel's FTP Accounts page displays
+    // `ftp.shikkha24.com`, but the certificate is issued for the other name, so that host
+    // fails at `curl: (60)` before authenticating at all.
+
+    // The exact paste an owner makes, since that is how a URL is normally written:
+    check(
+      'a pasted ftp:// scheme is rejected, not silently doubled into ftp://ftp://',
+      rejects(() => ftpUrl('ftp://b201.serverdiana.com', './latest.txt')),
+    )
+    check(
+      'and so is a trailing slash, a port and embedded credentials',
+      rejects(() => ftpUrl('b201.serverdiana.com/', './latest.txt')) &&
+        rejects(() => ftpUrl('b201.serverdiana.com:21', './latest.txt')) &&
+        rejects(() => ftpUrl('user:pass@b201.serverdiana.com', './latest.txt')),
+    )
+    check(
+      'and surrounding whitespace, which a copy-paste brings silently',
+      rejects(() => ftpUrl(' b201.serverdiana.com', './latest.txt')) &&
+        rejects(() => ftpUrl('b201.serverdiana.com ', './latest.txt')),
+    )
+    // A hostname with an empty label or a leading hyphen is not a hostname. Permitting it
+    // would let the value through to curl, which rejects it far less legibly.
+    check(
+      'a malformed hostname is rejected rather than passed to curl',
+      rejects(() => ftpUrl('b201..com', './latest.txt')) &&
+        rejects(() => ftpUrl('-bad.com', './latest.txt')),
+    )
+    check(
+      'the empty value is rejected',
+      rejects(() => ftpUrl('', './latest.txt')),
+    )
+    // The rejections must be for the RIGHT reason, not merely "it threw". A guard that
+    // refused everything would satisfy every line above while being useless.
+    check(
+      '⚠️ and the message names the wrong value and the right one',
+      (() => {
+        try {
+          ftpUrl('ftp://b201.serverdiana.com', './latest.txt')
+          return false
+        } catch (error) {
+          return (
+            error.message.includes('b201.serverdiana.com') &&
+            error.message.includes('ftp.shikkha24.com')
+          )
+        }
+      })(),
+    )
+    // …and the value that actually works must still be accepted, or the guard is a wall.
+    check(
+      'the real hostname is still accepted and builds the expected URL',
+      (() => {
+        try {
+          return (
+            ftpUrl('b201.serverdiana.com', './latest.txt') ===
+            'ftp://b201.serverdiana.com/./latest.txt'
+          )
+        } catch {
+          return false
+        }
+      })(),
     )
   }
 
