@@ -102,7 +102,7 @@ function check(name, condition, detail = '') {
  * @param {'cpanelresult'|'cpanel_obj'} [options.api2Envelope] which API 2.0
  *   envelope to emit. `cpanelresult` is what this host actually sends; the
  *   documented `cpanel_obj` is kept so the client cannot narrow to one host.
- * @returns {Promise<{base: string, calls: string[], close: () => Promise<void>}>}
+ * @returns {Promise<{base: string, calls: string[], bodies: {path: string, body: string}[], authHeaders: string[], close: () => Promise<void>}>}
  */
 async function startFakeCpanel({
   uapiExtract = true,
@@ -111,15 +111,40 @@ async function startFakeCpanel({
   api2Envelope = 'cpanelresult',
 } = {}) {
   const calls = []
+  // ⚠️ POST bodies, recorded separately from `calls`. See the collector below.
+  const bodies = []
   const authHeaders = []
   const server = createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost')
-    calls.push(`${url.pathname}${url.search}`)
-    authHeaders.push(req.headers.authorization ?? null)
 
     const send = (payload) => {
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify(payload))
+    }
+
+    // A path under neither API surface is the *site itself*: the deploy fetches
+    // the homepage and one asset once it has finished writing, and that check
+    // needs a 200 rather than a refused connection to return from. It is served
+    // before `calls` is appended to so the API-only assertions stay clean.
+    if (!url.pathname.startsWith('/execute/') && !url.pathname.startsWith('/json-api/')) {
+      res.writeHead(200, { 'Content-Type': 'text/html' })
+      res.end('<!doctype html>')
+      return
+    }
+
+    calls.push(`${url.pathname}${url.search}`)
+    authHeaders.push(req.headers.authorization ?? null)
+
+    // `save_file_content` carries the file text in a urlencoded POST body. The
+    // response is written without draining the request, so bodies are collected
+    // on their own events and matched by path — they land after `calls` was
+    // appended to, which would make an aligned index unreliable.
+    if (req.method === 'POST') {
+      const chunks = []
+      req.on('data', (chunk) => chunks.push(chunk))
+      req.on('end', () => {
+        bodies.push({ path: url.pathname, body: Buffer.concat(chunks).toString('utf8') })
+      })
     }
 
     // ⚠️ **This is the check the harness did not have.**
@@ -233,6 +258,8 @@ async function startFakeCpanel({
   return {
     base: `http://127.0.0.1:${port}`,
     calls,
+    // ⚠️ POST bodies, for asserting what a `save_file_content` actually wrote.
+    bodies,
     // ⚠️ Exposed so the header can be asserted directly, not only inferred from
     // whether a call succeeded. The dedicated check in section 13 reads this.
     authHeaders,
@@ -674,6 +701,106 @@ async function main() {
     )
 
     await server.close()
+  }
+
+  console.log('\n10a. ⚠️ `.htaccess` is written explicitly, because extract will not overwrite it')
+  {
+    // `Fileman::fileop op=extract` does not clobber a file that already exists,
+    // and `.htaccess` has been on the host since before CI deploys began — so the
+    // archive's copy is silently skipped and the site keeps serving a CSP from an
+    // older commit while the HTML around it is brand new. Measured 2026-10-08,
+    // run 37767514513: the live `connect-src` was byte-identical to the pre-push
+    // baseline, while the new `_astro/` hashes in the same page proved the rest
+    // of the archive HAD landed. Only this one file is protected by being
+    // already present, and it is the one file the CSP depends on.
+    //
+    // The deploy now writes it with `save_file_content`, which overwrites
+    // unconditionally. Proving that means running the transfer, so this spawns
+    // the script LIVE — against the fake host only — because in dry run the whole
+    // transfer block is skipped and the write cannot happen at all.
+    const MARKER = 'Shikkha24DeployMarker'
+    const dist = mkdtempSync(join(tmpdir(), 'live-dist-'))
+    mkdirSync(join(dist, 'news'), { recursive: true })
+    writeFileSync(join(dist, 'index.html'), '<!doctype html>')
+    // A marker with no characters that URL-encoding changes, so the body it
+    // arrives in can be searched for literally.
+    writeFileSync(join(dist, '.htaccess'), `Header set X-Deploy-Marker "${MARKER}"`)
+
+    const runLive = async (server, extra = {}) => {
+      try {
+        const { stdout } = await execFileAsync(
+          process.execPath,
+          [join(scriptDir, 'deploy-static.mjs')],
+          {
+            encoding: 'utf8',
+            env: {
+              ...process.env,
+              CPANEL_BASE: server.base,
+              CPANEL_HOST: 'fake',
+              CPANEL_USER: 'shikkhac',
+              CPANEL_TOKEN: 'test-token-not-real',
+              DEPLOY_DRY_RUN: 'false',
+              DEPLOY_DIST: dist,
+              SITE_URL: server.base,
+              ...extra,
+            },
+          },
+        )
+        return stdout
+      } catch (error) {
+        return `${error.stdout ?? ''}${error.stderr ?? ''}`
+      }
+    }
+
+    const server = await startFakeCpanel({ uapiExtract: false })
+    const output = await runLive(server)
+    check(
+      'a live run against the fake host completes',
+      !/SyntaxError|Cannot read properties|the `zip` command is not installed/.test(output),
+      output.slice(0, 300),
+    )
+
+    // The manifest write is a `save_file_content` too, so the assertion is on the
+    // `.htaccess` *file field*, not merely on the function having been called.
+    const writes = server.bodies.filter(
+      (entry) => entry.path.endsWith('/save_file_content') && entry.body.includes('file=.htaccess'),
+    )
+    check(
+      '`.htaccess` goes through save_file_content rather than the archive',
+      writes.length > 0,
+      `${server.bodies.filter((entry) => entry.path.endsWith('/save_file_content')).length} save_file_content call(s)`,
+    )
+    check(
+      "and the content written is the build's, not the host's stale file",
+      writes.some((entry) => entry.body.includes(MARKER)),
+      writes.map((entry) => entry.body.slice(0, 140)).join(' | '),
+    )
+    check('the run says it wrote .htaccess explicitly', /Wrote \.htaccess explicitly/.test(output))
+
+    // ⚠️ The destination probe must report *which mechanism succeeded*, not
+    // merely that something did not throw. `extractArchive` swallows the
+    // missing-function error and falls through to `fileop`, which then succeeds
+    // — so a probe that only asked "did it throw?" answered "destination
+    // supported" on a host that has no destination parameter at all, and the zip
+    // was staged outside the docroot where `fileop` cannot reach it (same run).
+    check(
+      'it stages the zip in the docroot when the host has no destination parameter',
+      /no destination parameter/.test(output),
+      output.slice(0, 400),
+    )
+    await server.close()
+
+    // Positive control for that branch: a host that DOES ship `extract_files`
+    // must take the other path, which proves the choice is read off the response
+    // instead of being assumed for every host.
+    const withUapi = await startFakeCpanel({ uapiExtract: true })
+    const uapiOutput = await runLive(withUapi)
+    check(
+      'and stages it outside the docroot when the host supports a destination',
+      /supports a destination directory/.test(uapiOutput),
+      uapiOutput.slice(0, 400),
+    )
+    await withUapi.close()
   }
 
   console.log('\n11. The dry-run detector is not itself broken (negative control)')

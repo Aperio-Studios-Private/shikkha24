@@ -33,7 +33,7 @@
  * to the CI summary rather than buried in a log.
  */
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -42,6 +42,7 @@ import {
   deletePath,
   extractArchive,
   listFiles,
+  MISSING_FUNCTION,
   readTextFile,
   uploadFile,
   writeTextFile,
@@ -88,17 +89,29 @@ function zipDirectory(dir, out) {
  * Runs against a one-file probe archive so the answer comes from the real
  * server rather than from documentation that may not match this cPanel build.
  *
+ * ⚠️ The answer must reflect *which mechanism succeeded*, not merely that
+ * something did. `extractArchive` falls through from a missing UAPI function to
+ * the no-destination `fileop` on purpose, and both return without throwing — so
+ * a probe that only checked for an exception reported "destination supported"
+ * on a host that has no destination support at all. The zip was then staged
+ * outside the docroot where `fileop` cannot reach it, and the deploy reported
+ * success while extracting to the wrong place. The mechanism is returned, not
+ * swallowed.
+ *
  * @param {ReturnType<typeof config>} cfg
  * @param {string} probeName Filename already uploaded to the staging dir.
- * @returns {Promise<boolean>} true when a destination can be specified.
+ * @returns {Promise<boolean>} true only when a destination can be specified.
  */
 async function supportsDestination(cfg, probeName) {
   try {
-    await extractArchive(cfg, `${STAGING}/${probeName}`, DOCROOT)
+    const { via } = await extractArchive(cfg, `${STAGING}/${probeName}`, DOCROOT)
+    // Only the UAPI form takes a destination. `fileop` succeeded by extracting
+    // where the archive already sat, which is not the same capability.
+    if (via !== 'uapi-extract_files') return false
     await deletePath(cfg, `${DOCROOT}/${probeName}`, true)
     return true
   } catch (error) {
-    if (/unrecogni[sz]ed|not implemented|unknown function/i.test(error.message)) return false
+    if (MISSING_FUNCTION.test(error.message)) return false
     throw error
   }
 }
@@ -209,6 +222,27 @@ async function main() {
 
   // Only the no-destination fallback leaves an archive in the docroot.
   if (!hasDestination) await deletePath(cfg, `${DOCROOT}/frontend.zip`)
+
+  // ⚠️ `.htaccess` is written explicitly, not left to the extract.
+  //
+  // `Fileman::fileop op=extract` — the path this host actually takes — does not
+  // overwrite a file that already exists. Every other artefact is new in a fresh
+  // build, so the archive's copy lands. `.htaccess` is present on the host from
+  // the hand-upload that preceded CI deploys, so the extract silently skipped it
+  // and the site kept serving a CSP two commits old while the HTML around it was
+  // new (measured 2026-10-08, run 37767514513: the live header matched the
+  // pre-push baseline byte for byte).
+  //
+  // `save_file_content` overwrites unconditionally, which is exactly the
+  // property the one file that must always be current needs. The manifest still
+  // never lists it — that protects it from *deletion*, which is a different
+  // hazard — and the write is skipped when the build produced none.
+  const localHtaccess = join(DIST, '.htaccess')
+  if (existsSync(localHtaccess)) {
+    const content = readFileSync(localHtaccess, 'utf8')
+    await writeTextFile(cfg, DOCROOT, '.htaccess', content)
+    say('Wrote .htaccess explicitly (extract does not overwrite an existing file).')
+  }
 
   for (const path of plan.delete) {
     await deletePath(cfg, `${DOCROOT}/${path}`, true)
