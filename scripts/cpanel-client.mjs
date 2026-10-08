@@ -248,7 +248,13 @@ export async function api2(cfg, module, func, params = {}) {
     return result.data
   }
   if (!res.ok) throw failure(label, `HTTP ${res.status}`)
-  throw failure(label, 'response carried no cpanel_obj.result')
+  // ⚠️ Include the body. Without it the message says only "no cpanel_obj.result"
+  // and the operator is looking at a host that answered HTTP 200 with something
+  // — possibly an error envelope, possibly a redirect page — and cannot tell
+  // which. This is the exact error that killed the second live deploy
+  // (2026-10-08, run 37756100116), and the body that would have explained it was
+  // discarded one line above.
+  throw failure(label, `unexpected response: ${JSON.stringify(payload)?.slice(0, 400)}`)
 }
 
 /**
