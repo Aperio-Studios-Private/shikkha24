@@ -51,6 +51,7 @@ import {
   config,
   deletePath,
   extractArchive,
+  MISSING_FUNCTION,
   restartApp,
   uapi,
   uploadFile,
@@ -141,11 +142,21 @@ async function startFakeCpanel({ uapiExtract = true, requireAuth = true } = {}) 
       if (!uapiExtract && uapiPath === 'Fileman/extract_files') {
         // This is how a missing function actually presents itself: HTTP 200,
         // status 0. A client that only checked the HTTP code would sail past it.
+        //
+        // ⚠️ The wording below is copied from the REAL host, not invented. The
+        // first live deploy (2026-10-08, run 37749577648) failed against
+        // DianaHost because the fallback matched `'Unrecognized function'` — a
+        // documented wording this build has never emitted — and not the string
+        // the host actually returned. A fake server that answers with a wording
+        // the regex already matches is a test that cannot fail, which is how 40
+        // passing checks accompanied a deploy that could not run.
         return send({
           module: 'Fileman',
           func: 'extract_files',
           status: 0,
-          errors: ['Unrecognized function'],
+          errors: [
+            'The system could not find the function “extract_files” in the module “Fileman”.',
+          ],
         })
       }
       return send({
@@ -234,6 +245,39 @@ async function main() {
     )
     restore()
     await server.close()
+  }
+
+  console.log('\n3b. ⚠️ The wording the REAL host uses still falls back')
+  {
+    // ⚠️ This section exists because section 3 passed on 2026-10-08 while the
+    // real deploy failed. The fake server answered 'Unrecognized function', the
+    // regex matched it, the check went green — and DianaHost said something the
+    // regex had never seen. Asserting the wording the host actually emits is
+    // the only way this harness stays honest about the host it guards.
+    const realWording =
+      'UAPI Fileman::extract_files failed: ' +
+      '{"data":null,"errors":["The system could not find the function ' +
+      '“extract_files” in the module “Fileman”."],"status":0}'
+    check(
+      'the host wording matches the missing-function pattern',
+      MISSING_FUNCTION.test(realWording),
+      realWording.slice(0, 120),
+    )
+    // And the inverse, which is the property that makes the pattern safe rather
+    // than merely permissive: a genuine failure must still throw, or this
+    // fallback would swallow every real error the host reports.
+    check(
+      'a genuine failure does NOT match, so it still throws',
+      !MISSING_FUNCTION.test(
+        'UAPI Fileman::extract_files failed: {"errors":["Permission denied"],"status":0}',
+      ),
+    )
+    // Both documented wordings are kept deliberately; if one is dropped from the
+    // pattern, this catches it instead of silently narrowing the fallback.
+    check(
+      'the documented wordings are still recognised',
+      MISSING_FUNCTION.test('Unrecognized function') && MISSING_FUNCTION.test('unknown function'),
+    )
   }
 
   console.log('\n4. Dry run issues no mutating call')

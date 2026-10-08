@@ -42,6 +42,22 @@
 const REQUIRED = ['CPANEL_HOST', 'CPANEL_USER', 'CPANEL_TOKEN']
 
 /**
+ * The wordings cPanel uses for "this UAPI function does not exist on this build".
+ *
+ * Only these are allowed to trigger the API 2.0 fallback in `extractArchive`.
+ * A genuine failure also arrives as `status: 0`, so matching too broadly would
+ * mask a real error; matching too narrowly made the deploy die on the one host
+ * it was written for. Exported so the harness asserts against this list rather
+ * than a copy of it — two lists would drift, and the drift is the bug.
+ *
+ * ⚠️ `could not find the function` is what this host actually says, measured
+ * 2026-10-08. The other two are documented wordings kept because removing a
+ * wording that some cPanel build emits would reintroduce the same trap.
+ */
+export const MISSING_FUNCTION =
+  /unrecogni[sz]ed|not implemented|unknown function|could not find the function/i
+
+/**
  * Read and validate the cPanel connection settings from the environment.
  *
  * @returns {{base: string, user: string, token: string, dryRun: boolean}}
@@ -306,7 +322,17 @@ export async function extractArchive(cfg, archivePath, destDir) {
     // An unknown function and a real failure are both `status: 0`. Falling
     // through on a genuine error would mask it, so only a missing-function
     // error is allowed to fall through.
-    if (!/unrecogni[sz]ed|not implemented|unknown function/i.test(error.message)) {
+    //
+    // ⚠️ Two wordings, because cPanel is not consistent across builds — and the
+    // difference is not academic. The first live deploy (2026-10-08, run
+    // 37749577648) died here against this exact host: it answers
+    // `The system could not find the function “extract_files” in the module
+    // “Fileman”.`, which the original `unrecogni[sz]ed|not implemented|unknown
+    // function` does not match. The deploy failed *safe* — nothing was written
+    // — but it failed at the one step whose whole purpose was to be tried and
+    // fallen back from. A guard that only recognises the wording it was written
+    // against is a guard that has never met the host it guards.
+    if (!MISSING_FUNCTION.test(error.message)) {
       throw error
     }
   }
