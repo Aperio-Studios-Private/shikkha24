@@ -443,6 +443,14 @@ export async function writeTextFile(cfg, dir, file, content) {
 /**
  * Delete a file, or a directory and everything under it.
  *
+ * ⚠️ UAPI `Fileman::delete_file` is **not present on this host** — measured
+ * 2026-10-08, run 37764034486: `The system could not find the function
+ * “delete_file” in the module “Fileman”.` So deletion falls back to the same
+ * API 2.0 `fileop` that extraction uses, with `op=unlink`. The probe-zip cleanup
+ * in `deploy-static.mjs` depends on this: an unremovable probe file would leave
+ * a stale archive in the docroot on every deploy, and before the fallback
+ * existed it killed the run after a successful extract.
+ *
  * @param {ReturnType<typeof config>} cfg
  * @param {string} path Relative to home.
  * @param {boolean} recursive
@@ -451,10 +459,27 @@ export async function writeTextFile(cfg, dir, file, content) {
 export async function deletePath(cfg, path, recursive = false) {
   if (cfg.dryRun) return
   const slash = path.lastIndexOf('/')
-  await uapi(cfg, 'Fileman', 'delete_file', {
-    dir: slash === -1 ? '.' : path.slice(0, slash),
-    file: slash === -1 ? path : path.slice(slash + 1),
-    recursive: recursive ? '1' : '0',
+  const dir = slash === -1 ? '.' : path.slice(0, slash)
+  const file = slash === -1 ? path : path.slice(slash + 1)
+  try {
+    await uapi(cfg, 'Fileman', 'delete_file', {
+      dir,
+      file,
+      recursive: recursive ? '1' : '0',
+    })
+    return
+  } catch (error) {
+    // Same trap as `extractArchive`, one call over: a missing function and a
+    // genuine failure both arrive as `status: 0`. Only a missing function falls
+    // through, so a real permission error still surfaces.
+    if (!MISSING_FUNCTION.test(error.message)) {
+      throw error
+    }
+  }
+  await api2(cfg, 'Fileman', 'fileop', {
+    op: 'unlink',
+    source: `${dir === '.' ? '' : `${dir}/`}${file}`,
+    path: dir,
   })
 }
 

@@ -97,6 +97,8 @@ function check(name, condition, detail = '') {
  * @param {object} options
  * @param {boolean} [options.uapiExtract] whether `Fileman::extract_files` exists,
  *   i.e. whether a destination directory can be specified.
+ * @param {boolean} [options.uapiDelete] whether `Fileman::delete_file` exists.
+ *   Defaults to false because this host does not ship it.
  * @param {'cpanelresult'|'cpanel_obj'} [options.api2Envelope] which API 2.0
  *   envelope to emit. `cpanelresult` is what this host actually sends; the
  *   documented `cpanel_obj` is kept so the client cannot narrow to one host.
@@ -104,6 +106,7 @@ function check(name, condition, detail = '') {
  */
 async function startFakeCpanel({
   uapiExtract = true,
+  uapiDelete = false,
   requireAuth = true,
   api2Envelope = 'cpanelresult',
 } = {}) {
@@ -166,6 +169,19 @@ async function startFakeCpanel({
           ],
         })
       }
+      if (!uapiDelete && uapiPath === 'Fileman/delete_file') {
+        // ⚠️ Same wording as the real host, for the same reason as
+        // `extract_files` above: DianaHost does not ship this UAPI function
+        // either. Measured 2026-10-08, run 37764034486. Deletion has to fall
+        // back to API 2.0 `fileop op=unlink`, and a fake that answered success
+        // here would never exercise that fallback.
+        return send({
+          module: 'Fileman',
+          func: 'delete_file',
+          status: 0,
+          errors: ['The system could not find the function “delete_file” in the module “Fileman”.'],
+        })
+      }
       return send({
         module: uapiPath.split('/')[0],
         func: uapiPath.split('/')[1],
@@ -175,6 +191,8 @@ async function startFakeCpanel({
     }
 
     // API 2.0: /json-api/cpanel?...
+    // `op` (extract | unlink) is not read: both land here and both answer with
+    // the same envelope, so asserting on it would be decoration.
     const module = url.searchParams.get('cpanel_jsonapi_module')
     const func = url.searchParams.get('cpanel_jsonapi_func')
     if (module === 'Fileman' && func === 'fileop') {
@@ -189,7 +207,7 @@ async function startFakeCpanel({
       // A fake answering the documented shape passed 52 checks while the host
       // sent something else, so this server answers as the host does by default
       // and can be switched to the documented shape to prove the client still
-      // accepts both.
+      // accepts both. Both `op=extract` and `op=unlink` land here.
       if (api2Envelope === 'cpanel_obj') {
         return send({ cpanel_obj: { result: { status: 1, data: [{ status: 'Success' }] } } })
       }
@@ -344,6 +362,43 @@ async function main() {
       'the documented wordings are still recognised',
       MISSING_FUNCTION.test('Unrecognized function') && MISSING_FUNCTION.test('unknown function'),
     )
+  }
+
+  console.log('\n3c. ⚠️ Deletion falls back to API 2.0 when delete_file is missing')
+  {
+    // ⚠️ This section exists because the fourth live deploy (2026-10-08, run
+    // 37764034486) extracted successfully and then died removing the probe zip:
+    // `Fileman::delete_file` is not on this host either. Deletion had no
+    // fallback at all, so a cleanup step that cannot fail took down a deploy
+    // whose real work was already done.
+    const server = await startFakeCpanel({ uapiDelete: false })
+    const restore = useEndpoint(server.base)
+    await deletePath(config(), 'public_html/probe.zip')
+    check(
+      'the unlink fallback was attempted instead of throwing',
+      server.calls.some((c) => c.includes('op=unlink')),
+      JSON.stringify(server.calls.filter((c) => c.includes('fileop'))),
+    )
+    check(
+      'the missing UAPI function was tried first, then abandoned',
+      server.calls.some((c) => c.includes('delete_file')),
+    )
+    restore()
+    await server.close()
+
+    // When the host DOES ship delete_file, the fallback must not be used —
+    // otherwise this fix would silently route every delete through the
+    // deprecated API for no reason.
+    const modern = await startFakeCpanel({ uapiDelete: true })
+    const restoreModern = useEndpoint(modern.base)
+    await deletePath(config(), 'public_html/probe.zip')
+    check(
+      'a host with delete_file does not use the deprecated fallback',
+      !modern.calls.some((c) => c.includes('fileop')),
+      JSON.stringify(modern.calls),
+    )
+    restoreModern()
+    await modern.close()
   }
 
   console.log('\n4. Dry run issues no mutating call')
