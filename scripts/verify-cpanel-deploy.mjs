@@ -97,9 +97,16 @@ function check(name, condition, detail = '') {
  * @param {object} options
  * @param {boolean} [options.uapiExtract] whether `Fileman::extract_files` exists,
  *   i.e. whether a destination directory can be specified.
+ * @param {'cpanelresult'|'cpanel_obj'} [options.api2Envelope] which API 2.0
+ *   envelope to emit. `cpanelresult` is what this host actually sends; the
+ *   documented `cpanel_obj` is kept so the client cannot narrow to one host.
  * @returns {Promise<{base: string, calls: string[], close: () => Promise<void>}>}
  */
-async function startFakeCpanel({ uapiExtract = true, requireAuth = true } = {}) {
+async function startFakeCpanel({
+  uapiExtract = true,
+  requireAuth = true,
+  api2Envelope = 'cpanelresult',
+} = {}) {
   const calls = []
   const authHeaders = []
   const server = createServer((req, res) => {
@@ -171,7 +178,32 @@ async function startFakeCpanel({ uapiExtract = true, requireAuth = true } = {}) 
     const module = url.searchParams.get('cpanel_jsonapi_module')
     const func = url.searchParams.get('cpanel_jsonapi_func')
     if (module === 'Fileman' && func === 'fileop') {
-      return send({ cpanel_obj: { result: { status: 1, data: [{ status: 'Success' }] } } })
+      // ⚠️ The default below is the REAL host's envelope, not the documented one.
+      //
+      // DianaHost answers API 2.0 with `cpanelresult` — the UAPI envelope with
+      // `apiversion: 2` — not the documented `cpanel_obj.result`. Measured
+      // 2026-10-08, run 37758709796. The extract had succeeded; the client read
+      // it as "no result" and failed the deploy at the last step for a reason
+      // that was not real.
+      //
+      // A fake answering the documented shape passed 52 checks while the host
+      // sent something else, so this server answers as the host does by default
+      // and can be switched to the documented shape to prove the client still
+      // accepts both.
+      if (api2Envelope === 'cpanel_obj') {
+        return send({ cpanel_obj: { result: { status: 1, data: [{ status: 'Success' }] } } })
+      }
+      return send({
+        cpanelresult: {
+          apiversion: 2,
+          module: 'Fileman',
+          func: 'fileop',
+          data: [{ status: 'Success' }],
+          postevent: { result: 1 },
+          event: { result: 1 },
+          preevent: { result: 1 },
+        },
+      })
     }
     return send({
       cpanel_obj: { result: { status: 1, data: [{ name: 'x', type: 'file' }] } },
@@ -245,6 +277,40 @@ async function main() {
     )
     restore()
     await server.close()
+  }
+
+  console.log('\n3a. ⚠️ The envelope the REAL host sends is understood, not just the documented one')
+  {
+    // ⚠️ This section exists because the documented API 2.0 envelope is not what
+    // this host emits. DianaHost wraps the answer as `cpanelresult` (a UAPI
+    // envelope carrying `apiversion: 2`), and the client reading only
+    // `cpanel_obj` reported a successful extract as "no result" — killing the
+    // deploy at the last step for a reason that was not real (2026-10-08, run
+    // 37758709796). Asserting the real envelope is what keeps this harness
+    // honest about the host it guards.
+    const server = await startFakeCpanel({ uapiExtract: false })
+    const restore = useEndpoint(server.base)
+    const { via } = await extractArchive(config(), 'public_html/a.zip', 'public_html')
+    check('the host envelope is accepted', via === 'api2-fileop', via)
+    check(
+      'the answer came from cpanelresult, not cpanel_obj',
+      server.calls.some((c) => c.includes('fileop')),
+    )
+    restore()
+    await server.close()
+
+    // And the documented shape is still accepted, so the fix did not narrow the
+    // client to one host at the expense of every other cPanel build.
+    const documented = await startFakeCpanel({ uapiExtract: false, api2Envelope: 'cpanel_obj' })
+    const restoreDoc = useEndpoint(documented.base)
+    const viaDoc = await extractArchive(config(), 'public_html/a.zip', 'public_html')
+    check(
+      'the documented cpanel_obj shape is still accepted',
+      viaDoc?.via === 'api2-fileop',
+      JSON.stringify(viaDoc),
+    )
+    restoreDoc()
+    await documented.close()
   }
 
   console.log('\n3b. ⚠️ The wording the REAL host uses still falls back')

@@ -216,6 +216,29 @@ async function unwrap(label, res) {
 }
 
 /**
+ * Read the `cpanelresult` envelope this host actually uses for API 2.0 calls.
+ *
+ * ⚠️ This exists because the documented shape is not what the host sends. See
+ * `api2` for the measured response. `cpanelresult` folds its outcome into three
+ * fields — `data` on success, `error`/`errors` on failure — without a `status`
+ * boolean, so this helper synthesises one rather than pretending the field
+ * exists.
+ *
+ * @param {any} payload The parsed JSON body.
+ * @returns {{status: number, data: any} | undefined} a result, or nothing.
+ */
+function cpanelResult(payload) {
+  const cr = payload?.cpanelresult
+  if (!cr || typeof cr !== 'object') return undefined
+  // `postevent.result` and `event.result` are the outcome markers this envelope
+  // uses in place of a status boolean; `error`/`errors` carry the failure text.
+  const errors = cr.error ?? cr.errors
+  if (errors) return { status: 0, data: cr.data }
+  const ok = cr.postevent?.result ?? cr.event?.result
+  return { status: ok === 1 ? 1 : 0, data: cr.data }
+}
+
+/**
  * Call an API 2.0 function.
  *
  * API 2.0 is deprecated. It is used only where **no UAPI equivalent exists** —
@@ -242,15 +265,28 @@ export async function api2(cfg, module, func, params = {}) {
     user: cfg.user,
   })
   const payload = await res.json()
-  const result = payload?.cpanel_obj?.result
+
+  // ⚠️ Two envelopes, and only one of them is the documented one.
+  //
+  // API 2.0 is supposed to answer `{"cpanel_obj":{"result":{status,data}}}`.
+  // This host does not. It routes the request — `module` and `func` are echoed
+  // back — but wraps the answer as `{"cpanelresult":{"apiversion":2,"data":[…],
+  // "postevent":{"result":1},…}}`, which is the UAPI envelope with the API
+  // version set to 2. Measured 2026-10-08, run 37758709796, against the real
+  // `Fileman::fileop` extract that the deploy depends on.
+  //
+  // Reading only `cpanel_obj` therefore saw "no result" in a response that
+  // carried one, and the extract — which had succeeded — was reported as a
+  // failure. The deploy died at the last step for a reason that was not real.
+  const result = payload?.cpanel_obj?.result ?? cpanelResult(payload)
   if (result) {
     if (result.status !== 1) throw failure(label, result.errors ?? payload)
     return result.data
   }
   if (!res.ok) throw failure(label, `HTTP ${res.status}`)
-  // ⚠️ Include the body. Without it the message says only "no cpanel_obj.result"
-  // and the operator is looking at a host that answered HTTP 200 with something
-  // — possibly an error envelope, possibly a redirect page — and cannot tell
+  // ⚠️ Include the body. Without it the message says only "no result" and the
+  // operator is looking at a host that answered HTTP 200 with something —
+  // possibly an error envelope, possibly a redirect page — and cannot tell
   // which. This is the exact error that killed the second live deploy
   // (2026-10-08, run 37756100116), and the body that would have explained it was
   // discarded one line above.
