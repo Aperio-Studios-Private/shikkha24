@@ -26,7 +26,45 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
 - **✅ THE SITE IS LIVE (2026-10-04).** Deployed to DianaHost and verified on the host, not
   assumed: `shikkha24.com` serving static HTML, `cms.shikkha24.com/api/articles` → 200,
   `/admin` → 200, 74 tables, taxonomy seed 77 rows.
-- **✅ THE DEPLOY AUTOMATION IS BUILT (2026-10-04) — and has never run against production.**
+- **✅ THE DEPLOY HAS NOW RUN LIVE, REPEATEDLY (2026-10-08).** Five live runs against production
+  found four real transport defects in sequence, each invisible until the run, each fixed and
+  counter-proved before the next attempt. The automation is no longer theoretical, and the
+  "never run against production" clause below is history, not current state.
+  - **Run 37749577648** — `Fileman::extract_files` does not exist on this host. The fallback regex
+    matched documented wording (`Unrecognized function`) this cPanel build has never emitted; the
+    real wording is `The system could not find the function “extract_files” in the module “Fileman”.`
+    Fixed in `63fa5c1`, and the fake server in `verify-cpanel-deploy.mjs` now answers with the real
+    wording — a fake answering a string the regex already matched was a test that could not fail,
+    which is how 40 passing checks accompanied a deploy that could not run.
+  - **Run 37756100116** — `api2()` discarded the response body, so the failure had no explanation.
+    Now reported. `6057cb1`.
+  - **Run 37758709796** — the host routes API 2.0 but answers with `{"cpanelresult":{…}}`, the UAPI
+    envelope carrying `apiversion: 2`, **not** the documented `cpanel_obj.result`. The extract had
+    *succeeded* and was read as failure. `7b00772`.
+  - **Run 37764034486** — `Fileman::delete_file` does not exist either; the probe cleanup killed a
+    run after a successful extract. `deletePath` now falls back to `fileop op=unlink`. `ab2d665`.
+  - **Run 37767514513 — SUCCEEDED**, but verification caught a defect the success hid: the live
+    `connect-src` was byte-identical to the pre-push baseline. Two causes, both fixed in `e3b09f9`.
+    (1) `supportsDestination` only asked "did anything throw", but `extractArchive` legitimately
+    *swallows* the missing-function error and falls through to the no-destination `fileop`, so the
+    probe wrongly reported destination support and staged the zip outside the docroot where `fileop`
+    cannot reach it. The probe now checks **which mechanism** succeeded. (2) `fileop op=extract` does
+    not overwrite a file that already exists, so `.htaccess` — present on the host from the
+    pre-CI hand-upload — was silently skipped while every new artefact around it landed. It is now
+    written explicitly via `save_file_content`, which overwrites unconditionally.
+  - **Run 37785419585 — the `.htaccess` fix verified on the host.** Live headers on `/`, `/about/`
+    and `/contact/` now carry `https://api.aladhan.com https://api.open-meteo.com https://ipwho.is`
+    in `connect-src`. That is the evidence the new `.htaccess` is actually being served, and it
+    settles the open question below about `extract_files`.
+  - **The recurring meta-bug across all of the above:** the fake cPanel server kept answering with
+    documented or invented shapes the real host never emits, so the harness certified a client that
+    could not deploy. Every real host response is now copied into the fake server, and harness
+    coverage went 40 → 64. Two of today's checks were counter-proved by reverting each fix and
+    confirming the checks that claim to catch it do fail.
+- **✅ THE DEPLOY AUTOMATION IS BUILT (2026-10-04) — ~~and has never run against production.~~**
+  *(Superseded 2026-10-08: it has, five times. See the block above. The clause is kept because it
+  was true when written, and the four defects it took to get here are the reason dry run is the
+  default.)*
   `.github/workflows/deploy.yml` no longer contains a single `rsync` or `scp`. It ships over the
   **cPanel HTTPS API**, which is the only transport the host allows (auth is a static token in one
   plain header — **not** OAuth, no exchange, no expiry). `scripts/cpanel-client.mjs`,
@@ -45,9 +83,11 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
   - **Publishing still does not deploy.** `repository_dispatch` runs in dry run until the
     repository variable `AUTO_DEPLOY=live` is set. That is a deliberate switch the owner flips
     after the first successful live run, not a default.
-  - **Unverified against the real host:** whether `Fileman::extract_files` exists there (it takes a
-    destination, which would keep the zip out of `public_html`; the fallback cannot). The script
-    probes and reports which one the host accepted rather than assuming. `docs/hosting-and-deployment.md` §4.2.
+  - **Unverified against the real host:** ~~whether `Fileman::extract_files` exists there~~ —
+    **ANSWERED 2026-10-08: it does not.** Nor does `delete_file`. Both fall back to API 2.0
+    `fileop`, which has no destination parameter and does not overwrite existing files. The script
+    still probes rather than assuming, so a host or cPanel update that adds either function is
+    picked up automatically. `docs/hosting-and-deployment.md` §4.2.
   - **Push-to-live on the host remains impossible**, not merely unused — three independent blockers.
     Do not spend time on it again; the reasoning is in `docs/hosting-and-deployment.md` §4.
   - **🔴 Adversarial review found three real defects; all three are now fixed and counter-proved.**
