@@ -41,7 +41,7 @@
  * something. `verify-cms-bundle-sanitize.mjs` counter-proves all of that.
  */
 import { existsSync, readdirSync, rmSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { join, parse, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 /**
@@ -71,8 +71,15 @@ export function sanitizeBundle(bundleRoot) {
         'standalone CMS bundle root. Point this at …/.next/standalone/cms.',
     )
   }
-  if (root === '/' || root.split('/').filter(Boolean).length < 3) {
-    throw new Error(`Refusing to sanitise ${root}: too shallow to be a bundle root.`)
+  // ⚠️ This used to refuse any path fewer than three segments deep, which was a
+  // mistake this harness caught on CI and not locally: `mkdtempSync` under
+  // macOS lands somewhere like /var/folders/…/T (many segments) while GitHub's
+  // runner uses TMPDIR=/tmp, so the *same* fixture was accepted on a laptop and
+  // rejected on the runner. A depth threshold is a property of the temp
+  // directory, not of the bundle. The meaningful test is simply "is this the
+  // filesystem root", and `server.js` above already does the real work.
+  if (root === parse(root).root) {
+    throw new Error(`Refusing to sanitise ${root}: that is the filesystem root.`)
   }
 
   const removed = []
