@@ -356,6 +356,26 @@ jobs:
             exit 1
           fi
 
+          # 6. ⚠️ Strip the production secret and the editorial archive from the
+          #    bundle before it is uploaded. `output: 'standalone'` traces
+          #    `cms/.env` in byte for byte and `cms/data/` (38 MB: payload.db, 11
+          #    dated backups, the media library) with it. Measured 2026-10-09.
+          #
+          #    `deploy-cms.mjs:assertBundleIsSafe` refuses such a bundle — correctly —
+          #    which is why every CMS deploy died at its first step. Stripping here
+          #    is what makes the deploy possible, and it also means the archive can
+          #    never be uploaded over FTP to the host. The host supplies both at
+          #    runtime; `CMS_PROTECTED` excludes them from the clear set so the live
+          #    copies are never deleted or overwritten.
+          #    See scripts/sanitize-cms-bundle.mjs and its counter-proofs.
+          node scripts/sanitize-cms-bundle.mjs "$ROOT/cms"
+          for forbidden in .env data; do
+            if [ -e "$ROOT/cms/$forbidden" ]; then
+              echo "::error::$forbidden still in the CMS bundle - refusing to upload a bundle carrying the secret or the archive"
+              exit 1
+            fi
+          done
+
           echo "CMS bundle = $(du -sm "$ROOT/cms" | cut -f1) MB"
 
       # ── Deploy ───────────────────────────────────────────────────────────
