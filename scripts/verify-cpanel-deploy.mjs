@@ -109,12 +109,17 @@ async function startFakeCpanel({
   uapiDelete = false,
   requireAuth = true,
   api2Envelope = 'cpanelresult',
+  // Optional replacement for the default `list_files` answer. The default
+  // returns one placeholder file, which is enough for every section that only
+  // needs *a* listing — section 10b needs a real tree, because it is asserting
+  // on which paths survive a walk that prunes and recurses.
+  listFiles = null,
 } = {}) {
   const calls = []
   // ⚠️ POST bodies, recorded separately from `calls`. See the collector below.
   const bodies = []
   const authHeaders = []
-  const server = createServer((req, res) => {
+  const server = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost')
 
     const send = (payload) => {
@@ -205,6 +210,27 @@ async function startFakeCpanel({
           func: 'delete_file',
           status: 0,
           errors: ['The system could not find the function “delete_file” in the module “Fileman”.'],
+        })
+      }
+      if (uapiPath === 'Fileman/list_files' && listFiles) {
+        // `list_files` is read-only, so a caller-supplied tree is safe in any mode.
+        //
+        // ⚠️ `dir` arrives in the **POST body**, not the query string — `uapi()`
+        // sends its params form-encoded. Reading `url.searchParams` here always
+        // yielded `null`, so the fake fell back to `'.'` and answered with the
+        // ROOT listing for every directory. The walk in `listHostFiles` then never
+        // saw the directory it had asked for, never recursed, and produced an
+        // empty clear set — which is why section 10b failed against a correct
+        // `overwrittenPaths`. The body is awaited because the collector below only
+        // records it on `'end'`, i.e. after this handler would otherwise have replied.
+        const chunks = []
+        for await (const chunk of req) chunks.push(chunk)
+        const posted = new URLSearchParams(Buffer.concat(chunks).toString('utf8'))
+        return send({
+          module: 'Fileman',
+          func: 'list_files',
+          status: 1,
+          data: listFiles(posted.get('dir') ?? url.searchParams.get('dir') ?? '.'),
         })
       }
       return send({
@@ -801,6 +827,149 @@ async function main() {
       uapiOutput.slice(0, 400),
     )
     await withUapi.close()
+  }
+
+  console.log(
+    '\n10b. ⚠️ The CMS deploy clears the bundle’s own paths, because fileop will not overwrite them',
+  )
+  {
+    // Same host defect as section 10a, one application over: `fileop op=extract`
+    // skips an existing file. The static site has exactly one such file
+    // (`.htaccess`) so it is written explicitly. A Next standalone build has
+    // dozens of stable-named manifests — `required-server-files.json` is the one
+    // that decides which chunk boots — and the set changes with each Next
+    // release, so it cannot be enumerated. The deploy instead removes every
+    // path the bundle is about to re-supply and lets the extract write them new.
+    //
+    // This section proves the arithmetic of that, not the wording: the clear set
+    // must be exactly `hostFiles ∩ bundleFiles`, never `hostFiles` alone. A bug
+    // that cleared everything listed on the host would delete `data/` — the
+    // editorial archive with no working backup — and a bug that cleared nothing
+    // is the status quo this fix replaces.
+    const bundle = mkdtempSync(join(tmpdir(), 'cms-dist-'))
+    mkdirSync(join(bundle, '.next', 'server'), { recursive: true })
+    mkdirSync(join(bundle, 'data'), { recursive: true })
+    // A stable-named manifest the new build changed. This is the file whose
+    // staleness kept the CSRF fix off the host.
+    const FRESH = 'required-server-files-FRESH'
+    writeFileSync(join(bundle, '.next', 'required-server-files.json'), FRESH)
+    // A hashed chunk: name changes every build, so extract always writes it.
+    writeFileSync(join(bundle, '.next', 'server', 'chunk__newhash._.js'), 'new chunk')
+    writeFileSync(join(bundle, 'server.js'), 'new entry')
+
+    // What the PREVIOUS deploy left on the host. `data/` is there and must
+    // survive; the old chunk is there and is now stale; the old manifest is
+    // there and is the whole bug.
+    const PREVIOUS_MANIFEST = 'required-server-files-STALE'
+    const host = {
+      '.next/required-server-files.json': PREVIOUS_MANIFEST,
+      '.next/server/chunk__oldhash._.js': 'old chunk',
+      '.next/required-server-files.js': 'nothing in the new bundle',
+      'data/db.sqlite': 'THE EDITORIAL ARCHIVE',
+      '.env': 'PAYLOAD_SECRET=never-commit',
+      'server.js': 'old entry',
+    }
+
+    const { overwrittenPaths } = await import('./deploy-cms.mjs')
+
+    // Drive the function against a fake host listing. `listFiles` is read-only,
+    // so this is safe in any mode; the clear set it returns is what a live run
+    // would delete.
+    const server = await startFakeCpanel({
+      uapiExtract: false,
+      // Hand the fake a real directory tree instead of the single placeholder
+      // entry it returns by default, so the walk has something to walk.
+      //
+      // ⚠️ It must emit **directory entries as well as files**. `listHostFiles`
+      // only descends into a directory the listing reports as `dir`, so a fixture
+      // that returned files alone made the walk return the top-level files and
+      // stop — which silently reduced the clear set and made this section fail
+      // for a reason that had nothing to do with the code under test.
+      listFiles: (dir) => {
+        const prefix = dir.replace(/^shikkha24-cms\/?/, '')
+        // Every directory implied by the host tree.
+        const dirs = new Set()
+        for (const path of Object.keys(host)) {
+          const segments = path.split('/')
+          segments.pop()
+          let acc = ''
+          for (const segment of segments) {
+            acc = acc ? `${acc}/${segment}` : segment
+            dirs.add(acc)
+          }
+        }
+        const entries = []
+        for (const d of dirs) {
+          if (prefix && !d.startsWith(`${prefix}/`)) continue
+          const rest = prefix ? d.slice(prefix.length + 1) : d
+          if (!rest || rest.includes('/')) continue
+          entries.push({ name: rest, type: 'dir' })
+        }
+        for (const path of Object.keys(host)) {
+          const segments = path.split('/')
+          const file = segments.pop()
+          if (segments.join('/') === prefix) entries.push({ name: file, type: 'file' })
+        }
+        return entries
+      },
+    })
+    const restore = useEndpoint(server.base)
+    const current = await buildManifest(bundle)
+    const stale = await overwrittenPaths({ cfg: config(), current })
+    restore()
+    await server.close()
+
+    check(
+      'the stale manifest the build changed IS in the clear set',
+      stale.includes('.next/required-server-files.json'),
+      stale.join(', '),
+    )
+    check(
+      'the stable entry point IS in the clear set',
+      stale.includes('server.js'),
+      stale.join(', '),
+    )
+    // The fix must not become "delete everything that is there". `data/` is
+    // never in the bundle, so it cannot be in the intersection — and it is
+    // named in `CMS_PROTECTED` as well, so the guard is double.
+    check(
+      'data/ — the archive with no backup — is NOT in the clear set',
+      !stale.some((path) => path.startsWith('data/')),
+      stale.join(', '),
+    )
+    check('.env is NOT in the clear set', !stale.includes('.env'), stale.join(', '))
+    // A file the previous deploy shipped but this build dropped. It is on the
+    // host and NOT in the bundle, so it must be left alone — deleting it is
+    // `planDeletes`'s job in the static deploy, not this function's.
+    check(
+      'a host-only file is left alone',
+      !stale.includes('.next/required-server-files.js'),
+      stale.join(', '),
+    )
+
+    // COUNTER-PROOF (M18): an assertion that cannot be made to fail is not an
+    // assertion. Hand the function a host that contains NOTHING the bundle
+    // supplies — a first deploy — and it must return an empty set. A version
+    // that returned the whole host listing here would delete `data/` on a
+    // first deploy, which is the one scenario it must survive.
+    const empty = await startFakeCpanel({
+      uapiExtract: false,
+      listFiles: () => [
+        { name: 'data', type: 'dir' },
+        { name: 'db.sqlite', type: 'file' },
+        { name: '.env', type: 'file' },
+        { name: 'node_modules', type: 'dir' },
+      ],
+    })
+    const restoreEmpty = useEndpoint(empty.base)
+    const firstDeploy = await overwrittenPaths({ cfg: config(), current })
+    restoreEmpty()
+    await empty.close()
+    check(
+      'a first deploy against a host with none of the bundle clears nothing',
+      firstDeploy.length === 0,
+      firstDeploy.join(', '),
+    )
   }
 
   console.log('\n11. The dry-run detector is not itself broken (negative control)')

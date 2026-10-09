@@ -21,6 +21,23 @@
  * acknowledged both, and it verifies the CMS answers afterwards — because a CMS
  * that boots to a 500 takes the editorial workflow down with it.
  *
+ * ## ⚠️ `fileop` does not overwrite, so the bundle's paths are cleared first
+ *
+ * `Fileman::fileop op=extract` — the only extract path this host offers —
+ * silently skips any file that already exists at the destination. Most of a
+ * Next standalone build is content-hashed chunks whose names change every
+ * build, so they land and the deploy *looks* successful. The stable-named
+ * manifests that tell Next which chunk to load do not, so the CMS keeps booting
+ * the previous build. This is what kept the CSRF allow-list fix off the host
+ * while every other file in the archive arrived (2026-10-08).
+ *
+ * The deploy therefore removes the bundle's own paths on the host before
+ * extracting, letting `fileop` write every file as though it were new. Only
+ * paths the build is about to re-supply are removed — `data/`, `.env` and the
+ * venv `node_modules` symlinks are excluded structurally — so the removal is
+ * self-correcting rather than a list someone has to maintain. See
+ * `overwrittenPaths`.
+ *
  * ## Dry run by default
  *
  * `DEPLOY_DRY_RUN=true` prints the plan and makes no mutating call.
@@ -30,12 +47,41 @@ import { mkdtempSync, readdirSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { config, deletePath, extractArchive, uploadFile, writeTextFile } from './cpanel-client.mjs'
+import {
+  config,
+  deletePath,
+  extractArchive,
+  listFiles,
+  uploadFile,
+  writeTextFile,
+} from './cpanel-client.mjs'
+import { buildManifest } from './deploy-manifest.mjs'
 import { summary as report } from './deploy-summary.mjs'
 
-const CMS_ROOT = process.env.DEPLOY_CMS_ROOT ?? 'shikkha24-cms'
-const CMS_DIST = process.env.DEPLOY_CMS_DIST ?? 'cms-dist'
-const CMS_URL = process.env.CMS_URL ?? 'https://cms.shikkha24.com'
+// ⚠️ `||`, never `??`. GitHub Actions sets an env var to an EMPTY STRING when the
+// expression that produces it resolves to nothing, and `'' ?? 'fallback'` is `''`,
+// not the fallback. Both variables below are fed by expressions that can resolve
+// empty (`${{ inputs.cms-root || vars.DEPLOY_CMS_ROOT }}` and `${{ secrets.CMS_URL }}`),
+// so `??` sent a live CMS deploy at the account HOME directory instead of
+// `~/shikkha24-cms`, and would have probed `/api/articles` against no origin.
+const CMS_ROOT = process.env.DEPLOY_CMS_ROOT || 'shikkha24-cms'
+const CMS_DIST = process.env.DEPLOY_CMS_DIST || 'cms-dist'
+const CMS_URL = process.env.CMS_URL || 'https://cms.shikkha24.com'
+
+/**
+ * Paths under the live app directory a deploy must never delete.
+ *
+ * `node_modules` on the host is not a directory but a forest of symlinks into
+ * the CloudLinux venv at `~/nodevenv/shikkha24-cms/<NODE_MAJOR>/lib/node_modules`.
+ * Removing entries there is the boot-failure case in the runbook, and the
+ * extract already drops the bundle's own copies in exactly as it always has, so
+ * it is excluded from the clear set rather than recreated.
+ *
+ * `data/` and `.env` are never in the bundle (`assertBundleIsSafe` refuses it),
+ * so they cannot reach the clear set anyway — they are listed here so that a
+ * future edit to one guard does not silently open the other.
+ */
+const CMS_PROTECTED = new Set(['node_modules', 'data', '.env'])
 
 const say = (message) => console.log(message)
 
@@ -96,6 +142,104 @@ function countFiles(root) {
   }
   walk(root)
   return total
+}
+
+/**
+ * Every directory the bundle writes into, as `/`-separated paths relative to
+ * the bundle root. Used to prune the host walk so it never descends into
+ * `data/` or the venv symlinks.
+ *
+ * @param {string[]} files Bundle-relative file paths.
+ * @returns {Set<string>}
+ */
+function directoriesOf(files) {
+  const dirs = new Set()
+  for (const file of files) {
+    const segments = file.split('/')
+    segments.pop()
+    let prefix = ''
+    for (const segment of segments) {
+      prefix = prefix ? `${prefix}/${segment}` : segment
+      dirs.add(prefix)
+    }
+  }
+  return dirs
+}
+
+/**
+ * Recursively list what is **actually on the host**, pruning to directories the
+ * bundle itself writes into.
+ *
+ * ⚠️ This is the fact the whole fix rests on: `Fileman::fileop op=extract` — the
+ * only extract path this host offers — does **not overwrite a file that already
+ * exists**. It silently skips it. A Next standalone build puts most code into
+ * content-hashed chunks whose names change every build, so those land fine and
+ * *look* like a successful deploy. But the **stable-named** manifests that tell
+ * Next which chunk to load — `.next/required-server-files.json`,
+ * `build-manifest.json`, `routes-manifest.json`, `BUILD_ID` — are skipped, so
+ * the CMS keeps booting the *previous* build and pointing at the previous
+ * chunks. New code sits on disk, orphaned and unreachable.
+ *
+ * That is exactly the defect that kept the CSRF allow-list fix (`1fa2a4d`) off
+ * the host: `cms.shikkha24.com` was added to `ALLOWED_ORIGINS`, compiled into a
+ * fresh chunk, and the chunk arrived while the manifest that should have
+ * referenced it did not. The admin then 403'd on `/api/globals/site-settings`
+ * because Payload's `extractJWT` discards the session cookie for any
+ * `Origin` not in `payload.config.csrf` (2026-10-08).
+ *
+ * The static site hit the same bug through the same host with `.htaccess`
+ * (fixed in `e3b09f9` by writing that one file explicitly). The CMS cannot be
+ * fixed one file at a time — the affected set is every stable-named artefact,
+ * and it changes with each Next release — so instead the deploy **removes the
+ * bundle's own paths before extracting**, letting the extract write every file
+ * as though it were new. Only paths the bundle is about to re-supply are ever
+ * removed, so the removal is self-correcting rather than trusting a list.
+ *
+ * @param {ReturnType<typeof config>} cfg
+ * @param {string} root App root, relative to home.
+ * @param {Set<string>} bundleDirs Directories the bundle writes into.
+ * @param {string} prefix Path already walked, relative to `root`.
+ * @returns {Promise<string[]>} file paths on the host, `/`-separated, relative to `root`.
+ */
+async function listHostFiles(cfg, root, bundleDirs, prefix = '') {
+  const dir = prefix ? `${root}/${prefix}` : root
+  let entries
+  try {
+    entries = await listFiles(cfg, dir)
+  } catch {
+    // An unreadable or missing directory has nothing the bundle needs to clear.
+    // Surfacing it here would abort a deploy that is otherwise safe.
+    return []
+  }
+  const found = []
+  for (const entry of entries) {
+    const rel = prefix ? `${prefix}/${entry.name}` : entry.name
+    if (CMS_PROTECTED.has(rel)) continue
+    if (entry.type === 'dir' || entry.type === 'directory') {
+      if (bundleDirs.has(rel)) {
+        found.push(...(await listHostFiles(cfg, root, bundleDirs, rel)))
+      }
+      continue
+    }
+    found.push(rel)
+  }
+  return found
+}
+
+/**
+ * Paths on the host that the bundle is about to write again — exactly the files
+ * `fileop` will silently skip.
+ *
+ * @param {object} options
+ * @param {ReturnType<typeof config>} options.cfg
+ * @param {string[]} options.current Files this build produced.
+ * @returns {Promise<string[]>}
+ */
+export async function overwrittenPaths({ cfg, current }) {
+  const bundleDirs = directoriesOf(current)
+  const onHost = await listHostFiles(cfg, CMS_ROOT, bundleDirs)
+  const currentSet = new Set(current)
+  return onHost.filter((path) => currentSet.has(path)).sort()
 }
 
 /**
@@ -180,6 +324,23 @@ async function main() {
   execFileSync('zip', ['-rq', zip, '.'], { cwd: CMS_DIST, stdio: 'pipe' })
 
   const remoteZip = await uploadFile(cfg, CMS_ROOT, zip, 'cms-deploy.zip')
+
+  // ⚠️ Clear the bundle's own paths *before* extracting. `fileop` skips a file
+  // that already exists, so without this the CMS keeps the previous build's
+  // stable-named manifests and boots the old chunk map while the new chunks sit
+  // on disk unreachable. See `overwrittenPaths` — the set is derived from what
+  // the build produced, so a path the bundle does not supply is never removed.
+  const current = await buildManifest(CMS_DIST)
+  const stale = await overwrittenPaths({ cfg, current })
+  if (stale.length) {
+    for (const path of stale) {
+      await deletePath(cfg, `${CMS_ROOT}/${path}`)
+    }
+    say(
+      `Cleared ${stale.length} file(s) the extract would have skipped (fileop does not overwrite).`,
+    )
+  }
+
   const { via } = await extractArchive(cfg, remoteZip, CMS_ROOT)
   await deletePath(cfg, `${CMS_ROOT}/cms-deploy.zip`)
   say(`Extracted via ${via}.`)
@@ -192,7 +353,13 @@ async function main() {
 
   await verifyCms()
 
-  summary.push('', `Extraction mechanism: \`${via}\``, '', `✅ ${CMS_URL} verified after restart.`)
+  summary.push(
+    '',
+    `Extraction mechanism: \`${via}\``,
+    `- **Cleared before extract:** ${stale.length} file(s) (fileop does not overwrite)`,
+    '',
+    `✅ ${CMS_URL} verified after restart.`,
+  )
   report(summary)
 }
 
