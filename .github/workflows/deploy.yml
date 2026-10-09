@@ -100,6 +100,10 @@ on:
         description: 'Host directory for the CMS. Leave empty for shikkha24-cms; set shikkha24-cms-staging to rehearse a first live run without touching production'
         required: false
         type: string
+      cms-url:
+        description: 'Origin the CMS deploy verifies after transferring. REQUIRED whenever cms-root is set — otherwise the post-deploy check probes production and passes without testing the rehearsal'
+        required: false
+        type: string
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -143,6 +147,8 @@ jobs:
           INPUT_TARGET: ${{ inputs.target }}
           INPUT_REASON: ${{ inputs.reason }}
           INPUT_CONFIRM: ${{ inputs.confirm-risk }}
+          INPUT_CMS_ROOT: ${{ inputs.cms-root }}
+          INPUT_CMS_URL: ${{ inputs.cms-url }}
           PAYLOAD_REASON: ${{ github.event.client_payload.reason }}
           AUTO_DEPLOY: ${{ vars.AUTO_DEPLOY }}
         run: |
@@ -221,6 +227,23 @@ jobs:
 
           if [ "$MODE" = "live" ] && [ "$TARGET" != "static" ] && [ "$CONFIRM" != "true" ]; then
             echo "::error::A live CMS deploy can disturb the venv symlinks in node_modules and take the CMS down. Re-run with confirm-risk: true, or use target: static."
+            exit 1
+          fi
+
+          # ⚠️ A rehearsal must verify the thing it rehearsed.
+          #
+          # `verifyCms()` probes `$CMS_URL/api/articles` after the transfer. Without
+          # an override that is the PRODUCTION origin, so a run pointed at
+          # `shikkha24-cms-staging` would transfer the bundle, extract it, probe
+          # production — which is up and answers 200 — and report success without
+          # having verified a single byte of the rehearsal. That is a false green,
+          # which is the failure class this pipeline has produced three times now.
+          #
+          # So a live CMS deploy to a non-default root must name the origin it is
+          # verifying. Deploying production itself is unaffected: empty cms-root
+          # keeps the secret, and the probe is then correct by definition.
+          if [ "$MODE" = "live" ] && [ "$TARGET" != "static" ] && [ -n "${INPUT_CMS_ROOT:-}" ] && [ -z "${INPUT_CMS_URL:-}" ]; then
+            echo "::error::cms-root is '${INPUT_CMS_ROOT}', so this is a rehearsal, but cms-url is empty. The post-deploy check would probe PRODUCTION and pass without testing ${INPUT_CMS_ROOT} at all. Supply cms-url, or clear cms-root to deploy production."
             exit 1
           fi
           if [ "$MODE" = "live" ]; then
@@ -387,7 +410,11 @@ jobs:
           CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
           DEPLOY_DRY_RUN: ${{ steps.cfg.outputs.dry_run }}
           DEPLOY_CMS_DIST: cms/.next/standalone/cms
-          CMS_URL: ${{ secrets.CMS_URL }}
+          # ⚠️ The origin `verifyCms()` probes after the transfer. It must be the
+          # origin of whatever `DEPLOY_CMS_ROOT` holds, or the check verifies the
+          # wrong deployment. The gate in "Resolve mode and target" guarantees this
+          # is never the production origin while a rehearsal is in flight.
+          CMS_URL: ${{ inputs.cms-url || secrets.CMS_URL }}
           # ⚠️ Overridable so the FIRST live run can target a staging directory.
           #
           # Everything above the deploy step is proven — credentials, the host,
