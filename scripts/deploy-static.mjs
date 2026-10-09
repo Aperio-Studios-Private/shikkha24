@@ -201,7 +201,9 @@ async function main() {
   const work = mkdtempSync(join(tmpdir(), 'shikkha24-deploy-'))
   const zip = zipDirectory(DIST, join(work, 'frontend.zip'))
 
-  const probeName = `probe-${process.env.GITHUB_RUN_ID ?? 'local'}.zip`
+  // One identifier for every artefact this run puts on the host.
+  const runId = process.env.GITHUB_RUN_ID ?? 'local'
+  const probeName = `probe-${runId}.zip`
   writeFileSync(join(work, 'probe.txt'), 'probe')
   execFileSync('zip', ['-q', join(work, probeName), join(work, 'probe.txt')])
   await uploadFile(cfg, STAGING, join(work, probeName), probeName)
@@ -213,7 +215,21 @@ async function main() {
   )
 
   const target = hasDestination ? STAGING : DOCROOT
-  const remoteZip = await uploadFile(cfg, target, zip, 'frontend.zip')
+  // ⚠️ **A per-run name, and this is load-bearing.** `Fileman::upload_files` on this
+  // host does NOT overwrite. An upload whose name already exists fails outright:
+  //
+  //     The file “frontend.zip” you uploaded already exists.      succeeded: 0, failed: 1
+  //
+  // A fixed name therefore makes the deploy **self-blocking**: the archive is only
+  // removed *after* the extract, so any run that dies between upload and cleanup —
+  // or is cancelled, or loses the connection — leaves a file that makes every
+  // later live deploy fail at the upload step. Not hypothetical: the live run of
+  // 2026-10-09 (37944210521) died exactly there, blocked by an archive an earlier
+  // failed run had left behind. A per-run name makes the collision impossible,
+  // which removes the dependency on that delete having succeeded — and matches how
+  // the probe archive has always been named.
+  const zipName = `frontend-${runId}.zip`
+  const remoteZip = await uploadFile(cfg, target, zip, zipName)
   // The destination is the docroot either way. Only the *source* of the archive
   // differs: with a destination parameter the zip stays in staging, without one
   // it must already be inside the docroot for `fileop` to expand it.
@@ -221,7 +237,17 @@ async function main() {
   say(`Extracted via ${via}.`)
 
   // Only the no-destination fallback leaves an archive in the docroot.
-  if (!hasDestination) await deletePath(cfg, `${DOCROOT}/frontend.zip`)
+  if (!hasDestination) await deletePath(cfg, `${DOCROOT}/${zipName}`)
+
+  // Best-effort sweep of the fixed-name archive older deploys wrote, which the
+  // per-run name above will never clean up. It is a stale copy of the built site
+  // sitting at a guessable public URL, so it should not outlive its deploy. Absent
+  // is the normal case from here on and must not fail the run.
+  try {
+    await deletePath(cfg, `${DOCROOT}/frontend.zip`)
+  } catch {
+    // Nothing to remove.
+  }
 
   // ⚠️ `.htaccess` is written explicitly, not left to the extract.
   //

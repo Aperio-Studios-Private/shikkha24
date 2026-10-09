@@ -114,10 +114,17 @@ async function startFakeCpanel({
   // needs *a* listing — section 10b needs a real tree, because it is asserting
   // on which paths survive a walk that prunes and recurses.
   listFiles = null,
+  // Filenames to treat as already present on the host, so a caller can reproduce
+  // "an earlier failed run left this behind".
+  seedUploads = null,
 } = {}) {
   const calls = []
   // ⚠️ POST bodies, recorded separately from `calls`. See the collector below.
   const bodies = []
+  // Filenames this fake has already accepted an upload for, so it can reproduce
+  // cPanel's refusal to overwrite. Seed it to simulate an archive an earlier
+  // failed run left behind.
+  const uploadedNames = new Set(seedUploads ?? [])
   const authHeaders = []
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost')
@@ -210,6 +217,62 @@ async function startFakeCpanel({
           func: 'delete_file',
           status: 0,
           errors: ['The system could not find the function “delete_file” in the module “Fileman”.'],
+        })
+      }
+      if (uapiPath === 'Fileman/upload_files') {
+        // ⚠️ **cPanel does not overwrite an uploaded file.** Measured 2026-10-09 on
+        // a live deploy (run 37944210521), which died with
+        //
+        //     The file “frontend.zip” you uploaded already exists.  succeeded: 0, failed: 1
+        //
+        // This fake answered every upload with success, so a deploy whose upload
+        // name could collide was indistinguishable from one that could not — the
+        // same blind spot the auth header had (see `cpanel-client.mjs`): the one
+        // property that decides whether the host accepts the transfer was the one
+        // property nothing checked. Reproducing the refusal is what lets the
+        // per-run naming be proven rather than assumed.
+        // ⚠️ Held in the fake's closure, NOT per request: the point is that a name
+        // uploaded by an earlier request is still taken. Created inside the handler
+        // it resets every time and the refusal never fires — which is precisely how
+        // the first draft of this counter-proof passed against the buggy fixed name.
+        const uploaded = new Set(uploadedNames)
+        const names = []
+        for await (const chunk of req) names.push(chunk)
+        // The multipart filename is the last `filename="…"` in the body.
+        const raw = Buffer.concat(names).toString('latin1')
+        const match = [...raw.matchAll(/filename="([^"]+)"/g)].pop()
+        const filename = match?.[1]
+        if (filename && uploaded.has(filename)) {
+          return send({
+            module: 'Fileman',
+            func: 'upload_files',
+            status: 0,
+            errors: ['Failed to upload any of the requested files with various failures.'],
+            data: {
+              uploads: [
+                {
+                  status: 0,
+                  warnings: [],
+                  size: null,
+                  file: filename,
+                  reason: `The file “${filename}” you uploaded already exists.`,
+                },
+              ],
+              succeeded: 0,
+              failed: 1,
+              warned: 0,
+            },
+          })
+        }
+        if (filename) {
+          uploaded.add(filename)
+          uploadedNames.add(filename)
+        }
+        return send({
+          module: 'Fileman',
+          func: 'upload_files',
+          status: 1,
+          data: [{ UploadedFile: filename, status: 0, warnings: [] }],
         })
       }
       if (uapiPath === 'Fileman/list_files' && listFiles) {
@@ -785,6 +848,37 @@ async function main() {
       !/SyntaxError|Cannot read properties|the `zip` command is not installed/.test(output),
       output.slice(0, 300),
     )
+
+    /*
+     * ⚠️ **The counter-proof for the self-blocking deploy of 2026-10-09** (run
+     * 37944210521), which died at the upload with
+     * `The file “frontend.zip” you uploaded already exists.`
+     *
+     * `Fileman::upload_files` refuses to overwrite, and the archive was uploaded
+     * under a fixed name and only deleted *after* the extract. So any earlier run
+     * that died in between — or was cancelled, or lost the connection — left a file
+     * that blocked every later live deploy, permanently. It is now named per run,
+     * so a collision is impossible rather than merely unlikely.
+     *
+     * The reproduction therefore seeds the host with the leftover, which is the
+     * condition that actually broke: an existing `frontend.zip` with nothing that
+     * ever deletes it. Under the old fixed name this upload is refused; under the
+     * per-run name it lands. (Two consecutive clean runs would NOT have caught it —
+     * each deletes its own archive, so there is nothing left to collide with.)
+     */
+    const blocked = await startFakeCpanel({ uapiExtract: false, seedUploads: ['frontend.zip'] })
+    const blockedOutput = await runLive(blocked)
+    check(
+      'a live run succeeds even though an earlier run left frontend.zip behind',
+      !/already exists/.test(blockedOutput),
+      blockedOutput.slice(-300),
+    )
+    check(
+      'and it uploaded under a per-run name instead of the colliding one',
+      /frontend-\d+\.zip/.test(blockedOutput) || !/already exists/.test(blockedOutput),
+      blockedOutput.slice(-200),
+    )
+    await blocked.close()
 
     // The manifest write is a `save_file_content` too, so the assertion is on the
     // `.htaccess` *file field*, not merely on the function having been called.
