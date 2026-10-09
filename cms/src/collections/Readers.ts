@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isSelfIn, isSuperAdmin, noOne } from '../access/roles'
+import { isSelfIn, isSuperAdmin, noOne, serverManagedField } from '../access/roles'
 import { readerSessionStrategy } from '../auth/reader-strategy'
 import { deleteAccountEndpoint } from '../endpoints/account'
 
@@ -137,12 +137,41 @@ export const Readers: CollectionConfig = {
         { value: 'facebook', label: 'Facebook' },
         { value: 'google', label: 'Google' },
       ],
+      /*
+       * ⚠️ **`serverManagedField`, and it is load-bearing for account safety.**
+       *
+       * `Readers.update` is `isSelfIn('readers')`, so a reader session is
+       * authorised to write its own row — and with no field-level rule this pair
+       * was writable through `PATCH /api/readers/<own-id>`. That is not a cosmetic
+       * gap; it is an account-takeover primitive:
+       *
+       *   1. attacker signs in with their own Google account → reader row R
+       *   2. `PATCH /api/readers/R {"providerId":"<victim's Google sub>"}` → 200
+       *   3. the victim later signs in with Google; `upsertReader` looks the row
+       *      up by provider + providerId, matches **R**, and overwrites it with
+       *      the victim's name, avatar and email
+       *   4. the victim's session cookie is minted for R — the attacker's row —
+       *      and the attacker still holds a valid signed cookie for it
+       *
+       * So the attacker ends up holding the victim's bookmarks, saved deadlines
+       * and comment attribution. The same write also let a reader re-point their
+       * own `email` at any address. Account *linking* is deliberately not
+       * implemented (`docs/…`, and the note above), and this was an
+       * attacker-initiated version of it with no merge guard at all.
+       *
+       * Only `upsertReader` may write these, and it does so through the local API
+       * with `overrideAccess: true`, which bypasses field access — so OAuth login
+       * is unaffected.
+       */
+      access: { update: serverManagedField },
     },
     {
       name: 'providerId',
       type: 'text',
       index: true,
       label: { en: 'Provider user id', bn: 'প্রোভাইডার আইডি' },
+      // Identity, not a profile field — see `provider` above for the attack.
+      access: { update: serverManagedField },
     },
     {
       name: 'pushSubscriptions',
@@ -177,7 +206,7 @@ export const Readers: CollectionConfig = {
        * which is the exact failure the policy exists to prevent. Only the sync
        * endpoint sets it, through the local API with `overrideAccess`.
        */
-      access: { update: () => false },
+      access: { update: serverManagedField },
     },
   ],
   timestamps: true,

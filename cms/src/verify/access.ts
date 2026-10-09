@@ -450,7 +450,7 @@ const PII_FIELDS: ReadonlyArray<[collection: string, field: string]> = [
 ]
 
 /**
- * Evaluate one field's `access.read` rule for one actor.
+ * Evaluate one field's access rule for one operation and one actor.
  *
  * Searches nested `group`/`array`/`tabs`/`row`/`collapsible` children too, so a
  * field that later moves into a layout panel is still asserted rather than
@@ -461,17 +461,23 @@ const PII_FIELDS: ReadonlyArray<[collection: string, field: string]> = [
  * `declares a read rule` assertion is what made that visible, and it is why it
  * stays.
  *
- * Returns `undefined` when the field declares no rule at all — which is itself a
- * finding, because an unguarded field is readable by anyone who can read the row.
+ * Returns `undefined` when the field declares no rule for that operation — which
+ * is itself a finding, because an unguarded field is writable by anyone who may
+ * write the row.
  */
-function evaluateFieldRead(collection: CollectionConfig, fieldName: string, actor: ActorName) {
+function evaluateField(
+  collection: CollectionConfig,
+  fieldName: string,
+  operation: Operation,
+  actor: ActorName,
+) {
   // Payload nests fields inside layout blocks; walk them all rather than only the
   // top level.
-  const flatten = (fields: unknown): Array<{ name?: string; access?: { read?: unknown } }> => {
-    const out: Array<{ name?: string; access?: { read?: unknown } }> = []
+  const flatten = (fields: unknown): Array<{ name?: string; access?: Record<string, unknown> }> => {
+    const out: Array<{ name?: string; access?: Record<string, unknown> }> = []
     for (const entry of (fields ?? []) as Array<Record<string, unknown>>) {
       if (!entry || typeof entry !== 'object') continue
-      out.push(entry as { name?: string; access?: { read?: unknown } })
+      out.push(entry as { name?: string; access?: Record<string, unknown> })
       for (const key of ['fields', 'tabs', 'groups', 'rows', 'collapsibles']) {
         if (Array.isArray(entry[key])) out.push(...flatten(entry[key]))
       }
@@ -480,9 +486,36 @@ function evaluateFieldRead(collection: CollectionConfig, fieldName: string, acto
   }
 
   const field = flatten(collection.fields).find((f) => f.name === fieldName)
-  const rule = field?.access?.read as Access | undefined
+  const rule = field?.access?.[operation] as Access | undefined
   if (!rule) return undefined
   return rule({ req: { user: ACTORS[actor] } } as never)
+}
+
+/** Read-only shorthand, kept for the section below. */
+function evaluateFieldRead(collection: CollectionConfig, fieldName: string, actor: ActorName) {
+  return evaluateField(collection, fieldName, 'read', actor)
+}
+
+/**
+ * Whether a field write survives access control for one actor, modelling Payload's
+ * own default.
+ *
+ * ⚠️ **An absent rule means ALLOWED.** Payload only calls `field.access[operation]`
+ * when that key exists (`dist/fields/hooks/beforeValidate/promise.js:217-229`), so
+ * a field with no rule is governed by the collection rule alone. Testing that with
+ * `allowed(evaluateField(...))` is wrong in a way that reads like a real failure:
+ * `undefined` is falsy, so an unguarded — and therefore writable — field reports as
+ * denied. This helper resolves that, and is used for every "must still be
+ * permitted" assertion so they mean what they say.
+ */
+function fieldAllowsWrite(
+  collection: CollectionConfig,
+  fieldName: string,
+  operation: Operation,
+  actor: ActorName,
+): boolean {
+  const result = evaluateField(collection, fieldName, operation, actor)
+  return result === undefined ? true : Boolean(result)
 }
 
 for (const [slug, fieldName] of PII_FIELDS) {
@@ -508,6 +541,64 @@ for (const [slug, fieldName] of PII_FIELDS) {
   check(
     `${label}: superAdmin ALLOWED`,
     allowed(evaluateFieldRead(collection, fieldName, 'superAdmin')),
+  )
+}
+
+/*
+ * ── 9. A reader may not rewrite its own identity ─────────────────────────────
+ *
+ * `Readers.update` is `isSelfIn('readers')`, so a reader session is authorised to
+ * write its own row. That is correct for a display name or an avatar and
+ * catastrophic for `provider` / `providerId`, which together *are* the identity:
+ *
+ *   PATCH /api/readers/<own-id> {"providerId":"<victim's Google sub>"}
+ *
+ * then, when the victim next signs in with Google, `upsertReader` looks the row up
+ * by provider + providerId, matches the attacker's row, and mints the victim's
+ * session for it — leaving the attacker holding a valid cookie for the victim's
+ * bookmarks, deadlines and comment attribution.
+ *
+ * Only the server may write these, via the local API with `overrideAccess: true`,
+ * which bypasses field access. So the fix is `serverManagedField`, and the
+ * assertion that matters is that a reader is denied while a reader's *own profile*
+ * edits stay permitted — otherwise "deny every reader write" would also pass.
+ */
+console.log('\n-- a reader may not rewrite its own identity, but may still edit its profile --')
+
+/** Fields the server alone may write, as `collection:field`. */
+const SERVER_MANAGED_FIELDS: ReadonlyArray<[collection: string, field: string]> = [
+  ['readers', 'provider'],
+  ['readers', 'providerId'],
+  ['readers', 'bookmarksSyncedAt'],
+]
+
+for (const [slug, fieldName] of SERVER_MANAGED_FIELDS) {
+  const collection = get(slug)
+  const label = `${slug}.${fieldName}`
+
+  check(
+    `${label}: the field declares an update rule`,
+    evaluateField(collection, fieldName, 'update', 'reader') !== undefined,
+  )
+  check(`${label}: reader denied`, denied(evaluateField(collection, fieldName, 'update', 'reader')))
+  check(
+    `${label}: anonymous denied`,
+    denied(evaluateField(collection, fieldName, 'update', 'anonymous')),
+  )
+  check(
+    `${label}: superAdmin denied too — this is server-only, not admin-editable`,
+    denied(evaluateField(collection, fieldName, 'update', 'superAdmin')),
+  )
+}
+
+// The counterweight: a reader must still be able to edit its own profile, or the
+// fix would have simply broken self-service. These fields carry no rule at all, so
+// they are allowed by Payload's default — `fieldAllowsWrite` is what makes that
+// explicit rather than reading as a denial.
+for (const fieldName of ['displayName', 'avatarUrl']) {
+  check(
+    `readers.${fieldName}: reader may still update its own profile field`,
+    fieldAllowsWrite(get('readers'), fieldName, 'update', 'reader'),
   )
 }
 

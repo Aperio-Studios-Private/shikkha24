@@ -311,3 +311,19 @@ export const authenticatedField: FieldAccess = ({ req }) => isEditorialUser(req.
 
 /** Field is readable by everyone, editable by nobody through the API. */
 export const systemManagedField: FieldAccess = ({ req }) => hasRole(req.user, 'superAdmin')
+
+/**
+ * Field is written **only** by server code using the local API with
+ * `overrideAccess: true` — never through a generated REST route, by anyone.
+ *
+ * Use this for a value that the server derives and the caller must not be able to
+ * assert. It is a different control from `authenticatedField`: that one decides
+ * who may *read*, this one denies *writes* outright.
+ *
+ * The rule holds because `overrideAccess` bypasses field access as well as
+ * collection access, so the endpoint that legitimately writes the value is
+ * unaffected — `endpoints/oauth.ts` → `upsertReader` writes `readers.provider` and
+ * `readers.providerId` exactly this way, and `endpoints/bookmarks.ts` writes
+ * `bookmarksSyncedAt` the same way.
+ */
+export const serverManagedField: FieldAccess = () => false
