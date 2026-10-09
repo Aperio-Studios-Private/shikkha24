@@ -693,6 +693,83 @@ for (const { slug, label } of CALCULATOR_PAGES) {
   )
 }
 
+/*
+ * ── The Cloudflare Pages security contract ───────────────────────────────────
+ *
+ * `public/.htaccess` carries the whole security posture — CSP, HSTS,
+ * X-Frame-Options, Referrer-Policy, Permissions-Policy — and **Cloudflare Pages
+ * ignores `.htaccess` entirely**. So a build deployed to Pages without
+ * `public/_headers` serves the site with no security headers at all, and fails
+ * silently: nothing reports a missing header, and `verify:apache` passes because
+ * it tests Apache, not Pages.
+ *
+ * This is the M18 shape the project has already paid for twice — a check that
+ * cannot fail. So the absence of `dist/_headers`, or of the CSP inside it, is a
+ * build failure here rather than a surprise after deploying.
+ */
+console.log('\n-- Cloudflare Pages ships the security headers --')
+{
+  const headersPath = join(DIST, '_headers')
+  const headers = existsSync(headersPath) ? readFileSync(headersPath, 'utf8') : ''
+
+  check(
+    'dist/_headers exists (Cloudflare Pages ignores .htaccess)',
+    headers.length > 0,
+    headers.length === 0
+      ? 'public/_headers is missing — a Pages deploy would send NO security headers'
+      : '',
+  )
+
+  // ⚠️ Assertions run against the **directives only**, never the whole file. This
+  // file is heavily commented, and the prose names the very directives being
+  // asserted — `frame-ancestors 'none'` appears in the explanation above the
+  // policy. A `String.includes` over the raw file therefore passed while the
+  // actual CSP had lost the directive entirely, which is the M18 shape this
+  // section exists to prevent. `_headers` treats `#` lines as comments, so
+  // stripping them is also the correct parse.
+  const directives = headers
+    .split('\n')
+    .filter((line) => !line.trimStart().startsWith('#'))
+    .join('\n')
+
+  // The CSP is scoped to its own header value, so a directive cannot be satisfied
+  // by appearing in some other header.
+  const cspMatch = directives.match(/Content-Security-Policy:\s*(.+)/)
+  const csp = cspMatch ? cspMatch[1].trim() : ''
+
+  // Each of these is a header the Apache configuration sets today. Losing one is
+  // a silent regression, so each is asserted by name.
+  for (const name of [
+    'Content-Security-Policy',
+    'Strict-Transport-Security',
+    'X-Content-Type-Options',
+    'X-Frame-Options',
+    'Referrer-Policy',
+    'Permissions-Policy',
+  ]) {
+    check(`${name} is set for /*`, directives.includes(`${name}:`))
+  }
+
+  check('the CSP header is non-empty', csp.length > 0, csp.length === 0 ? 'no CSP value found' : '')
+
+  // The CSP directives that do the actual work, asserted **inside the CSP value**.
+  for (const directive of [
+    "default-src 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    "form-action 'self'",
+    'upgrade-insecure-requests',
+  ]) {
+    check(`CSP keeps \`${directive}\``, csp.includes(directive))
+  }
+
+  // The hashed asset families must stay immutable, and HTML must revalidate — the
+  // same contract `.htaccess` encodes via SHIKKHA24_IMMUTABLE.
+  check('/_astro/* is cached immutably', /\/_astro\/\*[\s\S]*?immutable/.test(directives))
+  check('/fonts/* is cached immutably', /\/fonts\/\*[\s\S]*?immutable/.test(directives))
+  check('HTML revalidates rather than being immutable', directives.includes('must-revalidate'))
+}
+
 console.log(
   failures === 0
     ? '\nBuild output is deployable.\n'
