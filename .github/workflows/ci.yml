@@ -528,14 +528,26 @@ jobs:
           #    Dev and CI never see it, because there the sibling link is intact.
           #    The `.pnpm/node_modules` hoist exists precisely to be on that
           #    resolution path; standalone just does not put it there.
-          if [ -d "$ROOT/node_modules/.pnpm/node_modules" ]; then
-            cp -Rn "$ROOT/node_modules/.pnpm/node_modules/." "$ROOT/node_modules/"
-            if [ ! -e "$ROOT/node_modules/@libsql/core" ]; then
-              echo "::error::pnpm hoist not promoted - the host could not resolve @libsql/core"
-              exit 1
-            fi
-            echo "promoted pnpm hoist to top level: $(ls "$ROOT/node_modules" | wc -l) entries"
+          #
+          # ⚠️ **This was `cp -Rn .pnpm/node_modules/. node_modules/`, and it was
+          # wrong — CI has been red on every push because of it.** Those entries
+          # are symlinks whose targets are relative to their own depth, so
+          # copying the contents up one level leaves every link dangling and
+          # `@libsql/core` stays unreachable. `deploy.yml` was corrected on
+          # 2026-10-04 to use `promote-pnpm-fallback.mjs`, which links the top
+          # level *back into* the fallback so pnpm's own layout keeps resolving,
+          # and exits non-zero listing anything still broken. This file never got
+          # the same fix, so the two pipelines disagreed about how to assemble the
+          # bundle and only this one kept failing.
+          #    Dereferencing is not the alternative: 224 KB of links into a store
+          #    that is already present dereferences to 3.1 GB.
+          #    See scripts/verify-pnpm-fallback.mjs.
+          node scripts/promote-pnpm-fallback.mjs "$ROOT/node_modules"
+          if [ ! -e "$ROOT/node_modules/@libsql/core" ]; then
+            echo "::error::pnpm hoist not promoted - the host could not resolve @libsql/core"
+            exit 1
           fi
+          echo "promoted pnpm hoist to top level: $(ls "$ROOT/node_modules" | wc -l) entries"
           mb=$(du -sm "$ROOT" | cut -f1)
           echo "standalone bundle = ${mb} MB (target 300-600 MB)"
           echo "Measured at S0 on this exact stack: 114 MB."
