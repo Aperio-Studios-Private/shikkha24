@@ -412,6 +412,105 @@ check(
   `NODE_ENV=${process.env.NODE_ENV ?? 'unset'} · localhost: ${localhostEntries.join(', ') || 'none'}`,
 )
 
+/*
+ * ── 8. A reader session may not read staff or reader PII ─────────────────────
+ *
+ * ## Why this section exists
+ *
+ * Eight fields were guarded by `Boolean(req.user)` under the belief that it meant
+ * "signed in". On this site it does not: `readerSessionStrategy` sets `req.user`
+ * to the reader document, so a free Google or Facebook login satisfied it exactly
+ * as a staff JWT did. The effect was that any logged-in **reader** could read
+ * every reporter's staff email, every approved commenter's email, citizen email
+ * and phone numbers, staff phone numbers, and the reactions dedupe key — each of
+ * which carries its own comment saying it is never exposed publicly.
+ *
+ * The five holes the 2026-09-30 audit found were invisible for the same reason
+ * this one was: no assertion covered a **reader** session at **field** level.
+ * Sections 4 and 5 cover collection-level rules; nothing here covered a field's
+ * `access.read`.
+ *
+ * ⚠️ The positive assertions are the point. Denying a reader is the easy half; a
+ * rule that denied *everyone* would pass it. Each field below is therefore also
+ * asserted ALLOWED for a reporter and a super admin, so a future edit cannot buy
+ * the fix by locking the newsroom out of the newsroom's own data.
+ */
+console.log('\n-- a reader session cannot read PII fields, and the newsroom still can --')
+
+/** Fields guarded by `authenticatedField`, as `collection:field`. */
+const PII_FIELDS: ReadonlyArray<[collection: string, field: string]> = [
+  ['authors', 'email'],
+  ['authors', 'verifiedBy'],
+  ['authors', 'verificationNote'],
+  ['comments', 'userEmail'],
+  ['citizen-submissions', 'reporterEmail'],
+  ['citizen-submissions', 'reporterPhone'],
+  ['reactions', 'fingerprint'],
+  ['users', 'phone'],
+]
+
+/**
+ * Evaluate one field's `access.read` rule for one actor.
+ *
+ * Searches nested `group`/`array`/`tabs`/`row`/`collapsible` children too, so a
+ * field that later moves into a layout panel is still asserted rather than
+ * silently reported as "declares no rule" — which, because `denied(undefined)` is
+ * true, is a **vacuous pass**. That is exactly what happened when this section
+ * first named `reactions.ipHash`, which is really `reactions.fingerprint`: four
+ * denials "passed" against a field that was never found. The
+ * `declares a read rule` assertion is what made that visible, and it is why it
+ * stays.
+ *
+ * Returns `undefined` when the field declares no rule at all — which is itself a
+ * finding, because an unguarded field is readable by anyone who can read the row.
+ */
+function evaluateFieldRead(collection: CollectionConfig, fieldName: string, actor: ActorName) {
+  // Payload nests fields inside layout blocks; walk them all rather than only the
+  // top level.
+  const flatten = (fields: unknown): Array<{ name?: string; access?: { read?: unknown } }> => {
+    const out: Array<{ name?: string; access?: { read?: unknown } }> = []
+    for (const entry of (fields ?? []) as Array<Record<string, unknown>>) {
+      if (!entry || typeof entry !== 'object') continue
+      out.push(entry as { name?: string; access?: { read?: unknown } })
+      for (const key of ['fields', 'tabs', 'groups', 'rows', 'collapsibles']) {
+        if (Array.isArray(entry[key])) out.push(...flatten(entry[key]))
+      }
+    }
+    return out
+  }
+
+  const field = flatten(collection.fields).find((f) => f.name === fieldName)
+  const rule = field?.access?.read as Access | undefined
+  if (!rule) return undefined
+  return rule({ req: { user: ACTORS[actor] } } as never)
+}
+
+for (const [slug, fieldName] of PII_FIELDS) {
+  const collection = get(slug)
+  const label = `${slug}.${fieldName}`
+
+  check(
+    `${label}: the field declares a read rule`,
+    typeof evaluateFieldRead(collection, fieldName, 'reader') !== 'undefined',
+  )
+
+  check(`${label}: reader denied`, denied(evaluateFieldRead(collection, fieldName, 'reader')))
+  check(`${label}: anonymous denied`, denied(evaluateFieldRead(collection, fieldName, 'anonymous')))
+  // Ad Manager runs ad units, not the newsroom's contacts or reader PII.
+  check(`${label}: adManager denied`, denied(evaluateFieldRead(collection, fieldName, 'adManager')))
+
+  // The counterweight to the four denials above. Without these, "deny everyone"
+  // would satisfy the whole section.
+  check(
+    `${label}: reporter ALLOWED (the newsroom must keep access)`,
+    allowed(evaluateFieldRead(collection, fieldName, 'reporter')),
+  )
+  check(
+    `${label}: superAdmin ALLOWED`,
+    allowed(evaluateFieldRead(collection, fieldName, 'superAdmin')),
+  )
+}
+
 console.log(
   failures === 0
     ? `\nAll access checks passed (${payload.config.collections.length} collections).\n`

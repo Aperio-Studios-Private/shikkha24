@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { isEditorial, isSuperAdminOrEditorInChief } from '../access/roles'
+import { authenticatedField, isEditorial, isSuperAdminOrEditorInChief } from '../access/roles'
 
 /**
  * Citizen-journalism submissions — a reader reports something, an editor decides.
@@ -86,13 +86,16 @@ export const CitizenSubmissions: CollectionConfig = {
       required: true,
       label: { en: 'Email', bn: 'ইমেইল' },
       // PII — never exposed publicly (docs/security.md §8, data minimisation).
-      access: { read: ({ req }) => Boolean(req.user) },
+      // ⚠️ `authenticatedField`, not `Boolean(req.user)`: a reader session sets
+      // `req.user` too, so the looser check handed a citizen's email and phone to
+      // any logged-in reader. See `access/roles.ts`.
+      access: { read: authenticatedField },
     },
     {
       name: 'reporterPhone',
       type: 'text',
       label: { en: 'Phone', bn: 'ফোন' },
-      access: { read: ({ req }) => Boolean(req.user) },
+      access: { read: authenticatedField },
     },
     {
       name: 'status',

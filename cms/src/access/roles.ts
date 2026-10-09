@@ -282,8 +282,32 @@ export const editorialField: FieldAccess = ({ req }) => isEditorialUser(req.user
  */
 export const editorField: FieldAccess = ({ req }) => isEditorUser(req.user)
 
-/** Field is readable only by an authenticated user — for internal notes and PII. */
-export const authenticatedField: FieldAccess = ({ req }) => Boolean(req.user)
+/**
+ * Field is readable only by a signed-in **newsroom** user — for internal notes
+ * and PII.
+ *
+ * ⚠️ **This was `Boolean(req.user)`, which does not mean "signed in" — it means
+ * "anyone with a session", and on this site a reader has one.** `Readers`
+ * authenticates through `readerSessionStrategy`, which sets `req.user` to the
+ * reader document (`auth/reader-strategy.ts:63`), so a free Google or Facebook
+ * login satisfied `Boolean(req.user)` exactly as a staff JWT did. Every field
+ * guarded by this predicate was therefore readable by any logged-in **reader**:
+ *
+ *     GET /api/authors?limit=100   with a reader cookie → every reporter's
+ *                                  staff email
+ *     GET /api/comments?limit=250  with a reader cookie → every approved
+ *                                  commenter's email address
+ *
+ * and the same for `verifiedBy` / `verificationNote`, whose own admin text says an
+ * internal note is never shown publicly.
+ *
+ * `hasRole` is the correct discriminator because a reader document carries no
+ * `roles` and so returns false — the same reason `isSelfIn` compares
+ * `session.collection`. Ad Manager is excluded on purpose: ad units are not a
+ * reason to read staff phone numbers or reader PII, and `docs/security.md` §8
+ * asks for data minimisation.
+ */
+export const authenticatedField: FieldAccess = ({ req }) => isEditorialUser(req.user)
 
 /** Field is readable by everyone, editable by nobody through the API. */
 export const systemManagedField: FieldAccess = ({ req }) => hasRole(req.user, 'superAdmin')

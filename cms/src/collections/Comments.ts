@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { hasRole, isSuperAdminOrEditorInChief, noOne } from '../access/roles'
+import { authenticatedField, hasRole, isSuperAdminOrEditorInChief, noOne } from '../access/roles'
 import { commentSubmitEndpoint } from '../endpoints/comments'
 
 /**
@@ -90,7 +90,10 @@ export const Comments: CollectionConfig = {
       type: 'email',
       label: { en: 'Email', bn: 'ইমেইল' },
       // PII — never exposed publicly (docs/security.md §8, data minimisation).
-      access: { read: ({ req }) => Boolean(req.user) },
+      // ⚠️ `authenticatedField`, not `Boolean(req.user)`: a reader session sets
+      // `req.user` too, so the looser check handed every commenter's email to any
+      // logged-in reader. See `access/roles.ts`.
+      access: { read: authenticatedField },
     },
     { name: 'userAvatar', type: 'text', label: { en: 'Avatar URL', bn: 'প্রোফাইল ছবি' } },
     {

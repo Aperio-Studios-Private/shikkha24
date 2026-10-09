@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { hasRole, isSuperAdminOrEditorInChief } from '../access/roles'
+import { authenticatedField, hasRole, isSuperAdminOrEditorInChief } from '../access/roles'
 import { reactionEndpoints } from '../endpoints/reactions'
 import { REACTION_TYPES, type ReactionType } from '../lib/reactions'
 
@@ -120,10 +120,13 @@ export const Reactions: CollectionConfig = {
        * agent (`lib/reactions.ts`), keyed with `PAYLOAD_SECRET` so a leaked
        * database does not yield a reversible value (`docs/security.md` §8).
        *
-       * Hidden from every reader of the API except a signed-in CMS user, so the
-       * dedupe key cannot be enumerated.
+       * Hidden from every reader of the API except a signed-in **newsroom** user,
+       * so the dedupe key cannot be enumerated. ⚠️ This was `Boolean(req.user)`,
+       * which a reader session satisfied — the dedupe key was readable by any
+       * logged-in reader, which is the one thing this field exists to prevent.
+       * See `access/roles.ts`.
        */
-      access: { read: ({ req }) => Boolean(req.user) },
+      access: { read: authenticatedField },
       admin: {
         readOnly: true,
         description:

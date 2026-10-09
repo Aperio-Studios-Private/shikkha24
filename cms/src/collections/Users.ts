@@ -1,6 +1,13 @@
 import type { CollectionConfig } from 'payload'
 
-import { hasRole, isSelfIn, isSuperAdmin, ROLE_LABELS, ROLES } from '../access/roles'
+import {
+  authenticatedField,
+  hasRole,
+  isSelfIn,
+  isSuperAdmin,
+  ROLE_LABELS,
+  ROLES,
+} from '../access/roles'
 
 /**
  * Users — the editorial team's login accounts, and the root of the RBAC model.
@@ -121,7 +128,10 @@ export const Users: CollectionConfig = {
       name: 'phone',
       type: 'text',
       label: { en: 'Phone', bn: 'ফোন' },
-      access: { read: ({ req }) => Boolean(req.user) },
+      // ⚠️ `authenticatedField`, not `Boolean(req.user)`: a reader session sets
+      // `req.user` too, so the looser check exposed staff phone numbers to any
+      // logged-in reader. See `access/roles.ts`.
+      access: { read: authenticatedField },
     },
   ],
   timestamps: true,

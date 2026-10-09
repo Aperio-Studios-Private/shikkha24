@@ -87,8 +87,12 @@ export const Authors: CollectionConfig = {
       name: 'email',
       type: 'email',
       label: { en: 'Email', bn: 'ইমেইল' },
-      // Never expose a staff email to anonymous readers.
-      access: { read: ({ req }) => Boolean(req.user) },
+      // Never expose a staff email to anonymous readers — or, as it turned out, to
+      // *authenticated* readers either: `Boolean(req.user)` is satisfied by a reader
+      // session, so this handed every reporter's staff email to any logged-in
+      // reader via `GET /api/authors?limit=100`. `authenticatedField` now means
+      // "signed-in newsroom user". See `access/roles.ts`.
+      access: { read: authenticatedField },
     },
     {
       name: 'pressCardNo',
