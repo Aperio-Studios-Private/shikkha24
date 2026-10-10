@@ -57,6 +57,7 @@ import { withRebuildTrigger, withRebuildTriggerGlobal } from './lib/rebuild-trig
 // the failure surfaces as a 500 from every API route — which reads as "the CMS
 // is broken", not as "one import path is wrong". CI caught it on the first push.
 import { migrations } from './migrations/index'
+import { ensureBootstrapAdmin } from './bootstrap/admin'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -434,6 +435,24 @@ export default buildConfig({
      */
     prodMigrations: process.env.PAYLOAD_BOOTSTRAP_SCHEMA === 'true' ? migrations : undefined,
   }),
+
+  /**
+   * Grants `superAdmin` to `PAYLOAD_BOOTSTRAP_ADMIN_EMAIL` on boot.
+   *
+   * Needed because the `users.roles` field is guarded by the very role it grants
+   * (`hasRole(req.user, 'superAdmin')` reads the column it protects), so once the
+   * column exists there is no API path to the first administrator. This is the
+   * escape hatch, and it is deliberately an environment-gated operation rather
+   * than a data statement inside the migration: a migration would hard-code "this
+   * row is an administrator" into permanent history and re-apply it to every
+   * future environment and every restored backup.
+   *
+   * Unset — the normal case — it does nothing at all. Set, it is idempotent, so
+   * leaving it in place converges after one boot and is not dangerous.
+   */
+  onInit: async (payload) => {
+    await ensureBootstrapAdmin(payload as never)
+  },
 
   sharp,
   plugins: [],
