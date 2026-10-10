@@ -53,7 +53,7 @@
  *
  * Run: node scripts/check-host-fork.mjs [--probes N] [--delay MS] [--dir PATH]
  */
-import { config, listFiles } from './cpanel-client.mjs'
+import { config, listFiles, readTextFile } from './cpanel-client.mjs'
 
 /** Directories probed when `--dir` is not given: home, the live CMS, the docroot. */
 const DEFAULT_DIRS = ['.', 'shikkha24-cms', 'public_html']
@@ -75,17 +75,56 @@ export function parseArgs(argv) {
   // Spread, not assignment: `opts.dirs = DEFAULT_DIRS` would alias the module-level
   // array, and the `--dir` pushes below would mutate it permanently — so a second
   // call in the same process silently inherited the first call's directories.
-  const opts = { probes: 5, delayMs: 1500, dirs: [...DEFAULT_DIRS], names: false }
+  const opts = {
+    probes: 5,
+    delayMs: 1500,
+    dirs: [...DEFAULT_DIRS],
+    names: false,
+    cats: [],
+    catDir: '.',
+  }
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === '--probes') opts.probes = Number(argv[++i])
     else if (argv[i] === '--delay') opts.delayMs = Number(argv[++i])
     else if (argv[i] === '--dir') opts.dirs.push(argv[++i])
     else if (argv[i] === '--names') opts.names = true
+    else if (argv[i] === '--cat') opts.cats.push(argv[++i])
+    else if (argv[i] === '--cat-dir') opts.catDir = argv[++i]
   }
   if (!Number.isInteger(opts.probes) || opts.probes < 1) opts.probes = 5
   if (!Number.isFinite(opts.delayMs) || opts.delayMs < 0) opts.delayMs = 1500
   if (opts.dirs.length === 0) opts.dirs = [...DEFAULT_DIRS]
   return opts
+}
+
+/**
+ * Print the contents of small text files on the host.
+ *
+ * Read-only, and the only way to see what a server-side process actually
+ * complained about — Passenger writes `stderr.log` beside the app, and with no
+ * Terminal that file is otherwise unreachable. This is how "the CMS boots but
+ * every write returns 403" gets answered from evidence instead of inference.
+ *
+ * Output is capped, because the failure mode of a log viewer is a log viewer
+ * that runs out of CI log space before anyone reads the first error.
+ *
+ * @param {ReturnType<typeof config>} cfg
+ * @param {string} dir directory relative to home.
+ * @param {string[]} paths file names within `dir`.
+ * @param {(m: string) => void} say output function.
+ * @param {number} cap maximum characters printed per file.
+ */
+export async function catFiles(cfg, dir, paths, say, cap = 4000) {
+  for (const path of paths) {
+    try {
+      const body = await readTextFile(cfg, dir, path)
+      say(`  --- ${dir}/${path} (${body.length} bytes) ---`)
+      say(body ? body.slice(0, cap) : '  (empty)')
+      if (body.length > cap) say(`  … truncated, ${body.length - cap} more bytes`)
+    } catch (error) {
+      say(`  --- ${dir}/${path}: could not read — ${error.message}`)
+    }
+  }
 }
 
 /** @returns {Promise<void>} resolves after the requested pause. */
@@ -139,6 +178,9 @@ export async function run(opts) {
     }
     if (probe < opts.probes) await sleep(opts.delayMs)
   }
+
+  // Read files after the probes, so a cat failure cannot mask a fork verdict.
+  if (opts.cats.length > 0) await catFiles(cfg, opts.catDir, opts.cats, say)
 
   say('')
   if (failed === 0) {

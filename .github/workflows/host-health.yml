@@ -68,6 +68,16 @@ on:
         required: false
         default: 'false'
         type: string
+      cat:
+        description: 'Comma-separated files to print (read-only, 4000 chars each)'
+        required: false
+        default: ''
+        type: string
+      cat-dir:
+        description: 'Directory holding the files named by cat'
+        required: false
+        default: '.'
+        type: string
 
 # `contents: read` is the whole job: it checks out, it never writes.
 permissions:
@@ -105,6 +115,11 @@ jobs:
           # navigating cPanel File Manager to look.
           args=(--probes '${{ inputs.probes }}' --delay '${{ inputs.delay }}')
           if [ '${{ inputs.names }}' = 'true' ]; then args+=(--names); fi
+          if [ -n '${{ inputs.cat }}' ]; then
+            IFS=',' read -ra files <<< '${{ inputs.cat }}'
+            for f in "${files[@]}"; do args+=(--cat "$f"); done
+            args+=(--cat-dir '${{ inputs.cat-dir }}')
+          fi
           if [ -n '${{ inputs.dir }}' ]; then
             IFS=',' read -ra dirs <<< '${{ inputs.dir }}'
             for d in "${dirs[@]}"; do args+=(--dir "$d"); done
