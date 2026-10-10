@@ -880,6 +880,44 @@ async function main() {
     )
     await blocked.close()
 
+    /*
+     * ⚠️ **The same defect, in the CMS deploy, which the static counter-proof above
+     * never covered.** Run 38052198667 (2026-10-10, carrying the `users.roles`
+     * migration) died at the upload with
+     * `The file "cms-deploy.zip" you uploaded already exists.`
+     *
+     * `9471e5a` renamed the *static* archive per run. This script kept the fixed
+     * name, so a deploy that had already been fixed once still shipped the bug in
+     * its sibling. A counter-proof that only covers one of two near-identical code
+     * paths certifies nothing about the other.
+     *
+     * The harness cannot run the whole CMS deploy — that needs a real 592-file
+     * standalone bundle. So this asserts the shipped decision directly, via the
+     * exported `remoteArchiveName`, and the *mechanism* it defends against is
+     * proved by the fake above, which refuses a duplicate name exactly as cPanel
+     * does. Two halves, both real: the fake proves cPanel refuses; this proves
+     * the name cannot collide.
+     */
+    const { remoteArchiveName } = await import('./deploy-cms.mjs')
+    const nameA = remoteArchiveName('111')
+    const nameB = remoteArchiveName('222')
+    check(
+      'the CMS archive name is not the fixed one that blocked the deploy',
+      nameA !== 'cms-deploy.zip',
+      nameA,
+    )
+    check('two runs cannot pick the same CMS archive name', nameA !== nameB, `${nameA} vs ${nameB}`)
+    check(
+      'and one run gets the same name twice, so the post-extract delete matches',
+      remoteArchiveName('111') === nameA,
+      nameA,
+    )
+    check(
+      'off CI it still yields a name, rather than reverting to the fixed one',
+      remoteArchiveName(undefined) !== 'cms-deploy.zip' && !!remoteArchiveName(undefined),
+      remoteArchiveName(undefined),
+    )
+
     // The manifest write is a `save_file_content` too, so the assertion is on the
     // `.htaccess` *file field*, not merely on the function having been called.
     const writes = server.bodies.filter(

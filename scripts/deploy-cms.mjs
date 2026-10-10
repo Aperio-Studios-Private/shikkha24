@@ -103,6 +103,32 @@ const say = (message) => console.log(message)
  * @returns {string[]} warnings to print.
  * @throws {Error} if `data/` or `.env` is present at the bundle root.
  */
+/**
+ * Name this run's archive on the host.
+ *
+ * cPanel's `Fileman::upload_files` refuses to overwrite an existing name and
+ * answers `"The file “…” you uploaded already exists."`. Under a fixed name, any
+ * archive left behind by an earlier run - one that died mid-deploy, was
+ * cancelled, or lost its connection - blocks every subsequent deploy, permanently
+ * and silently until someone reads the cPanel directory.
+ *
+ * That is not hypothetical. The run carrying the `users.roles` migration on
+ * 2026-10-10 died exactly this way, on an archive the *previous* successful run
+ * had left in place. `deploy-static.mjs` was fixed for it in 9471e5a; this script
+ * was not, which is why the same defect survived in one deploy and not the other.
+ *
+ * Extracted as a pure function so the harness can test the real shipped decision
+ * rather than a copy of it. Deleting the archive afterwards is **not** a defence:
+ * the delete only runs once the upload has already succeeded, so it cannot help
+ * the run that needs it.
+ *
+ * @param {string} [runId] defaults to `GITHUB_RUN_ID`, or `local` off CI.
+ * @returns {string} a name no other run can produce.
+ */
+export function remoteArchiveName(runId = process.env.GITHUB_RUN_ID ?? 'local') {
+  return `cms-deploy-${runId}.zip`
+}
+
 export function assertBundleIsSafe(root) {
   let entries
   try {
@@ -323,7 +349,20 @@ async function main() {
   const zip = join(work, 'cms.zip')
   execFileSync('zip', ['-rq', zip, '.'], { cwd: CMS_DIST, stdio: 'pipe' })
 
-  const remoteZip = await uploadFile(cfg, CMS_ROOT, zip, 'cms-deploy.zip')
+  // ⚠️ The archive name must be unique per run, or the deploy blocks ITSELF.
+  //
+  // cPanel's `upload_files` **refuses to overwrite** an existing name and answers
+  // `"The file “cms-deploy.zip” you uploaded already exists."` — so a leftover
+  // from any earlier run makes every later run fail before it uploads a byte.
+  // That is not hypothetical: the run on 2026-10-10 that carried the users.roles
+  // migration died exactly this way, on an archive the *previous* deploy left
+  // behind.
+  //
+  // `deploy-static.mjs` was fixed for this in 9471e5a and this script was not. The
+  // delete below is not a defence — it only runs once the upload has already
+  // succeeded, so it cannot help the run that needs it.
+  const remoteName = remoteArchiveName()
+  const remoteZip = await uploadFile(cfg, CMS_ROOT, zip, remoteName)
 
   // ⚠️ Clear the bundle's own paths *before* extracting. `fileop` skips a file
   // that already exists, so without this the CMS keeps the previous build's
@@ -342,7 +381,15 @@ async function main() {
   }
 
   const { via } = await extractArchive(cfg, remoteZip, CMS_ROOT)
-  await deletePath(cfg, `${CMS_ROOT}/cms-deploy.zip`)
+  await deletePath(cfg, `${CMS_ROOT}/${remoteName}`)
+  // Best-effort sweep of archives older runs left behind. These are inert once
+  // extracted, but each is ~20 MB in a 5 GB account, and one that lingers is also
+  // a trap for anyone re-running the deploy by hand with the old fixed name.
+  for (const leftover of await listFiles(cfg, CMS_ROOT)) {
+    if (/^cms-deploy.*\.zip$/.test(leftover.name)) {
+      await deletePath(cfg, `${CMS_ROOT}/${leftover.name}`)
+    }
+  }
   say(`Extracted via ${via}.`)
 
   // Touching tmp/restart.txt is the documented Phusion restart and the only
