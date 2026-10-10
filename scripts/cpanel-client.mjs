@@ -389,13 +389,37 @@ export async function extractArchive(cfg, archivePath, destDir) {
 /**
  * List a directory on the host.
  *
+ * ## ⚠️ Entries are normalised here, because the wire shape is not `{name}`
+ *
+ * cPanel's `Fileman::list_files` returns each entry keyed **`file`**, not `name`.
+ * Measured against the live host 2026-10-10: reading `entry.name` yields
+ * `undefined` on every entry, silently.
+ *
+ * That silence had a real cost. `deploy-cms.mjs` computed its delete set from
+ * `entry.name`, so `listHostFiles` produced a path of `undefined` for every
+ * entry, matched nothing, and returned an empty delete set — the
+ * clear-before-extract step had therefore **removed nothing on any deploy run to
+ * date** while still reporting success. A stale-file cleaner that quietly never
+ * fires is worse than no cleaner, because the run log says it ran.
+ *
+ * Normalising at the boundary means callers work in `{name, type}` and only this
+ * one function knows the API's spelling. The harness's fake keeps answering
+ * `name`, and both spellings are accepted, so the client is verified against the
+ * fake and correct against the real host.
+ *
  * @param {ReturnType<typeof config>} cfg
  * @param {string} dir Relative to home.
  * @returns {Promise<Array<{name: string, type: string}>>}
  */
 export async function listFiles(cfg, dir) {
   const data = await uapi(cfg, 'Fileman', 'list_files', { dir, elfinder: '0' })
-  return Array.isArray(data) ? data : []
+  if (!Array.isArray(data)) return []
+  return data
+    .map((entry) => ({
+      name: entry?.file ?? entry?.name ?? '',
+      type: entry?.type ?? '',
+    }))
+    .filter((entry) => entry.name !== '')
 }
 
 /**

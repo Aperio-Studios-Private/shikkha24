@@ -993,16 +993,22 @@ async function main() {
           }
         }
         const entries = []
+        // ⚠️ `file`, NOT `name` — see the `listFiles` docblock in cpanel-client.mjs.
+        // The real host has always answered with `file`. This fake used to answer
+        // `name`, which meant the harness agreed with the client's wrong reading
+        // and the two could never disagree — 72 checks passing while the delete
+        // set was silently empty on every real deploy. Reproducing the vendor's
+        // spelling is what gives this suite its power over that class of bug.
         for (const d of dirs) {
           if (prefix && !d.startsWith(`${prefix}/`)) continue
           const rest = prefix ? d.slice(prefix.length + 1) : d
           if (!rest || rest.includes('/')) continue
-          entries.push({ name: rest, type: 'dir' })
+          entries.push({ file: rest, type: 'dir' })
         }
         for (const path of Object.keys(host)) {
           const segments = path.split('/')
           const file = segments.pop()
-          if (segments.join('/') === prefix) entries.push({ name: file, type: 'file' })
+          if (segments.join('/') === prefix) entries.push({ file, type: 'file' })
         }
         return entries
       },
