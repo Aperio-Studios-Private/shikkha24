@@ -30,28 +30,34 @@ not know about it.
 ## 🔴 In flight
 
 ### T-01 — CMS admin rejects all edits, uploads and creates
-- **Status:** `doing` · **Severity:** 🔴 production, owner-blocking
+- **Status:** `blocked` (awaiting one owner answer) · **Severity:** 🔴 production
 - **Reported:** 2026-10-10 — "You are not allowed to perform this action." on
-  every create/edit/upload in the Payload admin. Console also shows a CSP
-  violation (`img-src 'self' data: blob:`) and `403` on
-  `/api/globals/site-settings`.
-- **Known:** that endpoint returns **200 with valid data** from outside, so the
-  403 is session-specific, not a blanket access failure.
-- **Suspects, none confirmed:**
-  - `PAYLOAD_SECRET` was rotated by the owner on 2026-10-10. If the app was not
-    restarted afterwards the old secret is still in memory; if it *was* restarted
-    every existing session is invalidated and the owner must log in again.
-    **Unconfirmed which happened.**
-  - The access-rule changes shipped in `5bca852` / `6653570` may be broader than
-    intended. `6653570` added `serverManagedField`; a wrong match there denies
-    writes.
-  - The stale-file cleaner never fired (fixed in `a18816f`, see handoff), so old
-    code may persist alongside the new bundle.
-- **Next:** confirm with the owner whether the CMS was restarted after the
-  rotation and whether they are logged in. Then read
-  `cms/src/access/roles.ts` for over-broad matches.
-- **Do not** close this on "the endpoint returns 200" — that proves the API is
-  up, not that the owner can write.
+  every create/edit/upload. Console also shows a CSP violation
+  (`img-src 'self' data: blob:`) and `403` on `/api/globals/site-settings`.
+- **Leading cause: an invalidated session.** The owner rotated `PAYLOAD_SECRET`
+  on 2026-10-10. That signs every session token, so an existing cookie stops
+  verifying — and the symptom is exactly this: reads that need no session still
+  work, writes that do are refused.
+- **Ruled out, with evidence** (do not re-investigate these):
+  - **Not a permissions regression.** `serverManagedField` guards exactly three
+    fields (`Readers.ts` 166/174/209) and collection-level `update` is
+    `isSelfIn('readers')`. Neither can block staff creating articles.
+  - **Not a broken database driver.** `stderr.log` shows
+    `ERR_MODULE_NOT_FOUND: @libsql/core`, but that log is **frozen at 18,234 bytes**
+    across reads 40 minutes apart, and `@libsql/core` is present and readable at
+    `~/shikkha24-cms/node_modules/@libsql/core/package.json` (2,434 bytes, v0.14.0).
+    Those errors are from a boot before cPanel's `npm install` created the
+    top-level `node_modules`. `/api/articles` returning 24 articles confirms it.
+  - **Not the cPanel entry-key bug** (`a18816f`). That broke the *delete* set
+    only; it cannot make writes fail.
+- **Unresolved — the CSP violation is a separate, real defect.** The admin sends
+  `img-src 'self' data: blob:` and that header does **not** name the CMS media
+  host. Any media served from another origin is blocked. Not yet reproduced or
+  fixed; treat as its own task once T-01 clears.
+- **Next — owner, ~30 seconds:** open `https://cms.shikkha24.com/admin` in a
+  private window, log in fresh, and try one edit. If it works, the cause was the
+  stale session. **Do not** close this on "the endpoint returns 200" — that
+  proves the API is up, not that the owner can write.
 
 ---
 
