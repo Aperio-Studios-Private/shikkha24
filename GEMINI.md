@@ -82,6 +82,18 @@ H12. **Behave as if there is no sandbox.** Community mitigation for the drive-wi
 H13. **Commit before risky operations — backups are the last line of defense.** "You have backups, right?" (HN, drive-wipe thread). Before any bulk or risky operation (mass rename, migration, dependency upgrade, cleanup), commit the current tree (or ask the user to) so everything is restorable. Never run bulk operations on an uncommitted tree.
 H14. **Keep the mirrors identical.** `AGENTS.md`, `GEMINI.md` and `CLAUDE.md` carry the same numbered rules 1–13 — any rule change lands in ALL THREE files in the same commit. Antigravity-specific guidance lives only in this hardening section, numbered H1–H14.
 
+14. **Every requested task is tracked, and no work is forgotten**
+    - `.sps/tasks.md` is the queue and the **first** document read in any session.
+      Every request the owner makes gets an entry there before work starts.
+    - **One task in flight at a time:** finish it, verify it, commit it, mark it
+      done, then take the next. Never batch unrelated tasks into one commit.
+    - **No hallucinated state.** A task closes only on evidence — command output,
+      a URL's status, a CI conclusion. Never on belief.
+    - **Blocked ≠ dropped.** A blocked task stays open and names what blocks it.
+    - `.sps/handoff.md` is updated in the same commit as the work it describes, so
+      a fresh agent with no conversation history can reconstruct what happened and
+      what to do next.
+
 ## Karpathy Behavioral Block
 
 1. **Think Before Coding** — Understand the full context before writing code

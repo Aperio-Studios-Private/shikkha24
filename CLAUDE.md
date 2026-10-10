@@ -55,6 +55,18 @@ Each section ends with a user manual check before the next section starts.
     - If the user asks to add or change anything that is not already covered by the docs, FIRST update the relevant docs (`.sps/plan.md`, `.sps/profile.md`, `.sps/task.md`, `.sps/handoff.md`) and commit that change, THEN implement it.
     - The build must never drift from the plan: any deviation discovered after the fact must be recorded in `.sps/handoff.md` and either reverted or approved as a plan amendment.
 
+14. **Every requested task is tracked, and no work is forgotten**
+    - `.sps/tasks.md` is the queue and the **first** document read in any session.
+      Every request the owner makes gets an entry there before work starts.
+    - **One task in flight at a time:** finish it, verify it, commit it, mark it
+      done, then take the next. Never batch unrelated tasks into one commit.
+    - **No hallucinated state.** A task closes only on evidence — command output,
+      a URL's status, a CI conclusion. Never on belief.
+    - **Blocked ≠ dropped.** A blocked task stays open and names what blocks it.
+    - `.sps/handoff.md` is updated in the same commit as the work it describes, so
+      a fresh agent with no conversation history can reconstruct what happened and
+      what to do next.
+
 ## Karpathy Behavioral Block
 
 1. **Think Before Coding** — Understand the full context before writing code

@@ -21,6 +21,13 @@
 sweep, two days before launch) and `docs/audit-third-party.md` (audited a pre-build repo,
 verdict `not-ready`). Both now carry banners saying so. Do not read either for current status.
 
+## Documentation index — where to look
+
+> **START HERE: `.sps/tasks.md`.** It is the single source of truth for outstanding
+> work — what was asked, what is in flight, what is next, and which items are
+> owner actions in cPanel. Read it before anything else in any new session. This
+> file holds *knowledge*; `tasks.md` holds *work*.
+
 ## Current Phase
 
 - **✅ THE SITE IS LIVE (2026-10-04).** Deployed to DianaHost and verified on the host, not
