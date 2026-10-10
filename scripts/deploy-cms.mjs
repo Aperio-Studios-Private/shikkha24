@@ -52,6 +52,7 @@ import {
   deletePath,
   extractArchive,
   listFiles,
+  readTextFile,
   uploadFile,
   writeTextFile,
 } from './cpanel-client.mjs'
@@ -381,6 +382,35 @@ async function main() {
   }
 
   const { via } = await extractArchive(cfg, remoteZip, CMS_ROOT)
+
+  // ⚠️ Did the extract actually change the host? Ask the host, not the site.
+  //
+  // `verifyCms` below probes `$CMS_URL/api/articles`. When the extract silently
+  // does nothing, the *previous* build is still running and answers 200 — so that
+  // probe certifies a deploy that changed nothing at all. On 2026-10-10 every CMS
+  // deploy passed it while the host kept serving four-day-old code, because the
+  // bundle was being extracted one directory too high.
+  //
+  // The build writes `DEPLOYED_COMMIT` into the bundle. Reading it back answers
+  // the only question that matters: is the code on the host the code we built?
+  //
+  // Skipped in a dry run, and when the caller is not from CI, because there is no
+  // commit to compare against there.
+  const expectedCommit = process.env.GITHUB_SHA
+  if (!cfg.dryRun && expectedCommit) {
+    const landed = (await readTextFile(cfg, CMS_ROOT, 'DEPLOYED_COMMIT')).trim()
+    if (landed !== expectedCommit) {
+      throw new Error(
+        `The extract did not land. The host reports DEPLOYED_COMMIT="${landed || '(missing)'}" ` +
+          `but this run built "${expectedCommit}". The archive uploaded but the files on the ` +
+          'host are not the ones in it — so the running CMS is still the previous build and a ' +
+          '200 from the site proves nothing. Do not trust this deploy; investigate the extract ' +
+          'before deploying again.',
+      )
+    }
+    say(`Verified DEPLOYED_COMMIT ${landed.slice(0, 7)} is on the host.`)
+  }
+
   await deletePath(cfg, `${CMS_ROOT}/${remoteName}`)
   // Best-effort sweep of archives older runs left behind. These are inert once
   // extracted, but each is ~20 MB in a 5 GB account, and one that lingers is also

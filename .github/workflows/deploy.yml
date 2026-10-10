@@ -409,7 +409,36 @@ jobs:
           CPANEL_USER: ${{ secrets.CPANEL_USER }}
           CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
           DEPLOY_DRY_RUN: ${{ steps.cfg.outputs.dry_run }}
-          DEPLOY_CMS_DIST: cms/.next/standalone/cms
+          # ⚠️ `standalone`, NOT `standalone/cms` — measured 2026-10-10.
+          #
+          # `standalone/cms` holds the app, but zipping *its contents* drops them
+          # at the app root, while the running app is `~/shikkha24-cms/cms/server.js`
+          # (the cPanel startup file is `cms/server.js`). The deploy therefore
+          # wrote one level too high: the new code sat unused at the root, `cms/`
+          # kept the previous build, and the post-deploy probe answered 200 from
+          # the old app. A green deploy that changed nothing that mattered.
+          #
+          # `standalone` is the parent, so it contains BOTH halves at once:
+          #   cms/         → the app, landing exactly where the startup file looks
+          #   node_modules/ → the pnpm store `promote-pnpm-fallback.mjs` just
+          #                  prepared, including the `@libsql/core` link the host
+          #                  cannot resolve without it
+          # Zipping the child dropped the second one, which is why `stderr.log`
+          # recorded ERR_MODULE_NOT_FOUND for @libsql/core on every boot.
+          DEPLOY_CMS_DIST: cms/.next/standalone
+
+          # 7. A sentinel naming the commit this bundle was built from.
+          #
+          #    The deploy probe asks the *site* whether it answers 200. When the
+          #    extract silently does nothing, the previous build is still running
+          #    and answers 200 perfectly — so the probe reports success for a
+          #    deploy that changed nothing. That is not hypothetical: it is how
+          #    every CMS deploy on 2026-10-10 reported success while the host kept
+          #    running four-day-old code.
+          #
+          #    A commit marker turns "did it work?" into "is the code on the host
+          #    the code we built?", which the old probe could never ask.
+          printf '%s' "${GITHUB_SHA}" > cms/.next/standalone/DEPLOYED_COMMIT
           # ⚠️ The origin `verifyCms()` probes after the transfer. It must be the
           # origin of whatever `DEPLOY_CMS_ROOT` holds, or the check verifies the
           # wrong deployment. The gate in "Resolve mode and target" guarantees this
