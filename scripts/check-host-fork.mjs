@@ -64,18 +64,26 @@ const say = (message) => console.log(message)
  * Parse argv into options. Unknown flags are ignored rather than fatal, because
  * this runs in CI where an unexpected flag must not mask the actual result.
  *
+ * `--dir` accumulates rather than replaces, so several paths can be inspected in
+ * one run — the workflow relies on that to check host setup without anyone
+ * navigating File Manager.
+ *
  * @param {string[]} argv typically `process.argv.slice(2)`.
  * @returns {{probes: number, delayMs: number, dirs: string[]}}
  */
 export function parseArgs(argv) {
-  const opts = { probes: 5, delayMs: 1500, dirs: DEFAULT_DIRS }
+  // Spread, not assignment: `opts.dirs = DEFAULT_DIRS` would alias the module-level
+  // array, and the `--dir` pushes below would mutate it permanently — so a second
+  // call in the same process silently inherited the first call's directories.
+  const opts = { probes: 5, delayMs: 1500, dirs: [...DEFAULT_DIRS] }
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === '--probes') opts.probes = Number(argv[++i])
     else if (argv[i] === '--delay') opts.delayMs = Number(argv[++i])
-    else if (argv[i] === '--dir') opts.dirs = [argv[++i]]
+    else if (argv[i] === '--dir') opts.dirs.push(argv[++i])
   }
   if (!Number.isInteger(opts.probes) || opts.probes < 1) opts.probes = 5
   if (!Number.isFinite(opts.delayMs) || opts.delayMs < 0) opts.delayMs = 1500
+  if (opts.dirs.length === 0) opts.dirs = DEFAULT_DIRS
   return opts
 }
 

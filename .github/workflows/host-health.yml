@@ -58,6 +58,11 @@ on:
         required: false
         default: '1500'
         type: string
+      dir:
+        description: 'Comma-separated dirs to list, relative to home (blank = home, CMS, docroot)'
+        required: false
+        default: ''
+        type: string
 
 # `contents: read` is the whole job: it checks out, it never writes.
 permissions:
@@ -89,6 +94,13 @@ jobs:
           CPANEL_USER: ${{ secrets.CPANEL_USER }}
           CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
         run: |
-          node scripts/check-host-fork.mjs \
-            --probes '${{ inputs.probes }}' \
-            --delay '${{ inputs.delay }}'
+          # `--dir` may be repeated to inspect several paths in one run. Listing
+          # is read-only, so this doubles as a way to check host setup — whether a
+          # script was really uploaded, whether a folder exists — without anyone
+          # navigating cPanel File Manager to look.
+          args=(--probes '${{ inputs.probes }}' --delay '${{ inputs.delay }}')
+          if [ -n '${{ inputs.dir }}' ]; then
+            IFS=',' read -ra dirs <<< '${{ inputs.dir }}'
+            for d in "${dirs[@]}"; do args+=(--dir "$d"); done
+          fi
+          node scripts/check-host-fork.mjs "${args[@]}"
