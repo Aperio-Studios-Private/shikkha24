@@ -50,7 +50,8 @@
     "verify": "pnpm run lint && pnpm run verify:astro-imports && pnpm run verify:dark-tokens && pnpm run verify:site-name && pnpm run verify:bengali-spacing && pnpm run verify:prayer-times && pnpm run verify:gpa && pnpm run verify:cgpa && pnpm run verify:bookmarks && pnpm run verify:ad-split && pnpm run verify:client-ip && pnpm run verify:sqlite-wal && pnpm run verify:cms-bundle && pnpm run verify:origins && pnpm run verify:pnpm-fallback && pnpm run typecheck && pnpm run build && pnpm run verify:build-output && pnpm run verify:links && pnpm run verify:search-init && pnpm run verify:apache && pnpm run verify:cpanel-deploy && pnpm run verify:deploy-mode && pnpm run verify:deploy-inputs && pnpm run verify:backup",
     "audit:ci": "pnpm audit --audit-level=high",
     "verify:origins": "pnpm --filter @shikkha24/cms verify:origins",
-    "verify:pnpm-fallback": "node scripts/verify-pnpm-fallback.mjs"
+    "verify:pnpm-fallback": "node scripts/verify-pnpm-fallback.mjs",
+    "check:host-fork": "node scripts/check-host-fork.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.13",

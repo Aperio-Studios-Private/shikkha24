@@ -1,0 +1,94 @@
+# Shikkha24 — host health check
+#
+# ## What this does
+#
+# Asks DianaHost one question: **can this cPanel account still fork a process?**
+#
+# It answers that by making a handful of read-only UAPI directory listings and
+# timing them. Nothing is written, uploaded, extracted, deleted or restarted.
+#
+# ## Why this needs to exist as its own workflow
+#
+# On 2026-10-10 the account hit a CloudLinux process ceiling. It presented as
+# three apparently unrelated failures — `BlockingIOError: [Errno 11]` creating a
+# Node app, `cagefs_enter: Unable to fork` saving a setting, and the backup cron
+# dying on `jailshell: fork: retry` every night since 2026-10-04.
+#
+# What actually broke was never the applications. `shikkha24.com` and the
+# production CMS served normally throughout, because a process that is already
+# running never needs to fork again. Only *spawning* failed.
+#
+# That distinction is expensive to learn from HTTP status codes. Inferring it
+# from 503s led to two wrong diagnoses in a row — a misconfigured startup file,
+# and then Passenger itself — before anyone measured the thing directly.
+#
+# ## Why this gates a deploy
+#
+# The CMS deploy uploads and extracts through the cPanel API, and every one of
+# those calls costs the host a fork. Run against a ceiling-limited account, a
+# deploy does not fail cleanly at the start: it dies partway through, with the
+# application directory already half-overwritten. This workflow is the cheap
+# check that happens *before* that, not after.
+#
+# ## Scope of the result
+#
+# A PASS means the account can spawn a process for an API call — which is exactly
+# what a deploy needs. It is **not** a promise that a Node application will boot;
+# Passenger's allocation is larger and longer-held than a one-shot API call. The
+# two are separate questions and this answers only the first.
+#
+# ## Manual only
+#
+# There is no `push` or `schedule` trigger. A health check that fires on its own
+# tends to be ignored precisely when it starts failing, which is the case that
+# matters. Run it deliberately, before anything that touches the host.
+
+name: Host health
+
+on:
+  workflow_dispatch:
+    inputs:
+      probes:
+        description: 'Read-only calls per directory (raise to catch an intermittent ceiling)'
+        required: false
+        default: '5'
+        type: string
+      delay:
+        description: 'Milliseconds between probe rounds'
+        required: false
+        default: '1500'
+        type: string
+
+# `contents: read` is the whole job: it checks out, it never writes.
+permissions:
+  contents: read
+
+concurrency:
+  group: host-health
+  cancel-in-progress: false
+
+jobs:
+  canary:
+    name: Fork canary
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      # No `pnpm install` step. The canary and its client use only Node built-ins
+      # (`fetch`), so an install would add minutes and a failure mode for nothing.
+      - name: Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Can the account still fork?
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
+          CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
+        run: |
+          node scripts/check-host-fork.mjs \
+            --probes '${{ inputs.probes }}' \
+            --delay '${{ inputs.delay }}'
