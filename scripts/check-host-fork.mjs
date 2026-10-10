@@ -100,6 +100,10 @@ export function parseArgs(argv) {
     else if (argv[i] === '--names') opts.names = true
     else if (argv[i] === '--cat') opts.cats.push(argv[++i])
     else if (argv[i] === '--cat-dir') opts.catDir = argv[++i]
+    else if (argv[i] === '--tail') {
+      opts.tail = true
+      opts.cap = Number(argv[++i]) || 4000
+    }
   }
   if (!Number.isInteger(opts.probes) || opts.probes < 1) opts.probes = 5
   if (!Number.isFinite(opts.delayMs) || opts.delayMs < 0) opts.delayMs = 1500
@@ -124,7 +128,7 @@ export function parseArgs(argv) {
  * @param {(m: string) => void} say output function.
  * @param {number} cap maximum characters printed per file.
  */
-export async function catFiles(cfg, dir, paths, say, cap = 4000) {
+export async function catFiles(cfg, dir, paths, say, cap = 4000, tail = false) {
   for (const path of paths) {
     // cPanel's get_file_content takes `dir` and `file` separately and **rejects a
     // filename containing `/`**. A caller naturally writes
@@ -135,9 +139,19 @@ export async function catFiles(cfg, dir, paths, say, cap = 4000) {
     const file = cut === -1 ? path : path.slice(cut + 1)
     try {
       const body = await readTextFile(cfg, subDir, file)
-      say(`  --- ${subDir}/${file} (${body.length} bytes) ---`)
-      say(body ? body.slice(0, cap) : '  (empty)')
-      if (body.length > cap) say(`  … truncated, ${body.length - cap} more bytes`)
+      say(`  --- ${subDir}/${file} (${body.length} bytes${tail ? ', tail' : ''}) ---`)
+      // A log grows at the END. The newest error — the one the running app just
+      // wrote — is invisible under a 4000-char head, which is how an old error
+      // gets mistaken for the current one. `tail` shows what just happened.
+      const slice = tail ? body.slice(-cap) : body.slice(0, cap)
+      say(slice ? slice : '  (empty)')
+      if (body.length > cap) {
+        say(
+          tail
+            ? `  … ${body.length - cap} earlier bytes omitted`
+            : `  … ${body.length - cap} more bytes`,
+        )
+      }
     } catch (error) {
       say(`  --- ${subDir}/${file}: could not read — ${error.message}`)
     }
@@ -199,7 +213,7 @@ export async function run(opts) {
   }
 
   // Read files after the probes, so a cat failure cannot mask a fork verdict.
-  if (opts.cats.length > 0) await catFiles(cfg, opts.catDir, opts.cats, say)
+  if (opts.cats.length > 0) await catFiles(cfg, opts.catDir, opts.cats, say, opts.cap, opts.tail)
 
   say('')
   if (failed === 0) {

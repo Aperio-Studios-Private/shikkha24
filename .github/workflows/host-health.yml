@@ -78,6 +78,11 @@ on:
         required: false
         default: '.'
         type: string
+      tail:
+        description: 'Show the END of each file instead of the start (logs grow at the end)'
+        required: false
+        default: 'false'
+        type: string
 
 # `contents: read` is the whole job: it checks out, it never writes.
 permissions:
@@ -119,6 +124,7 @@ jobs:
             IFS=',' read -ra files <<< '${{ inputs.cat }}'
             for f in "${files[@]}"; do args+=(--cat "$f"); done
             args+=(--cat-dir '${{ inputs.cat-dir }}')
+            if [ '${{ inputs.tail }}' = 'true' ]; then args+=(--tail 2500); fi
           fi
           if [ -n '${{ inputs.dir }}' ]; then
             IFS=',' read -ra dirs <<< '${{ inputs.dir }}'
