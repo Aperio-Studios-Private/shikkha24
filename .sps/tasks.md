@@ -30,34 +30,62 @@ not know about it.
 ## 🔴 In flight
 
 ### T-01 — CMS admin rejects all edits, uploads and creates
-- **Status:** `blocked` (awaiting one owner answer) · **Severity:** 🔴 production
-- **Reported:** 2026-10-10 — "You are not allowed to perform this action." on
-  every create/edit/upload. Console also shows a CSP violation
-  (`img-src 'self' data: blob:`) and `403` on `/api/globals/site-settings`.
-- **Leading cause: an invalidated session.** The owner rotated `PAYLOAD_SECRET`
-  on 2026-10-10. That signs every session token, so an existing cookie stops
-  verifying — and the symptom is exactly this: reads that need no session still
-  work, writes that do are refused.
-- **Ruled out, with evidence** (do not re-investigate these):
-  - **Not a permissions regression.** `serverManagedField` guards exactly three
-    fields (`Readers.ts` 166/174/209) and collection-level `update` is
-    `isSelfIn('readers')`. Neither can block staff creating articles.
-  - **Not a broken database driver.** `stderr.log` shows
-    `ERR_MODULE_NOT_FOUND: @libsql/core`, but that log is **frozen at 18,234 bytes**
-    across reads 40 minutes apart, and `@libsql/core` is present and readable at
-    `~/shikkha24-cms/node_modules/@libsql/core/package.json` (2,434 bytes, v0.14.0).
-    Those errors are from a boot before cPanel's `npm install` created the
-    top-level `node_modules`. `/api/articles` returning 24 articles confirms it.
-  - **Not the cPanel entry-key bug** (`a18816f`). That broke the *delete* set
-    only; it cannot make writes fail.
-- **Unresolved — the CSP violation is a separate, real defect.** The admin sends
-  `img-src 'self' data: blob:` and that header does **not** name the CMS media
-  host. Any media served from another origin is blocked. Not yet reproduced or
-  fixed; treat as its own task once T-01 clears.
-- **Next — owner, ~30 seconds:** open `https://cms.shikkha24.com/admin` in a
-  private window, log in fresh, and try one edit. If it works, the cause was the
-  stale session. **Do not** close this on "the endpoint returns 200" — that
-  proves the API is up, not that the owner can write.
+- **Status:** `todo` (root cause found; fix needs an owner decision) · 🔴 production
+- **Reported:** 2026-10-10 — "You are not allowed to perform this action." on every
+  create/edit/upload; logout shows a success toast but the session survives.
+- **ROOT CAUSE — proven from data, not inferred:**
+  **The `users` table has no `roles` column, in any environment.**
+  - Production (verified backup `2026-10-10-PROD-payload.db`): columns are
+    `id, name_bn, author_profile_id, phone, updated_at, created_at, email,
+    reset_password_token, reset_password_expiration, salt, hash, login_attempts,
+    lock_until`. No `roles`.
+  - Local dev DB `cms/data/payload.db`: **identical** — also no `roles`.
+  - `20261003_155252_initial.json` (the only migration touching `users`): identical
+    column list. No `roles`.
+  - `Users.ts:101` declares `roles` as a real field — `type: 'select'`,
+    `hasMany`, **`required: true`**, `defaultValue: ['reporter']`, indexed.
+- **Why that denies every write — the deadlock:**
+  `rolesOf()` reads `user.roles`; the column does not exist, so it returns `[]`;
+  `hasRole()` then returns `false` for **every** role; `isEditorialUser` is
+  therefore `false`, so `isEditorial` denies all writes. Worse, granting the field
+  is itself guarded by `access: { create/update: ({req}) => hasRole(req.user,
+  'superAdmin') }` (`Users.ts:113-116`) — the **same** missing column. Nobody can
+  ever acquire a role, so nobody is ever authorised to grant one. Bootstrap is
+  impossible through the API by construction.
+- **Why CI never caught it.** `scripts/verify-payload-migrations.sh` PASSES. It runs
+  `payload migrate:create` and checks whether a new file appeared. The generator
+  diffs against the **newest committed snapshot**, and that snapshot is equally
+  missing `roles`, so it correctly reports "no change since last snapshot" and
+  writes nothing. The gate is comparing the migrations to themselves and cannot
+  see a column that is absent from both sides. Running migrations on the host would
+  **not** fix this.
+- **Ruled out along the way — do not re-investigate:**
+  - Session/`PAYLOAD_SECRET` rotation. A fresh incognito login fails identically.
+  - The `5bca852`/`6653570` access rules. `serverManagedField` guards 3 reader
+    fields; `update` is `isSelfIn('readers')`.
+  - Database driver. `stderr.log` shows `ERR_MODULE_NOT_FOUND: @libsql/core` but is
+    **frozen at 18,234 bytes** across two reads 40 minutes apart, and
+    `@libsql/core` is present and readable on the host (2,434 bytes, v0.14.0).
+    Historical noise from a boot before cPanel's `npm install`.
+  - The cPanel entry-key bug (`a18816f`) — delete-set only.
+- **Fix — three parts, and part 3 needs an owner decision:**
+  1. Generate a migration adding `users.roles` (not-null, default `reporter`).
+     The existing gate cannot be trusted to produce it — see above.
+  2. Apply it on the host: `PAYLOAD_BOOTSTRAP_SCHEMA=true` in
+     `~/shikkha24-cms/.env`, one restart, then **remove the flag** (it is a footgun
+     by design — `.env.example` says so). Requires the owner; no Terminal exists.
+  3. **Bootstrap superAdmin.** With the column present, the seeded user gets
+     `['reporter']`, and nothing in the API can promote them — by construction.
+     Options: a data step inside the migration (an `UPDATE` setting the existing
+     user to `superAdmin`), or a one-time server-side script run through
+     "Run JavaScript Script". **Owner must choose** — an `UPDATE` in a migration is
+     simple and durable but writes to a table by hand; a script is re-runnable.
+  4. Close the gate gap: the migration check must compare the config against the
+     *schema Payload would generate*, not against a snapshot that may share the
+     same blind spot.
+- **Separate, still open:** the admin's CSP sends `img-src 'self' data: blob:`
+  without naming the CMS media host, so cross-origin media is blocked. Not
+  reproduced; tracked, not folded in.
 
 ---
 
