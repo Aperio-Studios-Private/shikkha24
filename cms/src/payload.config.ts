@@ -5,6 +5,7 @@ import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
 import { defaultEditor } from './blocks/editors'
+import { ensureBootstrapAdmin } from './bootstrap/admin'
 import { AdUnits } from './collections/AdUnits'
 import { Articles } from './collections/Articles'
 import { Assignments } from './collections/Assignments'
@@ -57,7 +58,6 @@ import { withRebuildTrigger, withRebuildTriggerGlobal } from './lib/rebuild-trig
 // the failure surfaces as a 500 from every API route — which reads as "the CMS
 // is broken", not as "one import path is wrong". CI caught it on the first push.
 import { migrations } from './migrations/index'
-import { ensureBootstrapAdmin } from './bootstrap/admin'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
