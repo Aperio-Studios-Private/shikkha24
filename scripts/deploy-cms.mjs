@@ -43,7 +43,7 @@
  * `DEPLOY_DRY_RUN=true` prints the plan and makes no mutating call.
  */
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readdirSync, statSync } from 'node:fs'
+import { mkdtempSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -159,12 +159,30 @@ export function assertBundleIsSafe(root) {
  * @param {string} root
  * @returns {number}
  */
-function countFiles(root) {
+export function countFiles(root) {
   let total = 0
   const walk = (dir) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (entry.isDirectory()) walk(join(dir, entry.name))
-      else if (statSync(join(dir, entry.name)).isFile()) total += 1
+      if (entry.isDirectory()) {
+        walk(join(dir, entry.name))
+        continue
+      }
+      // ⚠️ Count every non-directory rather than `stat`-ing it.
+      //
+      // `readdir(withFileTypes)` reports a symlink as neither file nor directory,
+      // so the old code fell through to `statSync` — which **follows** the link.
+      // pnpm's store is mostly symlinks and some dangle, so that threw:
+      //
+      //   ENOENT: no such file or directory,
+      //     stat 'cms/.next/standalone/node_modules/.pnpm/node_modules/@esbuild/linux-x64'
+      //
+      // and killed run 38060359694 before the archive was built. Nothing was
+      // wrong with the bundle; the walk could not represent a broken link.
+      //
+      // Every non-directory is one entry `zip` will archive, so counting it is
+      // both correct and incapable of throwing. A symlink to a directory is
+      // correctly counted once and not descended into.
+      total += 1
     }
   }
   walk(root)
@@ -348,7 +366,22 @@ async function main() {
 
   const work = mkdtempSync(join(tmpdir(), 'shikkha24-cms-'))
   const zip = join(work, 'cms.zip')
-  execFileSync('zip', ['-rq', zip, '.'], { cwd: CMS_DIST, stdio: 'pipe' })
+  // ⚠️ `-y` is load-bearing, and only matters now that the bundle includes
+  // `node_modules/`.
+  //
+  // Without it, zip **dereferences** symlinks: it follows each one and stores the
+  // target's contents. pnpm's store is built almost entirely of symlinks whose
+  // targets are relative to their own depth, and some of them dangle. Dereferencing
+  // then fails outright —
+  //
+  //   ENOENT: no such file or directory,
+  //     stat 'cms/.next/standalone/node_modules/.pnpm/node_modules/@esbuild/linux-x64'
+  //
+  // — which is how run 38060359694 died on 2026-10-10. With `-y` the links are
+  // stored *as* links, their relative targets are preserved, and they resolve
+  // again once extracted at the same layout. That is also what keeps the promoted
+  // `@libsql/core` link working on the host.
+  execFileSync('zip', ['-rqy', zip, '.'], { cwd: CMS_DIST, stdio: 'pipe' })
 
   // ⚠️ The archive name must be unique per run, or the deploy blocks ITSELF.
   //
