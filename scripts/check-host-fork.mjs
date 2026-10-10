@@ -61,6 +61,16 @@ const DEFAULT_DIRS = ['.', 'shikkha24-cms', 'public_html']
 const say = (message) => console.log(message)
 
 /**
+ * The only error wordings that may be reported as a process ceiling.
+ *
+ * Everything else — a directory that does not exist, a denied path — is an
+ * ordinary API error. Conflating them produced a false "the account cannot fork"
+ * verdict on 2026-10-10, complete with advice to abort a deploy.
+ */
+export const FORK_EXHAUSTION =
+  /fork|Resource temporarily unavailable|EAGAIN|cagefs|jailshell|too many open files|out of memory|ENOMEM|EMFILE/i
+
+/**
  * Parse argv into options. Unknown flags are ignored rather than fatal, because
  * this runs in CI where an unexpected flag must not mask the actual result.
  *
@@ -116,13 +126,20 @@ export function parseArgs(argv) {
  */
 export async function catFiles(cfg, dir, paths, say, cap = 4000) {
   for (const path of paths) {
+    // cPanel's get_file_content takes `dir` and `file` separately and **rejects a
+    // filename containing `/`**. A caller naturally writes
+    // `node_modules/@libsql/core/package.json`, so the last segment is split off
+    // here rather than making every caller remember the rule.
+    const cut = path.lastIndexOf('/')
+    const subDir = cut === -1 ? dir : `${dir}/${path.slice(0, cut)}`
+    const file = cut === -1 ? path : path.slice(cut + 1)
     try {
-      const body = await readTextFile(cfg, dir, path)
-      say(`  --- ${dir}/${path} (${body.length} bytes) ---`)
+      const body = await readTextFile(cfg, subDir, file)
+      say(`  --- ${subDir}/${file} (${body.length} bytes) ---`)
       say(body ? body.slice(0, cap) : '  (empty)')
       if (body.length > cap) say(`  … truncated, ${body.length - cap} more bytes`)
     } catch (error) {
-      say(`  --- ${dir}/${path}: could not read — ${error.message}`)
+      say(`  --- ${subDir}/${file}: could not read — ${error.message}`)
     }
   }
 }
@@ -145,6 +162,7 @@ export async function run(opts) {
   let attempted = 0
   let failed = 0
   let firstError = ''
+  const failedErrors = []
 
   const label = (probe, dir) => `  probe ${probe}/${opts.probes}  ${dir.padEnd(16)}`
 
@@ -172,6 +190,7 @@ export async function run(opts) {
         failed += 1
         const ms = Date.now() - started
         if (!firstError) firstError = error.message
+        failedErrors.push(error.message)
         say(`${label(probe, dir)} FAIL  ${ms}ms`)
         say(`      ${error.message}`)
       }
@@ -186,13 +205,37 @@ export async function run(opts) {
   if (failed === 0) {
     say(`Result: PASS — ${attempted}/${attempted} read-only calls succeeded. The account can fork.`)
   } else {
-    say(`Result: FAIL — ${failed}/${attempted} calls failed. The account cannot reliably fork.`)
-    say(`First error: ${firstError}`)
-    say('This matches the `cagefs_enter: Unable to fork` and `[Errno 11]` symptoms. It is a')
-    say('host-side process ceiling. A CMS deploy now would likely die partway through an')
-    say('extract, so do not start one until this reads PASS.')
+    // ⚠️ Do NOT report every API error as a fork failure. An absent directory is
+    // not a process ceiling, and calling it one produces a false verdict that
+    // says a deploy would die partway through an extract — which is both wrong
+    // and alarming enough to stop a deploy that would have been fine.
+    //
+    // That exact false verdict was produced on 2026-10-10 by probing a directory
+    // that did not exist, and the failure text blamed `cagefs_enter`. Only the
+    // errors that actually name process exhaustion may claim to be one.
+    const ceiling = failedErrors.filter((message) => FORK_EXHAUSTION.test(message)).length
+    if (ceiling === failedErrors.length && failedErrors.length > 0) {
+      say(`Result: FAIL — ${failed}/${attempted} calls failed, all naming process exhaustion.`)
+      say(`First error: ${firstError}`)
+      say('This matches the `cagefs_enter: Unable to fork` and `[Errno 11]` symptoms. It is a')
+      say('host-side process ceiling. A CMS deploy now would likely die partway through an')
+      say('extract, so do not start one until this reads PASS.')
+    } else {
+      say(
+        `Result: INDETERMINATE — ${failed}/${attempted} calls failed, but not from process exhaustion.`,
+      )
+      say(`First error: ${firstError}`)
+      say('A path that does not exist, or a permission problem, looks identical to a')
+      say('ceiling at the HTTP layer. Check the path before concluding anything about forking:')
+      say('re-run with a directory you know exists (omit `dir` for the defaults).')
+    }
   }
-  return { ok: failed === 0, attempted, failed }
+  return {
+    ok: failed === 0,
+    attempted,
+    failed,
+    ceiling: failedErrors.length > 0 && failedErrors.every((m) => FORK_EXHAUSTION.test(m)),
+  }
 }
 
 // Only run when invoked directly, so the exports stay testable.
