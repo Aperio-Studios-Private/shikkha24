@@ -68,21 +68,39 @@ not know about it.
     `@libsql/core` is present and readable on the host (2,434 bytes, v0.14.0).
     Historical noise from a boot before cPanel's `npm install`.
   - The cPanel entry-key bug (`a18816f`) — delete-set only.
-- **Fix — three parts, and part 3 needs an owner decision:**
-  1. Generate a migration adding `users.roles` (not-null, default `reporter`).
-     The existing gate cannot be trusted to produce it — see above.
-  2. Apply it on the host: `PAYLOAD_BOOTSTRAP_SCHEMA=true` in
-     `~/shikkha24-cms/.env`, one restart, then **remove the flag** (it is a footgun
-     by design — `.env.example` says so). Requires the owner; no Terminal exists.
-  3. **Bootstrap superAdmin.** With the column present, the seeded user gets
-     `['reporter']`, and nothing in the API can promote them — by construction.
-     Options: a data step inside the migration (an `UPDATE` setting the existing
-     user to `superAdmin`), or a one-time server-side script run through
-     "Run JavaScript Script". **Owner must choose** — an `UPDATE` in a migration is
-     simple and durable but writes to a table by hand; a script is re-runnable.
-  4. Close the gate gap: the migration check must compare the config against the
-     *schema Payload would generate*, not against a snapshot that may share the
-     same blind spot.
+- **FIX PREPARED AND COMMITTED — awaiting deploy.** `480b3d2`, `166138d`.
+  - `cms/src/migrations/20261010_120000_users_roles.ts` adds the column and
+    backfills existing users to `['reporter']` — enough to restore editing
+    immediately, and the least privilege that does it. Uses `ALTER TABLE ADD
+    COLUMN`, which is metadata-only in SQLite and therefore cannot lose user rows;
+    the table-rebuild pattern the other migrations use is only needed when
+    *changing* a column.
+  - `cms/src/bootstrap/admin.ts` + an `onInit` hook grants `superAdmin` to
+    `PAYLOAD_BOOTSTRAP_ADMIN_EMAIL`. Deliberately an **operation**, not a line in
+    the migration: a migration would hard-code "this row is an administrator" into
+    permanent history and re-apply to every future environment and every restored
+    backup. Env-gated means a new host, a staging box or a disaster recovery needs
+    one variable and no SQL. Additive, so promotion never strips an existing role.
+  - **Evidence:** the migration SQL was applied to a copy of the production backup
+    (26 articles, 64 districts, 8 categories intact, `integrity_check` ok), then
+    applied again through `payload migrate` itself. Access behaviour is asserted
+    with no database in the path, including the exact pre-migration state that
+    caused the bug. Idempotency across repeated boots, an unknown address, and a
+    throwing update are all covered.
+- **Deploy steps, owner (no Terminal exists — all three are cPanel):**
+  1. Deploy the CMS as usual.
+  2. In `~/shikkha24-cms/.env`, set **both** on one restart:
+     `PAYLOAD_BOOTSTRAP_SCHEMA=true` and
+     `PAYLOAD_BOOTSTRAP_ADMIN_EMAIL=shahiddesignhouse@gmail.com`
+  3. Confirm the owner can create and edit an article, then **remove
+     `PAYLOAD_BOOTSTRAP_SCHEMA`**. Leave `PAYLOAD_BOOTSTRAP_ADMIN_EMAIL` if
+     wanted — unlike the schema flag it is idempotent and safe to keep.
+- **Still open after this:** the migration gate is still blind. It compares
+  `migrate:create`'s output against a snapshot that shares the same blind spot, so
+  it cannot detect a field the config declares and the schema lacks. It must
+  compare the **runtime config's** fields against the newest snapshot directly.
+  Until then, adding a Payload field does not reliably produce a migration — which
+  is how `roles` went missing in the first place.
 - **Separate, still open:** the admin's CSP sends `img-src 'self' data: blob:`
   without naming the CMS media host, so cross-origin media is blocked. Not
   reproduced; tracked, not folded in.
