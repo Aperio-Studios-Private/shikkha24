@@ -4,6 +4,34 @@ import { sqliteAdapter } from '@payloadcms/db-sqlite'
 import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
+
+/**
+ * Image processing must not assume it can create threads.
+ *
+ * Uploading a media file runs every configured size through libvips, and libvips
+ * parallelises with one worker per CPU core by default. On this host that fails
+ * outright, and the whole upload is rejected:
+ *
+ *   GLib-ERROR **: creating thread '[pango] fontconfig':
+ *     Error creating thread: Resource temporarily unavailable
+ *
+ * Measured 2026-10-10 while the owner tried to add a featured image. The account
+ * can fork a short-lived API process — the health canary passes 9/9 — but cannot
+ * stand up a thread pool, so the failure appears only on image work. This is the
+ * same CloudLinux ceiling that blocked the backup cron and the staging app; it
+ * simply has a different symptom here.
+ *
+ * `concurrency(1)` makes libvips resize on a single thread. Uploads become
+ * serial rather than parallel, which costs a moment of wall-clock on a large
+ * image and removes an entire class of hard failure. It is the documented knob
+ * for exactly this, and it is a code-side fix — the alternative, raising the
+ * account's thread limit, is not ours to change.
+ *
+ * Setting it at import time matters: the pool is sized when sharp is first
+ * loaded, so configuring it later would leave the first uploads still failing.
+ */
+sharp.concurrency(1)
+
 import { defaultEditor } from './blocks/editors'
 import { ensureBootstrapAdmin } from './bootstrap/admin'
 import { AdUnits } from './collections/AdUnits'
