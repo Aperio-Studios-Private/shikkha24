@@ -56,6 +56,12 @@ jobs:
         # and resolves its include patterns relative to itself.
         run: pnpm run lint
 
+      - name: Verify the GitHub workflows parse
+        # A malformed workflow does not fail the commit that breaks it. GitHub
+        # rejects the file and the only symptom is HTTP 422 at dispatch time,
+        # much later, from an unrelated action — so it is checked here instead.
+        run: pnpm run verify:workflows
+
       - name: Verify .astro frontmatter imports
         # ⚠️ `.astro` frontmatter is NOT typechecked in this project — `tsc` only
         # sees .ts/.tsx, and `@astrojs/check` (the tool that would cover .astro)

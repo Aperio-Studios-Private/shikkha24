@@ -379,6 +379,20 @@ jobs:
             exit 1
           fi
 
+          # 5a. A sentinel naming the commit this bundle was built from.
+          #
+          #     The post-deploy probe asks the *site* whether it answers 200. When
+          #     the extract silently does nothing, the previous build is still
+          #     running and answers 200 perfectly - so the probe reports success
+          #     for a deploy that changed nothing. That is not hypothetical: it is
+          #     how every CMS deploy on 2026-10-10 reported success while the host
+          #     kept serving four-day-old code.
+          #
+          #     A commit marker turns "did it work" into "is the code on the host
+          #     the code we built", which the old probe could never ask.
+          #     deploy-cms.mjs reads this back and throws on a mismatch.
+          printf '%s' "${GITHUB_SHA}" > "$ROOT/DEPLOYED_COMMIT"
+
           # 6. ⚠️ Strip the production secret and the editorial archive from the
           #    bundle before it is uploaded. `output: 'standalone'` traces
           #    `cms/.env` in byte for byte and `cms/data/` (38 MB: payload.db, 11
@@ -427,18 +441,6 @@ jobs:
           # recorded ERR_MODULE_NOT_FOUND for @libsql/core on every boot.
           DEPLOY_CMS_DIST: cms/.next/standalone
 
-          # 7. A sentinel naming the commit this bundle was built from.
-          #
-          #    The deploy probe asks the *site* whether it answers 200. When the
-          #    extract silently does nothing, the previous build is still running
-          #    and answers 200 perfectly — so the probe reports success for a
-          #    deploy that changed nothing. That is not hypothetical: it is how
-          #    every CMS deploy on 2026-10-10 reported success while the host kept
-          #    running four-day-old code.
-          #
-          #    A commit marker turns "did it work?" into "is the code on the host
-          #    the code we built?", which the old probe could never ask.
-          printf '%s' "${GITHUB_SHA}" > cms/.next/standalone/DEPLOYED_COMMIT
           # ⚠️ The origin `verifyCms()` probes after the transfer. It must be the
           # origin of whatever `DEPLOY_CMS_ROOT` holds, or the check verifies the
           # wrong deployment. The gate in "Resolve mode and target" guarantees this
