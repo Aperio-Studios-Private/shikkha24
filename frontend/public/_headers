@@ -43,8 +43,19 @@
 #
 # `.htaccess` marks `/_astro/*` and `/fonts/*` immutable (their filenames are
 # content-hashed) and forces HTML to revalidate so a publish is visible as soon as
-# the batch window closes. The default rule here is therefore `must-revalidate`,
-# with the two hashed families overridden to one year.
+# the batch window closes.
+#
+# ⚠️ **`Cache-Control` is set ONLY on the hashed families, never on `/*`.** When
+# more than one rule matches, Cloudflare **appends** the values instead of letting
+# the more specific rule win. Setting it on both produced, on a hashed asset:
+#
+#     cache-control: public, max-age=0, must-revalidate, public, max-age=31536000, immutable
+#
+# which is self-contradictory — the asset is told to revalidate immediately *and*
+# never to change for a year. Measured on the first live deploy (2026-10-09).
+# Pages already sends `max-age=0, must-revalidate` for HTML on its own, so the
+# `/*` rule is not needed to express that half; it was only ever creating the
+# conflict. `verify-build-output.mjs` now asserts the two are never both set.
 
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
@@ -53,7 +64,6 @@
   Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=()
   X-Frame-Options: DENY
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://api.aladhan.com https://api.open-meteo.com https://ipwho.is https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net https://www.youtube-nocookie.com https://www.youtube.com https://www.facebook.com https://web.facebook.com https://m.facebook.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
-  Cache-Control: public, max-age=0, must-revalidate
 
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable

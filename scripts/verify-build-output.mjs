@@ -767,7 +767,38 @@ console.log('\n-- Cloudflare Pages ships the security headers --')
   // same contract `.htaccess` encodes via SHIKKHA24_IMMUTABLE.
   check('/_astro/* is cached immutably', /\/_astro\/\*[\s\S]*?immutable/.test(directives))
   check('/fonts/* is cached immutably', /\/fonts\/\*[\s\S]*?immutable/.test(directives))
-  check('HTML revalidates rather than being immutable', directives.includes('must-revalidate'))
+
+  // ⚠️ **Cloudflare APPENDS `Cache-Control` when two rules set it** — the more
+  // specific rule does not win. Setting it on `/*` *and* on the hashed families
+  // shipped this on the first live deploy (2026-10-09), and a hashed asset came
+  // back with
+  //
+  //     public, max-age=0, must-revalidate, public, max-age=31536000, immutable
+  //
+  // — told to revalidate immediately *and* never to change for a year, so it was
+  // effectively uncached. Measured on the live response, not inferred.
+  //
+  // The assertion is structural rather than a live probe: `/*` must not set
+  // `Cache-Control` at all, since Pages already sends `max-age=0,
+  // must-revalidate` for HTML on its own.
+  //
+  // Parsed by splitting on blank lines rather than with a regex: the first attempt
+  // used `/^\/\*\n([\s\S]*?)(?=\n\n|\n\/|$)/m`, and with the `m` flag `$` matches
+  // at *every* line end, so the lazy capture stopped after the first header and the
+  // check passed against a file that had the bug. A rule block is a blank-line
+  // delimited paragraph, so that is how it is read here.
+  const ruleBlocks = directives
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+  const catchAllBlock = ruleBlocks.find((block) => block.startsWith('/*'))
+  check(
+    'the /* rule does not set Cache-Control (it would be appended to the hashed families)',
+    catchAllBlock !== undefined && !/Cache-Control/i.test(catchAllBlock),
+    catchAllBlock === undefined
+      ? 'no /* rule block found in dist/_headers'
+      : 'move Cache-Control to the hashed families only',
+  )
 }
 
 console.log(
