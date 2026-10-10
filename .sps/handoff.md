@@ -23,7 +23,13 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
 
 ## Documentation index — where to look
 
-> **START HERE: `.sps/tasks.md`.** It is the single source of truth for outstanding
+> **START HERE: `.sps/tasks.md`**, then **`.sps/loop.md`**. Every task carries a
+> loop block — hypothesis, one asset, one scalar metric fixed before the edit, an
+> attempt budget. `.sps/mistakes.md` is the record of every loop violation found
+> the expensive way (M24–M28 are all from 2026-10-10).
+>
+> For what was asked and what is next, go to `.sps/tasks.md`.
+> It is the single source of truth for outstanding
 > work — what was asked, what is in flight, what is next, and which items are
 > owner actions in cPanel. Read it before anything else in any new session. This
 > file holds *knowledge*; `tasks.md` holds *work*.

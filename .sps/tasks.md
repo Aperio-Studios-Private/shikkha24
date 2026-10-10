@@ -109,42 +109,74 @@ not know about it.
 
 ## 🟠 Queued
 
+> Each task carries a **loop block** (`.sps/loop.md`): hypothesis, the single
+> asset it may touch, one scalar metric fixed **before** the edit, an attempt
+> budget, and the condition that sends it back. Filling these in is the point —
+> a task with no metric is how M24 happened.
+
 ### T-02 — Fix the article-template CLS (the one red CI step)
-- **Status:** `todo` · **Blocks:** CI green
-- Lighthouse gate: CLS **0.0439** vs a **0.02** gate on
-  `/education-news/20/demo-madrasa-new-syllabus/`. `KeyTakeaways` shifted 227px,
-  the ad below it a further 90px.
-- **Root cause found:** `font-display: swap` with a generic system-font fallback
-  and **no metric overrides** — 0 occurrences of `size-adjust` in `fonts.css`.
-  Additionally only weight **400** was preloaded, while the article H1 is bold
-  (700), so the largest text on the page swapped last.
-- **Fix prepared, NOT yet committed or deployed:**
-  - `global.css` — a `SolaimanLipi Fallback` family carrying the font's real
-    vertical metrics, read from the vendored file: ascent 95.3125%,
-    descent 28.418%, line-gap 8.9844%, `size-adjust: 99.2%`.
-  - `Layout.astro` — preload `solaimanlipi-700.woff2` as well.
-- **Verify in CI only.** Local Lighthouse passes while CI fails; it is not
-  representative. Do not trust a local green.
+- **Status:** `todo` · **Blocks:** CI green, and T-05
+- **Hypothesis:** `font-display: swap` with a generic system-font fallback and
+  **no metric overrides** reflows Bengali text on load. `grep -c size-adjust
+  fonts.css` → **0**. Additionally only weight 400 was preloaded while the
+  article H1 is bold, so the largest text on the page swapped last.
+- **Asset:** `frontend/src/styles/global.css` — **only the `@font-face` block and
+  the two font tokens.** The `Layout.astro` preload is a *separate* task, because
+  it is a separate hypothesis and M25 is the lesson.
+- **Metric:** Lighthouse CLS on `/education-news/20/demo-madrasa-new-syllabus/`
+  ≤ **0.02**. Currently **0.0439**.
+- **Budget:** 3 hypotheses. On exhaustion: revert and record.
+- **Degraded when:** CLS rises, or any other Lighthouse sub-metric regresses.
+- **Fix already prepared, uncommitted** (see the working tree): a
+  `SolaimanLipi Fallback` family carrying the font's real vertical metrics read
+  from the vendored file — ascent 95.3125%, descent 28.418%, line-gap 8.9844%,
+  `size-adjust: 99.2%`.
+- ⚠️ **Measure in CI only.** Local Lighthouse passes while CI fails; it is not
+  representative. A local green here is the trap M24 describes.
 
-### T-03 — Rotate `PAYLOAD_SECRET` and confirm it took effect
-- **Status:** `todo` (owner reports the value was changed; restart unconfirmed)
-- Cross-linked to **T-01**.
+### T-03 — Preload the 700 weight
+- **Status:** `todo`
+- **Hypothesis:** the article H1 is `font-bold` and 700 is not preloaded, so the
+  largest text on the page swaps last.
+- **Asset:** `frontend/src/layouts/Layout.astro` — the one `<link rel=preload>`.
+- **Metric:** same CLS number as T-02, read independently.
+- **Budget:** 1 hypothesis (it is a binary: preloaded or not).
+- **Degraded when:** initial payload exceeds the budget — the two files are
+  154 KB together against a 200 KB budget.
 
-### T-04 — Fix the staging Node app's startup file
-- **Status:** `todo` · **Priority:** low
-- Configured `cms/server.js`, but the bundle root holds `server.js` with no
-  nested `cms/`. The app is `stopped` and is no longer gating anything — the
-  production deploy succeeded on its first probe. Leave it stopped so it holds no
-  process slots.
+### T-04 — Deploy the frontend once CI is green
+- **Status:** `blocked` by T-02 and T-03
+- **Metric:** `shikkha24.com` serves the new build; Lighthouse gate green.
+- Nothing frontend-side is pending today: `git log ff195bb..HEAD -- frontend/`
+  is empty. **Do not deploy to "catch up" — there is nothing to catch up to.**
 
-### T-05 — Deploy the frontend once CI is green
-- **Status:** `blocked` by T-02
-- Nothing frontend-side is pending today: `git log ff195bb..HEAD -- frontend/` is
-  empty. The site currently serves the last successful live build and is **not**
-  stale. Do not deploy unverified work to "catch up" — there is nothing to catch
-  up to.
+### T-06 — Close the migration-gate blind spot (🔴 systemic)
+- **Status:** `todo` · **Why it matters more than T-01's symptom**
+- **Hypothesis:** `scripts/verify-payload-migrations.sh` asks
+  `migrate:create` whether anything changed. The generator diffs against the
+  newest committed snapshot, and when a field is missing from **both** the
+  snapshot and the database it reports "No schema changes detected" — so the gate
+  passes. Measured: the gate passes today with `users.roles` absent from every
+  migration.
+- **Asset:** `scripts/verify-payload-migrations.sh`.
+- **Metric:** the gate **fails** when a collection field exists in
+  `payload.config.ts` and in no snapshot — proved by adding a throwaway field and
+  watching it go red, then removing it.
+- **Budget:** 2 hypotheses.
+- **Degraded when:** the gate starts failing on a tree where config and migrations
+  genuinely agree.
+- ⚠️ This is how `roles` went missing in the first place. Until it is closed, no
+  newly added Payload field is reliably migrated, and the failure mode is silent.
 
----
+### T-07 — The admin CSP does not name the CMS media host
+- **Status:** `todo`
+- **Hypothesis:** the admin sends `img-src 'self' data: blob:`, which omits the
+  media host, so cross-origin media is blocked (M20 — the same shape of defect,
+  already recorded once for the allow-list).
+- **Asset:** the header source that emits the admin CSP.
+- **Metric:** an admin page loads its media with zero CSP violations.
+- **Budget:** 2 hypotheses.
+- ⚠️ Not reproduced yet. Do not fix before reproducing.
 
 ## ✅ Done
 
