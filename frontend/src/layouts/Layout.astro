@@ -151,12 +151,24 @@ const faviconUrl =
     {noindex && <meta name="robots" content="noindex" />}
     <meta name="description" content={metaDescription} />
 
-    {/* ── Fonts — preload the regular weight only ─────────────────────────
+    {/* ── Fonts — preload both weights ─────────────────────────────────────
         SolaimanLipi 400 is the file every headline and paragraph needs, so it
-        goes on the critical path to avoid a flash of invisible text. The bold
-        weight loads normally — far less text uses it. Each file already covers
-        Bengali AND Latin, so one preload serves mixed headlines like "HSC ২০২৬". */}
+        goes on the critical path to avoid a flash of invisible text. Each file
+        already covers Bengali AND Latin, so one preload serves mixed headlines
+        like "HSC ২০২৬".
+
+        700 is preloaded too, reversing the earlier "far less text uses it"
+        reasoning. On the article template that was wrong in the one place it
+        mattered most: the H1 title is bold and is the largest text on the page,
+        so its swap moved every element below it. Both weights are together
+        154 KB against a 200 KB budget (`docs/performance-budget.md` §3), and both
+        are requested by the first paint on any article, so preloading the second
+        adds a parallel fetch rather than a new round trip.
+
+        `SolaimanLipi Fallback` in `global.css` carries the metric overrides that
+        keep the swap from reflowing if these arrive after first paint. */}
     <link rel="preload" href="/fonts/solaimanlipi-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/solaimanlipi-700.woff2" as="font" type="font/woff2" crossorigin />
 
     {/* ── Icons ─────────────────────────────────────────────────────────────
         Exactly one source, never both. Emitting the managed icon alongside the
