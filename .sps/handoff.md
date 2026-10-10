@@ -151,8 +151,44 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
     account; hand-run the dump script in cPanel Terminal **and read the output**; add the 19:00
     UTC cron entry; add `FTP_HOST` / `FTP_USER` / `FTP_PASSWORD` as GitHub Secrets. Until then
     **run the manual procedure in §6.5 — it is the only thing protecting the archive.**
+  - **✅ RESOLVED 2026-10-10 — the fork ceiling cleared, measured rather than inferred. The CMS
+    security fixes are LIVE.** Recorded first because it supersedes the blocker below and because
+    the method is the reusable part.
+    - **The measurement.** `scripts/check-host-fork.mjs` (new, `e319227`) times repeated read-only
+      UAPI directory listings. Listing a directory is the cheapest call in the cPanel API — the host
+      must still spawn a PHP process to answer it, so a returned entry list *is* proof of forking,
+      and it writes nothing. Run via `.github/workflows/host-health.yml`, `workflow_dispatch` only.
+      First run **15/15 PASS**, gate re-run immediately before the deploy **9/9 PASS**. Latencies
+      490–670ms, no queuing. `shikkha24-cms` returned 8 entries and `public_html` 66, so the account
+      is not merely forking, it is serving both applications.
+    - **⚠️ Why this took a day and cost a wrong recommendation.** The ceiling was inferred from HTTP
+      503s for the whole of 2026-10-10 and inferred **wrong twice** — first a misconfigured Node
+      startup file, then Passenger itself. On that basis the CMS was nearly replaced wholesale with a
+      Git-based static CMS, which would have destroyed the editorial workflow to fix a condition
+      that had already lifted. **The owner's pushback ("I want Payload, can we?") was correct and
+      the recommendation was withdrawn.** The lesson is already recorded in `.sps/mistakes.md` as a
+      pattern: *measure the mechanism, do not infer a system state from a symptom of it.*
+    - **The deploy.** `mode=live, target=cms, confirm-risk=true, cms-url=https://cms.shikkha24.com`,
+    run `38046872887`. 590 files, `Extracted via api2-fileop`, **`Verified …/api/articles → 200
+    after 1 probe`** — against 12 failed probes over 19 minutes on the staging rehearsal the day
+    before. Post-deploy: `/api/articles` 200 in 0.078s, `/admin` 200, `/api/globals` 200, frontend
+    200 in 0.067s, **24 articles and 64 districts intact**.
+    - **Proof the fixes are live, in three links** — no single link is sufficient and the chain is
+      recorded so nobody has to re-derive it: (1) `CMS harnesses (local API)` **passed** on the
+      deployed commit, and that harness runs `verify:access` first, which covers section 8 (PII
+      reads) and section 9 (identity writes); (2) `5bca852` (reader PII) and `6653570`
+      (`providerId` account takeover) are both **ancestors of the deployed `e319227`**; (3) the
+      bundle was built from that commit and extracted. **⚠️ Not proven:** a live exploit attempt —
+      that needs a reader session, which needs a real OAuth sign-in we do not have. The chain proves
+      the fixed code is deployed; it does not reproduce the attack.
+  - **⚠️ The staging app is misconfigured and still is.** Its startup file is `cms/server.js`, but
+    the bundle root holds `server.js` with **no nested `cms/`** — the path does not exist. That was
+    the cause of its 503s alongside the fork ceiling, and it is a **separate, still-unfixed** bug.
+    The app is now `stopped`. It must be corrected to `server.js` before any staging rehearsal is
+    trusted again. Recorded in `docs/deployment-runbook.md` as `~/shikkha24-cms/server.js`.
   - **🔴 BLOCKER, and it is the host, not the code (2026-10-04). The account cannot fork
-    processes, so the host half of the backup cannot run at all.**
+    processes, so the host half of the backup cannot run at all.** *(Superseded by the resolution
+    above — kept for the cron footgun it documents, which is still live.)*
     - **cPanel Terminal access has been disabled by DianaHost.** The step above that says
       "hand-run the dump script in cPanel Terminal and read the output" **can no longer be
       performed** — it was already unreliable ("not reliably available"), and now it is gone. The
@@ -625,7 +661,12 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
 - [x] ~~Education competitor set~~ — ✅ 2026-09-11
 - [x] Domain purchase — ✅ `shikkha24.com` (reachability not verified from the audit environment)
 - [x] ✅ DianaHost plan purchase — ⚠️ **CORRECTED 2026-10-04: the plan is "DH 5GB SSD NVMe" (5120 M), not "PNR 2 GB".** Read off the client-area product page, not assumed: **Disk 2155 M / 5120 M (42%)**, **Bandwidth 0 M / 307200 M**, registered **11/09/2026**, recurring **TK 4899.00 BDT**. ⚠️ **Rule 7 in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` still says "2 GB PNR, ~$47/year" and is therefore wrong on both figures.** It is left unedited pending the owner's confirmation of the actual product name, because rule 7 is a constraint rather than a note and the three mirrors must change together (rule 12) — but the discrepancy is recorded here so it is not lost. *The budget constraint itself is unaffected: still one self-hosted plan plus the domain, no card, no third-party SaaS.*
-- [ ] 🔴 **Complete the eKYC identity check (DianaHost client area shows "Your services require identity verification before they can be used").** Unverified accounts commonly carry partial feature restrictions, and **a host restricting cron on an unverified account is a plausible cause of the 🔴 fork blocker above that has nothing to do with process limits.** Do this before opening the support ticket — it is free, fast, and it may make the ticket unnecessary.
+- [x] ~~Complete the eKYC identity check~~ — **DONE 2026-10-04** (recorded at the fork-blocker entry). *This item was still open in the list after the work was finished; corrected 2026-10-10 so it stops reading as an outstanding blocker.*
+- [ ] 🔴 **Put the backup cron back to `0 23 * * *`, or delete it.** It is still parked at `* * * * *`
+      — every minute — from the 2026-10-04 fork diagnosis, i.e. **1,440 fork attempts a day on an
+      account with a demonstrated history of hitting a CloudLinux process ceiling.** The ceiling has
+      since cleared, which is precisely the condition under which this becomes live: `MAX_ARCHIVES=30`
+      only bounds the damage, and 30 archives is still 30× the intended one-per-day.
 - [ ] Confirm with DianaHost: inode/file-count quota, and **the CloudLinux process (`nPROC`) limit — see the 🔴 BLOCKER above**
 - [x] ~~Confirm Cloudflare R2 can be enabled without a payment method~~ — **REMOVED 2026-09-14.** No Cloudflare R2.
 - [ ] Decide the CI rebuild strategy (debounce/batch vs public repo)
