@@ -63,6 +63,11 @@ on:
         required: false
         default: ''
         type: string
+      names:
+        description: 'Print each entry name, not just the count'
+        required: false
+        default: 'false'
+        type: string
 
 # `contents: read` is the whole job: it checks out, it never writes.
 permissions:
@@ -99,6 +104,7 @@ jobs:
           # script was really uploaded, whether a folder exists — without anyone
           # navigating cPanel File Manager to look.
           args=(--probes '${{ inputs.probes }}' --delay '${{ inputs.delay }}')
+          if [ '${{ inputs.names }}' = 'true' ]; then args+=(--names); fi
           if [ -n '${{ inputs.dir }}' ]; then
             IFS=',' read -ra dirs <<< '${{ inputs.dir }}'
             for d in "${dirs[@]}"; do args+=(--dir "$d"); done
