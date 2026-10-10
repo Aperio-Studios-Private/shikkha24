@@ -121,7 +121,26 @@ function stepEnvValue(text, stepName, key) {
   const lines = text.split('\n')
   const at = lines.findIndex((line) => line.trim() === `- name: ${stepName}`)
   if (at === -1) return undefined
-  for (const line of lines.slice(at, at + 40)) {
+
+  // ⚠️ Scan to the step's real boundary, not a fixed window.
+  //
+  // This used to look at `lines.slice(at, at + 40)`. That is a magic number
+  // standing in for a structural fact, and on 2026-10-10 a sixteen-line comment
+  // above `DEPLOY_CMS_DIST` pushed `DEPLOY_CMS_ROOT` past line 40 of the step.
+  // The check then reported "the deploy step reads DEPLOY_CMS_ROOT" as FAILED —
+  // not because the wiring was wrong, but because someone had written a comment.
+  //
+  // A check that reports a defect which is not there is worse than no check: it
+  // trains you to ignore the red. The step ends at the next sibling `- ` marker
+  // or the first line indented no further than the step's own, and that is what
+  // is scanned now. Comment length stops mattering.
+  const stepIndent = lines[at].search(/\S/)
+  for (let i = at + 1; i < lines.length; i += 1) {
+    const line = lines[i]
+    if (!line.trim()) continue
+    const indent = line.search(/\S/)
+    if (indent <= stepIndent && line.trimStart().startsWith('- ')) break
+    if (indent <= stepIndent) break
     const match = new RegExp(`^\\s+${key}:\\s*(.+)$`).exec(line)
     if (match) return match[1].trim()
   }
