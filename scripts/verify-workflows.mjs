@@ -91,10 +91,13 @@ for (const name of files) {
    * that stops working without anything turning red — so it gets a check rather
    * than a comment asking people to remember the ordering.
    */
-  const DOES_WORK = /next build|astro build|deploy-cms|deploy-frontend|payload migrate|migrate:create/
+  const DOES_WORK =
+    /next build|astro build|deploy-cms|deploy-frontend|payload migrate|migrate:create/
   for (const [jobName, job] of Object.entries(doc.jobs ?? {})) {
     const steps = job.steps ?? []
-    const gateIndex = steps.findIndex((s) => typeof s.run === 'string' && s.run.includes('wait-for-ci'))
+    const gateIndex = steps.findIndex(
+      (s) => typeof s.run === 'string' && s.run.includes('wait-for-ci'),
+    )
     if (gateIndex === -1) continue
 
     const earlyWork = steps
