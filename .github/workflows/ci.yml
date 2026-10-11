@@ -157,6 +157,26 @@ jobs:
         # `disableDBConnect` and reads the config rather than the database.
         run: pnpm run verify:payload-migrations
 
+      - name: Verify the Payload import map is not stale
+        # The same bug class one layer over, and the quietest failure in the
+        # project. `cms/src/app/(payload)/admin/importMap.js` is generated,
+        # committed, and is how Payload resolves a custom admin component from
+        # the *string* path in the config.
+        #
+        # A path missing from that map is not an error. Payload falls back to the
+        # default component and the admin keeps working. On 2026-10-11 the
+        # browser-side image optimiser was committed, deployed and manually
+        # tested — the upload succeeded and did nothing, because the map had
+        # never been regenerated. Typecheck, lint, build, CI and a passing upload
+        # were all green while the feature did not exist.
+        #
+        # `next build` cannot catch it either: it bundles whatever map is on disk,
+        # so a stale map builds cleanly and ships.
+        #
+        # Counter-proved by committing a map with the component removed and
+        # watching this fail, naming the missing entry.
+        run: pnpm run verify:payload-importmap
+
       - name: Verify the client IP is not spoofable
         # clientIp() keys EVERY abuse control in the CMS: the rate limit on
         # comments, newsletter signup, poll votes, bookmark toggles and account

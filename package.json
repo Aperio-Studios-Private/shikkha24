@@ -41,6 +41,7 @@
     "verify:client-ip": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/verify-client-ip.mjs",
     "verify:payload-types": "bash scripts/verify-payload-types.sh",
     "verify:payload-migrations": "bash scripts/verify-payload-migrations.sh",
+    "verify:payload-importmap": "bash scripts/verify-payload-importmap.sh",
     "verify:lighthouse": "bash scripts/verify-lighthouse.sh",
     "verify:sqlite-wal": "node scripts/verify-sqlite-wal.mjs",
     "verify:cms-bundle": "node scripts/verify-cms-bundle-sanitize.mjs",
