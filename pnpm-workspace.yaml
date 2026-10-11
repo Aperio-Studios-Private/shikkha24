@@ -68,6 +68,31 @@ overrides:
   'undici@7.29.0': 7.29.1
   'nodemailer@9.1.1': 10.0.6
   'devalue@5.9.2': 5.9.4
+  # Added 2026-10-15 (T-10, Payload 3.90.2 migration) — three dev-tooling
+  # transitives of @lhci/cli (Lighthouse CI) whose advisories have fixes
+  # published upstream. All three sit on paths CI never exercises: basic-ftp
+  # only speaks ftp:// (get-uri, unused — CI fetches http://localhost),
+  # tmp only backs interactive editor prompts (external-editor, unused
+  # headless). Review notes (agent rule 8 — licence confirmed for each):
+  #   basic-ftp 6.2.3  — MIT. Major bump against get-uri's ^5.0.2; the FTP
+  #                      list() code path is not reachable in CI, and the
+  #                      advisory (quadratic CPU in Client.list()) dies with it.
+  #   tmp 0.2.7        — MIT. Major bump against external-editor's ^0.0.29;
+  #                      fileSync survives (the advisory is IN fileSync's
+  #                      prefix/postfix handling — GHSA-ph9p-34f9-6g65).
+  #   tmp 0.2.7        — MIT. Major bump against the consumers' ^0.0.29/^0.1.0
+  #                      ranges (@lhci/cli → inquirer → external-editor);
+  #                      fileSync survives (the advisory is IN fileSync's
+  #                      prefix/postfix handling — GHSA-ph9p-34f9-6g65).
+  #                      @lhci/cli declares tmp twice (0.0.33 via external-editor
+  #                      and 0.1.0 directly) — both instances are scoped.
+  'source-map-js@1.2.1': 1.2.2
+  'tmp@0.0.33': 0.2.7
+  'tmp@0.1.0': 0.2.7
+  'basic-ftp@5.3.1': 6.2.3
+# ── pnpm audit ────────────────────────────────────────────────────────────────
+# ⚠️ pnpm 11.22 deprecates `auditConfig` in favour of THIS `audit` block; when
+# both are present the old one is ignored with a warning (T-10, 2026-10-15).
 
 # pnpm 11 enforces a minimum package age as supply-chain protection. The stack
 # pins exact versions verified against the live registry (agent rule 8), so
@@ -130,3 +155,8 @@ audit:
     - GHSA-vfj7-8cjw-p6xm
     # No patched release exists upstream. MIT-licensed. Build-time only.
     - GHSA-ch52-4w7c-c8xp
+    # extract-zip (transitive of @lhci/cli, build-time only): two symlink
+    # advisories whose fix (>=2.0.2) has NO published release yet — an override
+    # cannot reach it. Delete when extract-zip ships 2.0.2. (T-10, 2026-10-15.)
+    - GHSA-jmr9-qjv8-65gv
+    - GHSA-7pqw-9j4j-h8q3
