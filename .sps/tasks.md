@@ -168,50 +168,40 @@ not know about it.
 - ⚠️ This is how `roles` went missing in the first place. Until it is closed, no
   newly added Payload field is reliably migrated, and the failure mode is silent.
 
-### T-07 — 🔴 Image upload fails: image processing cannot run on this account
-- **Status:** `blocked` — budget spent, needs an owner or host decision
-- **Reported:** 2026-10-10/11 — `POST /api/media` returns **503**; the admin says
-  "An unknown error has occurred." Publishing and editing settings both work.
-- **What the measurements actually said** (these are the only facts, and each was
-  taken rather than inferred):
-  - `POST /api/media` **unauthenticated → 403**. So the route exists and access
-    control works. A 503 appears **only once Payload processes the file**, which
-    localises the failure to upload processing.
-  - `GET /api/media` → 200, `/admin` → 200. Reads and the admin shell are fine.
-  - `stderr.log` contains `GLib-ERROR: creating thread '[pango] fontconfig':
-    Error creating thread: Resource temporarily unavailable` and
-    `node: fork: retry: Resource temporarily unavailable`, then
-    `ERR_SERVER_NOT_RUNNING` — the worker dies mid-request.
-  - `sharp.concurrency(1)` **is deployed** (`a0fe589`, confirmed by reading
-    `payload.config.ts` off the host) and the upload still fails.
-  - The same failure on a **fresh browser** (Safari, never used here) rules out
-    stale client chunks.
-  - `.next` was deleted and re-extracted (server chunks 178 → 174) and the
-    failure persisted, ruling out mixed old/new build files.
-- **Conclusion:** every stage of the upload pipeline is sharp —
-  `formatOptions: WEBP`, `resizeOptions`, and `imageSizes: [thumbnail, card,
-  hero]`. libvips initialises a fontconfig thread even at `concurrency(1)`, and
-  **this account cannot create a thread at all**. Reducing concurrency is not
-  enough, because the floor is not zero.
-- **⚠️ Why there is no code fix here.** Disabling processing would mean no WebP
-  conversion, no 2000px cap and no `thumbnail`/`card`/`hero` variants — which are
-  precisely what article images depend on. "Turn off resizing" is not a graceful
-  degradation; it breaks the site.
-- **Remaining options, and the honest trade-off:**
-  1. **Free process budget on the account.** The ceiling is not proven to be the
-     plan's limit — it may be *occupied*. Two known consumers should be removed
-     first: the **backup cron is still parked at `* * * * *`** (every minute, since
-     2026-10-04) and the **staging Node app**. Neither is needed today. If capacity
-     is occupancy rather than a hard cap, this fixes uploads with no code and no
-     cost. Cheapest, so try it first.
-  2. **Ask DianaHost to raise the CloudLinux thread/process limit.** They have
-     been unresponsive; there is no card-free alternative host inside the budget
-     rules.
-  3. **Accept original uploads with no variants** — rejected, it breaks the
-     frontend's article images.
-- **Do not** reopen this without new evidence. Two hypotheses were spent
-  (`a0fe589` thread reduction, `.next` rebuild); the third was a *measurement*
-  (403-vs-503), not another guess.
+### T-07 — 🔴 Image upload: the account cannot fork for the Node process
+- **Status:** `blocked` — needs an owner decision. Conclusive as of 2026-10-11.
+- **Measured, not inferred.** `POST /api/media` unauthenticated returns **403**;
+  the 503 appears only once Payload processes the file. Every upload attempt
+  writes to `stderr.log`:
+  ```
+  /home/***/nodevenv/shikkha24-cms/24/bin/node: fork: retry: Resource temporarily unavailable
+  Error: Server is not running.  { code: 'ERR_SERVER_NOT_RUNNING' }
+  ```
+- **Occupancy was ruled out as the cause.** The backup cron (every minute since
+  2026-10-04) and the staging Node app were both deleted; the upload still fails
+  identically. The fork canary passes 12/12 throughout — cPanel API calls fork
+  fine. **The limit applies to the Node process specifically, not the account
+  generally**, which is why a green health check and a failing upload coexist.
+- **Ruled out along the way, so nobody repeats it:** stale client chunks (fails
+  on a never-used browser), mixed old/new build files (`.next` rebuilt, 178 → 174
+  chunks, still fails), missing permissions (`403` unauthenticated is correct),
+  `sharp.concurrency(1)` (deployed, confirmed on the host, does not help).
+- **The trade-off, stated plainly.** `frontend/src/lib/media.ts:buildSrcset` uses
+  the **original** file as its first candidate and treats `media.sizes` as extras
+  (`if (candidates.length < 2) return undefined`). So the frontend **renders
+  correctly with no variants at all** — it just loses `srcset`.
+  - **Option A — wait for the host.** No code. DianaHost raises the CloudLinux
+    limit and the full pipeline (WebP, 2000px cap, thumbnail/card/hero) works as
+    designed. They have been unresponsive; there is no card-free alternative host
+    inside rule 7.
+  - **Option B — drop the sharp pipeline.** `formatOptions`, `resizeOptions` and
+    `imageSizes` removed from `Media.ts`. Uploads work today. **Cost:** no WebP,
+    no 2000px cap, no `srcset` — so a 6000px phone photo is served in full to
+    every device, against the payload and LCP budgets in
+    `docs/performance-budget.md`. A working CMS with heavy images beats a CMS
+    that cannot accept images, but it is a real regression and should be a
+    deliberate choice, not a default.
+- **Do not retry the sharp path.** Two hypotheses spent, both measured.
 
 ### T-08 — The admin CSP does not name Gravatar
 - **Status:** `todo` · cosmetic
