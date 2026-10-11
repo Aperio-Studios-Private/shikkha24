@@ -168,15 +168,59 @@ not know about it.
 - ⚠️ This is how `roles` went missing in the first place. Until it is closed, no
   newly added Payload field is reliably migrated, and the failure mode is silent.
 
-### T-07 — The admin CSP does not name the CMS media host
-- **Status:** `todo`
-- **Hypothesis:** the admin sends `img-src 'self' data: blob:`, which omits the
-  media host, so cross-origin media is blocked (M20 — the same shape of defect,
-  already recorded once for the allow-list).
-- **Asset:** the header source that emits the admin CSP.
-- **Metric:** an admin page loads its media with zero CSP violations.
-- **Budget:** 2 hypotheses.
-- ⚠️ Not reproduced yet. Do not fix before reproducing.
+### T-07 — 🔴 Image upload fails: image processing cannot run on this account
+- **Status:** `blocked` — budget spent, needs an owner or host decision
+- **Reported:** 2026-10-10/11 — `POST /api/media` returns **503**; the admin says
+  "An unknown error has occurred." Publishing and editing settings both work.
+- **What the measurements actually said** (these are the only facts, and each was
+  taken rather than inferred):
+  - `POST /api/media` **unauthenticated → 403**. So the route exists and access
+    control works. A 503 appears **only once Payload processes the file**, which
+    localises the failure to upload processing.
+  - `GET /api/media` → 200, `/admin` → 200. Reads and the admin shell are fine.
+  - `stderr.log` contains `GLib-ERROR: creating thread '[pango] fontconfig':
+    Error creating thread: Resource temporarily unavailable` and
+    `node: fork: retry: Resource temporarily unavailable`, then
+    `ERR_SERVER_NOT_RUNNING` — the worker dies mid-request.
+  - `sharp.concurrency(1)` **is deployed** (`a0fe589`, confirmed by reading
+    `payload.config.ts` off the host) and the upload still fails.
+  - The same failure on a **fresh browser** (Safari, never used here) rules out
+    stale client chunks.
+  - `.next` was deleted and re-extracted (server chunks 178 → 174) and the
+    failure persisted, ruling out mixed old/new build files.
+- **Conclusion:** every stage of the upload pipeline is sharp —
+  `formatOptions: WEBP`, `resizeOptions`, and `imageSizes: [thumbnail, card,
+  hero]`. libvips initialises a fontconfig thread even at `concurrency(1)`, and
+  **this account cannot create a thread at all**. Reducing concurrency is not
+  enough, because the floor is not zero.
+- **⚠️ Why there is no code fix here.** Disabling processing would mean no WebP
+  conversion, no 2000px cap and no `thumbnail`/`card`/`hero` variants — which are
+  precisely what article images depend on. "Turn off resizing" is not a graceful
+  degradation; it breaks the site.
+- **Remaining options, and the honest trade-off:**
+  1. **Free process budget on the account.** The ceiling is not proven to be the
+     plan's limit — it may be *occupied*. Two known consumers should be removed
+     first: the **backup cron is still parked at `* * * * *`** (every minute, since
+     2026-10-04) and the **staging Node app**. Neither is needed today. If capacity
+     is occupancy rather than a hard cap, this fixes uploads with no code and no
+     cost. Cheapest, so try it first.
+  2. **Ask DianaHost to raise the CloudLinux thread/process limit.** They have
+     been unresponsive; there is no card-free alternative host inside the budget
+     rules.
+  3. **Accept original uploads with no variants** — rejected, it breaks the
+     frontend's article images.
+- **Do not** reopen this without new evidence. Two hypotheses were spent
+  (`a0fe589` thread reduction, `.next` rebuild); the third was a *measurement*
+  (403-vs-503), not another guess.
+
+### T-08 — The admin CSP does not name Gravatar
+- **Status:** `todo` · cosmetic
+- The blocked URL is `https://www.gravatar.com/avatar/7c57a536…` — Payload loading
+  the user's profile picture from a third-party host that
+  `img-src 'self' data: blob:` rejects. It is a **broken avatar image**, not the
+  upload failure, and the two were being conflated.
+- **Metric:** admin loads its avatar with zero CSP violations.
+- Same defect shape as M20 (an allow-list missing a real origin).
 
 ## ✅ Done
 
