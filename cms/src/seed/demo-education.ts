@@ -403,6 +403,28 @@ const STUDY_ABROAD = [
   },
 ]
 
+export /**
+ * Drop ids that failed to resolve.
+ *
+ * The `*Ids` maps are populated by slug lookup, so a slug with no matching
+ * document yields `undefined`. That used to pass straight through into a
+ * relationship field, where Payload tolerated it. **Payload 3.90 rejects it:**
+ *
+ *   ValidationError: This relationship field has the following invalid
+ *   relationships: undefined
+ *
+ * so the seed failed on the first scholarship. Filtering here fixes the real
+ * defect — a silent `undefined` becoming a stored relationship — rather than
+ * loosening validation, which would put the same hole back.
+ */
+function resolvedList<T>(ids: Map<string, T>, slugs: string[]): T[] {
+  return slugs.map((slug) => ids.get(slug)).filter((id): id is T => id !== undefined)
+}
+
+function resolvedOne<T>(ids: Map<string, T>, slug: string): T | undefined {
+  return ids.get(slug)
+}
+
 export async function seedDemoEducation(payload: Payload): Promise<EducationReport> {
   const db = payload as unknown as SlugAgnosticPayload
   const report: EducationReport = {
@@ -461,7 +483,7 @@ export async function seedDemoEducation(payload: Payload): Promise<EducationRepo
       {
         title: s.title,
         provider: s.provider,
-        level: [levelIds.get(s.levelSlug)],
+        level: resolvedList(levelIds, [s.levelSlug]),
         country: s.country,
         fundingType: s.fundingType,
         amount: s.amount,
@@ -483,7 +505,7 @@ export async function seedDemoEducation(payload: Payload): Promise<EducationRepo
         title: r.title,
         examName: r.examName,
         boardOrInstitution: r.boardOrInstitution,
-        level: levelIds.get(r.levelSlug),
+        level: resolvedOne(levelIds, r.levelSlug),
         publicationDate: r.publicationDate,
         officialUrl: r.officialUrl,
         meritListUrl: r.meritListUrl,
@@ -523,8 +545,8 @@ export async function seedDemoEducation(payload: Payload): Promise<EducationRepo
         slug: i.slug,
         type: i.type,
         discipline: i.discipline,
-        levelOffered: i.levelSlugs.map((s) => levelIds.get(s)),
-        district: districtIds.get(i.districtSlug),
+        levelOffered: resolvedList(levelIds, i.levelSlugs),
+        district: resolvedOne(districtIds, i.districtSlug),
         established: i.established,
         website: i.website,
         // S18 moved `address` into the `contact` group.
@@ -556,8 +578,8 @@ export async function seedDemoEducation(payload: Payload): Promise<EducationRepo
         slug: RICH_PROFILE.slug,
         type: RICH_PROFILE.type,
         discipline: RICH_PROFILE.discipline,
-        levelOffered: RICH_PROFILE.levelSlugs.map((s) => levelIds.get(s)),
-        district: districtIds.get(RICH_PROFILE.districtSlug),
+        levelOffered: resolvedList(levelIds, RICH_PROFILE.levelSlugs),
+        district: resolvedOne(districtIds, RICH_PROFILE.districtSlug),
         established: RICH_PROFILE.established,
         website: RICH_PROFILE.website,
         contact: {
@@ -617,7 +639,7 @@ export async function seedDemoEducation(payload: Payload): Promise<EducationRepo
         title: c.title,
         organisation: c.organisation,
         type: c.type,
-        level: c.levelSlugs.map((s) => levelIds.get(s)),
+        level: resolvedList(levelIds, c.levelSlugs),
         publishedDate: c.publishedDate,
         deadline: c.deadline,
         vacancyCount: c.vacancyCount,
