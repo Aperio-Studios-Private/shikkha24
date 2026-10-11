@@ -55,35 +55,66 @@ if (!REPO || !SHA || !TOKEN) {
  * Ask GitHub for the CI run covering this SHA.
  *
  * @param {string} sha the commit to look for.
- * @returns {Promise<{status: string, conclusion: string|null, url: string}|null>} the run, or null if CI has not started one yet.
+ * @returns {Promise<{run: object|null, fatal: string|null}>} the run, or a fatal reason the poll must stop for.
  */
 async function findCiRun(sha) {
   const url = `${API}/repos/${REPO}/actions/workflows/ci.yml/runs?head_sha=${sha}&per_page=5`
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${TOKEN}`,
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
-  })
-  if (!res.ok) {
-    console.error(`CI_GATE: GitHub API returned ${res.status} listing CI runs`)
-    return null
+  let res
+  try {
+    res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    })
+  } catch (err) {
+    // Network blips are genuinely transient — keep polling.
+    console.error(`CI_GATE: network error listing CI runs (${err.message})`)
+    return { run: null, fatal: null }
   }
+
+  if (!res.ok) {
+    // 401/403/404 will not fix themselves: the token lacks `actions: read`, or
+    // the workflow does not exist. Retrying for the full 15 minutes turns a
+    // one-second misconfiguration into a 15-minute deploy timeout — which is
+    // exactly what the first live run of this gate did, because
+    // `permissions: contents: read` in deploy.yml withholds `actions: read`.
+    if (res.status === 401 || res.status === 403 || res.status === 404) {
+      return {
+        run: null,
+        fatal:
+          `GitHub API returned ${res.status} listing CI runs. This is not transient — ` +
+          'the GITHUB_TOKEN cannot read Actions runs. Give the workflow `actions: read` ' +
+          'in its `permissions:` block.',
+      }
+    }
+    // 5xx and rate limits are transient.
+    console.error(`CI_GATE: GitHub API returned ${res.status} listing CI runs`)
+    return { run: null, fatal: null }
+  }
+
   const body = await res.json()
   const runs = body.workflow_runs ?? []
   // Prefer a finished run if several exist for this SHA.
-  return runs.find((r) => r.status === 'completed') ?? runs[0] ?? null
+  return { run: runs.find((r) => r.status === 'completed') ?? runs[0] ?? null, fatal: null }
 }
 
 const started = Date.now()
 console.log(`CI_GATE: waiting for a CI verdict on ${SHA.slice(0, 7)}`)
 
 let run = null
+let fatal = null
 while (Date.now() - started < DEADLINE_MS) {
-  run = await findCiRun(SHA)
+  ;({ run, fatal } = await findCiRun(SHA))
+  if (fatal) break
   if (run && run.status === 'completed') break
   await sleep(POLL_MS)
+}
+
+if (fatal) {
+  console.error(`CI_GATE: ${fatal}`)
+  process.exit(1)
 }
 
 if (!run) {

@@ -119,6 +119,11 @@ concurrency:
 
 permissions:
   contents: read
+  # Required by the CI gate below, which lists this repo's CI runs through the
+  # Actions API. Without it the token is limited to `contents: read` and every
+  # poll returns 403 — which the gate now fails on immediately rather than
+  # retrying, but the real fix is the grant.
+  actions: read
 
 jobs:
   deploy:

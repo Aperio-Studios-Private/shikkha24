@@ -262,6 +262,15 @@ not know about it.
 - **Metric:** a push whose CI fails produces zero archive uploads to the host.
 - **Counter-proof:** force the gate to read a failing CI conclusion and watch a CMS
   deploy refuse to upload; then a green one and watch it proceed.
+- **🆕 M31 — the first live run of the gate failed for the wrong reason, and local
+  testing could not have caught it.** `deploy.yml` declares `permissions: contents: read`,
+  which *restricts* `GITHUB_TOKEN` and withholds `actions: read`. Every poll returned
+  **403**, so the gate sat for its full 15-minute deadline and only then concluded
+  "no CI run exists". It failed closed — the right outcome by luck, from a cause that had
+  nothing to do with CI's verdict. Two fixes: `actions: read` added to the workflow's
+  permissions, and 401/403/404 now abort immediately instead of being treated as
+  transient like a 5xx. A local test with a personal token has full scope and passes, so
+  **only a real run on the real workflow can prove this class of gate.**
 
 ### T-08 — CSP console warnings in the admin: investigated, not a content bug
 - **Status:** `investigated 2026-10-11` · our own images are **not** blocked · low priority
