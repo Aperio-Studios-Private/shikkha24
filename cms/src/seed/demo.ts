@@ -84,7 +84,17 @@ const bullets = (items: string[]): LexNode => ({
   type: 'list',
   version: 1,
   listType: 'bullet',
-  format: '',
+  /**
+   * `format` on a Lexical **list** carries the HTML tag, not text alignment —
+   * `ul` for bullets, `ol` for numbered. This was `''`, which older Payload
+   * accepted and 3.90 rejects outright:
+   *
+   *   list node failed to validate: List tag must be one of ol, ul.
+   *
+   * For every other node type `''` is correct (it means "not aligned"), which is
+   * why only the list needed changing.
+   */
+  format: 'ul',
   indent: 0,
   direction: 'ltr',
   children: items.map((item) => ({
