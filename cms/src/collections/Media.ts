@@ -1,5 +1,4 @@
 import type { CollectionConfig } from 'payload'
-
 import { isEditorial, isSuperAdminOrEditorInChief } from '../access/roles'
 import { checkUploadQuota } from '../lib/media-quota'
 
@@ -74,6 +73,17 @@ export const Media: CollectionConfig = {
     plural: { en: 'Media library', bn: 'ছবির লাইব্রেরি' },
   },
   admin: {
+    components: {
+      edit: {
+        /**
+         * Compress in the browser before the upload leaves it. The host cannot
+         * run libvips at all (T-07), so this replaces the server-side pipeline
+         * rather than supplementing it. Restore the default (delete this block)
+         * together with the sharp pipeline when the CloudLinux limit is raised.
+         */
+        Upload: '@/components/media/OptimisedUpload#OptimisedUploadServer',
+      },
+    },
     group: 'মিডিয়া',
     description:
       'ছবির লাইব্রেরি। প্রতিটি আপলোড স্বয়ংক্রিয়ভাবে WebP-তে রূপান্তরিত হয় এবং প্রতিদিনের আপলোড সীমা প্রযোজ্য।',
