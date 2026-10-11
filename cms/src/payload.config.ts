@@ -3,34 +3,6 @@ import { fileURLToPath } from 'node:url'
 import { sqliteAdapter } from '@payloadcms/db-sqlite'
 import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import { buildConfig } from 'payload'
-import sharp from 'sharp'
-
-/**
- * Image processing must not assume it can create threads.
- *
- * Uploading a media file runs every configured size through libvips, and libvips
- * parallelises with one worker per CPU core by default. On this host that fails
- * outright, and the whole upload is rejected:
- *
- *   GLib-ERROR **: creating thread '[pango] fontconfig':
- *     Error creating thread: Resource temporarily unavailable
- *
- * Measured 2026-10-10 while the owner tried to add a featured image. The account
- * can fork a short-lived API process — the health canary passes 9/9 — but cannot
- * stand up a thread pool, so the failure appears only on image work. This is the
- * same CloudLinux ceiling that blocked the backup cron and the staging app; it
- * simply has a different symptom here.
- *
- * `concurrency(1)` makes libvips resize on a single thread. Uploads become
- * serial rather than parallel, which costs a moment of wall-clock on a large
- * image and removes an entire class of hard failure. It is the documented knob
- * for exactly this, and it is a code-side fix — the alternative, raising the
- * account's thread limit, is not ours to change.
- *
- * Setting it at import time matters: the pool is sized when sharp is first
- * loaded, so configuring it later would leave the first uploads still failing.
- */
-sharp.concurrency(1)
 
 import { defaultEditor } from './blocks/editors'
 import { ensureBootstrapAdmin } from './bootstrap/admin'
@@ -482,6 +454,40 @@ export default buildConfig({
     await ensureBootstrapAdmin(payload as never)
   },
 
-  sharp,
+  /**
+   * ⚠️ `sharp` is deliberately NOT configured. Do not add it back without
+   * reading this.
+   *
+   * The DianaHost account **cannot create a thread or fork a process** from the
+   * Node runtime. Measured 2026-10-11: every media upload ends with
+   *
+   *   node: fork: retry: Resource temporarily unavailable
+   *   Error: Server is not running. { code: 'ERR_SERVER_NOT_RUNNING' }
+   *
+   * and the browser sees `POST /api/media → 503`. libvips needs a worker per
+   * core (4 here) and a fontconfig thread at init, so sharp cannot be loaded at
+   * all on this host. `sharp.concurrency(1)` was tried and did not help, because
+   * the floor is not zero.
+   *
+   * Read from Payload's own source rather than guessed:
+   *   - `uploads/generateFileData.js:127` — sharp runs only when
+   *     `resizeOptions || formatOptions || trimOptions || constructorOptions`,
+   *     so with those unset it is never constructed.
+   *   - `uploads/getImageSize.js` — tries `sharp().metadata()` and **falls back**
+   *     to `probeImageSize`, a pure-JS header reader (`image-dimensions`), so
+   *     width/height are still recorded.
+   *   - `index.js:402` — a missing sharp with resizing configured only logs a
+   *     warning. Nothing else in the framework calls it.
+   *
+   * **Cost of this choice:** uploads store the original file. No WebP, no 2000px
+   * cap, no `thumbnail`/`card`/`hero`. `frontend/src/lib/media.ts:buildSrcset`
+   * tolerates that — it falls back to a plain `src` when there is one candidate
+   * — so pages render correctly, but serve full-size images. `Media.ts` carries
+   * a `maxFileSize` to bound that.
+   *
+   * **Restore it** when DianaHost raises the CloudLinux limit: add `sharp` back
+   * here and return `Media.ts`'s `formatOptions`, `resizeOptions` and
+   * `imageSizes`. See `.sps/tasks.md` T-07.
+   */
   plugins: [],
 })

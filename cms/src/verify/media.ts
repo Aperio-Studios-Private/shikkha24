@@ -76,36 +76,52 @@ console.log(`  source JPEG: ${mb(source.length)} (3000×2000)`)
 
 const uploaded = await upload('s9-verify-large.jpg', source)
 
+/**
+ * ⚠️ These assertions describe the **no-sharp** contract, not the WebP pipeline.
+ *
+ * They previously asserted WebP conversion, a 2000px cap and three variants.
+ * All three were removed on 2026-10-11 because libvips cannot run on this host
+ * at all (`T-07`): uploads now store the original bytes and dimensions are read
+ * by Payload's pure-JS probe.
+ *
+ * The checks are rewritten rather than deleted, because the properties below are
+ * exactly what a future change could silently break — an editor uploading a
+ * file that is silently re-encoded, or dimensions quietly going to zero, which
+ * would leave `buildSrcset` with nothing to choose from.
+ */
 check(
-  'the stored file is WebP, not the uploaded JPEG',
-  uploaded.mimeType === 'image/webp',
+  'the stored file keeps its uploaded format (no sharp re-encode)',
+  uploaded.mimeType === 'image/jpeg',
   `mimeType=${uploaded.mimeType}`,
 )
 check(
-  'the stored filename carries the .webp extension',
-  typeof uploaded.filename === 'string' && uploaded.filename.endsWith('.webp'),
+  'the stored filename keeps the .jpg extension',
+  typeof uploaded.filename === 'string' && uploaded.filename.endsWith('.jpg'),
   `filename=${uploaded.filename}`,
 )
 check(
-  'the original bytes were not retained',
-  typeof uploaded.filesize === 'number' && uploaded.filesize < source.length * 0.5,
+  'the stored bytes are the bytes that were uploaded',
+  uploaded.filesize === source.length,
   `${mb(source.length)} → ${mb(uploaded.filesize ?? 0)}`,
 )
 check(
-  'retained dimensions are capped at 2000px wide',
-  uploaded.width === 2000,
-  `width=${uploaded.width}`,
+  'dimensions are still recorded without sharp',
+  uploaded.width === 3000 && uploaded.height === 2000,
+  `${uploaded.width}×${uploaded.height}`,
 )
 
-const sizes = (uploaded.sizes ?? {}) as Record<string, { mimeType?: string; filename?: string }>
-for (const name of ['thumbnail', 'card', 'hero']) {
-  const size = sizes[name]
-  check(
-    `the ${name} variant exists and is WebP`,
-    Boolean(size) && size?.mimeType === 'image/webp',
-    `mimeType=${size?.mimeType ?? 'missing'}`,
-  )
-}
+// `sizes` is absent from the generated `Media` type precisely *because*
+// `imageSizes` is gone — so the cast is the point, not a workaround. Reading it
+// defensively is what lets this assertion survive either configuration.
+const sizes = ((uploaded as { sizes?: Record<string, unknown> }).sizes ?? {}) as Record<
+  string,
+  unknown
+>
+check(
+  'no size variants exist while the pipeline is disabled',
+  Object.keys(sizes).length === 0,
+  `variants=${Object.keys(sizes).join(',') || 'none'}`,
+)
 
 // ── the per-day cap ──────────────────────────────────────────────────────────
 console.log('\n── per-day upload cap ──────────────────────────────────────────')

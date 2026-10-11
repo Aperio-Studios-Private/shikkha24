@@ -67,8 +67,6 @@ const ALLOWED_MIME_TYPES = [
 ]
 
 /** WebP quality. 82 sits in the 75–90 band `docs/image-optimization.md` sets. */
-const WEBP = { format: 'webp', options: { quality: 82 } } as const
-
 export const Media: CollectionConfig = {
   slug: 'media',
   labels: {
@@ -166,19 +164,24 @@ export const Media: CollectionConfig = {
     // not rasterise SVG (`canResizeImage` excludes it), so a vector stays
     // vector and no size variants are generated for it.
     focalPoint: true,
-    adminThumbnail: 'thumbnail',
     /** Where the library lives on the host disk. Outside the web root. */
     staticDir: process.env.MEDIA_UPLOAD_DIR || './data/media',
-    /** Convert the stored file itself to WebP — the original format is discarded. */
-    formatOptions: WEBP,
-    /** Cap the retained dimensions so a 6000px upload cannot sit on the disk. */
-    resizeOptions: { width: 2000, withoutEnlargement: true },
-    /** Strip EXIF, colour profiles and embedded thumbnails. */
-    withMetadata: false,
-    imageSizes: [
-      { name: 'thumbnail', width: 400, height: 300, position: 'centre', formatOptions: WEBP },
-      { name: 'card', width: 768, height: 432, position: 'centre', formatOptions: WEBP },
-      { name: 'hero', width: 1600, height: 900, position: 'centre', formatOptions: WEBP },
-    ],
+
+    /**
+     * ⚠️ **No `formatOptions`, `resizeOptions` or `imageSizes`.** Not an
+     * oversight — see the sharp note in `payload.config.ts`.
+     *
+     * Those three are the *only* things that make Payload construct sharp, and
+     * sharp cannot run on this host at all (T-07). With them absent, uploads
+     * store the original file and `getImageSize` falls through to its pure-JS
+     * probe, so dimensions are still recorded.
+     *
+     * The 15 MB input cap in the `beforeValidate` hook below is what makes this
+     * tolerable: no resizing means a large photo is stored whole, so the input is
+     * bounded instead and the editor is told in Bengali rather than a visitor
+     * paying for it on every page load. That guard already existed and is
+     * unchanged — Payload 3.89 has no built-in file-size option, and a
+     * `maxFileSize` key invented here would have been silently ignored.
+     */
   },
 }
