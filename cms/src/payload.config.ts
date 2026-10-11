@@ -165,6 +165,24 @@ export default buildConfig({
     importMap: {
       baseDir: path.resolve(dirname),
     },
+    /**
+     * Payload defaults this to `'gravatar'`, which builds a
+     * `https://www.gravatar.com/avatar/<md5(email)>` URL from every logged-in
+     * admin's email address and hands it to the browser.
+     *
+     * That request was refused by this app's own admin CSP
+     * (`img-src 'self' data: blob:`), so every avatar rendered as a broken image
+     * and every admin page load logged a CSP violation for it.
+     *
+     * `'default'` renders Payload's own local avatar component instead. The
+     * alternative — adding `https://www.gravatar.com` to `img-src` — would make
+     * the image work but would also send every admin's IP address and an MD5 of
+     * their email to a third party on every page load. Widening a CSP to satisfy
+     * a feature that has no value here is the wrong direction: rule 7 prefers
+     * self-hosted, and this is exactly the third-party dependency to shed first.
+     * A broken third-party avatar is not worth a permanent egress.
+     */
+    avatar: 'default',
     meta: {
       titleSuffix: ' — শিক্ষা২৪.কম',
     },
