@@ -104,6 +104,11 @@ on:
         description: 'Origin the CMS deploy verifies after transferring. REQUIRED whenever cms-root is set — otherwise the post-deploy check probes production and passes without testing the rehearsal'
         required: false
         type: string
+      skip-ci-gate:
+        description: 'Deploy without waiting for CI (manual runs only — a push can never bypass it)'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -124,6 +129,31 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # ── CI gate ───────────────────────────────────────────────────────────
+      # Deliberately the FIRST thing after the checkout, and before `pnpm install`.
+      # The failure it prevents is specific and recent: on 2026-10-11 two builds
+      # reached the host carrying code that did not do what it claimed — the image
+      # optimiser was inert because the import map had never been regenerated, and
+      # removing `imageSizes` changed the schema with no migration committed. Both
+      # gaps now have their own gates, so the next occurrence is stopped — but only
+      # after the deploy that carried it. This is the gate that stops that deploy.
+      #
+      # It needs the repository (the script) and Node, both available here, but no
+      # dependencies — so a red tree costs seconds instead of a full install and
+      # build. Anything that builds or transfers must sit below this line.
+      #
+      # `skip-ci-gate` exists because CI is currently red on the dependency audit
+      # alone (T-10, Payload 3.90.2) and a strict gate would freeze every CMS
+      # deploy until that lands. It is deliberately dispatch-only: a push can
+      # never bypass this, so automatic publishing always respects CI and only a
+      # human can override it, loudly and on the record.
+      - name: Wait for CI to pass
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.skip-ci-gate) }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI_GATE_TIMEOUT_MS: ${{ vars.CI_GATE_TIMEOUT_MS || '900000' }}
+        run: node scripts/wait-for-ci.mjs
+
       - uses: pnpm/action-setup@v6
         with:
           version: 11.22.0
@@ -135,6 +165,13 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: CI gate overridden
+        # Reached only via workflow_dispatch with skip-ci-gate=true.
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.skip-ci-gate }}
+        run: |
+          echo "::warning::CI GATE OVERRIDDEN — deploying ${{ github.sha }} with an unverified tree."
+          echo "::warning::This deploy is NOT covered by CI. Confirm the failure is unrelated to what you are shipping."
 
       # ── Resolve the effective mode ────────────────────────────────────────
       - name: Resolve mode and target

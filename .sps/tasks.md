@@ -240,6 +240,29 @@ not know about it.
 - **Do not retry the sharp path.** Two hypotheses spent, both measured.
 </details>
 
+### T-11 — 🔴 deploy.yml can publish a build that CI rejected
+- **Status:** `in progress` · started 2026-10-11
+- **Measured, not inferred.** `grep -n 'workflow_run|needs:.*ci' .github/workflows/deploy.yml`
+  returns nothing. Deploy triggers on `push`/`workflow_dispatch` and never waits on
+  CI. **Two builds reached the host today carrying code that did not do what it claimed.**
+- **The pattern, because it is the actual finding.** On 2026-10-11:
+  | Bug | Reached the host? | Caught by |
+  |---|---|---|
+  | Image optimiser inert (stale import map, M29) | yes | nothing — a browser console log |
+  | `imageSizes` removal left no migration (M30) | yes | CI, on the *next* push |
+  Both gates now exist, so the next occurrence is stopped — but only *after* the deploy
+  that carried it. A missing control, not two unlucky bugs.
+- **The control.** Gate the CMS half on a passing CI run for the same SHA. The frontend
+  half already has a verify step inside `deploy.yml`, so the gap is specifically "CI as
+  a gate", not "verification at all".
+- **Known tension — state it rather than hide it.** CI is currently **red** on the
+  dependency audit alone (T-10). A strict gate would block every CMS deploy until T-10
+  lands. That is correct behaviour, not a reason to weaken it, but the owner must accept
+  the freeze or accept a documented carve-out. **Decision needed from the owner.**
+- **Metric:** a push whose CI fails produces zero archive uploads to the host.
+- **Counter-proof:** force the gate to read a failing CI conclusion and watch a CMS
+  deploy refuse to upload; then a green one and watch it proceed.
+
 ### T-08 — CSP console warnings in the admin: investigated, not a content bug
 - **Status:** `investigated 2026-10-11` · our own images are **not** blocked · low priority
 - **Measured from the live headers, not assumed:**

@@ -80,6 +80,45 @@ for (const name of files) {
   }
   if (brokenSteps.length) problems.push(`${name} — non-string run: in ${brokenSteps.join(', ')}`)
 
+  /**
+   * The CI gate protects everything *below* it, so a build sitting below is the
+   * correct arrangement. The failure is a build or upload sitting **above** it:
+   * the gate then clears only after the work it was meant to authorise has
+   * already happened, and the workflow still parses, still passes every other
+   * check here, and still ships a red build.
+   *
+   * This is the same silent-failure shape as the import map (M29) — a control
+   * that stops working without anything turning red — so it gets a check rather
+   * than a comment asking people to remember the ordering.
+   */
+  const DOES_WORK = /next build|astro build|deploy-cms|deploy-frontend|payload migrate|migrate:create/
+  for (const [jobName, job] of Object.entries(doc.jobs ?? {})) {
+    const steps = job.steps ?? []
+    const gateIndex = steps.findIndex((s) => typeof s.run === 'string' && s.run.includes('wait-for-ci'))
+    if (gateIndex === -1) continue
+
+    const earlyWork = steps
+      .map((s, i) => ({ s, i }))
+      .filter(({ s, i }) => i < gateIndex && typeof s.run === 'string' && DOES_WORK.test(s.run))
+    if (earlyWork.length) {
+      problems.push(
+        `${name}/${jobName} — ${earlyWork.map((e) => e.s.name ?? 'unnamed step').join(', ')} ` +
+          'runs ABOVE the CI gate. The gate would authorise the deploy only after that work had already happened.',
+      )
+    }
+
+    // The override must be dispatch-only. If it ever applied to `push`, a bad
+    // commit could set it and publish itself with no human in the loop.
+    const gate = steps[gateIndex]
+    const condition = gate.if ?? ''
+    if (!/workflow_dispatch/.test(String(condition))) {
+      problems.push(
+        `${name}/${jobName} — the CI gate is not guarded by workflow_dispatch, so ` +
+          'skip-ci-gate could apply to a push. Automatic publishing must never bypass CI.',
+      )
+    }
+  }
+
   console.log(`✓ ${name}  [${found.join(', ')}]`)
 }
 
