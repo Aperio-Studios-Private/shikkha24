@@ -262,6 +262,48 @@ webhook, when an editor clicks Publish. **Both run in dry run** unless the repos
 every path it would delete, without touching the host. Flip that one setting and a push publishes
 the frontend automatically.
 
+#### 4.2.3 The last manual step — the host cron extractor
+
+The cPanel **API cannot extract an archive on this host** (§4.2: `Fileman::extract_files` is
+absent, `Fileman::fileop op=extract` answers success and writes nothing). For months that made
+"Extract in cPanel File Manager" the one manual step on every publish — the friction behind T-15.
+
+It is now automated **without the API**, using a mechanism this host *does* support: a **host-side
+shell `unzip` run by cPanel → Cron Jobs**. That is not a guess — the daily backup already runs
+`sqlite3`, `tar` and `cp` through cPanel cron on this same account (`scripts/host-backup-dump.sh`).
+So the extract moved from a human to a 2-minute cron.
+
+| Piece | File | What it does |
+|---|---|---|
+| The extractor | `scripts/host-extract.sh` | Finds the newest `frontend-*.zip` in `public_html`, `unzip -o`s it, proves `index.html` landed, deletes every archive, logs to `~/shikkha24-deploy/extract.log` |
+| Its liveness proof | (writes) `~/shikkha24-deploy/extract-heartbeat.txt` | A UTC timestamp, written **only after** the script confirms `unzip` exists — so a fresh heartbeat means "the cron is alive *and able to extract*", never merely "the cron ran" |
+| The CI handoff | `scripts/deploy-static.mjs` | When the API extract no-ops, reads the heartbeat: **fresh → waits for the cron** (polling the *site*, not the API, for a page that is new in this build to return 200); **absent/stale → fails loud exactly as before** |
+
+**Why this cannot ship the T-15 bug again.** The handoff is gated on *evidence* — a fresh heartbeat
+the cron writes only when it can actually extract — and CI verifies the *reader-visible end state*
+(a page new in this build returning 200), not the mechanism. A host with no `unzip` never
+heartbeats, so CI falls straight through to the pre-existing loud failure. **The automation is inert
+until the cron is genuinely working**; it can never report a green deploy on a stale site.
+
+**Two owner-only setup steps (the agent has no SSH):**
+
+1. **Confirm `unzip` exists on the host.** cPanel Terminal, or a one-off cron:
+   `/bin/sh -c 'command -v unzip && unzip -v | head -1; touch ~/public_html/.w && rm ~/public_html/.w && echo WRITABLE'`.
+   If `unzip` is missing, this approach is dead and the honest scope reverts to the one-step manual
+   extract.
+2. **Install the cron.** Upload `host-extract.sh` to `~/bin/shikkha24-extract.sh`, then cPanel →
+   Cron Jobs → every 2 minutes → `/bin/sh /home/shikkhac/bin/shikkha24-extract.sh`. (`/bin/sh`
+   *reads* the file, so it needs no execute bit — the same property the backup script relies on.)
+   Read `~/shikkha24-deploy/extract.log` to confirm it runs and writes a heartbeat.
+
+Then flip the two GitHub switches — `DEPLOY_WEBHOOK_URL` (CMS publish → rebuild) and
+`AUTO_DEPLOY=live` (push/webhook → publish instead of dry-run) — and a publish goes live with no
+manual step. Both harnesses are counter-proved: `verify:host-extract` (22 checks, including "fails
+loud and touches nothing when `unzip` is absent" and "writes no heartbeat when it cannot extract")
+and `verify:cpanel-deploy` §10c (the "goes green only when the cron publishes" check, proven to fail
+when the branch is disabled).
+
+
 **A push deploys the frontend only — never the CMS.** The frontend is finished HTML dropped into
 `public_html`: idempotent, and a bad build is replaced by the next one, so it is safe to run
 unattended. The CMS bundle is extracted over the app directory, which can disturb the CloudLinux

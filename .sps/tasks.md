@@ -122,48 +122,58 @@ not know about it.
   No internet research or installation needed; the method is in-repo.
 
 ### T-17 — Fully automatic push-to-deploy (owner requested 2026-10-12)
-- **Status:** `todo` · queued behind T-15 and T-16 · **not started**
-- **Blocked before it can start**, on three things that are each measured:
-  1. **Extraction cannot be automated** (T-14, reconfirmed twice this session).
-     A push-to-deploy that claimed end-to-end automation would be the exact bug
-     the owner is currently reporting in T-15: green deploys, stale site.
-  2. **CI is red** on the dependency audit (T-10: 3 critical + 20 high, all in
-     `payload` < 3.90.0). The T-11 gate now correctly refuses to publish.
-  3. **`AUTO_DEPLOY` is unset** — the single repo variable that switches push
-     runs from dry-run to live.
-- **The honest scope.** Automatic on every push: build → verify → upload →
-  health-check. Still manual: the final extract, which no host API performs.
-  What can be *fully* automated is the **detection** — and already is: `cb61eb7`
-  fails loudly when the new HTML is not live. Rollback = the previous run's zip,
-  which the deploy now stages per-run (`9471e5a`) and leaves in place on failure.
-- **Not started.** T-15 first.
+- **Status:** `doing` · **the code is built and counter-proved this session
+  (2026-10-12); it stays INERT until the owner confirms `unzip` on the host and
+  installs the cron.** Owner approved the full auto-deploy: *"verify unzip on the
+  host and build the full auto-deploy (set DEPLOY_WEBHOOK_URL + cron extract
+  script). Goal: publish in CMS → live with zero manual steps."*
+- **How the extraction ceiling (previously T-14, "no API mechanism works") is now
+  surmounted — the API still can't extract, but a host-side shell `unzip` run by
+  CRON can**, and cron shell execution is already proven on this account: the
+  daily backup (`scripts/host-backup-dump.sh`) runs `sqlite3`/`tar`/`cp` via
+  cPanel → Cron Jobs. So the last manual link (Extract in File Manager) moves
+  from a human to a 2-minute cron.
+- **Built this session, each counter-proved:**
+  1. `scripts/host-extract.sh` — the cron extractor. Finds the newest
+     `frontend-*.zip` in `public_html`, `unzip -o`s it, proves `index.html`
+     landed, deletes every archive, logs to `~/shikkha24-deploy/extract.log`, and
+     writes a **heartbeat** (`extract-heartbeat.txt`) *only after* confirming
+     `unzip` exists. Counter-proved by `scripts/verify-host-extract.mjs`
+     (22 checks): fails loud + touches nothing when `unzip` is absent; never
+     trusts a lying `unzip` (exit 0, writes nothing); writes **no** heartbeat
+     when it cannot extract.
+  2. `scripts/deploy-static.mjs` — the CI handoff. When the API extract no-ops,
+     CI reads the heartbeat: **fresh → it waits (polling the *site*, not the API)
+     for a page that is new in this build to return 200, and goes green only
+     then; stale/absent → it fails loud exactly as before** (the T-15 guard is
+     preserved verbatim). Counter-proved in `scripts/verify-cpanel-deploy.mjs`
+     section 10c (6 checks, suite now 85): the whole cron branch was disabled and
+     the "goes green" check went **red**, proving it is not vacuous.
+- **Why this is fail-safe and not the T-15 bug again.** The handoff is gated on
+  *evidence* (a fresh heartbeat the cron writes only when it can extract), and CI
+  verifies the *reader-visible end state*, not the mechanism. A host with no
+  `unzip` never heartbeats, so CI falls straight through to today's loud failure.
+  The automation is **inert until the cron genuinely works** — it cannot ship a
+  green deploy on a stale site.
+- **⚠️ The two things only the owner can do (I cannot — no SSH):**
+  1. **Verify `unzip` on the host.** In cPanel Terminal, or a one-off cron running
+     `/bin/sh -c 'command -v unzip && unzip -v | head -1; touch ~/public_html/.w && rm ~/public_html/.w && echo WRITABLE'`
+     — read the result. If `unzip` is missing, this whole approach is dead and
+     the honest scope reverts to T-15's one-step manual extract.
+  2. **Install the cron** (once `unzip` is confirmed): upload `host-extract.sh`
+     to `~/bin/` as `shikkha24-extract.sh`, then cPanel → Cron Jobs → every 2 min:
+     `/bin/sh /home/shikkhac/bin/shikkha24-extract.sh`. (`/bin/sh` reads the file,
+     so no execute bit is needed.) Read `~/shikkha24-deploy/extract.log` to
+     confirm it runs and writes a heartbeat.
+- **Then flip the two switches (owner, in GitHub):** set the `DEPLOY_WEBHOOK_URL`
+  secret (CMS publish → rebuild) and `AUTO_DEPLOY=live` (push/webhook → publish
+  instead of dry-run). Both are documented in `docs/hosting-and-deployment.md`.
+- **Still gated on:** T-10 (CI red on the dependency audit — the T-11 gate will
+  refuse to publish until that is resolved) and T-15 (the currently-pending edit).
 - **Request:** *"Implement a fully functional, bug-free push-to-deploy system,
   completely automatic — trigger a build and deployment on every push, handle
   the pipeline end-to-end without manual steps, ensure reliability: error
   handling, rollbacks, failure cases."*
-- **⚠️ The hard constraint this must respect — proven, not assumed (T-14).**
-  Three blockers are properties of the host, not of the code, and were each
-  measured against the live cPanel API this week:
-  1. **No working extraction mechanism.** `Fileman::extract_files`,
-     `Fileman::unzip`, `Extract::extract_archive`, `Fileman::extract` all fail
-     with real cPanel errors. `api2-fileop` answers success and **writes
-     nothing**. The probe (`38212054431`) is conclusive: *"RESULT: no API
-     extraction mechanism works on this host."*
-  2. **The deploy gate now refuses red CI** (T-11), and CI is red on the
-     dependency audit (T-10). A push today uploads nothing.
-  3. **`AUTO_DEPLOY` is unset**, so webhook/push runs resolve to `dry-run`.
-- **What "automatic" can honestly mean here.** The *build* can be fully
-  automatic — and already is. What cannot be is the final *expansion into
-  `public_html`*, because no API on this host performs it. A push-to-deploy that
-  claims end-to-end automation would be the exact failure mode T-14 documents:
-  it would report success while the site stayed stale. **That is the bug the
-  owner is currently reporting (T-15), and it is caused by automation that
-  looked complete.**
-- **Approach to propose:** automatic build + upload + verification on every push,
-  with a health check that **fails loudly** when the new HTML is not live, plus a
-  one-step manual extract. Rollback = the previous run's archived zip, kept on
-  the host. Never a silent success.
-- **Not started.** T-15 first.
 
 ### T-01 — CMS admin rejects all edits, uploads and creates
 - **Status:** `todo` (root cause found; fix needs an owner decision) · 🔴 production

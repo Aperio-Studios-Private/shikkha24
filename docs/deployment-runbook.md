@@ -133,6 +133,31 @@ mechanism the host accepted, whether the site answered afterwards — goes to th
 panel**, not just the step log. Read that panel; it is the difference between the report scrolling
 past and being on the page.
 
+### 2.3 The publish path today — the cron does the extract
+
+The cPanel API **cannot** extract an archive on this host (§4.2). So a CI deploy that uploads the
+build and reports success can still leave the site stale — that is exactly the T-15 bug. Two things
+now close that gap, and both are built and counter-proved:
+
+- **`scripts/host-extract.sh`** runs on the host every 2 minutes via cPanel → Cron Jobs. It finds the
+  newest `frontend-*.zip` in `public_html`, `unzip -o`s it, proves `index.html` landed, and deletes
+  the archives. It logs to `~/shikkha24-deploy/extract.log` and writes a heartbeat
+  (`extract-heartbeat.txt`) **only after** it confirms `unzip` exists.
+- **`deploy-static.mjs`** reads that heartbeat. If it is fresh, CI waits for the cron to publish a
+  page that is new in this build and goes green only once a reader could actually see it. If there is
+  **no fresh heartbeat, CI fails loud and tells you to extract by hand** — the automation never
+  reports a green deploy on a stale site.
+
+So the end-to-end publish is: **editor clicks Publish → CMS webhook → CI builds + uploads → the
+2-minute cron extracts → the change is live.** No manual step — *once the cron is installed.*
+
+**If the cron is not installed yet (the current state), the deploy still needs one manual step:**
+extract the newest `frontend-<run>.zip` in cPanel → File Manager into `public_html`, overwriting,
+then delete the zip. The CI run will have failed loudly and named the exact archive. **To retire that
+step for good, do the two owner setup actions in `docs/hosting-and-deployment.md` §4.2.3** — confirm
+`unzip` on the host, then install the 2-minute cron — and set `DEPLOY_WEBHOOK_URL` + `AUTO_DEPLOY=live`
+in GitHub.
+
 ---
 
 ## 3. Deploying the CMS (rare — only on a dependency or schema change)

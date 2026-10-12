@@ -88,16 +88,31 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
   60s to `exit 0` in **0.6s**, 79/79 checks unchanged. **The lesson is now in
   `.sps/mistakes.md` M32** — a suite that cannot exit is not a passing suite, and
   on a timed runner it is aimed at the job it gates.
-- **🟠 TWO MORE TASKS QUEUED, BOTH UNSTARTED.** **T-16** — the exhaustive
-  feature-by-feature audit the owner requested, strictly sequential, approval-gated
-  between features. **T-17** — fully automatic push-to-deploy. Both were recorded
-  in `.sps/tasks.md` before any work, per the owner's standing instruction that a
-  new request goes to the queue rather than into immediate execution.
-- **⚠️ T-17 has a hard ceiling this host imposes.** End-to-end automation is
-  blocked by the same extraction limit as T-15; building it anyway would recreate
-  the bug the owner just reported. The honest scope is automatic
-  build → verify → upload → health-check, with the extract manual and the
-  health check *failing loudly*. `cb61eb7` already does the loud part.
+- **🟠 T-17 (auto push-to-deploy) — CODE BUILT & COUNTER-PROVED this session
+  (2026-10-12, owner-approved).** The extraction ceiling that blocked it (T-14,
+  "no host API can extract") is now **surmounted by a different mechanism**: a
+  host-side shell `unzip` run by **cron** — and cron shell execution is already
+  proven on this account (the daily backup runs `sqlite3`/`tar` via cPanel → Cron
+  Jobs). Built: `scripts/host-extract.sh` (the cron extractor + a heartbeat it
+  writes *only after* confirming `unzip`) and the `deploy-static.mjs` handoff
+  (when the API extract no-ops, CI trusts a **fresh heartbeat** and waits —
+  polling the *site*, not the API — for a page new in this build to return 200,
+  going green only then; **no fresh heartbeat → fails loud exactly as before**,
+  so the T-15 guard survives and the feature is **inert until the cron genuinely
+  works**). Counter-proved: `verify-host-extract.mjs` (22 checks) and
+  `verify-cpanel-deploy.mjs` §10c (suite now 85); disabling the cron branch turns
+  the "goes green" check **red**, so it is not vacuous.
+  **⚠️ Two owner actions I cannot do (no SSH): (1) confirm `unzip` exists on the
+  host; (2) install the 2-minute cron.** Full steps are in the T-17 block in
+  `.sps/tasks.md`. Until both are done, the site still needs T-15's one-step
+  manual extract.
+- **🟠 T-16 — the exhaustive feature-by-feature audit the owner requested, still
+  queued**, strictly sequential, approval-gated between features. Not started.
+- **✅ The old "T-17 has a hard ceiling" note is now SUPERSEDED.** The extraction
+  limit that blocked end-to-end automation is real for the *API*, but a host-side
+  `unzip` via cron surmounts it — see the T-17 block above. The build → verify →
+  upload → **wait-for-cron** → health-check chain is built and counter-proved;
+  `cb61eb7` still does the loud-failure part when no cron is present.
 - **✅ `scripts/verify-cms-sync.mjs` truncation check — DECIDED: COMMITTED this
   session** (was flagged "decide before the next session"). The working tree
   carried a truncation check that fails when `docs.length < totalDocs` instead of
