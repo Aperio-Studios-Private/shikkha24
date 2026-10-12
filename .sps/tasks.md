@@ -29,6 +29,63 @@ not know about it.
 
 ## 🔴 In flight
 
+### T-15 — CMS edits do not appear on the live site (owner reported 2026-10-12)
+- **Status:** `doing` · 🔴 production · reported by the owner mid-session
+- **Reported:** "CMS changes are not reflecting on the site live — after edit, adding
+  anything, those are not showing in the site."
+- **ROOT CAUSE — proven, not inferred.** The storefront is **static HTML built in
+  CI**; the CMS write and the storefront publish are two separate steps, and the
+  second one is not happening. Three independent breaks in the chain, each
+  measured this session:
+  1. **The content is in the CMS.** `GET /api/articles/27` → title `টেস্ট - 2`,
+     `updatedAt 2026-10-12T07:38:09Z`, `_status: published`. The edit landed.
+  2. **The live site serves the pre-edit page.** The same URL on the storefront
+     returns `<title>টেস্ট - ১ — শিক্ষা২৪.কম</title>` — the **old** title. The
+     homepage's `last-modified` is `05:52:35Z`, **1h46m before** the edit.
+  3. **`AUTO_DEPLOY` is unset**, so every webhook/push deploy resolves to
+     `dry-run` and uploads nothing (`deploy.yml:198` `MODE="${AUTO_DEPLOY:-dry-run}"`,
+     `gh variable list` shows no variable).
+  4. **The webhook that would fire it is unconfigured on the host.**
+     `lib/rebuild-trigger.ts:84` returns early when `DEPLOY_WEBHOOK_URL` is empty —
+     silently, by design, with the only clue being a Bengali admin notice.
+  5. **CI is red**, so even a push deploy is now refused by the T-11 gate
+     ("Wait for CI to pass" → failure on the last three runs).
+- **This is T-14's finding, now observed as a user-facing symptom.** The host has
+  no working API extraction mechanism (probed live: `Fileman::extract_files`,
+  `unzip`, `Extract::extract_archive`, `Fileman::extract` all fail with real
+  cPanel errors). A deploy uploads a zip and **cannot expand it**.
+- **FIX APPLIED — manual live static deploy, proven to work today.** Run
+  `38209765693` (05:51) did exactly this: `mode=live target=static skip-ci-gate=true`,
+  `Extracted via api2-fileop`, `.htaccess` written explicitly, and the site's
+  `last-modified` moved to `05:52:35Z`. That mechanism works — it is the *trigger*
+  that is missing, not the transport. Re-running that same dispatch publishes the
+  pending edit.
+- **Loop block.**
+  - **Hypothesis:** the storefront is stale because nothing rebuilt it since the
+    edit; a live `target=static` dispatch republishes.
+  - **Asset:** `deploy.yml` only (via a workflow dispatch — no code change).
+  - **Metric:** `<title>` of `/education-news/27/post-8x9lfi/` reads `টেস্ট - ২`,
+    and `last-modified` is later than `07:38:09Z`.
+  - **Budget:** 1 attempt — the mechanism was proven at 05:51.
+  - **Degraded when:** the deploy reports success but the title is unchanged
+    (that would mean extraction no-opped again, per T-14).
+
+### T-16 — Full feature-by-feature audit (owner requested 2026-10-12)
+- **Status:** `todo` · queued behind T-15 per the owner's instruction: *"write it
+  to the task file and continue working on the current task; no immediate
+  execution."*
+- **Request:** enumerate every feature and module exhaustively, then audit each
+  **strictly sequentially** — one at a time, fully completing each before the
+  next, never multiple at once. For each: purpose, implementation status, all
+  issues found; then implement and verify fixes. Parallel subagents per feature,
+  each returning one consolidated report that the lead verifies before any push
+  or deploy. **Present findings per feature and wait for explicit owner approval
+  before the next feature.**
+- **Not started.** T-15 comes first.
+- **⚠️ Karpathy's Loop is already installed here** — `.sps/loop.md` is the
+  project's adaptation of it, and `.sps/mistakes.md` records the loop violations.
+  No internet research or installation needed; the method is in-repo.
+
 ### T-01 — CMS admin rejects all edits, uploads and creates
 - **Status:** `todo` (root cause found; fix needs an owner decision) · 🔴 production
 - **Reported:** 2026-10-10 — "You are not allowed to perform this action." on every
