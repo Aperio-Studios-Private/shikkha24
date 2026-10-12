@@ -30,7 +30,8 @@ not know about it.
 ## 🔴 In flight
 
 ### T-15 — CMS edits do not appear on the live site (owner reported 2026-10-12)
-- **Status:** `doing` · 🔴 production · reported by the owner mid-session
+- **Status:** `blocked` on host extraction · 🔴 production · **the edit is still
+  unpublished.** Session ended 2026-10-12 ~09:15 UTC by owner request.
 - **Reported:** "CMS changes are not reflecting on the site live — after edit, adding
   anything, those are not showing in the site."
 - **ROOT CAUSE — proven, not inferred.** The storefront is **static HTML built in
@@ -60,15 +61,49 @@ not know about it.
   `last-modified` moved to `05:52:35Z`. That mechanism works — it is the *trigger*
   that is missing, not the transport. Re-running that same dispatch publishes the
   pending edit.
-- **Loop block.**
-  - **Hypothesis:** the storefront is stale because nothing rebuilt it since the
-    edit; a live `target=static` dispatch republishes.
-  - **Asset:** `deploy.yml` only (via a workflow dispatch — no code change).
-  - **Metric:** `<title>` of `/education-news/27/post-8x9lfi/` reads `টেস্ট - ২`,
-    and `last-modified` is later than `07:38:09Z`.
-  - **Budget:** 1 attempt — the mechanism was proven at 05:51.
-  - **Degraded when:** the deploy reports success but the title is unchanged
-    (that would mean extraction no-opped again, per T-14).
+- **⚠️ THE ABOVE IS WRONG — hypothesis refuted, do not act on it.** Kept visible
+  rather than silently corrected, because the error is the lesson. `cb61eb7` (the
+  extraction-confirmation check) is **not** an ancestor of the 05:51 run's SHA
+  `490c7a8` — verified with `git merge-base --is-ancestor`. So the 05:51 "success"
+  **predates the check that would have caught a no-op**. It proves the upload
+  worked; it proves nothing about extraction. The mechanism was never proven.
+- **WHAT ACTUALLY HAPPENED on the three live runs this session:**
+  | Run | Time | Result |
+  |---|---|---|
+  | `38221385908` | 08:04 | **Cancelled** at the 25-min job timeout — the harness hung (M32) |
+  | `38226497825` | 08:55 | **Failed correctly**: "Extraction reported success … but pagefind/pagefind.bn_7c722f2aa5.pf_meta is not on the host" |
+  | `38228086708` | 09:07 | **Failed correctly**: same, different pagefind hash |
+  The last two are **the gate working as designed**, not failing. Before
+  `cb61eb7` both would have reported `success` while the site stayed stale —
+  precisely the T-14 defect. Two archives are staged on the host, un-extracted:
+  `public_html/frontend-38226497825.zip` and `public_html/frontend-38228086708.zip`.
+- **The one real code fix this session: M32.** `verify-cpanel-deploy.mjs`
+  section 10b opened a fake cPanel server at line 816 and never closed it. A
+  listening socket keeps the Node event loop alive, so the suite printed
+  `✅ 79 passed` and hung **forever** — burning the job's 25-minute budget and
+  cancelling the deploy it was gatekeeping. Found by counting
+  `startFakeCpanel` vs `.close()` across the file's brace structure (20 opened,
+  19 closed), not by reading. Fixed in `97312a6`: local repro went from
+  `exit null` at 60s to `exit 0` in **0.6s**, 79/79 unchanged. All three deploy
+  suites now exit: 79 + 47 + 10 = **136 checks**.
+- **STATUS: `blocked` on extraction — a host property, not a code one.** The
+  build is correct, the upload works, the gate is honest. The break is the last
+  mile: `api2-fileop` answers success and writes nothing. Two retries both
+  no-opped. The 05:52 `last-modified` does prove one real write landed today, so
+  extraction is **flaky rather than dead** — but a coin flip is not a deploy.
+- **Owner action to publish the pending edit (~1 minute, the only working path):**
+  cPanel → File Manager → `public_html` → select **`frontend-38228086708.zip`**
+  (the newest) → **Extract** → into `public_html`, overwrite everything → delete
+  both zips. Then confirm
+  `https://shikkha24.com/education-news/27/post-8x9lfi/` reads `টেস্ট - ২`.
+- **Loop block, updated for the refutation.**
+  - **Hypothesis (revised):** extraction is flaky on this host, not broken; but
+    "sometimes works" is not a deploy mechanism.
+  - **Asset:** none in-repo. The remaining failure is the host's `fileop`.
+  - **Metric:** the live `<title>` reads `টেস্ট - ২`. **Not yet met.**
+  - **Budget:** exhausted (2 live attempts + 1 hang). Per `.sps/loop.md`, stop and
+    record rather than poke a third time.
+  - **Degraded when:** already degraded — a green deploy that publishes nothing.
 
 ### T-16 — Full feature-by-feature audit (owner requested 2026-10-12)
 - **Status:** `todo` · queued behind T-15 per the owner's instruction: *"write it
@@ -87,7 +122,21 @@ not know about it.
   No internet research or installation needed; the method is in-repo.
 
 ### T-17 — Fully automatic push-to-deploy (owner requested 2026-10-12)
-- **Status:** `todo` · queued behind T-15 and T-16
+- **Status:** `todo` · queued behind T-15 and T-16 · **not started**
+- **Blocked before it can start**, on three things that are each measured:
+  1. **Extraction cannot be automated** (T-14, reconfirmed twice this session).
+     A push-to-deploy that claimed end-to-end automation would be the exact bug
+     the owner is currently reporting in T-15: green deploys, stale site.
+  2. **CI is red** on the dependency audit (T-10: 3 critical + 20 high, all in
+     `payload` < 3.90.0). The T-11 gate now correctly refuses to publish.
+  3. **`AUTO_DEPLOY` is unset** — the single repo variable that switches push
+     runs from dry-run to live.
+- **The honest scope.** Automatic on every push: build → verify → upload →
+  health-check. Still manual: the final extract, which no host API performs.
+  What can be *fully* automated is the **detection** — and already is: `cb61eb7`
+  fails loudly when the new HTML is not live. Rollback = the previous run's zip,
+  which the deploy now stages per-run (`9471e5a`) and leaves in place on failure.
+- **Not started.** T-15 first.
 - **Request:** *"Implement a fully functional, bug-free push-to-deploy system,
   completely automatic — trigger a build and deployment on every push, handle
   the pipeline end-to-end without manual steps, ensure reliability: error

@@ -26,15 +26,89 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
 > **START HERE: `.sps/tasks.md`**, then **`.sps/loop.md`**. Every task carries a
 > loop block — hypothesis, one asset, one scalar metric fixed before the edit, an
 > attempt budget. `.sps/mistakes.md` is the record of every loop violation found
-> the expensive way (M24–M28 are all from 2026-10-10).
+> the expensive way (M24–M28 are all from 2026-10-10; **M32 is from 2026-10-12**).
 >
 > For what was asked and what is next, go to `.sps/tasks.md`.
 > It is the single source of truth for outstanding
 > work — what was asked, what is in flight, what is next, and which items are
 > owner actions in cPanel. Read it before anything else in any new session. This
 > file holds *knowledge*; `tasks.md` holds *work*.
+>
+> **If you are picking up the 2026-10-12 session:** the owner's CMS edit is
+> **still unpublished** and the blocker is the host, not the code. Read the
+> T-15 block and the "Current Phase" section immediately below — it names the
+> one owner action that publishes it, and it records a hypothesis I asserted and
+> then refuted, which is the thing not to re-assert.
 
 ## Current Phase
+
+> **Session 2026-10-12 (ended ~09:15 UTC by owner request).** The owner reported
+> CMS edits not appearing on the live site. That is **T-15**, and it is the thing
+> to read first. It is `blocked` on the host, not on the code. Three new tasks
+> were opened (T-15, T-16, T-17) and one real bug was fixed (M32). **The owner's
+> edit is still not published** — the one-line owner action is in T-15 and repeated
+> at the bottom of this section.
+
+- **🔴 T-15 — THE STOREFRONT IS STALE, AND THE BLOCKER IS THE HOST (2026-10-12).**
+  The owner edited article 27 in the CMS (`টেস্ট - 2`, `07:38:09Z`, published).
+  The live site still serves `টেস্ট - ১` with `last-modified: 05:52:35Z`. The
+  storefront is **static HTML built in CI**, so a CMS save publishes nothing until
+  a rebuild runs — and the rebuild's final step cannot complete on this host.
+  - **What I got wrong, and it matters.** I saw a green 05:51 deploy and concluded
+    the mechanism worked, so a re-run would publish the edit. **It did not.**
+    `cb61eb7` — the check that detects a silent extract no-op — is *not* an
+    ancestor of that run's SHA `490c7a8` (`git merge-base --is-ancestor`). The
+    05:51 "success" **predates the check**, so it proves the upload and proves
+    nothing about extraction. I built a hypothesis on a run that could not have
+    failed the way I assumed it couldn't.
+  - **Three live runs this session, three different outcomes:**
+    | Run | Outcome |
+    |---|---|
+    | `38221385908` | Cancelled at the 25-min job timeout — a leaked socket hung the harness (M32) |
+    | `38226497825` | Failed *correctly*: extract no-op detected, archive left on the host |
+    | `38228086708` | Failed *correctly*: same, different pagefind hash |
+  - **Read those last two as success, not failure.** Before `cb61eb7` both would
+    have reported `success` while the site stayed stale — the exact T-14 defect.
+    The gate is now honest. What is missing is not detection; it is a host that
+    can extract.
+  - **Extraction is flaky, not dead.** The `05:52:35Z` `last-modified` proves one
+    real write landed today, yet two consecutive runs since no-opped. A coin flip
+    is not a deploy mechanism. Budget exhausted per `.sps/loop.md`; recorded, not
+    poked a third time.
+  - **Two archives are staged on the host, un-extracted:**
+    `public_html/frontend-38226497825.zip` and `public_html/frontend-38228086708.zip`.
+- **✅ M32 — THE ONE REAL FIX THIS SESSION.** Section 10b of
+  `scripts/verify-cpanel-deploy.mjs` opened a fake cPanel server at line 816 and
+  never closed it. A listening socket keeps the Node event loop alive, so the
+  harness printed `✅ 79 passed` and **hung forever** — burning the job's
+  25-minute budget and cancelling the deploy it was gatekeeping. The suite was
+  green; the storefront never published. Found by counting `startFakeCpanel` vs
+  `.close()` across the file's brace structure (20 opened, 19 closed) rather than
+  by reading 1,300 lines. Fixed in `97312a6`: local repro went from `exit null` at
+  60s to `exit 0` in **0.6s**, 79/79 checks unchanged. **The lesson is now in
+  `.sps/mistakes.md` M32** — a suite that cannot exit is not a passing suite, and
+  on a timed runner it is aimed at the job it gates.
+- **🟠 TWO MORE TASKS QUEUED, BOTH UNSTARTED.** **T-16** — the exhaustive
+  feature-by-feature audit the owner requested, strictly sequential, approval-gated
+  between features. **T-17** — fully automatic push-to-deploy. Both were recorded
+  in `.sps/tasks.md` before any work, per the owner's standing instruction that a
+  new request goes to the queue rather than into immediate execution.
+- **⚠️ T-17 has a hard ceiling this host imposes.** End-to-end automation is
+  blocked by the same extraction limit as T-15; building it anyway would recreate
+  the bug the owner just reported. The honest scope is automatic
+  build → verify → upload → health-check, with the extract manual and the
+  health check *failing loudly*. `cb61eb7` already does the loud part.
+- **⚠️ `scripts/verify-cms-sync.mjs` carries an uncommitted change in the working
+  tree that predates this session** — a truncation check (fails when
+  `docs.length < totalDocs` instead of reporting `PASS 100/100` on a partial
+  fetch). Not mine, not reviewed, deliberately left alone. **Decide whether to
+  commit or revert before the next session.**
+- **THE OWNER ACTION THAT PUBLISHES THE EDIT (~1 minute):** cPanel → File Manager
+  → `public_html` → select **`frontend-38228086708.zip`** (newest) → **Extract**
+  → into `public_html`, overwrite everything → delete both zips. Then confirm
+  `https://shikkha24.com/education-news/27/post-8x9lfi/` reads `টেস্ট - ২`.
+
+---
 
 - **✅ THE CI GATE IS LIVE AND PROVEN (2026-10-11).** `deploy.yml` now runs
   `scripts/wait-for-ci.mjs` as the first step after checkout — before
