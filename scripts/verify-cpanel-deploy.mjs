@@ -792,6 +792,79 @@ async function main() {
     await server.close()
   }
 
+  console.log('\n10b. ⚠️ A silent no-op extract FAILS the deploy instead of reporting success')
+  {
+    // The single most expensive defect found on 2026-10-12: `fileop op=extract`
+    // returns success on this host and writes nothing. The deploy logged
+    // "Extracted via api2-fileop", deleted stale paths, checked `GET / → 200`
+    // — which the *stale* site satisfies — and reported a clean live deploy while
+    // the storefront kept serving bytes from 2026-10-04.
+    //
+    // The fake host has always answered `fileop` with a success envelope and
+    // never written a file, which is exactly this host's behaviour. So the live
+    // run below is a faithful reproduction, not a contrivance: before the check
+    // was added it passed, and it must now fail.
+    const dist = mkdtempSync(join(tmpdir(), 'noop-dist-'))
+    mkdirSync(join(dist, 'news'), { recursive: true })
+    writeFileSync(join(dist, 'index.html'), '<!doctype html>')
+    writeFileSync(join(dist, 'news', 'brand-new-story.html'), '<!doctype html>')
+
+    // The docroot already holds `index.html`, so this is **not** a first tracked
+    // deploy and `plan.added` is non-empty — the branch under test only runs when
+    // the run has something genuinely new to land. The `news/` directory is
+    // absent from the listing, exactly as it would be before the extract.
+    const server = await startFakeCpanel({
+      uapiExtract: false,
+      listFiles: (dir) =>
+        dir === 'public_html'
+          ? [
+              { file: 'index.html', type: 'file' },
+              { file: 'news', type: 'dir' },
+            ]
+          : dir === 'public_html/news'
+            ? []
+            : [],
+    })
+    const { stdout } = await execFileAsync(
+      process.execPath,
+      [join(scriptDir, 'deploy-static.mjs')],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          CPANEL_BASE: server.base,
+          CPANEL_HOST: 'fake',
+          CPANEL_USER: 'shikkhac',
+          CPANEL_TOKEN: 'test-token-not-real',
+          DEPLOY_DRY_RUN: 'false',
+          DEPLOY_DIST: dist,
+          SITE_URL: server.base,
+        },
+      },
+    ).catch((error) => ({ stdout: `${error.stdout ?? ''}${error.stderr ?? ''}` }))
+
+    // stderr matters: when the script throws, the message lands there, so reading
+    // only stdout produced an empty failure detail and looked like a broken
+    // assertion rather than a broken deploy.
+    const output = `${stdout}`
+    check(
+      'a deploy whose extract wrote nothing exits non-zero',
+      /is not on the host/.test(`${stdout}${stdout}`) ||
+        /Extraction reported success/.test(`${stdout}`),
+      output.slice(-400),
+    )
+    check(
+      'and it names the api2-fileop no-op rather than blaming a transient error',
+      /api2-fileop/.test(output) || /measured behaviour/.test(output),
+      output.slice(-400),
+    )
+    check(
+      'and it tells the operator to extract the archive by hand',
+      /Extract it by hand|cPanel File Manager/.test(output),
+      output.slice(-400),
+    )
+  }
+
   console.log('\n10a. ⚠️ `.htaccess` is written explicitly, because extract will not overwrite it')
   {
     // `Fileman::fileop op=extract` does not clobber a file that already exists,

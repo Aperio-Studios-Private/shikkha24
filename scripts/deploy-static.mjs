@@ -236,6 +236,50 @@ async function main() {
   const { via } = await extractArchive(cfg, remoteZip, DOCROOT)
   say(`Extracted via ${via}.`)
 
+  // ⚠️ **The extraction is not trusted, and this check exists because it must not
+  // be.** `Fileman::fileop op=extract` — the only mechanism this host offers —
+  // returns success while writing nothing. Measured 2026-10-12: the run below
+  // logged "Extracted via api2-fileop", deleted 3 stale paths, verified
+  // `https://shikkha24.com/` → 200, and reported success — while
+  // `public_html/education-news/27` did not exist and the homepage still served
+  // bytes from 2026-10-04.
+  //
+  // Two things hid it. `extractArchive` returns the mechanism it called and never
+  // looks at the host again. And the post-deploy check was `GET / → 200`, which
+  // the **stale** site satisfies perfectly — a green light for a deploy that
+  // changed nothing. That is the codebase's own rule turned against it: an
+  // assertion that cannot fail is not evidence.
+  //
+  // So this asks the host a question the stale site cannot answer: is a file this
+  // run was supposed to *add* actually there now? If the extract silently no-ops,
+  // the deploy fails here with the archive still on disk to extract by hand.
+  //
+  // Deliberately **not** gated on `firstDeploy`. A first tracked deploy has every
+  // file "added", so it is the case most in need of proof — and gating on
+  // `firstDeploy` is what let this stay invisible in the first place: the harness
+  // ran as a first deploy, skipped the check, and passed.
+  if (plan.added.length > 0) {
+    const probe = plan.added[plan.added.length - 1]
+    const parent = probe.includes('/') ? probe.slice(0, probe.lastIndexOf('/')) : ''
+    const wanted = probe.includes('/') ? probe.slice(probe.lastIndexOf('/') + 1) : probe
+    let landed = false
+    try {
+      const entries = await listFiles(cfg, parent ? `${DOCROOT}/${parent}` : DOCROOT)
+      landed = entries.some((e) => e.name === wanted)
+    } catch (error) {
+      say(`Could not list ${parent || DOCROOT} to confirm the extract: ${error.message}`)
+    }
+    if (!landed) {
+      throw new Error(
+        `Extraction reported success via ${via}, but ${probe} is not on the host.\n` +
+          `  ${via === 'api2-fileop' ? 'This host answers fileop op=extract with success and writes nothing — a known and measured behaviour, not a transient failure.' : 'The extract reported a different mechanism, so treat this as a real extraction failure.'}\n` +
+          `  The archive is still on the host at ${target}/${zipName}. Extract it by hand in cPanel File Manager into ${DOCROOT}, overwriting everything.\n` +
+          '  Nothing was rolled back: the deletions above were correct for the files this run replaced.',
+      )
+    }
+    say(`Extraction confirmed on the host — ${probe} is present.`)
+  }
+
   // Only the no-destination fallback leaves an archive in the docroot.
   if (!hasDestination) await deletePath(cfg, `${DOCROOT}/${zipName}`)
 
