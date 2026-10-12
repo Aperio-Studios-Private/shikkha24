@@ -22,7 +22,11 @@
  * creates and then removes. It never touches `public_html`.
  */
 
-import { createHash, randomBytes } from 'node:crypto'
+import { execFileSync } from 'node:child_process'
+import { randomBytes } from 'node:crypto'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 const HOST = process.env.CPANEL_HOST
 const USER = process.env.CPANEL_USER
@@ -38,75 +42,22 @@ if (!HOST || !USER || !TOKEN) {
 const auth = 'Basic ' + Buffer.from(`${USER}:${TOKEN}`).toString('base64')
 const PROBE_DIR = `probe-extract-${randomBytes(3).toString('hex')}`
 
-/** Build a tiny zip containing one marker file, so extraction has something to produce. */
-async function buildZip() {
-  // A stored (uncompressed) zip is small enough to hand-assemble exactly, which
-  // avoids depending on the `zip` binary being present on the runner.
-  const name = 'marker.txt'
-  const body = Buffer.from('shikkha24-extract-probe\n')
-  const crc = crc32(body)
-  const local = Buffer.concat([
-    Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00]),
-    Buffer.from([0x00, 0x00]), // stored
-    writeU16(crc),
-    writeU32(body.length),
-    writeU32(body.length),
-    writeU16(name.length),
-    writeU16(0),
-    Buffer.from(name),
-    body,
-  ])
-  const central = Buffer.concat([
-    Buffer.from([0x50, 0x4b, 0x01, 0x02, 0x14, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00]),
-    writeU16(0),
-    writeU16(0),
-    writeU16(0),
-    writeU16(0),
-    writeU32(crc),
-    writeU32(body.length),
-    writeU32(body.length),
-    writeU16(name.length),
-    Buffer.from([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),
-    Buffer.from([0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),
-    Buffer.from(name),
-  ])
-  const end = Buffer.concat([
-    Buffer.from([0x50, 0x4b, 0x05, 0x06]),
-    writeU16(0),
-    writeU16(0),
-    writeU16(1),
-    writeU16(1),
-    writeU32(central.length),
-    writeU32(local.length),
-    writeU16(0),
-  ])
-  return { zip: Buffer.concat([local, central, end]), marker: name }
-}
-
-function writeU16(n) {
-  const b = Buffer.alloc(2)
-  b.writeUInt16LE(n)
-  return b
-}
-function writeU32(n) {
-  const b = Buffer.alloc(4)
-  b.writeUInt32LE(n >>> 0)
-  return b
-}
-function crc32(buf) {
-  let c
-  const table = crc32.table ?? (crc32.table = (() => {
-    const t = new Int32Array(256)
-    for (let n = 0; n < 256; n++) {
-      c = n
-      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
-      t[n] = c
-    }
-    return t
-  })())
-  let crc = -1
-  for (let i = 0; i < buf.length; i++) crc = (crc >>> 8) ^ table[(crc ^ buf[i]) & 0xff]
-  return (crc ^ -1) >>> 0
+/**
+ * Build a tiny zip containing one marker file, so extraction has something to
+ * produce.
+ *
+ * Uses the `zip` binary, which GitHub's runners ship and which the deploy
+ * already depends on. An earlier version hand-assembled the archive byte by byte
+ * and crashed on its own CRC helper — a diagnostic script failing on its own
+ * cleverness is worse than no diagnostic at all.
+ */
+function buildZip() {
+  const dir = mkdtempSync(join(tmpdir(), 'probe-extract-'))
+  const marker = 'marker.txt'
+  writeFileSync(join(dir, marker), 'shikkha24-extract-probe\n')
+  const zip = join(dir, 'probe.zip')
+  execFileSync('zip', ['-q', zip, marker], { cwd: dir })
+  return { zip: readFileSync(zip), marker }
 }
 
 async function uapi(module, func, params) {
@@ -164,7 +115,7 @@ async function upload(name, buffer) {
 }
 
 console.log(`\nprobe-extract against ${HOST}\n`)
-const { zip, marker } = await buildZip()
+const { zip, marker } = buildZip()
 console.log(`  built a ${zip.length}-byte probe archive containing ${marker}`)
 
 // Create the scratch directory.
@@ -184,20 +135,40 @@ const upRes = await fetch(`${API2}/upload_filemanager_chunked`, {
   headers: { Authorization: auth, 'X-CPanel-User': USER },
   body: upForm,
 })
-console.log(`  upload: HTTP ${upRes?.status} ${(await upRes?.text().catch(() => '')).slice(0, 120)}`)
+console.log(
+  `  upload: HTTP ${upRes?.status} ${(await upRes?.text().catch(() => '')).slice(0, 120)}`,
+)
 console.log(`  listing after upload: ${JSON.stringify(await listDir(PROBE_DIR))}`)
 
 // ── The candidates ───────────────────────────────────────────────────────────
 const candidates = [
-  ['UAPI Fileman::extract_files (destination)', () =>
-    uapi('Fileman', 'extract_files', { sourcefile: `${PROBE_DIR}/probe.zip`, destination: PROBE_DIR })],
+  [
+    'UAPI Fileman::extract_files (destination)',
+    () =>
+      uapi('Fileman', 'extract_files', {
+        sourcefile: `${PROBE_DIR}/probe.zip`,
+        destination: PROBE_DIR,
+      }),
+  ],
   ['UAPI Fileman::extract (no args)', () => uapi('Fileman', 'extract', { dir: PROBE_DIR })],
-  ['API2 Fileman::fileop op=extract', () =>
-    api2('Fileman', 'fileop', { op: 'extract', source: `${PROBE_DIR}/probe.zip`, path: PROBE_DIR })],
-  ['UAPI Fileman::unzip', () =>
-    uapi('Fileman', 'unzip', { sourcefile: `${PROBE_DIR}/probe.zip`, destination: PROBE_DIR })],
-  ['UAPI Extract::extract_archive', () =>
-    uapi('Extract', 'extract_archive', { archive: 'probe.zip', dir: PROBE_DIR })],
+  [
+    'API2 Fileman::fileop op=extract',
+    () =>
+      api2('Fileman', 'fileop', {
+        op: 'extract',
+        source: `${PROBE_DIR}/probe.zip`,
+        path: PROBE_DIR,
+      }),
+  ],
+  [
+    'UAPI Fileman::unzip',
+    () =>
+      uapi('Fileman', 'unzip', { sourcefile: `${PROBE_DIR}/probe.zip`, destination: PROBE_DIR }),
+  ],
+  [
+    'UAPI Extract::extract_archive',
+    () => uapi('Extract', 'extract_archive', { archive: 'probe.zip', dir: PROBE_DIR }),
+  ],
 ]
 
 for (const [label, run] of candidates) {
@@ -222,7 +193,10 @@ for (const [label, run] of candidates) {
 }
 
 // Clean up the scratch directory; never leave debris on the host.
-await api2('Fileman', 'fileop', { op: 'unlink', source: `${PROBE_DIR}/probe.zip`, path: PROBE_DIR })
-  .catch(() => {})
+await api2('Fileman', 'fileop', {
+  op: 'unlink',
+  source: `${PROBE_DIR}/probe.zip`,
+  path: PROBE_DIR,
+}).catch(() => {})
 await uapi('Fileman', 'delete_fm_file', { file: PROBE_DIR }).catch(() => {})
 console.log('\n  probe directory cleanup attempted\n')
