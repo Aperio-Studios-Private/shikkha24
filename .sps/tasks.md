@@ -567,6 +567,7 @@ not know about it.
 | D-06 | `deploy-cms.mjs` made runnable (syntax, `await`, `??`→`||`) | `c4c6ac5` |
 | D-07 | Cloudflare Pages deployment removed | `ff195bb` |
 | D-08 | cPanel entry key bug — stale-file cleaner never fired | `a18816f`, regression-proved 70/2 → 72/0 |
+| D-09 | `verify:sync` fails on a truncated fetch (audit D-03) | `3483ab5`; counter-proved — original exits 0 `PASS 100/100` on 100/724, change exits 1 `TRUNCATED`, clean corpus both exit 0 |
 
 ---
 
