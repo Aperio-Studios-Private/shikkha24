@@ -863,6 +863,15 @@ async function main() {
       /Extract it by hand|cPanel File Manager/.test(output),
       output.slice(-400),
     )
+
+    // ⚠️ This server was leaked. The suite printed "79 passed" and then hung
+    // indefinitely, because a listening socket keeps the Node event loop alive
+    // after `main()` resolves — so the process never exited. In CI that burned
+    // the job's whole 25-minute budget and the run was cancelled as "timed out",
+    // which cancelled the deploy itself. The harness was green; the deploy never
+    // ran. Section 10b is the only block that opened a server without closing it
+    // (20 opened, 19 closed — verified by walking the file's brace structure).
+    await server.close()
   }
 
   console.log('\n10a. ⚠️ `.htaccess` is written explicitly, because extract will not overwrite it')
