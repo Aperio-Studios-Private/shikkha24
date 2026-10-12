@@ -36,6 +36,78 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
 
 ## Current Phase
 
+- **✅ THE CI GATE IS LIVE AND PROVEN (2026-10-11).** `deploy.yml` now runs
+  `scripts/wait-for-ci.mjs` as the first step after checkout — before
+  `pnpm install`, before any build. It polls the Actions API for the CI run
+  whose `head_sha` matches the commit and refuses to proceed unless it
+  concluded `success`. **Verified live on run 38138306945**: CI concluded
+  `failure` for `5b441e3`, the gate refused, and the job reached **zero**
+  build or upload steps. That is the day's most important change, and it is
+  now a constraint on every future deploy:
+  - **While CI stays red, a push-triggered deploy uploads nothing.** Red CI
+    must never publish, so this is correct — but it means a CMS deploy now
+    requires `workflow_dispatch` with `skip-ci-gate: true`, which emits a
+    warning annotation stating the tree is unverified. Until T-10 lands,
+    that override is the only way to ship.
+  - `skip-ci-gate` is deliberately **dispatch-only**. A push can never set
+    it, so automatic publishing always respects CI. `verify-workflows.mjs`
+    now enforces this: it fails if a build step sits *above* the gate, or
+    if the gate's `if:` is not guarded by `workflow_dispatch`. Both faults
+    were injected and both turned the check red.
+  - `permissions: contents: read` had to gain `actions: read` — see M31.
+- **✅ IMAGE UPLOAD WORKS, AND COMPRESSION IS DONE IN THE BROWSER (T-07).**
+  The owner chose to drop the sharp pipeline (the host cannot fork for the
+  Node process) and add a client-side optimiser instead. Uploads confirmed
+  working on the host. Compression confirmed end to end by the owner's own
+  console: `0.3 MB → 0.06 MB` (5×). The notice can only appear if the
+  component resolves, the capture listener fires before Payload's reader,
+  and Canvas encodes a smaller blob — all three held.
+  - **Storage was the binding constraint, not LCP.** A 6 MP phone photo is
+    ~4 MB; at 15/day that is 1.8 GB/month against ~3 GB free, roughly
+    **50 days** of runway. At ~300 KB it becomes ~135 MB/month, roughly
+    **22 months**. Vercel and Cloudflare were both rejected: rule 7 (no
+    card, no paid service, self-hosted preferred), and the owner already
+    removed Cloudflare.
+- **✅ GRAVATAR CSP FIX DEPLOYED (T-08).** `admin.avatar: 'default'` in
+  `payload.config.ts` (`a94613a`). Payload's own `DefaultAccountIcon`
+  renders — verified in the built source, not assumed — instead of a
+  `https://www.gravatar.com/avatar/<md5(email)>` URL that the admin's own
+  `img-src 'self' data: blob:` was refusing. Archive
+  `cms-deploy-38136567355.zip` is on the host **awaiting the owner's
+  extraction** (see Pending). The alternative — widening `img-src` to
+  allow Gravatar — was rejected: it would send every admin's IP and an
+  MD5 of their email to a third party on every page load.
+- **✅ TWO NEW DRIFT GATES, both counter-proved.** `verify:payload-importmap`
+  (`a38054b`) and the CI gate in `deploy.yml`. With these, every
+  generated-and-committed file now has a gate: `payload-types.ts`,
+  `cms/src/migrations/`, and `importMap.js`.
+- **🆕 THREE MISTAKES RECORDED (M29, M30, M31).**
+  - **M29** — the image optimiser shipped *inert*. A custom admin component
+    is registered by *string path*, which Payload resolves through the
+    committed `importMap.js`; nothing regenerates that map, so Payload
+    silently fell back to the default upload. Upload succeeded, every check
+    was green, and the feature did not exist. Third instance of the
+    generated-file-staleness shape.
+  - **M30** — removing `imageSizes` changed the schema (drops
+    `sizes_thumbnail_*` etc. from `media`) with no migration committed.
+    Caught by the drift gate one commit late. Verified no production data
+    was lost: 6 media docs, all `.webp`, none with a populated `sizes`.
+  - **M31** — the gate's first live run failed for the wrong reason: the
+    workflow's `permissions` block withheld `actions: read`, so every poll
+    403'd and the gate burned its full 15-minute deadline before failing
+    closed. Local tests passed because a personal token has full scope.
+- **⚠️ OPEN — media count dropped 8 → 6 and needs one 30-second test.**
+  Earlier today the API reported 8 media docs (incl. `Untitled-2.jpg`,
+  `ERP-LOGO.png`); now it reports 6, all `demo-plate-*.webp` from
+  2026-10-04, and nothing created today. `Untitled-2.jpg` returns HTTP 500
+  — gone from DB *and* disk. Ruled out: data loss (articles intact at 25,
+  demo plates still serve 200), DB overwrite (the bundle ships no
+  database), and the migration (drops columns, deletes no rows). Most
+  likely the owner deleted the test uploads — Payload removes row and file
+  together — but **that must not be assumed**. Decisive test: upload one
+  image, do *not* delete it, and say "done"; then check the API. If
+  something is silently deleting media, that is a serious bug and this
+  task reopens.
 - **✅ THE SITE IS LIVE (2026-10-04).** Deployed to DianaHost and verified on the host, not
   assumed: `shikkha24.com` serving static HTML, `cms.shikkha24.com/api/articles` → 200,
   `/admin` → 200, 74 tables, taxonomy seed 77 rows.
@@ -628,6 +700,29 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
   - **Own harness errors during that counter-proof, recorded because they nearly produced a false pass:** the `dist/.htaccess` backup had been taken *before* the rebuild and so held the pre-change file (every "restore" reinstated the stale copy); one mutation rewrote the file unchanged because a mode name fell through every branch, so the guard correctly passed a file it was never shown. The mutation harness now raises on an unknown mode and asserts the file actually changed bytes — a no-op must never be able to masquerade as a passing counter-proof.
 
 ## Pending
+
+### 🔴 Start here tomorrow (2026-10-12)
+
+- [ ] **Extract `cms-deploy-38136567355.zip`** — the Gravatar CSP fix (`a94613a`, T-08).
+      cPanel → File Manager → `shikkha24-cms` → right-click that file → **Extract** →
+      into that **same folder** (the one that *contains* `cms/`) → overwrite everything
+      → **Restart** the Node app. *Already built and on the host; only the manual extract
+      is left. This is the single outstanding action from 2026-10-11.*
+- [ ] **The 30-second media-count test.** Upload one image, do **not** delete it, and say
+      "done" — then the API can be checked. If the doc persists, the 8→6 drop was the
+      owner deleting test uploads and T-07 closes. If it vanishes, something is silently
+      deleting media and that is a serious bug. See Current Phase for what was ruled out.
+- [ ] **T-10 — decide how deploys get unblocked.** The new CI gate means every push now
+      fails at the gate and uploads nothing while the dependency audit is red (3 critical,
+      20 high on Payload 3.89.0). Either (a) fix T-10 — Payload 3.90.2 closes all three
+      criticals but the seed fails; resume by logging the whole document on
+      `payload.create` failure — or (b) deploy via `workflow_dispatch` +
+      `skip-ci-gate: true` until (a) lands. **Owner decision.**
+- [ ] **Auto-publish wiring** — the plumbing is already in `deploy.yml`; it needs the
+      `AUTO_DEPLOY=live` repo variable and the `DEPLOY_WEBHOOK_URL` secret. Now *safe* to
+      enable because of the CI gate, and not before.
+
+### ⚠️ Older list — not re-checked since 2026-09-13
 
 > ⚠️ **Read this before working the list (noted 2026-10-04).** Everything below was written on
 > **2026-09-13**, three weeks before the site launched, and **none of it has been re-checked

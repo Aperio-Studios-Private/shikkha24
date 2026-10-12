@@ -233,3 +233,31 @@ Each entry is a mistake that was actually made in this repository, with the rule
   populated `sizes` object, so the columns were never written and nothing was lost.
   SQLite refuses to drop an indexed column, so the migration drops each index first —
   that ordering is load-bearing.
+
+## M31 (2026-10-11) — A gate that passed every local test had never once asked the question
+
+- **What happened.** I added a CI gate to `deploy.yml` that polls the Actions API for
+  this commit's CI verdict and refuses to deploy unless it is `success`. It passed four
+  local tests: green CI allows, red CI refuses, no run fails closed, bad token exits 0s.
+  On its first live run it **failed closed — for entirely the wrong reason.** Every poll
+  returned **403**, so the gate sat for its full 15-minute deadline and only then
+  concluded "no CI run exists" and refused.
+- **Cause.** `deploy.yml` declares `permissions: contents: read`. That block *restricts*
+  `GITHUB_TOKEN` rather than adding to it, so `actions: read` was withheld and the token
+  could not list workflow runs at all. The gate had never been able to ask the question.
+- **Two defects, one symptom.** (1) The missing grant. (2) The error handling treated a
+  401/403/404 as transient, identically to a 5xx — so a one-second misconfiguration
+  became a 15-minute deploy timeout and buried the real message under 60 identical lines.
+- **The lesson, which is the part worth keeping.** A local test with a personal `gh` token
+  has full scope, so **it cannot reproduce a permissions problem that only exists in the
+  workflow's own `permissions:` block.** Counter-proving locally was necessary and not
+  sufficient. Any gate that depends on the ambient token — a permissions block, a
+  fork/PR restriction, an org policy, a `GITHUB_TOKEN` vs `GH_PAT` distinction — can only
+  be proven by a real run on the real workflow.
+- **Rule this teaches.** When a gate reads ambient credentials, the local test suite is
+  testing the *script*, not the *gate*. Ship it, run it once for real, and read the log
+  before calling it done.
+- **Fix.** `5b441e3` — added `actions: read` to the workflow's permissions, and made
+  401/403/404 abort immediately with a message naming the missing grant. Re-verified
+  locally, then confirmed live: run 38138306945 read a real `failure` verdict, refused,
+  and reached zero build or upload steps.

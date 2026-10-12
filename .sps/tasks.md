@@ -240,6 +240,34 @@ not know about it.
 - **Do not retry the sharp path.** Two hypotheses spent, both measured.
 </details>
 
+### T-12 — 🔴 Media count dropped 8 → 6; unexplained, must not be assumed away
+- **Status:** `open · needs one owner action` · observed 2026-10-11
+- **Observed.** At ~11:05 the API reported **8** media docs, including
+  `Untitled-2.jpg` (image/jpeg, 344.2 KB, 1176x1080) and `ERP-LOGO.png`. Later the
+  same day it reported **6**, all `demo-plate-*.webp` created 2026-10-04, and
+  **nothing created today**. `GET /api/media/file/Untitled-2.jpg` → **HTTP 500** —
+  gone from the database *and* from disk.
+- **Ruled out before asking the owner, so the question is narrow:**
+  - **No data loss.** Articles intact at 25; the 6 demo plates still serve HTTP 200.
+    A database reset or truncation would have taken the articles too.
+  - **No overwrite by a deploy.** `cms/.next/standalone` ships **no** database;
+    `data/` is excluded when the bundle is assembled and is deliberately not in the
+    clear set. `data/` on the host holds exactly one file, `payload.db`.
+  - **The new migration is not the cause.** `d2d963a` drops columns; `ALTER TABLE …
+    DROP COLUMN` deletes no rows.
+- **Most likely:** the owner deleted the test uploads. Payload's delete removes the
+  row and the file together, which is exactly this pattern. **This is a hypothesis,
+  not a finding** — rule 14 forbids closing a task on belief.
+- **Decisive test (≈30 seconds of owner time):** upload one image, do **not** delete
+  it, and say "done". Then read `GET /api/media?limit=50&depth=0`.
+  - Doc persists → the 8→6 drop was manual deletion; close as **not a bug**, with
+    the evidence recorded.
+  - Doc vanishes → something is silently deleting media. That is a serious bug:
+    reopen as 🔴 and investigate before any further upload testing.
+- **Note for whoever runs it:** `?limit=0` returns an inconsistent `totalDocs`, and
+  `?sort=-createdAt` is ignored — both were tried first and gave wrong answers. Use
+  `?limit=50&depth=0` and sort client-side.
+
 ### T-11 — 🔴 deploy.yml can publish a build that CI rejected
 - **Status:** `in progress` · started 2026-10-11
 - **Measured, not inferred.** `grep -n 'workflow_run|needs:.*ci' .github/workflows/deploy.yml`
@@ -260,8 +288,12 @@ not know about it.
   lands. That is correct behaviour, not a reason to weaken it, but the owner must accept
   the freeze or accept a documented carve-out. **Decision needed from the owner.**
 - **Metric:** a push whose CI fails produces zero archive uploads to the host.
+  **Met and observed live** on run 38138306945: CI concluded `failure` for
+  `5b441e3`, the gate refused, and the job reached **0** build or upload steps.
 - **Counter-proof:** force the gate to read a failing CI conclusion and watch a CMS
-  deploy refuse to upload; then a green one and watch it proceed.
+  deploy refuse to upload; then a green one and watch it proceed. All four paths
+  verified locally (green 0, red 1, no-run 1, bad-token 0s) and the refusal path
+  verified live in a real workflow run.
 - **🆕 M31 — the first live run of the gate failed for the wrong reason, and local
   testing could not have caught it.** `deploy.yml` declares `permissions: contents: read`,
   which *restricts* `GITHUB_TOKEN` and withholds `actions: read`. Every poll returned
@@ -271,6 +303,13 @@ not know about it.
   permissions, and 401/403/404 now abort immediately instead of being treated as
   transient like a 5xx. A local test with a personal token has full scope and passes, so
   **only a real run on the real workflow can prove this class of gate.**
+- **Status:** `done 2026-10-11`.
+- **⚠️ Consequence the owner must know.** While CI stays red (T-10), **every
+  push-triggered deploy now fails at the gate and uploads nothing.** That is
+  intended — red CI must never publish — but it means a CMS deploy now requires
+  `workflow_dispatch` with `skip-ci-gate: true` (the override emits a warning
+  annotation saying the tree is unverified). Until T-11's root cause — the
+  dependency audit — is fixed, that is the only way to ship.
 
 ### T-08 — CSP console warnings in the admin: investigated, not a content bug
 - **Status:** `investigated 2026-10-11` · our own images are **not** blocked · low priority
