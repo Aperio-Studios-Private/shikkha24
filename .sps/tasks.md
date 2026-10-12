@@ -240,6 +240,32 @@ not know about it.
 - **Do not retry the sharp path.** Two hypotheses spent, both measured.
 </details>
 
+### T-14 — 🔴 The storefront cannot be updated automatically on this host
+- **Status:** `open — owner action required for every publish` · proven 2026-10-12
+- **Measured, not inferred.** The site had not been rebuilt since **2026-10-04**. Every
+  deploy since reported success. Three independent causes, all now understood:
+  1. **Extraction silently no-ops.** `Fileman::fileop op=extract` returns a success
+     envelope and writes nothing. A deploy built 161 correct pages, logged
+     `Extracted via api2-fileop`, deleted 3 stale paths, verified `GET / → 200`, and
+     concluded `success` — while `public_html/education-news/27` did not exist.
+  2. **The post-deploy check could not fail.** It was `GET / → 200`, which the
+     **stale** site satisfies perfectly. Fixed in `cb61eb7`.
+  3. **No API extraction mechanism exists on this host.** Probed live against
+     `Fileman::extract_files`, `Fileman::unzip`, `Extract::extract_archive` and
+     `Fileman::extract` — all four fail with real cPanel errors, and none writes a
+     file. `api2-fileop` answers success and does nothing. **This is a host
+     limitation, not a bug.** Extraction by hand in cPanel File Manager is the only
+     path, for the frontend exactly as for the CMS.
+- **What still works without a human:** build, upload, `.htaccess` via
+  `save_file_content` (which overwrites), and stale-file deletion. So CI still does
+  the work and stages a correct archive; only the final expansion is manual.
+- **Owner action, ~1 minute:** cPanel → File Manager → `public_html` → extract the
+  newest `frontend-<run>.zip` **into `public_html`** → overwrite everything.
+- **Follow-on (not blocking):** with extraction manual, `DEPLOY_WEBHOOK_URL` (E-02)
+  would fire a build that still cannot land. Set it anyway so the archive is fresh and
+  waiting, but publishing still needs the extract. Decide whether that is worth it
+  before wiring it.
+
 ### T-13 — ✅ External audit verified claim-by-claim (2026-10-12)
 - **Status:** `done` — report at `docs/audit-verification-2026-10-11.md`
 - ~50 claims from `~/Desktop/NewsPortal-Fix-Guide.md` were each verified against the code with

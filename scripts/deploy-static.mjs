@@ -236,6 +236,44 @@ async function main() {
   const { via } = await extractArchive(cfg, remoteZip, DOCROOT)
   say(`Extracted via ${via}.`)
 
+  // The archive is removed only once the extract is confirmed below.
+
+  // Best-effort sweep of the fixed-name archive older deploys wrote, which the
+  // per-run name above will never clean up. It is a stale copy of the built site
+  // sitting at a guessable public URL, so it should not outlive its deploy. Absent
+  // is the normal case from here on and must not fail the run.
+  try {
+    await deletePath(cfg, `${DOCROOT}/frontend.zip`)
+  } catch {
+    // Nothing to remove.
+  }
+
+  // ⚠️ `.htaccess` is written explicitly, not left to the extract.
+  //
+  // `Fileman::fileop op=extract` — the path this host actually takes — does not
+  // overwrite a file that already exists. Every other artefact is new in a fresh
+  // build, so the archive's copy lands. `.htaccess` is present on the host from
+  // the hand-upload that preceded CI deploys, so the extract silently skipped it
+  // and the site kept serving a CSP two commits old while the HTML around it was
+  // new (measured 2026-10-08, run 37767514513: the live header matched the
+  // pre-push baseline byte for byte).
+  //
+  // `save_file_content` overwrites unconditionally, which is exactly the
+  // property the one file that must always be current needs. The manifest still
+  // never lists it — that protects it from *deletion*, which is a different
+  // hazard — and the write is skipped when the build produced none.
+  const localHtaccess = join(DIST, '.htaccess')
+  if (existsSync(localHtaccess)) {
+    const content = readFileSync(localHtaccess, 'utf8')
+    await writeTextFile(cfg, DOCROOT, '.htaccess', content)
+    say('Wrote .htaccess explicitly (extract does not overwrite an existing file).')
+  }
+
+  for (const path of plan.delete) {
+    await deletePath(cfg, `${DOCROOT}/${path}`, true)
+  }
+  if (plan.delete.length > 0) say(`Deleted ${plan.delete.length} stale path(s).`)
+
   // ⚠️ **The extraction is not trusted, and this check exists because it must not
   // be.** `Fileman::fileop op=extract` — the only mechanism this host offers —
   // returns success while writing nothing. Measured 2026-10-12: the run below
@@ -280,44 +318,14 @@ async function main() {
     say(`Extraction confirmed on the host — ${probe} is present.`)
   }
 
-  // Only the no-destination fallback leaves an archive in the docroot.
+  // The archive is removed only now — after the extract has been confirmed to
+  // have landed. Deleting it earlier meant a silent no-op left the operator with
+  // a failed deploy *and* no archive to extract by hand, which is the one thing
+  // that would have recovered the site.
+  //
+  // Only the no-destination fallback leaves an archive in the docroot; with a
+  // destination the zip was staged in STAGING and this is a no-op.
   if (!hasDestination) await deletePath(cfg, `${DOCROOT}/${zipName}`)
-
-  // Best-effort sweep of the fixed-name archive older deploys wrote, which the
-  // per-run name above will never clean up. It is a stale copy of the built site
-  // sitting at a guessable public URL, so it should not outlive its deploy. Absent
-  // is the normal case from here on and must not fail the run.
-  try {
-    await deletePath(cfg, `${DOCROOT}/frontend.zip`)
-  } catch {
-    // Nothing to remove.
-  }
-
-  // ⚠️ `.htaccess` is written explicitly, not left to the extract.
-  //
-  // `Fileman::fileop op=extract` — the path this host actually takes — does not
-  // overwrite a file that already exists. Every other artefact is new in a fresh
-  // build, so the archive's copy lands. `.htaccess` is present on the host from
-  // the hand-upload that preceded CI deploys, so the extract silently skipped it
-  // and the site kept serving a CSP two commits old while the HTML around it was
-  // new (measured 2026-10-08, run 37767514513: the live header matched the
-  // pre-push baseline byte for byte).
-  //
-  // `save_file_content` overwrites unconditionally, which is exactly the
-  // property the one file that must always be current needs. The manifest still
-  // never lists it — that protects it from *deletion*, which is a different
-  // hazard — and the write is skipped when the build produced none.
-  const localHtaccess = join(DIST, '.htaccess')
-  if (existsSync(localHtaccess)) {
-    const content = readFileSync(localHtaccess, 'utf8')
-    await writeTextFile(cfg, DOCROOT, '.htaccess', content)
-    say('Wrote .htaccess explicitly (extract does not overwrite an existing file).')
-  }
-
-  for (const path of plan.delete) {
-    await deletePath(cfg, `${DOCROOT}/${path}`, true)
-  }
-  if (plan.delete.length > 0) say(`Deleted ${plan.delete.length} stale path(s).`)
 
   await writeTextFile(cfg, STAGING, 'frontend-manifest.txt', serializeManifest(current))
   await verifyLive()
