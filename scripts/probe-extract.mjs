@@ -100,12 +100,12 @@ async function tryMechanism(label, call) {
   // also worked.
   if (landed) {
     await deletePath(cfg, PROBE_DIR, true).catch(() => {})
-    await uapi('Fileman', 'mkdir', { path: PROBE_DIR }).catch(() => {})
+    await uapi(cfg, 'Fileman', 'mkdir', { path: PROBE_DIR }).catch(() => {})
     await uploadFile(cfg, PROBE_DIR, zip, 'probe.zip').catch(() => {})
   }
 }
 
-const made = await uapi('Fileman', 'mkdir', { path: PROBE_DIR }).catch((e) => ({
+const made = await uapi(cfg, 'Fileman', 'mkdir', { path: PROBE_DIR }).catch((e) => ({
   error: e.message,
 }))
 console.log(`  mkdir ${PROBE_DIR}: ${JSON.stringify(made).slice(0, 140)}`)
@@ -114,19 +114,19 @@ await uploadFile(cfg, PROBE_DIR, zip, 'probe.zip')
 console.log(`  uploaded probe.zip; listing: ${JSON.stringify(await listFiles(cfg, PROBE_DIR))}`)
 
 await tryMechanism('UAPI Fileman::extract_files (with destination)', () =>
-  uapi('Fileman', 'extract_files', {
+  uapi(cfg, 'Fileman', 'extract_files', {
     sourcefile: `${PROBE_DIR}/probe.zip`,
     destination: PROBE_DIR,
   }),
 )
 await tryMechanism('UAPI Fileman::unzip', () =>
-  uapi('Fileman', 'unzip', { sourcefile: `${PROBE_DIR}/probe.zip`, destination: PROBE_DIR }),
+  uapi(cfg, 'Fileman', 'unzip', { sourcefile: `${PROBE_DIR}/probe.zip`, destination: PROBE_DIR }),
 )
 await tryMechanism('UAPI Extract::extract_archive', () =>
-  uapi('Extract', 'extract_archive', { archive: 'probe.zip', dir: PROBE_DIR }),
+  uapi(cfg, 'Extract', 'extract_archive', { archive: 'probe.zip', dir: PROBE_DIR }),
 )
 await tryMechanism('UAPI Fileman::extract (dir form)', () =>
-  uapi('Fileman', 'extract', { dir: PROBE_DIR }),
+  uapi(cfg, 'Fileman', 'extract', { dir: PROBE_DIR }),
 )
 
 await deletePath(cfg, PROBE_DIR, true).catch(() => {})
