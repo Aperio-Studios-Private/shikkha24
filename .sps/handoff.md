@@ -55,6 +55,25 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
     if the gate's `if:` is not guarded by `workflow_dispatch`. Both faults
     were injected and both turned the check red.
   - `permissions: contents: read` had to gain `actions: read` — see M31.
+- **✅ AN EXTERNAL AUDIT WAS VERIFIED CLAIM-BY-CLAIM (2026-10-12).** ~50 claims from
+  `~/Desktop/NewsPortal-Fix-Guide.md` were checked against the code, not read. Full report in
+  `docs/audit-verification-2026-10-11.md`; tracked as **T-13**. Roughly two-thirds hold.
+  - **Do not work the guide as written — seven of its fixes would break things.** The
+    worst: restricting the quiz `correctAnswer` (C-02) makes the browser-side grader mark
+    every option wrong **and `verify-s8.mjs` still passes**, so it would ship undetected.
+    Removing `sharp` (C-13) breaks boot — `lib/id-card.ts` still imports it in production.
+    Gating `/api/newsletter/status` (C-05) removes the newsletter form from every page.
+    D-04's "fix" would make the migration gate permanently red.
+  - **Two of its 🔴 items were already fixed the same day it was written** — the CLS
+    regression and T-01. Lighthouse passes; article CLS is 0.0084.
+  - **🔴 Found during verification, absent from the guide: CI is failing on artifact
+    storage quota** (`38203976878`), which **masks the dependency audit** — the job fails
+    before that step, so it reports `skipped` rather than red. Clear it before reading
+    T-10's status from CI at all.
+  - **Most severe real finding (guide understates it):** the photocard/ID-card endpoints
+    call sharp, which cannot load on this host (T-07) — expected to 500 per request, and
+    the photocard is the `og:image` fallback and sits in the share row. *Inference, not
+    measured: one `curl` of `/api/photocard/:id.png` settles it.*
 - **✅ IMAGE UPLOAD WORKS, AND COMPRESSION IS DONE IN THE BROWSER (T-07).**
   The owner chose to drop the sharp pipeline (the host cannot fork for the
   Node process) and add a client-side optimiser instead. Uploads confirmed
