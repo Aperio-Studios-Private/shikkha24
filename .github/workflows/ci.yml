@@ -474,6 +474,14 @@ jobs:
 
       - name: Upload frontend build output
         uses: actions/upload-artifact@v7
+        # An artefact upload must never be able to red the build. These are
+        # diagnostic conveniences — nothing consumes them; the deploy transfers
+        # straight from the runner to the host. On 2026-10-12 the account-wide
+        # artefact quota was exhausted (5.3 GB across 90 prior runs), both uploads
+        # failed, and every step after them was SKIPPED — including `Dependency
+        # audit`, which then reported nothing at all rather than its true verdict.
+        # A storage limit was masquerading as a security result.
+        continue-on-error: true
         # `always() && the build succeeded` — read that condition as "a finished
         # artefact is a property of the BUILD, not of the checks that follow it".
         #
@@ -486,7 +494,10 @@ jobs:
         with:
           name: frontend-dist
           path: frontend/dist
-          retention-days: 7
+          # 1 day, not 7. Nothing consumes these artefacts — the deploy transfers from the
+          # runner to the host — and at ~12 runs/day with a 161 MB standalone
+          # bundle, 7-day retention is what exhausted the 500 MB account quota.
+          retention-days: 1
 
       # ── CMS ─────────────────────────────────────────────────────────────────
       - name: Build (CMS, standalone)
@@ -622,6 +633,9 @@ jobs:
 
       - name: Upload standalone bundle
         uses: actions/upload-artifact@v7
+        # Same reasoning as the frontend upload: a quota failure here must not
+        # red the build or skip the steps below.
+        continue-on-error: true
         # Same rule as the frontend upload above: depend on the assemble step, not
         # on later assertions. This is the artefact the production host consumes,
         # so a red Lighthouse score must not decide whether it exists.
@@ -636,7 +650,10 @@ jobs:
           # branch (0ecbeda) during the 2026-10-03 reconciliation — it was
           # never on main, so every main-built artifact was affected.
           include-hidden-files: true
-          retention-days: 7
+          # 1 day, not 7. Nothing consumes these artefacts — the deploy transfers from the
+          # runner to the host — and at ~12 runs/day with a 161 MB standalone
+          # bundle, 7-day retention is what exhausted the 500 MB account quota.
+          retention-days: 1
 
       # ── Supply chain ────────────────────────────────────────────────────────
       - name: Dependency audit
