@@ -434,6 +434,55 @@ export function isFontAvailable(): boolean {
 }
 
 /**
+ * Cached result of the sharp probe below. `null` means "not probed yet".
+ *
+ * Module scope so the probe runs at most once per process. A card endpoint that
+ * re-probed per request would recreate the very cost it exists to avoid.
+ */
+let sharpUsable: boolean | null = null
+
+/**
+ * Can libvips actually run in this process?
+ *
+ * ## Why this exists
+ *
+ * `isFontAvailable()` only checks that the font **file** exists, which it does in
+ * production. So both card endpoints walked straight into `composeIdCard()` and
+ * into sharp. On DianaHost sharp cannot load at all — libvips needs a worker per
+ * core and the account cannot create a thread or fork, which is the same ceiling
+ * documented in `.sps/tasks.md` → T-07. Measured on the live host before this
+ * check existed:
+ *
+ *     GET /api/idcard/SHK-R-2026-0001.png     → HTTP 503 after 3.83s
+ *     GET /api/photocard/27.png               → HTTP 503 after 3.68s
+ *
+ * Two seconds of nothing is not the whole problem. Reporter IDs are enumerable
+ * (`SHK-R-YYYY-NNNN`) and the delay is spent inside libvips' own fork-retry path,
+ * so **every request burns several seconds of a thread budget the host has already
+ * been shown to run out of.** That is a CPU-exhaustion vector reachable by anyone
+ * who can guess an ID, and the only thing standing behind it was a 503.
+ *
+ * The probe is one 1×1 render, cached forever after. A host that can render at all
+ * answers in single-digit milliseconds; a host that cannot answers in seconds, once.
+ *
+ * @returns whether sharp produced a pixel buffer.
+ */
+export async function isSharpAvailable(): Promise<boolean> {
+  if (sharpUsable !== null) return sharpUsable
+  try {
+    await sharp({
+      create: { width: 1, height: 1, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+    })
+      .png()
+      .toBuffer()
+    sharpUsable = true
+  } catch {
+    sharpUsable = false
+  }
+  return sharpUsable
+}
+
+/**
  * The URL a reporter's QR encodes — the single place this is constructed.
  *
  * The card prints this as a QR and `/verify/[reporterId]` renders it; if the two

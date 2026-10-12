@@ -6,6 +6,7 @@ import {
   composePhotocard,
   type IdCardAuthor,
   isFontAvailable,
+  isSharpAvailable,
   type PhotocardArticle,
 } from '../lib/id-card'
 
@@ -80,6 +81,14 @@ const idCardEndpoint: Endpoint = {
     const author = found.docs[0]
     if (!author) return json({ error: 'পরিচয়পত্র পাওয়া যায়নি।' }, 404)
 
+    // ⚠️ Checked BEFORE the render, and it fails in milliseconds rather than
+    // seconds. Without it this handler walked into sharp and returned its 503
+    // after ~3.8s of libvips fork-retry — see `isSharpAvailable`. Reporter IDs
+    // are enumerable, so that delay was a thread-exhaustion vector behind a
+    // public route.
+    if (!(await isSharpAvailable())) {
+      return json({ error: 'কার্ড তৈরির সুবিধা এই সার্ভারে চালু নেই।' }, 503)
+    }
     if (!isFontAvailable()) {
       return json({ error: 'কার্ড তৈরির ফন্ট পাওয়া যায়নি।' }, 503)
     }
@@ -139,6 +148,14 @@ const photocardEndpoint: Endpoint = {
       return json({ error: 'কার্ড পাওয়া যায়নি।' }, 404)
     }
 
+    // ⚠️ Checked BEFORE the render, and it fails in milliseconds rather than
+    // seconds. Without it this handler walked into sharp and returned its 503
+    // after ~3.8s of libvips fork-retry — see `isSharpAvailable`. Reporter IDs
+    // are enumerable, so that delay was a thread-exhaustion vector behind a
+    // public route.
+    if (!(await isSharpAvailable())) {
+      return json({ error: 'কার্ড তৈরির সুবিধা এই সার্ভারে চালু নেই।' }, 503)
+    }
     if (!isFontAvailable()) {
       return json({ error: 'কার্ড তৈরির ফন্ট পাওয়া যায়নি।' }, 503)
     }
