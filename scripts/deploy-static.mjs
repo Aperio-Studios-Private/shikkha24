@@ -136,6 +136,78 @@ async function verifyLive() {
 }
 
 /**
+ * Is the host-side cron extractor alive AND able to publish?
+ *
+ * The cron (`scripts/host-extract.sh`) writes `extract-heartbeat.txt` only
+ * *after* it has confirmed `unzip` exists — so a fresh timestamp means "the cron
+ * ran recently and could extract", never merely "the cron ran". A host with no
+ * `unzip` never writes a heartbeat, which is exactly why this gate is safe: an
+ * absent, unparseable or stale heartbeat all mean "do not rely on the cron", and
+ * the deploy falls through to the loud failure rather than trusting it.
+ *
+ * @param {ReturnType<typeof config>} cfg
+ * @returns {Promise<boolean>}
+ */
+async function cronExtractorAlive(cfg) {
+  const maxAgeMs = Number(process.env.EXTRACT_CRON_MAX_AGE_MS ?? 10 * 60 * 1000)
+  let raw = ''
+  try {
+    raw = await readTextFile(cfg, STAGING, 'extract-heartbeat.txt')
+  } catch {
+    return false
+  }
+  const ts = Date.parse((raw ?? '').trim())
+  if (!Number.isFinite(ts)) return false
+  // Tolerate a little clock skew in both directions; a stale heartbeat is dead.
+  const age = Date.now() - ts
+  return age <= maxAgeMs && age >= -maxAgeMs
+}
+
+/**
+ * Map a built file's manifest path to the URL a reader would fetch.
+ *
+ * `news/story/index.html` → `/news/story/`; `news/story.html` → `/news/story.html`.
+ *
+ * @param {string} relPath `/`-separated, relative to the docroot.
+ * @returns {string} a leading-slash URL path.
+ */
+function pathToUrl(relPath) {
+  const clean = relPath.replace(/^\/+/, '')
+  if (clean.endsWith('/index.html')) return `/${clean.slice(0, -'index.html'.length)}`
+  return `/${clean}`
+}
+
+/**
+ * Wait for the cron extractor to publish a newly-added page.
+ *
+ * Polls the **site**, not the host API: a static GET forks no PHP process on a
+ * shared host, and it proves the reader-visible end state rather than an
+ * internal detail — which is the whole point. A stale site answers the homepage
+ * with 200, so the probed URL is a file that is *new in this build* and could
+ * only be live if this build's archive was extracted.
+ *
+ * @param {string} relPath A path from `plan.added`.
+ * @returns {Promise<boolean>} true if the page returned 200 within the budget.
+ */
+async function waitForCronPublish(relPath) {
+  const url = `${SITE_URL}${pathToUrl(relPath)}`
+  const budgetMs = Number(process.env.EXTRACT_CRON_WAIT_MS ?? 5 * 60 * 1000)
+  const intervalMs = Number(process.env.EXTRACT_CRON_POLL_MS ?? 20 * 1000)
+  const deadline = Date.now() + budgetMs
+  say(`Waiting for the cron extractor to publish ${url} (up to ${Math.round(budgetMs / 1000)}s)…`)
+  for (;;) {
+    try {
+      const res = await fetch(url, { redirect: 'follow' })
+      if (res.status === 200) return true
+    } catch {
+      // Not up yet.
+    }
+    if (Date.now() >= deadline) return false
+    await new Promise((resolve) => setTimeout(resolve, intervalMs))
+  }
+}
+
+/**
  * Run the whole static deploy.
  *
  * @returns {Promise<void>}
@@ -296,6 +368,11 @@ async function main() {
   // file "added", so it is the case most in need of proof — and gating on
   // `firstDeploy` is what let this stay invisible in the first place: the harness
   // ran as a first deploy, skipped the check, and passed.
+  // Set true when the host cron extractor publishes the build instead of the
+  // API. Declared here, outside the `plan.added` block, because the archive
+  // cleanup below reads it — and that cleanup must run for every live deploy,
+  // not only the ones with something new to land.
+  let handedToCron = false
   if (plan.added.length > 0) {
     const probe = plan.added[plan.added.length - 1]
     const parent = probe.includes('/') ? probe.slice(0, probe.lastIndexOf('/')) : ''
@@ -307,15 +384,43 @@ async function main() {
     } catch (error) {
       say(`Could not list ${parent || DOCROOT} to confirm the extract: ${error.message}`)
     }
+
+    // ⚠️ **The host cron extractor is the fallback, and only a live one counts.**
+    //
+    // When the API extract no-ops — this host's measured behaviour — the
+    // host-side cron (`scripts/host-extract.sh`) is what actually publishes the
+    // build. So instead of failing immediately, CI asks one question: is that
+    // cron alive and able to extract? The answer comes only from a *fresh
+    // heartbeat*, which the cron writes after confirming `unzip` exists. If it
+    // is fresh, CI waits for the cron to publish a page that is new in this
+    // build and goes green the moment a reader could actually see it. If the
+    // heartbeat is absent, stale or unparseable — including a host with no
+    // `unzip`, which never heartbeats — CI falls straight through to the loud
+    // failure below, unchanged. That is what keeps this fail-safe: the
+    // automation is inert until the cron is genuinely working, and it can never
+    // report a green deploy on a stale site.
+    if (!landed && (await cronExtractorAlive(cfg))) {
+      say(
+        'The API extract reported success but wrote nothing (known on this host). ' +
+          'A live cron extractor is present — waiting for it to publish the build.',
+      )
+      landed = await waitForCronPublish(probe)
+      handedToCron = landed
+      if (landed) {
+        say(`Cron extractor published ${pathToUrl(probe)} — the new build is live.`)
+      }
+    }
+
     if (!landed) {
       throw new Error(
         `Extraction reported success via ${via}, but ${probe} is not on the host.\n` +
           `  ${via === 'api2-fileop' ? 'This host answers fileop op=extract with success and writes nothing — a known and measured behaviour, not a transient failure.' : 'The extract reported a different mechanism, so treat this as a real extraction failure.'}\n` +
+          '  No live cron extractor answered either (see scripts/host-extract.sh and the extract-heartbeat.txt it writes).\n' +
           `  The archive is still on the host at ${target}/${zipName}. Extract it by hand in cPanel File Manager into ${DOCROOT}, overwriting everything.\n` +
           '  Nothing was rolled back: the deletions above were correct for the files this run replaced.',
       )
     }
-    say(`Extraction confirmed on the host — ${probe} is present.`)
+    if (!handedToCron) say(`Extraction confirmed on the host — ${probe} is present.`)
   }
 
   // The archive is removed only now — after the extract has been confirmed to
@@ -325,7 +430,19 @@ async function main() {
   //
   // Only the no-destination fallback leaves an archive in the docroot; with a
   // destination the zip was staged in STAGING and this is a no-op.
-  if (!hasDestination) await deletePath(cfg, `${DOCROOT}/${zipName}`)
+  //
+  // ⚠️ When the cron published the build, the archive is the cron's to remove —
+  // it deletes every `frontend-*.zip` once it has extracted them (step 5 of
+  // host-extract.sh). Removing it here as well would only race the cron over a
+  // file it already owns; a no-op delete on a missing file must not fail a
+  // deploy that has otherwise succeeded.
+  if (!hasDestination && !handedToCron) {
+    try {
+      await deletePath(cfg, `${DOCROOT}/${zipName}`)
+    } catch {
+      // Already gone — nothing to remove.
+    }
+  }
 
   await writeTextFile(cfg, STAGING, 'frontend-manifest.txt', serializeManifest(current))
   await verifyLive()

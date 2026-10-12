@@ -117,6 +117,16 @@ async function startFakeCpanel({
   // Filenames to treat as already present on the host, so a caller can reproduce
   // "an earlier failed run left this behind".
   seedUploads = null,
+  // When set, `get_file_content` for `extract-heartbeat.txt` returns this string
+  // — i.e. a live cron extractor is present. Left unset, the file reads as
+  // absent and `cronExtractorAlive()` is false, which is the no-cron default.
+  heartbeat = null,
+  // A site path that returns 404 until `publishNewPage()` is called, then 200.
+  // Models the cron publishing a page that is new in this build: the deploy
+  // polls it, and going green is allowed only once it flips to 200. `null` means
+  // every site path is always 200 (the pre-cron behaviour, where a stale site
+  // answers the homepage).
+  siteNewPage = null,
 } = {}) {
   const calls = []
   // ⚠️ POST bodies, recorded separately from `calls`. See the collector below.
@@ -126,6 +136,8 @@ async function startFakeCpanel({
   // failed run left behind.
   const uploadedNames = new Set(seedUploads ?? [])
   const authHeaders = []
+  // Flips to true when `publishNewPage()` is called; gates `siteNewPage`.
+  let newPageLive = false
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost')
 
@@ -138,7 +150,18 @@ async function startFakeCpanel({
     // the homepage and one asset once it has finished writing, and that check
     // needs a 200 rather than a refused connection to return from. It is served
     // before `calls` is appended to so the API-only assertions stay clean.
+    //
+    // ⚠️ `siteNewPage` is the one path that answers 404 until the cron is told
+    // to publish. This is the whole point of the cron handoff: the deploy must
+    // NOT go green while the new build's page is still absent — a stale site
+    // answers `/` with 200, so the probe has to be a page that is *new in this
+    // build* and can only be 200 once the archive was actually extracted.
     if (!url.pathname.startsWith('/execute/') && !url.pathname.startsWith('/json-api/')) {
+      if (siteNewPage && url.pathname === siteNewPage && !newPageLive) {
+        res.writeHead(404, { 'Content-Type': 'text/html' })
+        res.end('<!doctype html><title>Not Found</title>')
+        return
+      }
       res.writeHead(200, { 'Content-Type': 'text/html' })
       res.end('<!doctype html>')
       return
@@ -296,6 +319,24 @@ async function startFakeCpanel({
           data: listFiles(posted.get('dir') ?? url.searchParams.get('dir') ?? '.'),
         })
       }
+      if (uapiPath === 'Fileman/get_file_content') {
+        // Serve the cron heartbeat when the caller seeded one; otherwise answer
+        // with no `content`, which `readTextFile` turns into '' — the no-cron
+        // case. `dir`/`file` arrive in the POST body (see the list_files note).
+        const chunks = []
+        for await (const chunk of req) chunks.push(chunk)
+        const posted = new URLSearchParams(Buffer.concat(chunks).toString('utf8'))
+        const file = posted.get('file') ?? url.searchParams.get('file') ?? ''
+        if (heartbeat !== null && file === 'extract-heartbeat.txt') {
+          return send({
+            module: 'Fileman',
+            func: 'get_file_content',
+            status: 1,
+            data: { content: heartbeat },
+          })
+        }
+        return send({ module: 'Fileman', func: 'get_file_content', status: 1, data: {} })
+      }
       return send({
         module: uapiPath.split('/')[0],
         func: uapiPath.split('/')[1],
@@ -352,6 +393,12 @@ async function startFakeCpanel({
     // ⚠️ Exposed so the header can be asserted directly, not only inferred from
     // whether a call succeeded. The dedicated check in section 13 reads this.
     authHeaders,
+    // Simulate the cron extracting the build: flip `siteNewPage` to 200. Used by
+    // the cron-handoff test to prove the deploy goes green only once the new
+    // page is actually published, not merely because a heartbeat exists.
+    publishNewPage: () => {
+      newPageLive = true
+    },
     close: () => new Promise((resolve) => server.close(resolve)),
   }
 }
@@ -1190,6 +1237,153 @@ async function main() {
       firstDeploy.length === 0,
       firstDeploy.join(', '),
     )
+  }
+
+  console.log(
+    '\n10c. ⚠️ The cron extractor handoff — green only when the new build is actually live',
+  )
+  {
+    // The API extract no-ops on this host (10b). The host cron
+    // (`scripts/host-extract.sh`) is what really publishes the build, so the
+    // deploy now hands off to it — but ONLY when a fresh heartbeat proves the
+    // cron is alive AND able to extract (it writes the heartbeat after
+    // confirming `unzip`). Three scenarios, each chosen so a wrong version
+    // fails:
+    //
+    //   A. no heartbeat          → the deploy FAILS LOUD (today's 10b behaviour;
+    //                              the feature is inert until the cron exists)
+    //   B. heartbeat + cron posts → the deploy goes GREEN, but only after the
+    //                              new page is actually 200 on the site
+    //   C. heartbeat + cron never posts → the deploy FAILS LOUD (a live-but-
+    //                              broken cron must never read as success)
+    //
+    // B and C are the load-bearing pair: they prove the deploy verifies the
+    // reader-visible end state, not the mere existence of a heartbeat. That is
+    // the T-15/M32 rule — a green that a stale site could also satisfy is not a
+    // green.
+    const dist = mkdtempSync(join(tmpdir(), 'cron-dist-'))
+    mkdirSync(join(dist, 'news'), { recursive: true })
+    writeFileSync(join(dist, 'index.html'), '<!doctype html>')
+    writeFileSync(join(dist, 'news', 'brand-new-story.html'), '<!doctype html>')
+    // The page the deploy polls. It is new in this build, so a 200 can only mean
+    // the archive was extracted — the homepage answers 200 whether or not it was.
+    const NEW_PAGE = '/news/brand-new-story.html'
+
+    const runStatic = async (server, extra = {}) => {
+      try {
+        const { stdout } = await execFileAsync(
+          process.execPath,
+          [join(scriptDir, 'deploy-static.mjs')],
+          {
+            encoding: 'utf8',
+            env: {
+              ...process.env,
+              CPANEL_BASE: server.base,
+              CPANEL_HOST: 'fake',
+              CPANEL_USER: 'shikkhac',
+              CPANEL_TOKEN: 'test-token-not-real',
+              DEPLOY_DRY_RUN: 'false',
+              DEPLOY_DIST: dist,
+              SITE_URL: server.base,
+              // Keep the poll tight so the test is fast; the cron "publishes"
+              // explicitly rather than on a wall-clock schedule.
+              EXTRACT_CRON_WAIT_MS: '8000',
+              EXTRACT_CRON_POLL_MS: '50',
+              ...extra,
+            },
+          },
+        )
+        return stdout
+      } catch (error) {
+        return `${error.stdout ?? ''}${error.stderr ?? ''}`
+      }
+    }
+
+    // A host whose API extract no-ops, whose docroot already holds index.html
+    // (so `plan.added` is non-empty and the branch under test runs), and whose
+    // `news/` listing is empty (the new file is not there yet — the cron has not
+    // run). Shared by all three scenarios; only the heartbeat and the site differ.
+    const baseHost = () => ({
+      uapiExtract: false,
+      listFiles: (dir) =>
+        dir === 'public_html'
+          ? [
+              { file: 'index.html', type: 'file' },
+              { file: 'news', type: 'dir' },
+            ]
+          : dir === 'public_html/news'
+            ? []
+            : [],
+    })
+
+    // A. No heartbeat → fail loud, exactly as before the cron existed.
+    {
+      const server = await startFakeCpanel({ ...baseHost(), siteNewPage: NEW_PAGE })
+      const output = await runStatic(server)
+      check(
+        'no heartbeat: the deploy fails instead of trusting a dead extractor',
+        /is not on the host/.test(output),
+        output.slice(-400),
+      )
+      check(
+        'and it does not claim to have waited for a cron',
+        !/Waiting for the cron extractor/.test(output),
+        output.slice(-200),
+      )
+      await server.close()
+    }
+
+    // B. Fresh heartbeat, and the cron publishes mid-wait → green.
+    {
+      const server = await startFakeCpanel({
+        ...baseHost(),
+        heartbeat: new Date().toISOString(),
+        siteNewPage: NEW_PAGE,
+      })
+      // Publish ~150ms in: after the deploy has started polling, so the wait is
+      // genuinely exercised rather than satisfied on the first request.
+      const timer = setTimeout(() => server.publishNewPage(), 150)
+      const output = await runStatic(server)
+      clearTimeout(timer)
+      check(
+        'fresh heartbeat + cron publishes: the deploy goes green',
+        /Cron extractor published/.test(output) && !/::error::/.test(output),
+        output.slice(-400),
+      )
+      check(
+        'and it names the page it waited for',
+        new RegExp(NEW_PAGE.replace(/[/.]/g, '\\$&')).test(output),
+        output.slice(-300),
+      )
+      await server.close()
+    }
+
+    // C. Fresh heartbeat, but the page never comes up → fail loud. A live cron
+    // that cannot publish must not read as success; this is the pair that proves
+    // B is not passing merely because a heartbeat exists.
+    {
+      const server = await startFakeCpanel({
+        ...baseHost(),
+        heartbeat: new Date().toISOString(),
+        siteNewPage: NEW_PAGE,
+        // publishNewPage is never called.
+      })
+      const output = await runStatic(server, {
+        EXTRACT_CRON_WAIT_MS: '600',
+        EXTRACT_CRON_POLL_MS: '100',
+      })
+      check(
+        'fresh heartbeat but the page never publishes: the deploy still fails',
+        /is not on the host/.test(output),
+        output.slice(-400),
+      )
+      check(
+        'and it did say it was waiting, so the failure is the timeout not a skip',
+        /Waiting for the cron extractor/.test(output),
+        output.slice(-200),
+      )
+      await server.close()
+    }
   }
 
   console.log('\n11. The dry-run detector is not itself broken (negative control)')
