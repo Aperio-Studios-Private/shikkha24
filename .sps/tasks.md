@@ -240,6 +240,25 @@ not know about it.
 - **Do not retry the sharp path.** Two hypotheses spent, both measured.
 </details>
 
+### T-13 — ✅ External audit verified claim-by-claim (2026-10-12)
+- **Status:** `done` — report at `docs/audit-verification-2026-10-11.md`
+- ~50 claims from `~/Desktop/NewsPortal-Fix-Guide.md` were each verified against the code with
+  file:line evidence. Roughly two-thirds hold. **The guide must not be worked top-to-bottom.**
+- **Seven of its fixes would break things** (see the report table). Worst is C-02: restricting the
+  quiz `correctAnswer` makes the browser-side grader mark every option wrong, and `verify-s8.mjs`
+  still passes — the breakage would ship undetected.
+- **Two of its 🔴 items were already fixed the same day it was written** (the CLS regression and
+  T-01), so "CI red on CLS" is stale — the Lighthouse gate passes at CLS 0.0084.
+- **🔴 Found during verification, absent from the guide:** CI is failing on artifact storage quota
+  (`38203976878`), which **masks the dependency audit** — the job fails before that step, so it
+  reports `skipped` rather than red. Clear it before reading T-10's status from CI at all.
+- **Most severe real finding, understated by the guide:** the photocard/ID-card endpoints call
+  sharp, which cannot load on this host (T-07) — expected to 500 per request, and the photocard is
+  the `og:image` fallback and sits in the share row. *Inference, not measured: one `curl` of
+  `/api/photocard/:id.png` settles it.*
+- **Corrected order** is in the report; it deliberately re-ranks by real impact rather than by the
+  guide's own severity labels.
+
 ### T-12 — 🔴 Media count dropped 8 → 6; unexplained, must not be assumed away
 - **Status:** `open · needs one owner action` · observed 2026-10-11
 - **Observed.** At ~11:05 the API reported **8** media docs, including
