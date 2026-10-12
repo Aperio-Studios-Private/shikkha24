@@ -20,10 +20,18 @@
  *
  * ## The DOM library is optional, on purpose
  *
- * `linkedom` is not a project dependency — it is not worth a hard dependency for
- * one harness. When it is missing this **skips with a clear message** rather than
- * failing, so CI stays green; run it locally after `pnpm add -D linkedom`, or
- * point `LINKEDOM_REQUIRE_FROM` at a directory that has it.
+ * `linkedom` is a devDependency and this **fails** when it is missing.
+ *
+ * It used to be optional and SKIP with exit 0, on the reasoning that a hard
+ * dependency for one harness was not worth it. Measured 2026-10-12: linkedom was
+ * not installed anywhere and not listed in any `package.json`, so **the gate
+ * skipped on every run of `ci.yml` and `deploy.yml` and had never once executed
+ * its assertions.** It was the only test of `public/search-init.js`, which
+ * `verify-build-output.mjs` checks only for the presence of class names. The cost
+ * of the skip was an untested feature reported as tested, in both workflows,
+ * indefinitely — which is the codebase's own rule ("an assertion that cannot be
+ * made to fail is not evidence") applied in reverse: an assertion that could not
+ * be *made* ran at all.
  *
  * The class names below are Pagefind's *internal* markup, read out of the shipped
  * `pagefind-ui.js`. `verify-build-output.mjs` asserts they are still present, so
@@ -54,10 +62,13 @@ function loadLinkedom() {
 
 const linkedom = loadLinkedom()
 if (!linkedom) {
-  console.log('\nSKIP  verify-search-init — linkedom is not installed.')
-  console.log('      Run `pnpm add -D linkedom`, or set LINKEDOM_REQUIRE_FROM to a')
-  console.log('      directory that has it, to actually exercise search-init.js.\n')
-  process.exit(0)
+  // Fail, do not skip. `LINKEDOM_REQUIRE_FROM` stays supported so the harness can
+  // borrow a copy from elsewhere, but a missing DOM means the assertions below
+  // cannot be made — and reporting that as success is what hid this for a week.
+  console.error('\n::error::verify-search-init cannot run — linkedom is not resolvable.')
+  console.error('  It is a devDependency; run `pnpm install`.')
+  console.error('  If it is installed elsewhere, set LINKEDOM_REQUIRE_FROM to that node_modules.\n')
+  process.exit(1)
 }
 
 const { parseHTML } = linkedom
