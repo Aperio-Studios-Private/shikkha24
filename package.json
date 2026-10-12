@@ -39,6 +39,7 @@
     "verify:bookmarks": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/verify-bookmark-merge.mjs",
     "verify:ad-split": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/verify-ad-split.ts",
     "verify:client-ip": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/verify-client-ip.mjs",
+    "verify:archive-buckets": "node scripts/verify-archive-buckets.mjs",
     "verify:payload-types": "bash scripts/verify-payload-types.sh",
     "verify:payload-migrations": "bash scripts/verify-payload-migrations.sh",
     "verify:payload-importmap": "bash scripts/verify-payload-importmap.sh",

@@ -19,7 +19,7 @@
  * is what makes the frontend independently testable.
  */
 
-import { formatBnBd, getDhakaYearMonth } from './bangla-date'
+import { dhakaMonthUtcRange, formatBnBd, getDhakaYearMonth } from './bangla-date'
 import type { CmsMedia } from './media'
 
 /** Payload origin. Set `CMS_URL` in the environment; defaults to local dev. */
@@ -1167,8 +1167,11 @@ export async function getArticlesByMonth(
   page = 1,
   limit = PAGE_SIZE,
 ): Promise<ArticlePage> {
-  const start = new Date(Date.UTC(year, month - 1, 1))
-  const end = new Date(Date.UTC(year, month, 1))
+  // ⚠️ Dhaka boundaries, not UTC. `getArchiveBuckets` keys its navigation with
+  // `getDhakaYearMonth`, so a UTC-bounded listing disagreed with the nav above it
+  // for every article published between 00:00 and 06:00 local — counted under one
+  // month, excluded from that month's list.
+  const { start, end } = dhakaMonthUtcRange(year, month)
 
   const data = await cmsFetch<{ docs?: CmsArticle[]; totalDocs?: number } | null>(
     `/api/articles${qs({

@@ -162,3 +162,67 @@ export function getDhakaDate(iso: string | Date): string {
   const d = typeof iso === 'string' ? new Date(iso) : iso
   return dhakaIsoFormatter.format(d)
 }
+
+/**
+ * How far ahead of UTC a timezone is, at a given instant, in milliseconds.
+ *
+ * Derived from the real zone rather than a hardcoded `-6`, so it stays correct if
+ * the offset is ever changed and — unlike a constant — it does not silently become
+ * wrong if a zone ever observes DST.
+ *
+ * @param date the instant to measure at.
+ * @param timeZone an IANA zone name.
+ * @returns the offset to **add** to UTC to get local time at that instant.
+ */
+function offsetMsAt(date: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).formatToParts(date)
+  const field = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? '0')
+  const asUtc = Date.UTC(
+    field('year'),
+    field('month') - 1,
+    field('day'),
+    field('hour') % 24,
+    field('minute'),
+    field('second'),
+  )
+  return asUtc - date.getTime()
+}
+
+/**
+ * The UTC instants bounding a calendar month **in Dhaka time**.
+ *
+ * ## Why this exists
+ *
+ * `getArchiveBuckets` keys each article with `getDhakaYearMonth`, so the archive
+ * navigation and the article listing for a month were built from two different
+ * definitions of that month: the nav used Dhaka, the listing used
+ * `Date.UTC(year, month - 1, 1)`. Bangladesh is UTC+6 with no DST, so the two are
+ * six hours apart and an article published between 00:00 and 06:00 local was
+ * counted in the nav under one month and *excluded* from that month's listing —
+ * a number on the page that the page below it could not add up to.
+ *
+ * Six hours is the whole width of the bug: nothing looks wrong until an article
+ * lands in that window.
+ *
+ * @param year the 1-indexed month number, 1–12.
+ * @param month the calendar month, 1-indexed to match the existing callers.
+ * @returns `{start, end}` as Dates, `end` exclusive.
+ */
+export function dhakaMonthUtcRange(year: number, month: number): { start: Date; end: Date } {
+  // Two passes: the first lands near the boundary, the second corrects for any
+  // offset change between the naive guess and the real instant.
+  const naiveStart = Date.UTC(year, month - 1, 1)
+  const start = new Date(naiveStart - offsetMsAt(new Date(naiveStart), DHAKA_TZ))
+  const naiveEnd = Date.UTC(year, month, 1)
+  const end = new Date(naiveEnd - offsetMsAt(new Date(naiveEnd), DHAKA_TZ))
+  return { start, end }
+}
