@@ -1,6 +1,5 @@
-import type { CollectionConfig } from 'payload'
-
-import { anyone, isEditorial, isSuperAdminOrEditorInChief } from '../access/roles'
+import type { Access, CollectionConfig } from 'payload'
+import { isEditorial, isEditorialUser, isSuperAdminOrEditorInChief } from '../access/roles'
 
 /**
  * Result Links — backs N3, the results & merit-lists hub.
@@ -11,6 +10,18 @@ import { anyone, isEditorial, isSuperAdminOrEditorInChief } from '../access/role
  * this* content, not the data itself. `docs/data-sources.md` §2 reaches the same
  * conclusion — editorially curated, not API-fed.
  */
+/**
+ * Readers see only published result links; the newsroom sees everything.
+ *
+ * @param args the Payload access arguments.
+ * @returns a `Where` clause rather than `false`, so the database filters rather
+ *   than the API returning everything and discarding most of it.
+ */
+const publishedResultLink: Access = ({ req }) => {
+  if (isEditorialUser(req.user)) return true
+  return { isPublished: { equals: true } }
+}
+
 export const ResultLinks: CollectionConfig = {
   slug: 'result-links',
   labels: {
@@ -24,7 +35,17 @@ export const ResultLinks: CollectionConfig = {
     description: 'ফলাফল ও মেধাতালিকার লিংক এবং ব্যবহারের নিয়ম।',
   },
   access: {
-    read: anyone,
+    // ⚠️ Not `anyone`. `isPublished` defaults to `false`, so every draft and
+    // unreviewed row was readable by anyone who queried the endpoint — the
+    // publish-state filter existed but was applied only by the consumer
+    // (`frontend/src/lib/education.ts`), which means the CMS was the thing
+    // leaking. Filtering in the database rather than after the fetch, which is
+    // what `publishedOrEditor` is for, though `result-links` has no drafts.
+    //
+    // Safe to apply: no other collection holds a relationship to `result-links`
+    // (the only `relationTo: 'result-links'` sits inside `PayloadLockedDocument`),
+    // so nothing internal depended on reading unpublished rows.
+    read: publishedResultLink,
     create: isEditorial,
     update: isEditorial,
     delete: isSuperAdminOrEditorInChief,
