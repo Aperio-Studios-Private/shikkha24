@@ -261,3 +261,46 @@ Each entry is a mistake that was actually made in this repository, with the rule
   401/403/404 abort immediately with a message naming the missing grant. Re-verified
   locally, then confirmed live: run 38138306945 read a real `failure` verdict, refused,
   and reached zero build or upload steps.
+
+## M32 (2026-10-12) — A green test suite hung forever, and the hang cancelled the deploy
+
+- **What happened.** The owner reported CMS edits not appearing on the live site
+  (T-15). The storefront had not been republished since 05:52; an edit at 07:38 was
+  sitting unpublished. I triggered a live static deploy — run `38221385908` — which
+  built cleanly, passed every verification gate, and was then **cancelled** at
+  08:29:51, 25 minutes in. The deploy step never ran. The site stayed stale, and the
+  only signal was `completed / cancelled`, which reads as "someone stopped it."
+- **Cause — a leaked listening socket.** Section 10b of
+  `scripts/verify-cpanel-deploy.mjs` calls `startFakeCpanel()` at line 816 and the
+  block ends at line 866 with **no `await server.close()`**. A listening socket keeps
+  the Node event loop alive after `main()` resolves, so the process printed
+  `✅ 79 passed, 0 failed` and then waited forever. The step hit the job's
+  `timeout-minutes: 25`, and GitHub cancels the whole job on a step timeout.
+  **The harness was green and the deploy it was gatekeeping never ran.**
+- **Why nothing caught it.** Every individual check passed. The suite's own exit
+  code was correct *conditional on the process exiting*, which it never did. And
+  the local run I used to develop the fix exited in 0.6s — because the socket is
+  harmless when the test is the only thing running; only in CI, where the step has a
+  wall-clock budget, does the same hang become a cancelled deploy. The defect was
+  invisible locally by construction.
+- **How it was found.** Not by reading. I instrumented a copy of the script to dump
+  `process._getActiveHandles()` after the final log, which showed 2 live `Server`s
+  and a `ChildProcess`. Then I walked the file's brace structure and counted
+  `startFakeCpanel` against `.close()`: **20 opened, 19 closed.** Exactly one leak,
+  and it named itself. Reading the 1,300-line file for a missing line in a 50-line
+  block would not have found it; the arithmetic did.
+- **The lesson, which is the part worth keeping.** **A test suite that cannot exit
+  is not a passing suite, and on a timed runner it is a loaded weapon aimed at the
+  job it gates.** The metric "79 passed" was true and completely worthless; the
+  metric that mattered was "the process terminated." Every suite that opens a
+  socket, a server, a database pool or a child process should be run with a hang
+  detector, and CI should treat a timeout as a *symptom to diagnose*, never as a
+  retry.
+- **Rule this teaches.** When a harness holds a native handle, prove it exits —
+  `spawn` it, and assert on the `exit` event, not on the last line of stdout. Green
+  text followed by a hang is the signature of a resource leak, and the process
+  *never* exits of its own accord.
+- **Fix.** `97312a6` — `await server.close()` added at the end of section 10b.
+  Local repro before: `exit null` after 60s (killed). After: `exit 0` in 0.6s, with
+  all 79 checks unchanged. All three deploy-verification suites now exit: 79 + 47 +
+  10 = 136 checks.
