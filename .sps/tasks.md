@@ -86,6 +86,36 @@ not know about it.
   project's adaptation of it, and `.sps/mistakes.md` records the loop violations.
   No internet research or installation needed; the method is in-repo.
 
+### T-17 — Fully automatic push-to-deploy (owner requested 2026-10-12)
+- **Status:** `todo` · queued behind T-15 and T-16
+- **Request:** *"Implement a fully functional, bug-free push-to-deploy system,
+  completely automatic — trigger a build and deployment on every push, handle
+  the pipeline end-to-end without manual steps, ensure reliability: error
+  handling, rollbacks, failure cases."*
+- **⚠️ The hard constraint this must respect — proven, not assumed (T-14).**
+  Three blockers are properties of the host, not of the code, and were each
+  measured against the live cPanel API this week:
+  1. **No working extraction mechanism.** `Fileman::extract_files`,
+     `Fileman::unzip`, `Extract::extract_archive`, `Fileman::extract` all fail
+     with real cPanel errors. `api2-fileop` answers success and **writes
+     nothing**. The probe (`38212054431`) is conclusive: *"RESULT: no API
+     extraction mechanism works on this host."*
+  2. **The deploy gate now refuses red CI** (T-11), and CI is red on the
+     dependency audit (T-10). A push today uploads nothing.
+  3. **`AUTO_DEPLOY` is unset**, so webhook/push runs resolve to `dry-run`.
+- **What "automatic" can honestly mean here.** The *build* can be fully
+  automatic — and already is. What cannot be is the final *expansion into
+  `public_html`*, because no API on this host performs it. A push-to-deploy that
+  claims end-to-end automation would be the exact failure mode T-14 documents:
+  it would report success while the site stayed stale. **That is the bug the
+  owner is currently reporting (T-15), and it is caused by automation that
+  looked complete.**
+- **Approach to propose:** automatic build + upload + verification on every push,
+  with a health check that **fails loudly** when the new HTML is not live, plus a
+  one-step manual extract. Rollback = the previous run's archived zip, kept on
+  the host. Never a silent success.
+- **Not started.** T-15 first.
+
 ### T-01 — CMS admin rejects all edits, uploads and creates
 - **Status:** `todo` (root cause found; fix needs an owner decision) · 🔴 production
 - **Reported:** 2026-10-10 — "You are not allowed to perform this action." on every
