@@ -96,6 +96,27 @@ const verify = async (label, endpoint, pick, html, describe) => {
   const ok = docs.length > 0 && missing.length === 0 && html !== ''
   if (!ok) failures += 1
 
+  // ⚠️ **Truncation must be visible.** Every endpoint here is fetched with
+  // `limit=100`, and `docs.length` is the *truncated* count — so a collection
+  // holding more than 100 rows reported `PASS 100/100`, a number that reads as
+  // full coverage while the remainder was never fetched, let alone checked.
+  // `institutions` holds 724, so 624 rows were being silently skipped and the
+  // output looked like a clean pass.
+  //
+  // The honest fix is paging, which is what `fetchAllPages` does in the frontend.
+  // Until that exists, the gate says so out loud rather than rounding a partial
+  // check up to a complete one.
+  const total = typeof data.totalDocs === 'number' ? data.totalDocs : null
+  const truncated = total !== null && total > docs.length
+  if (truncated) {
+    failures += 1
+    console.log(
+      `FAIL  ${label.padEnd(20)} TRUNCATED — fetched ${docs.length} of ${total}; ` +
+        `${total - docs.length} row(s) were never checked`,
+    )
+    return
+  }
+
   const detail =
     html === '' ? `PAGE MISSING ${describe}` : `${docs.length - missing.length}/${docs.length}`
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${label.padEnd(20)} ${detail}`)

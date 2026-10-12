@@ -52,7 +52,7 @@ Every check below was run in this pass, in this order, against a clean tree.
 | `cms:verify-endpoints` | **every custom endpoint over real HTTP** | ✅ 27/27 |
 | `verify-build-output` | inline scripts, root files, URL shape, feeds | ✅ 24/24 |
 | `verify-apache` | `.htaccess` served by a real Apache: status, header count, CSP profile per page | ✅ 16/16 (2026-09-15) |
-| `verify-cms-sync` | read path — CMS record → page | ✅ 8/8 collections |
+| `verify-cms-sync` | read path — CMS record → page; **fails loudly on a truncated fetch** (D-03) | ✅ 8/8 collections |
 | `verify-s8` | live blog, poll, quiz, static fallback | ✅ |
 | `verify-ads-s7` | sponsored template, mid-article ad split | ✅ 10/10 |
 | `verify-ad-split` | mid-article split unit tests | ✅ 10/10 |

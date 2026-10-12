@@ -98,11 +98,24 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
   the bug the owner just reported. The honest scope is automatic
   build → verify → upload → health-check, with the extract manual and the
   health check *failing loudly*. `cb61eb7` already does the loud part.
-- **⚠️ `scripts/verify-cms-sync.mjs` carries an uncommitted change in the working
-  tree that predates this session** — a truncation check (fails when
-  `docs.length < totalDocs` instead of reporting `PASS 100/100` on a partial
-  fetch). Not mine, not reviewed, deliberately left alone. **Decide whether to
-  commit or revert before the next session.**
+- **✅ `scripts/verify-cms-sync.mjs` truncation check — DECIDED: COMMITTED this
+  session** (was flagged "decide before the next session"). The working tree
+  carried a truncation check that fails when `docs.length < totalDocs` instead of
+  reporting a false `PASS 100/100` on a partial fetch — audit finding **D-03**
+  (`institutions` holds 724 rows; 624 were never checked and the output read as
+  full coverage). **Counter-proved before committing** (`.sps/loop.md`): a stub
+  CMS + fixture `dist` ran both the HEAD version and the changed version against
+  a clean corpus and a truncated one (institutions `totalDocs: 724`, 100 docs
+  returned). Original → `PASS institutions 100/100`, **exit 0** (the defect,
+  reproduced). Changed → `FAIL institutions TRUNCATED — fetched 100 of 724`,
+  **exit 1** (honest). Clean corpus → both **exit 0**, so **CI does not go red**:
+  the demo seed produces <100 rows per collection and the 724-row Wikidata
+  import (`seed:universities`) is production-only and never runs in CI. The
+  check is deliberately a *loud failure*, not paging — paging the fetch would
+  need the listing page to render every row too, which `getInstitutions()`
+  (a `limit=1000` cap, not a page size) does not guarantee; a capped page plus a
+  fully-paged verify would manufacture false failures. Recording the honest
+  limit is the safe shape until the listing itself is genuinely complete.
 - **THE OWNER ACTION THAT PUBLISHES THE EDIT (~1 minute):** cPanel → File Manager
   → `public_html` → select **`frontend-38228086708.zip`** (newest) → **Extract**
   → into `public_html`, overwrite everything → delete both zips. Then confirm
