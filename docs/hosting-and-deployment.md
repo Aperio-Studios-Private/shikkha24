@@ -269,28 +269,33 @@ absent, `Fileman::fileop op=extract` answers success and writes nothing). For mo
 "Extract in cPanel File Manager" the one manual step on every publish — the friction behind T-15.
 
 It is now automated **without the API**, using a mechanism this host *does* support: a **host-side
-shell `unzip` run by cPanel → Cron Jobs**. That is not a guess — the daily backup already runs
-`sqlite3`, `tar` and `cp` through cPanel cron on this same account (`scripts/host-backup-dump.sh`).
-So the extract moved from a human to a 2-minute cron.
+shell `tar` run by cPanel → Cron Jobs**. That is not a guess, and neither is the tool: `tar` is
+already demonstrated working on this exact account twice over — the daily backup runs
+`tar -czf` (`scripts/host-backup-dump.sh`), and the live **almarsus.com** deployment extracts its
+build with `tar -xzf` through this same cPanel-cron mechanism every minute. Both halves of gzip-tar
+are proven here. (`unzip` was the original choice, but its presence on the host was never verified —
+`tar` carries no such unknown, so the extractor switched to it.)
 
 | Piece | File | What it does |
 |---|---|---|
-| The extractor | `scripts/host-extract.sh` | Finds the newest `frontend-*.zip` in `public_html`, `unzip -o`s it, proves `index.html` landed, deletes every archive, logs to `~/shikkha24-deploy/extract.log` |
-| Its liveness proof | (writes) `~/shikkha24-deploy/extract-heartbeat.txt` | A UTC timestamp, written **only after** the script confirms `unzip` exists — so a fresh heartbeat means "the cron is alive *and able to extract*", never merely "the cron ran" |
+| The extractor | `scripts/host-extract.sh` | Finds the newest `frontend-*.tar.gz` in `public_html`, waits for the upload's size to settle, `tar -xzf`s it, proves `index.html` landed, deletes every archive, logs to `~/shikkha24-deploy/extract.log` |
+| Its liveness proof | (writes) `~/shikkha24-deploy/extract-heartbeat.txt` | A UTC timestamp, written **only after** the script confirms `tar` exists — so a fresh heartbeat means "the cron is alive *and able to extract*", never merely "the cron ran" |
 | The CI handoff | `scripts/deploy-static.mjs` | When the API extract no-ops, reads the heartbeat: **fresh → waits for the cron** (polling the *site*, not the API, for a page that is new in this build to return 200); **absent/stale → fails loud exactly as before** |
+| The name contract | both files | CI uploads `frontend-<run>.tar.gz`; the cron globs `frontend-*.tar.gz`. Nothing connects these two files at runtime but the filename, so `verify:cpanel-deploy` §10d asserts the agreement statically from both sources |
 
 **Why this cannot ship the T-15 bug again.** The handoff is gated on *evidence* — a fresh heartbeat
 the cron writes only when it can actually extract — and CI verifies the *reader-visible end state*
-(a page new in this build returning 200), not the mechanism. A host with no `unzip` never
+(a page new in this build returning 200), not the mechanism. A host with no `tar` never
 heartbeats, so CI falls straight through to the pre-existing loud failure. **The automation is inert
 until the cron is genuinely working**; it can never report a green deploy on a stale site.
 
 **Two owner-only setup steps (the agent has no SSH):**
 
-1. **Confirm `unzip` exists on the host.** cPanel Terminal, or a one-off cron:
-   `/bin/sh -c 'command -v unzip && unzip -v | head -1; touch ~/public_html/.w && rm ~/public_html/.w && echo WRITABLE'`.
-   If `unzip` is missing, this approach is dead and the honest scope reverts to the one-step manual
-   extract.
+1. **Confirm `tar` exists on the host.** cPanel Terminal, or a one-off cron:
+   `/bin/sh -c 'command -v tar && tar --version | head -1; touch ~/public_html/.w && rm ~/public_html/.w && echo WRITABLE'`.
+   This is near-certain — the backup cron already runs `tar -czf` on this account — but confirm it
+   the same way. If `tar` is somehow missing, this approach is dead and the honest scope reverts to
+   the one-step manual extract.
 2. **Install the cron.** Upload `host-extract.sh` to `~/bin/shikkha24-extract.sh`, then cPanel →
    Cron Jobs → every 2 minutes → `/bin/sh /home/shikkhac/bin/shikkha24-extract.sh`. (`/bin/sh`
    *reads* the file, so it needs no execute bit — the same property the backup script relies on.)
@@ -299,9 +304,10 @@ until the cron is genuinely working**; it can never report a green deploy on a s
 Then flip the two GitHub switches — `DEPLOY_WEBHOOK_URL` (CMS publish → rebuild) and
 `AUTO_DEPLOY=live` (push/webhook → publish instead of dry-run) — and a publish goes live with no
 manual step. Both harnesses are counter-proved: `verify:host-extract` (22 checks, including "fails
-loud and touches nothing when `unzip` is absent" and "writes no heartbeat when it cannot extract")
-and `verify:cpanel-deploy` §10c (the "goes green only when the cron publishes" check, proven to fail
-when the branch is disabled).
+loud and touches nothing when `tar` is absent" and "writes no heartbeat when it cannot extract"),
+`verify:cpanel-deploy` §10c (the "goes green only when the cron publishes" check, proven to fail
+when the branch is disabled), and §10d (the CI↔cron filename agreement, proven to fail on a
+half-converted pipeline in both directions).
 
 
 **A push deploys the frontend only — never the CMS.** The frontend is finished HTML dropped into

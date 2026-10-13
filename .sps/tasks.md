@@ -122,45 +122,70 @@ not know about it.
   No internet research or installation needed; the method is in-repo.
 
 ### T-17 — Fully automatic push-to-deploy (owner requested 2026-10-12)
-- **Status:** `doing` · **the code is built and counter-proved this session
-  (2026-10-12); it stays INERT until the owner confirms `unzip` on the host and
-  installs the cron.** Owner approved the full auto-deploy: *"verify unzip on the
-  host and build the full auto-deploy (set DEPLOY_WEBHOOK_URL + cron extract
-  script). Goal: publish in CMS → live with zero manual steps."*
+- **Status:** `doing` · **the code is built and counter-proved; it stays INERT until
+  the owner confirms `tar` on the host and installs the cron.** Owner approved the
+  full auto-deploy: *"verify unzip on the host and build the full auto-deploy (set
+  DEPLOY_WEBHOOK_URL + cron extract script). Goal: publish in CMS → live with zero
+  manual steps."*
+- **🆕 2026-10-13 — the extractor switched from `unzip`/`.zip` to `tar`/`.tar.gz`.**
+  The owner pointed at a sibling project already deployed on DianaHost
+  (`al-marsus` / almarsus.com, repo `SHAHID8142/AI-Marsus2026-Final-Production`),
+  and its deployment proves the better mechanism. Its cron watcher
+  (`diana-deploy-watcher-prod.sh`) extracts a `.tar.gz` with `tar -xzf` **every
+  minute on this same cPanel account**, and its CI (`diana-prod.yml`) uploads over
+  **FTPS port 21** — so `tar` is not an assumption on this host, it is demonstrated
+  twice (almarsus's extractor and our own backup cron's `tar -czf`). `unzip`, the
+  original choice, was **never verified** and was T-17's only open unknown. The
+  switch retires that unknown rather than depending on it.
 - **How the extraction ceiling (previously T-14, "no API mechanism works") is now
-  surmounted — the API still can't extract, but a host-side shell `unzip` run by
+  surmounted — the API still can't extract, but a host-side shell `tar` run by
   CRON can**, and cron shell execution is already proven on this account: the
   daily backup (`scripts/host-backup-dump.sh`) runs `sqlite3`/`tar`/`cp` via
   cPanel → Cron Jobs. So the last manual link (Extract in File Manager) moves
   from a human to a 2-minute cron.
-- **Built this session, each counter-proved:**
+- **Built, each counter-proved:**
   1. `scripts/host-extract.sh` — the cron extractor. Finds the newest
-     `frontend-*.zip` in `public_html`, `unzip -o`s it, proves `index.html`
-     landed, deletes every archive, logs to `~/shikkha24-deploy/extract.log`, and
-     writes a **heartbeat** (`extract-heartbeat.txt`) *only after* confirming
-     `unzip` exists. Counter-proved by `scripts/verify-host-extract.mjs`
-     (22 checks): fails loud + touches nothing when `unzip` is absent; never
-     trusts a lying `unzip` (exit 0, writes nothing); writes **no** heartbeat
-     when it cannot extract.
-  2. `scripts/deploy-static.mjs` — the CI handoff. When the API extract no-ops,
-     CI reads the heartbeat: **fresh → it waits (polling the *site*, not the API)
-     for a page that is new in this build to return 200, and goes green only
-     then; stale/absent → it fails loud exactly as before** (the T-15 guard is
-     preserved verbatim). Counter-proved in `scripts/verify-cpanel-deploy.mjs`
-     section 10c (6 checks, suite now 85): the whole cron branch was disabled and
-     the "goes green" check went **red**, proving it is not vacuous.
+     `frontend-*.tar.gz` in `public_html`, waits for the upload size to settle
+     (20s, the same guard almarsus's watcher uses), `tar -xzf`s it, proves
+     `index.html` landed, deletes every archive, logs to
+     `~/shikkha24-deploy/extract.log`, and writes a **heartbeat**
+     (`extract-heartbeat.txt`) *only after* confirming `tar` exists. Counter-proved
+     by `scripts/verify-host-extract.mjs` (22 checks): fails loud + touches nothing
+     when `tar` is absent; never trusts a lying `tar` (exit 0, writes nothing);
+     writes **no** heartbeat when it cannot extract; skips a still-uploading
+     archive rather than extracting a half-written one.
+  2. `scripts/deploy-static.mjs` — the CI handoff. Packs `frontend-<run>.tar.gz`
+     with `tar -czf` (was `zip`) and uploads it under a per-run name. When the API
+     extract no-ops, CI reads the heartbeat: **fresh → it waits (polling the
+     *site*, not the API) for a page that is new in this build to return 200, and
+     goes green only then; stale/absent → it fails loud exactly as before** (the
+     T-15 guard is preserved verbatim). Counter-proved in
+     `scripts/verify-cpanel-deploy.mjs` section 10c (the "goes green" check went
+     **red** when the branch was disabled, proving it is not vacuous).
+  3. **`verify-cpanel-deploy.mjs` §10d — the CI↔cron name contract (new,
+     7 checks).** CI and the cron are two files that never meet at runtime; the
+     *only* thing connecting them is the archive filename. A prior session
+     converted the cron half to `tar`/`.tar.gz` and left CI emitting `.zip` — a
+     total publishing outage that all 85 existing checks certified as healthy,
+     because none of them compared the two halves. §10d reads both files at the
+     strings that decide it and asserts they agree. **Counter-proved in both
+     directions:** reverting CI to `.zip` → 91 pass / **1 fail** naming the
+     mismatch; reverting the cron to `unzip`/`.zip` → 89 pass / **3 fail**
+     (glob mismatch, wrong extractor, stale `unzip`). Suite is now **92 checks**.
 - **Why this is fail-safe and not the T-15 bug again.** The handoff is gated on
   *evidence* (a fresh heartbeat the cron writes only when it can extract), and CI
   verifies the *reader-visible end state*, not the mechanism. A host with no
-  `unzip` never heartbeats, so CI falls straight through to today's loud failure.
+  `tar` never heartbeats, so CI falls straight through to today's loud failure.
   The automation is **inert until the cron genuinely works** — it cannot ship a
   green deploy on a stale site.
 - **⚠️ The two things only the owner can do (I cannot — no SSH):**
-  1. **Verify `unzip` on the host.** In cPanel Terminal, or a one-off cron running
-     `/bin/sh -c 'command -v unzip && unzip -v | head -1; touch ~/public_html/.w && rm ~/public_html/.w && echo WRITABLE'`
-     — read the result. If `unzip` is missing, this whole approach is dead and
-     the honest scope reverts to T-15's one-step manual extract.
-  2. **Install the cron** (once `unzip` is confirmed): upload `host-extract.sh`
+  1. **Confirm `tar` on the host.** In cPanel Terminal, or a one-off cron running
+     `/bin/sh -c 'command -v tar && tar --version | head -1; touch ~/public_html/.w && rm ~/public_html/.w && echo WRITABLE'`
+     — read the result. This is near-certain (the backup cron already runs
+     `tar -czf` on this account, and almarsus.com extracts with `tar -xzf`), but
+     confirm it. If `tar` is somehow missing, this approach is dead and the
+     honest scope reverts to T-15's one-step manual extract.
+  2. **Install the cron** (once `tar` is confirmed): upload `host-extract.sh`
      to `~/bin/` as `shikkha24-extract.sh`, then cPanel → Cron Jobs → every 2 min:
      `/bin/sh /home/shikkhac/bin/shikkha24-extract.sh`. (`/bin/sh` reads the file,
      so no execute bit is needed.) Read `~/shikkha24-deploy/extract.log` to
@@ -174,6 +199,10 @@ not know about it.
   completely automatic — trigger a build and deployment on every push, handle
   the pipeline end-to-end without manual steps, ensure reliability: error
   handling, rollbacks, failure cases."*
+- **⚠️ Pre-existing, unrelated failure:** `verify:prayer-times` fails (Asr drifts
+  ~3–4 min from the independent Hanafi value in 5 cities) on committed HEAD too —
+  an owner decision on the prayer method, not a deploy issue. It aborts
+  `pnpm verify` before the deploy gates, so those must be run by name.
 
 ### T-01 — CMS admin rejects all edits, uploads and creates
 - **Status:** `todo` (root cause found; fix needs an owner decision) · 🔴 production

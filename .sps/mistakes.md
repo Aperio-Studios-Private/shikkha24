@@ -304,3 +304,51 @@ Each entry is a mistake that was actually made in this repository, with the rule
   Local repro before: `exit null` after 60s (killed). After: `exit 0` in 0.6s, with
   all 79 checks unchanged. All three deploy-verification suites now exit: 79 + 47 +
   10 = 136 checks.
+
+---
+
+## M33 — 92 checks passed while the two halves of the deploy disagreed (2026-10-13)
+
+- **What happened.** The T-17 cron extractor was switched from `unzip`/`.zip` to
+  `tar`/`.tar.gz`. The **host half** (`scripts/host-extract.sh`) and its harness
+  (`verify-host-extract.mjs`, 22 checks, all green) were converted. The **CI half**
+  (`scripts/deploy-static.mjs`) was not — it still packed and uploaded
+  `frontend-<run>.zip`. The two files never meet at runtime; the *only* thing
+  connecting them is the archive filename. The cron's `frontend-*.tar.gz` glob
+  matched nothing CI would ever produce, so **no build could have published at
+  all**, and `verify:cpanel-deploy` reported **85 passed, 0 failed** through the
+  entire outage.
+- **Why it mattered.** This is the total-publishing-outage version of Trap 4 in
+  `.sps/loop.md` ("a fix applied to one twin and not the other"). `9471e5a` gave
+  the *static* deploy a per-run archive name and the *CMS* deploy kept the fixed
+  one and blocked itself four hours later — same shape, lower stakes. Here the
+  twins are the uploader and the extractor, and the symptom would have been a
+  green CI beside a site that never updated, i.e. T-15 again, but now with the
+  automation falsely claiming to have fixed it.
+- **Why nothing caught it.** Every existing check verified *one* file at a time.
+  `verify-host-extract` proves the extractor behaves on a tar.gz it is handed;
+  `verify:cpanel-deploy` proves CI packs *something* and the handoff logic works.
+  Neither asks the question that broke: **does the name CI writes match the glob
+  the cron reads?** A suite organised per-file cannot see a contract that spans
+  files. The green was not wrong about what it measured; it measured the wrong
+  unit.
+- **The metric that failed to catch it.** `verify:cpanel-deploy` → "85 passed,
+  0 failed". True, and silent on the only coupling in the feature.
+- **Fix.** New section 10d in `verify-cpanel-deploy.mjs` (7 checks): it reads both
+  files at the exact strings that decide the contract — the cron's `ls -1t
+  "$DOCROOT"/frontend-*.<ext>` glob and its `tar -xzf`, CI's `const archiveName`
+  and its `tar -czf` — and asserts they agree. Each side is read out of the file
+  that ships it rather than restated, so the check fails the day either half
+  drifts.
+- **Counter-proof, both directions — this is the load-bearing part.**
+  - Revert CI to `.zip`, cron on `tar.gz` → **91 passed, 1 failed**: "the cron's
+    frontend-*.tar.gz glob matches CI's frontend-<run>.zip name".
+  - Revert the cron to `unzip`/`.zip`, CI on `tar.gz` → **89 passed, 3 failed**:
+    the glob mismatch, "the cron expands it with tar -xzf", and "no unzip
+    expansion remains in the host extractor".
+  - Both restored → **92 passed, 0 failed**.
+- **Rule this teaches.** **When two files are coupled by a literal that no code
+  path connects — a filename, a header name, an env var, a magic constant — the
+  assertion on that literal is a single asset spanning both files, and it belongs
+  in the harness as one check that reads both sources.** Per-file checks certify
+  each half and say nothing about the seam. The contract is the asset.

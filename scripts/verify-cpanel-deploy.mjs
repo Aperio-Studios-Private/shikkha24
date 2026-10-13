@@ -974,7 +974,7 @@ async function main() {
     const output = await runLive(server)
     check(
       'a live run against the fake host completes',
-      !/SyntaxError|Cannot read properties|the `zip` command is not installed/.test(output),
+      !/SyntaxError|Cannot read properties|the `tar` command is not installed/.test(output),
       output.slice(0, 300),
     )
 
@@ -995,16 +995,19 @@ async function main() {
      * per-run name it lands. (Two consecutive clean runs would NOT have caught it —
      * each deletes its own archive, so there is nothing left to collide with.)
      */
-    const blocked = await startFakeCpanel({ uapiExtract: false, seedUploads: ['frontend.zip'] })
+    const blocked = await startFakeCpanel({
+      uapiExtract: false,
+      seedUploads: ['frontend.tar.gz'],
+    })
     const blockedOutput = await runLive(blocked)
     check(
-      'a live run succeeds even though an earlier run left frontend.zip behind',
+      'a live run succeeds even though an earlier run left frontend.tar.gz behind',
       !/already exists/.test(blockedOutput),
       blockedOutput.slice(-300),
     )
     check(
       'and it uploaded under a per-run name instead of the colliding one',
-      /frontend-\d+\.zip/.test(blockedOutput) || !/already exists/.test(blockedOutput),
+      /frontend-\d+\.tar\.gz/.test(blockedOutput) || !/already exists/.test(blockedOutput),
       blockedOutput.slice(-200),
     )
     await blocked.close()
@@ -1386,7 +1389,74 @@ async function main() {
     }
   }
 
-  console.log('\n11. The dry-run detector is not itself broken (negative control)')
+  console.log('\n10d. ⚠️ CI and the host cron agree on the archive name and format')
+  {
+    // The deploy is split across two files that never meet at runtime:
+    // `deploy-static.mjs` (CI) uploads an archive, and `host-extract.sh` (a host
+    // cron) globs for it and expands it. Nothing connects them but the filename,
+    // so a change to one half is invisible to the other — and to every other
+    // check in this file, which is why 85 passed while the two halves disagreed.
+    //
+    // This happened: the extractor was switched from `unzip`/`.zip` to
+    // `tar`/`.tar.gz` and the CI half was left emitting `.zip`. The cron glob
+    // `frontend-*.tar.gz` then matched nothing, so no build could ever publish —
+    // a total outage that every existing check certified as healthy.
+    //
+    // The contract is therefore asserted statically, from both files, at the
+    // exact strings that decide it. Each side is read out of the file that ships
+    // it rather than restated here, so this check fails the day either half drifts
+    // — including by a partial edit that touches only one of the two.
+    const extractSrc = readFileSync(join(scriptDir, 'host-extract.sh'), 'utf8')
+    const deploySrc = readFileSync(join(scriptDir, 'deploy-static.mjs'), 'utf8')
+
+    // What the cron looks for, and the tool it expands with.
+    const cronGlob = extractSrc.match(/ls -1t "\$DOCROOT"\/(frontend-\*\.[a-z0-9.]+)/)
+    const cronTool = extractSrc.match(/^tar -xzf/m)
+    check('the cron extractor globs a frontend-* archive', !!cronGlob, extractSrc)
+    check('the cron expands it with tar -xzf', !!cronTool, extractSrc)
+
+    // What CI uploads, and the tool it packs with.
+    const ciName = deploySrc.match(/const archiveName = `(frontend-\$\{runId\}\.[a-z0-9.]+)`/)
+    check('CI names a per-run frontend-* archive', !!ciName, deploySrc)
+    check(
+      'CI packs the archive with tar -czf (not zip)',
+      /execFileSync\('tar', \['-czf'/.test(deploySrc),
+      deploySrc,
+    )
+
+    // The contract itself. Both extensions are pulled out of the files that own
+    // them, so this is a comparison of two shipped facts rather than of a fact
+    // and a restatement of itself.
+    if (cronGlob && ciName) {
+      const cronExt = cronGlob[1].replace('frontend-*.', '')
+      const ciExt = ciName[1].replace('frontend-${runId}.', '')
+      check(
+        `the cron's frontend-*.${cronExt} glob matches CI's frontend-<run>.${ciExt} name`,
+        cronExt === ciExt,
+        `cron globs frontend-*.${cronExt}; CI uploads frontend-<run>.${ciExt}`,
+      )
+    }
+
+    // And the inverse, because a check that only reads the happy direction is the
+    // trap this section exists to close: the *packer* and the *extractor* must be
+    // the same format too. A CI that ships `.zip` while the cron runs `tar` fails
+    // just as hard, and the name check above does not see it. The deliberate
+    // `frontend.zip` literal inside the cleanup sweep is excluded — it is there to
+    // remove archives from *older* deploys, not to create one.
+    const staleSweepRemoved = deploySrc.replace(/for \(const stale of \[[^\]]*\]\)/, '')
+    check(
+      'no zip packing remains in the CI deploy (the format the cron no longer reads)',
+      !/execFileSync\('zip'/.test(deploySrc) &&
+        !/"\.\.\/frontend\.zip"|'frontend\.zip'/.test(staleSweepRemoved),
+      'a zip pack call or a bare frontend.zip literal would never be expanded by the tar cron',
+    )
+    check(
+      'no unzip expansion remains in the host extractor',
+      !/unzip -o/.test(extractSrc),
+      'unzip -o would fail on a .tar.gz the CI half produces',
+    )
+  }
+
   {
     // A check that has never been seen to fail is not evidence. Section 4 asserts
     // "zero mutating calls reached the server" — this proves that assertion can

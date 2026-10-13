@@ -8,7 +8,7 @@
  * what is no longer built, never clobber the one file an operator may be
  * hotfixing — and gets them from three different mechanisms:
  *
- *   transfer  upload a zip, extract it          (cPanel Fileman)
+ *   transfer  upload a .tar.gz, extract it    (cPanel Fileman + host cron)
  *   delete    manifest-driven, see deploy-manifest.mjs
  *   preserve  `.htaccess` is never recorded, so no delete set can contain it
  *
@@ -20,14 +20,14 @@
  *
  * ## The probe
  *
- * `Fileman::fileop op=extract` has no destination, so using it means the zip
+ * `Fileman::fileop op=extract` has no destination, so using it means the archive
  * must sit inside `public_html` — publicly downloadable at a guessable URL
  * until it is deleted. Whether this host also offers `Fileman::extract_files`,
  * which takes a destination, could not be confirmed from cPanel's docs.
  *
  * So it is not assumed: a one-file archive is uploaded to the staging directory
- * and extracted before anything real happens. If the call works the zip never
- * enters the docroot and the probe artefact is removed. If it does not, the
+ * and extracted before anything real happens. If the call works the archive
+ * never enters the docroot and the probe artefact is removed. If it does not, the
  * run falls back to the in-docroot path and says so in the summary. One live
  * run settles it against the actual cPanel version, and the answer is written
  * to the CI summary rather than buried in a log.
@@ -61,24 +61,29 @@ const SITE_URL = process.env.SITE_URL ?? 'https://shikkha24.com'
 const say = (message) => console.log(message)
 
 /**
- * Zip a directory, failing clearly if `zip` is unavailable.
+ * Tar+gzip a directory, failing clearly if `tar` is unavailable.
  *
- * cPanel's extract handles zip only, and Node has no zip in its standard
- * library, so the system tool is the dependency. Its absence must be a clear
- * error rather than a confusing "no such file" from cPanel later.
+ * The host-side cron extractor expands this with `tar -xzf`, so the archive is
+ * built with the same tool that reads it — one format, one dependency, and it is
+ * a dependency already proven on this account: the daily backup runs `tar -czf`
+ * and the live almarsus.com deploy extracts with `tar -xzf` over cPanel cron.
+ * (`zip`/`unzip` were the original choice, but `unzip` was never verified on the
+ * host, whereas `tar` is demonstrated twice over.)
  *
- * @param {string} dir Directory whose contents should be zipped.
- * @param {string} out Absolute path of the .zip to write.
+ * @param {string} dir Directory whose contents should be archived.
+ * @param {string} out Absolute path of the .tar.gz to write.
  * @returns {string} `out`.
  */
-function zipDirectory(dir, out) {
+function packTarGz(dir, out) {
   try {
-    execFileSync('zip', ['-rq', out, '.'], { cwd: dir, stdio: 'pipe' })
+    // `-C dir .` archives the directory's *contents*, so the extract lands
+    // directly in the docroot rather than under a nested `./dist/`.
+    execFileSync('tar', ['-czf', out, '-C', dir, '.'], { stdio: 'pipe' })
   } catch (error) {
     if (error.code === 'ENOENT') {
-      throw new Error('the `zip` command is not installed on this runner')
+      throw new Error('the `tar` command is not installed on this runner')
     }
-    throw new Error(`zip failed: ${error.stderr?.toString().trim() ?? error.message}`)
+    throw new Error(`tar failed: ${error.stderr?.toString().trim() ?? error.message}`)
   }
   return out
 }
@@ -93,7 +98,7 @@ function zipDirectory(dir, out) {
  * something did. `extractArchive` falls through from a missing UAPI function to
  * the no-destination `fileop` on purpose, and both return without throwing — so
  * a probe that only checked for an exception reported "destination supported"
- * on a host that has no destination support at all. The zip was then staged
+ * on a host that has no destination support at all. The archive was then staged
  * outside the docroot where `fileop` cannot reach it, and the deploy reported
  * success while extracting to the wrong place. The mechanism is returned, not
  * swallowed.
@@ -139,9 +144,9 @@ async function verifyLive() {
  * Is the host-side cron extractor alive AND able to publish?
  *
  * The cron (`scripts/host-extract.sh`) writes `extract-heartbeat.txt` only
- * *after* it has confirmed `unzip` exists — so a fresh timestamp means "the cron
+ * *after* it has confirmed `tar` exists — so a fresh timestamp means "the cron
  * ran recently and could extract", never merely "the cron ran". A host with no
- * `unzip` never writes a heartbeat, which is exactly why this gate is safe: an
+ * `tar` never writes a heartbeat, which is exactly why this gate is safe: an
  * absent, unparseable or stale heartbeat all mean "do not rely on the cron", and
  * the deploy falls through to the loud failure rather than trusting it.
  *
@@ -271,26 +276,26 @@ async function main() {
   }
 
   const work = mkdtempSync(join(tmpdir(), 'shikkha24-deploy-'))
-  const zip = zipDirectory(DIST, join(work, 'frontend.zip'))
+  const archive = packTarGz(DIST, join(work, 'frontend.tar.gz'))
 
   // One identifier for every artefact this run puts on the host.
   const runId = process.env.GITHUB_RUN_ID ?? 'local'
-  const probeName = `probe-${runId}.zip`
+  const probeName = `probe-${runId}.tar.gz`
   writeFileSync(join(work, 'probe.txt'), 'probe')
-  execFileSync('zip', ['-q', join(work, probeName), join(work, 'probe.txt')])
+  execFileSync('tar', ['-czf', join(work, probeName), '-C', work, 'probe.txt'])
   await uploadFile(cfg, STAGING, join(work, probeName), probeName)
   const hasDestination = await supportsDestination(cfg, probeName)
   say(
     hasDestination
-      ? 'Host supports a destination directory — zip stays out of the docroot.'
-      : 'Host has no destination parameter — zip is staged inside the docroot and removed after extract.',
+      ? 'Host supports a destination directory — archive stays out of the docroot.'
+      : 'Host has no destination parameter — archive is staged inside the docroot and removed after extract.',
   )
 
   const target = hasDestination ? STAGING : DOCROOT
   // ⚠️ **A per-run name, and this is load-bearing.** `Fileman::upload_files` on this
   // host does NOT overwrite. An upload whose name already exists fails outright:
   //
-  //     The file “frontend.zip” you uploaded already exists.      succeeded: 0, failed: 1
+  //     The file “frontend.tar.gz” you uploaded already exists.      succeeded: 0, failed: 1
   //
   // A fixed name therefore makes the deploy **self-blocking**: the archive is only
   // removed *after* the extract, so any run that dies between upload and cleanup —
@@ -300,12 +305,12 @@ async function main() {
   // failed run had left behind. A per-run name makes the collision impossible,
   // which removes the dependency on that delete having succeeded — and matches how
   // the probe archive has always been named.
-  const zipName = `frontend-${runId}.zip`
-  const remoteZip = await uploadFile(cfg, target, zip, zipName)
+  const archiveName = `frontend-${runId}.tar.gz`
+  const remoteArchive = await uploadFile(cfg, target, archive, archiveName)
   // The destination is the docroot either way. Only the *source* of the archive
-  // differs: with a destination parameter the zip stays in staging, without one
+  // differs: with a destination parameter the archive stays in staging, without one
   // it must already be inside the docroot for `fileop` to expand it.
-  const { via } = await extractArchive(cfg, remoteZip, DOCROOT)
+  const { via } = await extractArchive(cfg, remoteArchive, DOCROOT)
   say(`Extracted via ${via}.`)
 
   // The archive is removed only once the extract is confirmed below.
@@ -313,11 +318,15 @@ async function main() {
   // Best-effort sweep of the fixed-name archive older deploys wrote, which the
   // per-run name above will never clean up. It is a stale copy of the built site
   // sitting at a guessable public URL, so it should not outlive its deploy. Absent
-  // is the normal case from here on and must not fail the run.
-  try {
-    await deletePath(cfg, `${DOCROOT}/frontend.zip`)
-  } catch {
-    // Nothing to remove.
+  // is the normal case from here on and must not fail the run. Both the old `.zip`
+  // and the brief `.tar.gz` fixed name are swept, so nothing predating the
+  // per-run naming lingers.
+  for (const stale of ['frontend.zip', 'frontend.tar.gz']) {
+    try {
+      await deletePath(cfg, `${DOCROOT}/${stale}`)
+    } catch {
+      // Nothing to remove.
+    }
   }
 
   // ⚠️ `.htaccess` is written explicitly, not left to the extract.
@@ -391,11 +400,11 @@ async function main() {
     // host-side cron (`scripts/host-extract.sh`) is what actually publishes the
     // build. So instead of failing immediately, CI asks one question: is that
     // cron alive and able to extract? The answer comes only from a *fresh
-    // heartbeat*, which the cron writes after confirming `unzip` exists. If it
+    // heartbeat*, which the cron writes after confirming `tar` exists. If it
     // is fresh, CI waits for the cron to publish a page that is new in this
     // build and goes green the moment a reader could actually see it. If the
     // heartbeat is absent, stale or unparseable — including a host with no
-    // `unzip`, which never heartbeats — CI falls straight through to the loud
+    // `tar`, which never heartbeats — CI falls straight through to the loud
     // failure below, unchanged. That is what keeps this fail-safe: the
     // automation is inert until the cron is genuinely working, and it can never
     // report a green deploy on a stale site.
@@ -416,7 +425,7 @@ async function main() {
         `Extraction reported success via ${via}, but ${probe} is not on the host.\n` +
           `  ${via === 'api2-fileop' ? 'This host answers fileop op=extract with success and writes nothing — a known and measured behaviour, not a transient failure.' : 'The extract reported a different mechanism, so treat this as a real extraction failure.'}\n` +
           '  No live cron extractor answered either (see scripts/host-extract.sh and the extract-heartbeat.txt it writes).\n' +
-          `  The archive is still on the host at ${target}/${zipName}. Extract it by hand in cPanel File Manager into ${DOCROOT}, overwriting everything.\n` +
+          `  The archive is still on the host at ${target}/${archiveName}. Extract it by hand in cPanel File Manager into ${DOCROOT}, overwriting everything.\n` +
           '  Nothing was rolled back: the deletions above were correct for the files this run replaced.',
       )
     }
@@ -429,16 +438,16 @@ async function main() {
   // that would have recovered the site.
   //
   // Only the no-destination fallback leaves an archive in the docroot; with a
-  // destination the zip was staged in STAGING and this is a no-op.
+  // destination the archive was staged in STAGING and this is a no-op.
   //
   // ⚠️ When the cron published the build, the archive is the cron's to remove —
-  // it deletes every `frontend-*.zip` once it has extracted them (step 5 of
+  // it deletes every `frontend-*.tar.gz` once it has extracted them (step 6 of
   // host-extract.sh). Removing it here as well would only race the cron over a
   // file it already owns; a no-op delete on a missing file must not fail a
   // deploy that has otherwise succeeded.
   if (!hasDestination && !handedToCron) {
     try {
-      await deletePath(cfg, `${DOCROOT}/${zipName}`)
+      await deletePath(cfg, `${DOCROOT}/${archiveName}`)
     } catch {
       // Already gone — nothing to remove.
     }

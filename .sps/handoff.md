@@ -42,6 +42,65 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
 
 ## Current Phase
 
+> **Session 2026-10-13.** The owner pointed at a sibling project already deployed
+> on DianaHost — **`al-marsus` / almarsus.com** (repo
+> `SHAHID8142/AI-Marsus2026-Final-Production`, at `/Volumes/SSD/CODES/al-marsus`) —
+> and asked me to learn from how it deploys. That changed T-17's mechanism for the
+> better, and the work this session is recorded below. **Read T-17 in
+> `.sps/tasks.md` first**; T-15 (the unpublished edit) is unchanged and still
+> blocked on the same host action.
+
+**What almarsus.com proved, and why it matters here.** Its deploy is a working
+blueprint for the exact thing T-17 was guessing at:
+- **Extraction is a solved problem via cron `tar`.**
+  `scripts/diana-deploy-watcher-prod.sh` runs **every minute** on the same cPanel
+  account and expands a `.tar.gz` with `tar -xzf`. It waits for the upload size to
+  settle across 20s, holds a `mkdir` lock, extracts, touches a restart marker, and
+  logs. **This retires T-17's only open unknown** — `unzip` was never verified on
+  the host, but `tar` is demonstrated twice: almarsus's extractor *and* our own
+  backup cron's `tar -czf`.
+- **FTPS on port 21 is the transport that works.**
+  `diana-prod.yml` uploads via `SamKirkland/FTP-Deploy-Action@v4.4.0`,
+  `protocol: ftps, port: 21`, to an FTP account **scoped to `~/almarsus.com`** so
+  it cannot reach other sites. The handoff already proved port 21 open on our host
+  (Pure-FTPd). CI deploys here still use the cPanel HTTPS API, which uploads fine —
+  the break was always extraction, not transfer.
+- **The entry point and port it uses.** Passenger app, app root
+  `~/almarsus.com/deploy`, startup file `server.js` whose body is just
+  `require('./.next/standalone/server.js')`; the port comes from `PORT`, default
+  **3000**. That is how the al-marsus Next app is served on DianaHost.
+
+**What changed in this repo this session (T-17):**
+- **Extractor switched `unzip`/`.zip` → `tar`/`.tar.gz`** in
+  `scripts/host-extract.sh`, and gained a settle wait so it never extracts a
+  half-uploaded archive. `verify-host-extract.mjs` (22 checks) converted with it.
+- **`scripts/deploy-static.mjs` converted to match** — it now packs
+  `frontend-<run>.tar.gz` with `tar -czf`. **This half was missing** when I
+  started; the two files disagreed, no build could publish, and every check was
+  green (see M33).
+- **🆕 M33 — the lesson, and it is the reusable part.** Two files coupled only by a
+  filename literal; per-file checks certified each half and said nothing about the
+  seam. **New §10d in `verify-cpanel-deploy.mjs` (7 checks) reads both files and
+  asserts the contract.** Counter-proved both directions: CI→`.zip` gives 91/1;
+  cron→`unzip` gives 89/3; both correct gives **92/0**. Recorded in
+  `.sps/mistakes.md`.
+- **Docs brought to parity** (rule 13): `docs/hosting-and-deployment.md` §4.2.3 and
+  `docs/deployment-runbook.md` §2 now describe `tar`/`.tar.gz` and the new check.
+
+**Gate evidence this session:** `verify:host-extract` 22/22, `verify:cpanel-deploy`
+**92/92** (was 85), `verify:deploy-mode`, `verify:deploy-inputs`, `verify:backup`,
+`verify:workflows` all OK, plus `lint` (0 errors) and `typecheck`. ⚠️
+`verify:prayer-times` fails (**pre-existing, unrelated** — Asr drifts ~3–4 min in 5
+cities; confirmed identical on committed HEAD; it is an owner decision on the
+prayer method). It aborts the aggregate `pnpm verify` early, so run the deploy
+gates by name.
+
+**Unchanged and still open:** T-15's edit is **still not published**; T-17 stays
+**inert** until the owner confirms `tar` and installs the 2-minute cron; T-16 (the
+feature audit) is still queued behind them.
+
+---
+
 > **Session 2026-10-12 (ended ~09:15 UTC by owner request).** The owner reported
 > CMS edits not appearing on the live site. That is **T-15**, and it is the thing
 > to read first. It is `blocked` on the host, not on the code. Three new tasks
@@ -88,21 +147,23 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
   60s to `exit 0` in **0.6s**, 79/79 checks unchanged. **The lesson is now in
   `.sps/mistakes.md` M32** — a suite that cannot exit is not a passing suite, and
   on a timed runner it is aimed at the job it gates.
-- **🟠 T-17 (auto push-to-deploy) — CODE BUILT & COUNTER-PROVED this session
-  (2026-10-12, owner-approved).** The extraction ceiling that blocked it (T-14,
-  "no host API can extract") is now **surmounted by a different mechanism**: a
-  host-side shell `unzip` run by **cron** — and cron shell execution is already
-  proven on this account (the daily backup runs `sqlite3`/`tar` via cPanel → Cron
-  Jobs). Built: `scripts/host-extract.sh` (the cron extractor + a heartbeat it
-  writes *only after* confirming `unzip`) and the `deploy-static.mjs` handoff
-  (when the API extract no-ops, CI trusts a **fresh heartbeat** and waits —
-  polling the *site*, not the API — for a page new in this build to return 200,
+- **🟠 T-17 (auto push-to-deploy) — CODE BUILT & COUNTER-PROVED (owner-approved;
+  mechanism upgraded to `tar` 2026-10-13, see the session block above).** The
+  extraction ceiling that blocked it (T-14, "no host API can extract") is
+  **surmounted by a different mechanism**: a host-side shell `tar` run by **cron**
+  — proven on this account by the live almarsus.com watcher (`tar -xzf` every
+  minute) and by our own backup cron. Built: `scripts/host-extract.sh` (the cron
+  extractor + a heartbeat it writes *only after* confirming `tar`) and the
+  `deploy-static.mjs` handoff (when the API extract no-ops, CI trusts a **fresh
+  heartbeat** and waits — polling the *site*, not the API — for a page new in this
+  build to return 200,
   going green only then; **no fresh heartbeat → fails loud exactly as before**,
   so the T-15 guard survives and the feature is **inert until the cron genuinely
-  works**). Counter-proved: `verify-host-extract.mjs` (22 checks) and
-  `verify-cpanel-deploy.mjs` §10c (suite now 85); disabling the cron branch turns
-  the "goes green" check **red**, so it is not vacuous.
-  **⚠️ Two owner actions I cannot do (no SSH): (1) confirm `unzip` exists on the
+  works**). Counter-proved: `verify-host-extract.mjs` (22 checks),
+  `verify-cpanel-deploy.mjs` §10c (disabling the cron branch turns the "goes
+  green" check **red**), and **§10d (the new CI↔cron name contract, 7 checks —
+  the addition that M33 forced; suite now 92)**.
+  **⚠️ Two owner actions I cannot do (no SSH): (1) confirm `tar` exists on the
   host; (2) install the 2-minute cron.** Full steps are in the T-17 block in
   `.sps/tasks.md`. Until both are done, the site still needs T-15's one-step
   manual extract.

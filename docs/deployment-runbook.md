@@ -140,9 +140,10 @@ build and reports success can still leave the site stale — that is exactly the
 now close that gap, and both are built and counter-proved:
 
 - **`scripts/host-extract.sh`** runs on the host every 2 minutes via cPanel → Cron Jobs. It finds the
-  newest `frontend-*.zip` in `public_html`, `unzip -o`s it, proves `index.html` landed, and deletes
-  the archives. It logs to `~/shikkha24-deploy/extract.log` and writes a heartbeat
-  (`extract-heartbeat.txt`) **only after** it confirms `unzip` exists.
+  newest `frontend-*.tar.gz` in `public_html`, waits for the upload's size to settle, `tar -xzf`s it,
+  proves `index.html` landed, and deletes the archives. It logs to
+  `~/shikkha24-deploy/extract.log` and writes a heartbeat (`extract-heartbeat.txt`) **only after** it
+  confirms `tar` exists.
 - **`deploy-static.mjs`** reads that heartbeat. If it is fresh, CI waits for the cron to publish a
   page that is new in this build and goes green only once a reader could actually see it. If there is
   **no fresh heartbeat, CI fails loud and tells you to extract by hand** — the automation never
@@ -152,11 +153,11 @@ So the end-to-end publish is: **editor clicks Publish → CMS webhook → CI bui
 2-minute cron extracts → the change is live.** No manual step — *once the cron is installed.*
 
 **If the cron is not installed yet (the current state), the deploy still needs one manual step:**
-extract the newest `frontend-<run>.zip` in cPanel → File Manager into `public_html`, overwriting,
-then delete the zip. The CI run will have failed loudly and named the exact archive. **To retire that
-step for good, do the two owner setup actions in `docs/hosting-and-deployment.md` §4.2.3** — confirm
-`unzip` on the host, then install the 2-minute cron — and set `DEPLOY_WEBHOOK_URL` + `AUTO_DEPLOY=live`
-in GitHub.
+extract the newest `frontend-<run>.tar.gz` in cPanel → File Manager into `public_html`, overwriting,
+then delete the archive. The CI run will have failed loudly and named the exact archive. **To retire
+that step for good, do the two owner setup actions in `docs/hosting-and-deployment.md` §4.2.3** —
+confirm `tar` on the host, then install the 2-minute cron — and set `DEPLOY_WEBHOOK_URL` +
+`AUTO_DEPLOY=live` in GitHub.
 
 ---
 
