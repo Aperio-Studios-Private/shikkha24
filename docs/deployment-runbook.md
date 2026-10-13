@@ -152,12 +152,23 @@ now close that gap, and both are built and counter-proved:
 So the end-to-end publish is: **editor clicks Publish → CMS webhook → CI builds + uploads → the
 2-minute cron extracts → the change is live.** No manual step — *once the cron is installed.*
 
-**If the cron is not installed yet (the current state), the deploy still needs one manual step:**
+> 🔴 **2026-10-13 — the cron cannot be installed yet. This section describes the intended design,
+> not a working path.** The owner installed the cron and uploaded `shikkha24-extract.sh`; **no
+> `extract.log` was ever created**, and a builtin-only probe that needs no `fork()` produced no
+> file either. Nothing under our control executed. The account cannot reliably start a process
+> from cron — every run dies at the CloudLinux process limit
+> (`jailshell: fork: Resource temporarily unavailable`). One successful cron execution *is* on
+> record (`cron-test.txt` → `Fri Oct 9 23:00:02 +06 2026`), so the account forks intermittently
+> rather than being permanently blocked — but "sometimes works" is not a publish mechanism.
+> **DianaHost ticket #0590191 (L2, Critical, open since 2026-10-04) is the sole blocker.** Until
+> it resolves, treat §2.3 as aspirational and use the manual step below.
+
+**The current state — the deploy needs one manual step:**
 extract the newest `frontend-<run>.tar.gz` in cPanel → File Manager into `public_html`, overwriting,
 then delete the archive. The CI run will have failed loudly and named the exact archive. **To retire
 that step for good, do the two owner setup actions in `docs/hosting-and-deployment.md` §4.2.3** —
 confirm `tar` on the host, then install the 2-minute cron — and set `DEPLOY_WEBHOOK_URL` +
-`AUTO_DEPLOY=live` in GitHub.
+`AUTO_DEPLOY=live` in GitHub. **Both are blocked on #0590191.**
 
 ---
 

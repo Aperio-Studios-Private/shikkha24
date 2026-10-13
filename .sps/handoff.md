@@ -50,6 +50,25 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
 > `.sps/tasks.md` first**; T-15 (the unpublished edit) is unchanged and still
 > blocked on the same host action.
 
+> 🔴 **Where things actually stand at the end of this session — everything is built,
+> nothing publishes, and the blocker is the host's, not ours.** The owner did every
+> host-side action asked: installed the 2-minute extract cron, uploaded
+> `shikkha24-extract.sh`. **No `extract.log` was ever created.** A builtin-only probe
+> (`echo` + `command -v`, chosen because it needs **no `fork()`**) produced **no file
+> at all** — so nothing under our control executed even once. The account cannot
+> reliably start a process from cron; every run dies at the CloudLinux process limit
+> (`jailshell: fork: Resource temporarily unavailable`).
+> **The one exception that matters:** the old `cron-test.txt` recovered from the host
+> holds exactly one line, `Fri Oct 9 23:00:02 +06 2026` — a real successful cron run
+> at a quiet hour. So the account forks **intermittently**, not permanently. That is
+> now the strongest evidence in **DianaHost ticket #0590191** (L2, Critical, open
+> since 2026-10-04, escalated but unresolved for 9 days) and it is the **sole** thing
+> standing between this project and automatic publishing.
+> **Consequences, plainly:** T-17 stays inert. The backup has never produced an
+> archive. **T-15's manual extract remains the only way to publish anything**, and
+> the owner's logo/favicon change is sitting in the CMS waiting on it. There is
+> nothing further to build until DianaHost answers — the next move is theirs.
+
 **What almarsus.com proved, and why it matters here.** Its deploy is a working
 blueprint for the exact thing T-17 was guessing at:
 - **Extraction is a solved problem via cron `tar` — at platform level.**

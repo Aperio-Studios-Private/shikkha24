@@ -257,6 +257,11 @@ this project does not have).
      chmod +x ~/bin/shikkha24-backup-dump.sh
      ~/bin/shikkha24-backup-dump.sh
      ```
+   ⚠️ **⚠️ As of 2026-10-13 the cPanel Terminal is disabled on this account and this step
+   cannot be performed** (DianaHost ticket #0590191, item 3). The folder creation still works
+   through File Manager (+ Folder); the `chmod` is unnecessary — `/bin/sh` *reads* the file, so
+   it runs fine at the 0644 permissions an upload lands with. Only the by-hand verification run
+   is blocked, which is exactly why re-enabling the Terminal is in the ticket.
    ⚠️ **There is deliberately no `cp` line to paste.** There is no SSH to this host, so the
    file has to arrive through File Manager, and a `cp` left here as a comment is the kind of
    instruction that gets pasted, appears to run, and silently does nothing.
@@ -266,6 +271,13 @@ this project does not have).
    If it reports that `sqlite3` is not installed, that is the one dependency it cannot work
    around: installing it (CloudLinux: `yum install sqlite`) is the fix, **not** switching to
    `cp`, which can capture a torn database.
+   ⚠️ **⚠️ Even with everything above correct, this backup has never actually run on the host.**
+   Every cron execution dies at the CloudLinux process limit —
+   `/usr/local/cpanel/bin/jailshell: fork: retry: Resource temporarily unavailable`. One
+   successful run *is* on record (`cron-test.txt` → `Fri Oct 9 23:00:02 +06 2026`), so the
+   account can fork intermittently rather than being permanently blocked, but a backup has
+   never been produced. **Do not treat this section as a working backup until #0590191 is
+   resolved and you have read a real `dump.log`.** See `docs/hosting-and-deployment.md` §4.2.3.
 3. **cPanel → Cron Jobs →** once daily. **⚠️ The hour you type is SERVER-LOCAL time, and this
    account is on Asia/Dhaka (UTC+6)** — measured, not assumed: the host's FTP banner reported
    "Local time is now 18:19" at 12:19 UTC. Type **`23:00`**:

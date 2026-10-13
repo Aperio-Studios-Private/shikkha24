@@ -171,7 +171,10 @@ DianaHost runs the CMS as a Node.js application behind Phusion Passenger via cPa
 4. Click **Restart** (not "Stop" — a stop leaves it down until you start it again)
 5. Wait 10–30 seconds for Passenger to spin up the Node process
 6. Verify: open `https://cms.shikkha24.com/admin` in a browser — the Payload login page should load
-7. If it does not load within 60 seconds, check the application logs (cPanel → **Terminal** or **Logs** section)
+7. If it does not load within 60 seconds, check the application logs (cPanel → **Logs** section)
+   ⚠️ **The cPanel Terminal was disabled on this account** (2026-10-13, DianaHost ticket #0590191),
+   so the "Terminal" route in older versions of this step no longer exists. Use the **Logs**
+   section, or the **Application Manager** log viewer.
 
 **If the restart button is not visible:**
 - The application may be managed via **Passenger App** or **Application Manager** under the
@@ -204,10 +207,17 @@ not exist on this host.
 
 - Dependency and security updates: reviewed deliberately, never auto-merged to production
 - Database maintenance: SQLite `VACUUM` occasionally; check WAL size
-- Backup verification: 🔴 **there is still no backup to restore from.** The automation was
-  built 2026-10-04 (host-cron snapshot + FTPS fetch, `pnpm verify:backup` at 47 checks) but needs
-  the owner's 4 setup steps before it runs. See `docs/backup-and-recovery.md` §6.4 — and a full
-  restore has still never been tested, which is the item that matters
+- Backup verification: 🔴 **there is still no backup to restore from, and the reason moved from
+  "setup not done" to "the account cannot start a process from cron."** The automation was
+  built 2026-10-04 (host-cron snapshot + FTPS fetch, `pnpm verify:backup` at 47 checks), but
+  every cron run dies at the CloudLinux process limit (`jailshell: fork: Resource temporarily
+  unavailable`) — so `host-backup-dump.sh` has **never produced an archive on the host**. One
+  successful cron execution is on record (`cron-test.txt` → `Fri Oct 9 23:00:02 +06 2026`),
+  which means the account forks *intermittently* rather than being permanently blocked, but that
+  is not a schedule you can rely on. **This is DianaHost ticket #0590191 (L2, Critical, open
+  since 2026-10-04) — the fix is theirs.** Until it resolves and a real `dump.log` has been read,
+  assume no backup exists, and a full restore has still never been tested, which is the item
+  that matters. See `docs/backup-and-recovery.md` §6.4.
 - Certificate renewal: automatic via DianaHost AutoSSL (Let's Encrypt via cPanel), but verify
 
 ---
