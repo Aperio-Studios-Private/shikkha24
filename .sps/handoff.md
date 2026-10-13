@@ -494,9 +494,18 @@ feature audit) is still queued behind them.
       not yet been explained by the host.
     - **Consequence:** *no* host-side scheduled automation of any kind works on this account while
       this holds — the dump is the first thing it was noticed on. Raising the CloudLinux `nPROC`
-      / LVE limit is **only possible by DianaHost**. Unverified: whether a quieter hour (the dump
-      is scheduled for 23:00 local) has enough headroom to fork; that is a hypothesis, not a
-      measurement, and it must not be relied on.
+      / LVE limit is **only possible by DianaHost**.
+    - **✅ PARTIALLY ANSWERED 2026-10-13 — the account CAN fork, but only sometimes.** The owner
+      recovered the old diagnostic file `cron-test.txt` off the host: it holds exactly **one line,
+      `Fri Oct 9 23:00:02 +06 2026`**. That is a *successful* cron execution — at 23:00:02 BDT on
+      9 October cron started a process and wrote the file. So this is **not** a permanent block;
+      the process slot is available under some conditions and not others, and the one observed
+      success was at **23:00**, exactly the quiet hour previously guessed at (see the line above,
+      which called that "a hypothesis, not a measurement" — it now has a data point behind it,
+      though one success is still a weak basis for a schedule). A fresh every-minute probe on
+      2026-10-13 produced **no file at all**, so the failure is back and is intermittent.
+      **This is now an open DianaHost ticket (#0590191, escalated to L2, Critical) — the fix is
+      theirs, not ours.**
     - **Next:** read **cPanel → Site Quality Monitoring** for live CPU/memory/**process** usage,
       and **Setup Node.js App** for a Passenger restart loop, before proposing any workaround.
   - **⚠️ 2026-10-04, found while waiting on the support ticket — an age-only prune rule would

@@ -194,7 +194,7 @@ not know about it.
      Terminal, or a one-off cron running
      `/bin/sh -c 'command -v tar && tar --version | head -1; touch ~/public_html/.w && rm ~/public_html/.w && echo WRITABLE'`
      — read the result. **Do not treat this as a formality** (M34): neither `tar`
-     nor a forking cron has ever been shown to work on the *shikkhac* account —
+     nor a forking cron had ever been shown to work on the *shikkhac* account —
      almarsus is a different account, and our backup cron has never produced an
      archive because every run dies at the CloudLinux fork limit. The fork limit
      was only checked via cPanel UAPI on 2026-10-10, never through a real cron
@@ -204,6 +204,19 @@ not know about it.
      this approach is dead and the honest scope reverts to T-15's one-step manual
      extract. If a one-off cron cannot fork, the whole cron-extract mechanism is
      blocked and the backup cron's O-1 blocker is the same blocker.
+     **⚠️ 2026-10-13 status: this is now a host ticket, not a code task.** The
+     owner installed the cron and uploaded `shikkha24-extract.sh`; **no
+     `extract.log` was ever created**. A builtin-only probe (`echo` + `command -v`
+     — chosen deliberately because it needs **no `fork()`**) produced **no file at
+     all**, so nothing under the owner's control executed. But the owner also
+     recovered the old `cron-test.txt` from the host containing one line,
+     `Fri Oct 9 23:00:02 +06 2026` — **one real successful cron run**, at 23:00,
+     a quiet hour. So the account can fork intermittently; it is a load/contention
+     condition, not a permanent block. **DianaHost ticket #0590191 (escalated to
+     L2, Critical, open since 2026-10-04) is the fix.** Until it is resolved,
+     T-17 stays inert, the backup cron cannot be trusted either, and **T-15's
+     manual extract remains the only way to publish.** Nothing further to build
+     here — the next action is DianaHost's.
   2. **Install the cron** (once `tar` is confirmed): upload `host-extract.sh`
      to `~/bin/` as `shikkha24-extract.sh`, then cPanel → Cron Jobs → every 2 min:
      `/bin/sh /home/shikkhac/bin/shikkha24-extract.sh`. (`/bin/sh` reads the file,
