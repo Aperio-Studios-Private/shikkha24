@@ -132,17 +132,28 @@ not know about it.
   (`al-marsus` / almarsus.com, repo `SHAHID8142/AI-Marsus2026-Final-Production`),
   and its deployment proves the better mechanism. Its cron watcher
   (`diana-deploy-watcher-prod.sh`) extracts a `.tar.gz` with `tar -xzf` **every
-  minute on this same cPanel account**, and its CI (`diana-prod.yml`) uploads over
-  **FTPS port 21** — so `tar` is not an assumption on this host, it is demonstrated
-  twice (almarsus's extractor and our own backup cron's `tar -czf`). `unzip`, the
-  original choice, was **never verified** and was T-17's only open unknown. The
-  switch retires that unknown rather than depending on it.
+  minute**, and its CI (`diana-prod.yml`) uploads over **FTPS port 21**. `unzip`,
+  the original choice, was **never verified** anywhere and was T-17's only open
+  unknown; `tar` is demonstrated on this platform. The switch retires that
+  unknown rather than depending on it.
+  ⚠️ **Correction 2026-10-13 (owner-raised, then verified):** almarsus is a
+  **different cPanel account** (`/home/almarsus`, not our `/home/shikkhac`), so
+  its watcher is *platform*-level evidence only — it does not prove `tar` is
+  installed on ours. And the second half of the earlier claim, "our own backup
+  cron's `tar -czf`", is false: `.sps/opencodereport.md` C3 records that
+  `host-backup-dump.sh` has **never run** on the host, and `backup-db.yml` CI is
+  still failing today (2026-10-13). So `tar` is **unverified on the shikkhac
+  account**, which is exactly why `host-extract.sh` guards with `command -v tar`
+  before touching anything. Owner action O-1 is a genuine prerequisite, not a
+  formality. See M34.
 - **How the extraction ceiling (previously T-14, "no API mechanism works") is now
   surmounted — the API still can't extract, but a host-side shell `tar` run by
-  CRON can**, and cron shell execution is already proven on this account: the
-  daily backup (`scripts/host-backup-dump.sh`) runs `sqlite3`/`tar`/`cp` via
-  cPanel → Cron Jobs. So the last manual link (Extract in File Manager) moves
-  from a human to a 2-minute cron.
+  CRON can.** So the last manual link (Extract in File Manager) moves from a
+  human to a 2-minute cron.
+  ⚠️ **Cron itself is not yet proven on this account** — the CloudLinux fork
+  limit that has blocked the backup cron since 2026-10-04 was checked on
+  2026-10-10 only through cPanel UAPI, not through a cron run. That is the larger
+  open risk to this mechanism; see handoff.
 - **Built, each counter-proved:**
   1. `scripts/host-extract.sh` — the cron extractor. Finds the newest
      `frontend-*.tar.gz` in `public_html`, waits for the upload size to settle
@@ -179,12 +190,20 @@ not know about it.
   The automation is **inert until the cron genuinely works** — it cannot ship a
   green deploy on a stale site.
 - **⚠️ The two things only the owner can do (I cannot — no SSH):**
-  1. **Confirm `tar` on the host.** In cPanel Terminal, or a one-off cron running
+  1. **Confirm `tar` on the host — and confirm cron can fork at all.** In cPanel
+     Terminal, or a one-off cron running
      `/bin/sh -c 'command -v tar && tar --version | head -1; touch ~/public_html/.w && rm ~/public_html/.w && echo WRITABLE'`
-     — read the result. This is near-certain (the backup cron already runs
-     `tar -czf` on this account, and almarsus.com extracts with `tar -xzf`), but
-     confirm it. If `tar` is somehow missing, this approach is dead and the
-     honest scope reverts to T-15's one-step manual extract.
+     — read the result. **Do not treat this as a formality** (M34): neither `tar`
+     nor a forking cron has ever been shown to work on the *shikkhac* account —
+     almarsus is a different account, and our backup cron has never produced an
+     archive because every run dies at the CloudLinux fork limit. The fork limit
+     was only checked via cPanel UAPI on 2026-10-10, never through a real cron
+     run, so **a one-off cron that runs a real command is the test that matters
+     most** — if that command's output appears in a log, both `tar` and forking
+     are settled at once. If `tar` is missing, install it (`yum install tar`) or
+     this approach is dead and the honest scope reverts to T-15's one-step manual
+     extract. If a one-off cron cannot fork, the whole cron-extract mechanism is
+     blocked and the backup cron's O-1 blocker is the same blocker.
   2. **Install the cron** (once `tar` is confirmed): upload `host-extract.sh`
      to `~/bin/` as `shikkha24-extract.sh`, then cPanel → Cron Jobs → every 2 min:
      `/bin/sh /home/shikkhac/bin/shikkha24-extract.sh`. (`/bin/sh` reads the file,

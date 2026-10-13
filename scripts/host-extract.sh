@@ -11,12 +11,20 @@
 # thing that ever published an edit was a human clicking Extract in File
 # Manager. This script is that click, automated.
 #
-# The API cannot extract; a **host-side shell `tar` run by cron can** — and `tar`
-# is not an assumption, it is *proven* on this exact account twice over: the daily
-# backup runs `tar -czf` (`host-backup-dump.sh`), and the live almarsus.com
-# deployment extracts with `tar -xzf` every minute through this same cPanel-cron
-# mechanism. Both halves of gzip-tar are already demonstrated working here —
-# unlike `unzip`, whose presence was never verified.
+# The API cannot extract; a **host-side shell `tar` run by cron can** — that is
+# proven at *platform* level by the live almarsus.com deployment, which extracts
+# with `tar -xzf` through this same cPanel-cron mechanism every minute on the
+# same DianaHost servers. That is why tar is a safer bet than `unzip`, which has
+# no such evidence anywhere on this platform.
+#
+# ⚠️ But platform-level proof is NOT proof for this account. The almarsus watcher
+# runs under `/home/almarsus` — a *different* cPanel account from our `/home/shikkhac`
+# — so it says nothing about what is installed here. And the shikkha24 backup script
+# (`host-backup-dump.sh`, which also uses `tar -czf`) has never successfully run on
+# this host (`.sps/opencodereport.md` C3), so it is not evidence either.
+# `tar` is **unverified on the shikkhac account**, which is exactly why the
+# `command -v tar` guard below exists and must stay: it makes the script fail loud
+# and name the remedy instead of silently publishing nothing.
 #
 # ## Where this runs
 #

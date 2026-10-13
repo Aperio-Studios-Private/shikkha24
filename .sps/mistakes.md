@@ -352,3 +352,57 @@ Each entry is a mistake that was actually made in this repository, with the rule
   assertion on that literal is a single asset spanning both files, and it belongs
   in the harness as one check that reads both sources.** Per-file checks certify
   each half and say nothing about the seam. The contract is the asset.
+
+---
+
+## M34 — Evidence from a different account was written as evidence for this one (2026-10-13)
+
+**Trap 2 — an asset that quietly grew** (`.sps/loop.md`): the *support* for a
+claim got stronger in my prose while the *evidence* never changed.
+
+**The defect.** Converting T-17 from `unzip` to `tar`, I needed to justify that
+`tar` exists on the host. I wrote — in four documents and two code comments, and
+in the commit message of `66feb00` — that it was *"proven on this exact cPanel
+account twice over"*, citing (a) the live almarsus.com watcher's `tar -xzf` and
+(b) our own backup cron's `tar -czf`.
+
+**Both halves were false.** The owner corrected the scope first — *"why scoped to
+`~/almarsus.com`? … that project deployed on same dianahost but are this project
+are deployed on different accounts"* — and checking it confirmed the rest:
+
+- almarsus.com runs under **`/home/almarsus`**, a **different cPanel account**
+  from our **`/home/shikkhac`**. Same DianaHost *servers/platform*, not the same
+  account. Its watcher is platform-level evidence — genuinely useful, but it
+  certifies nothing about what is installed in our jail.
+- The backup cron was **never** a second proof. `.sps/opencodereport.md` C3
+  records that `scripts/host-backup-dump.sh` **has never run** on the host —
+  every cron run dies at the CloudLinux fork limit before reaching its
+  `tar -czf` line. `backup-db.yml` CI is still failing as of 2026-10-13T01:04Z.
+
+So `tar` is proven on this account **zero times**. My docs also contradicted
+themselves: they listed "confirm `tar` exists" as an unverified owner action in
+one section while calling it proven in another.
+
+**Why this is a mistake, not a wording slip.** An owner reading "proven twice
+over" skips the `command -v tar` check as a formality. That check is the one
+thing standing between this mechanism and a silent dead cron — and the same
+unverified assumption covered a **second** unknown I had folded in: whether this
+account can fork from cron at all. The fork limit was measured only through
+cPanel UAPI (web/PHP path) on 2026-10-10, never through a cron run. Inflating one
+piece of evidence inflated my confidence in the whole mechanism.
+
+**The fix (2026-10-13, this commit).** Withdraw the claim everywhere it appears
+and replace it with the honest evidence ladder — platform-level proof from
+almarsus (real, this is why `tar` beats `unzip`), zero account-level proof, and
+`command -v tar` therefore **load-bearing** in `host-extract.sh`. The tar
+mechanism itself is unaffected and still correct; only the provenance was wrong.
+Owner action O-1 was also rewritten so the one-off cron test settles `tar`
+**and** forking in a single run, since forking is now the larger risk.
+
+**Rule this teaches.** **Test the *scope* of evidence before spending it — every
+time.** Ask not just "is this true?" but "true of *what*, and does that thing
+cover the claim I'm making?" Cross-account, cross-tenant, cross-environment and
+cross-version evidence degrades to plausibility, and plausibility is what you
+write down when you want a check skipped. A claim about a specific host must be
+traceable to a run on that host, or it must be labelled as an assumption that
+something else guards.

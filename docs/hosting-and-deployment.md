@@ -269,12 +269,31 @@ absent, `Fileman::fileop op=extract` answers success and writes nothing). For mo
 "Extract in cPanel File Manager" the one manual step on every publish — the friction behind T-15.
 
 It is now automated **without the API**, using a mechanism this host *does* support: a **host-side
-shell `tar` run by cPanel → Cron Jobs**. That is not a guess, and neither is the tool: `tar` is
-already demonstrated working on this exact account twice over — the daily backup runs
-`tar -czf` (`scripts/host-backup-dump.sh`), and the live **almarsus.com** deployment extracts its
-build with `tar -xzf` through this same cPanel-cron mechanism every minute. Both halves of gzip-tar
-are proven here. (`unzip` was the original choice, but its presence on the host was never verified —
-`tar` carries no such unknown, so the extractor switched to it.)
+shell `tar` run by cPanel → Cron Jobs**.
+
+> **The evidence for `tar`, stated honestly (corrected 2026-10-13).** Earlier drafts of this section
+> called `tar` "proven on this exact account twice over." That was wrong, and it was withdrawn after
+> both halves of it were checked:
+>
+> - **almarsus.com is a different cPanel account** (`/home/almarsus`, not our `/home/shikkhac`). Its
+>   every-minute cron genuinely does run `tar -xzf` and serves live traffic — so the mechanism works
+>   on the **DianaHost platform**, which is real and valuable evidence — but it says nothing about
+>   what is installed on *our* account.
+> - **the shikkha24 backup has never produced an archive** on the host. `.sps/opencodereport.md` C3
+>   records that `scripts/host-backup-dump.sh` has *never run* — its cron dies at the CloudLinux fork
+>   limit before reaching `tar -czf` — and the `backup-db.yml` CI runs are still failing today. So it
+>   is not evidence for this account either.
+>
+> So `tar` is **unverified on the shikkhac account**. It remains the right choice — it is the one
+> extraction tool with demonstrated platform-level success on this host, whereas `unzip` had none —
+> but the extractor does not rely on it being present: it runs `command -v tar` before touching
+> anything and dies with a message naming the remedy if it is missing (§4.2.3 owner action O-1).
+> That guard is load-bearing, not belt-and-braces.
+>
+> ⚠️ **The same caveat applies to cron itself.** The fork limit that has blocked the backup cron
+> since 2026-10-04 was checked on 2026-10-10 only through cPanel UAPI (the web/PHP path), **not**
+> through a cron run. Whether the shikkhac account can fork from cron at all is still open, and it
+> is the larger risk to this mechanism than `tar`'s presence.
 
 | Piece | File | What it does |
 |---|---|---|
@@ -291,11 +310,16 @@ until the cron is genuinely working**; it can never report a green deploy on a s
 
 **Two owner-only setup steps (the agent has no SSH):**
 
-1. **Confirm `tar` exists on the host.** cPanel Terminal, or a one-off cron:
+1. **Confirm `tar` exists on the host — and that a cron can fork at all.** cPanel Terminal, or a
+   one-off cron:
    `/bin/sh -c 'command -v tar && tar --version | head -1; touch ~/public_html/.w && rm ~/public_html/.w && echo WRITABLE'`.
-   This is near-certain — the backup cron already runs `tar -czf` on this account — but confirm it
-   the same way. If `tar` is somehow missing, this approach is dead and the honest scope reverts to
-   the one-step manual extract.
+   ⚠️ **Do not treat this as a formality.** As of 2026-10-13 neither `tar` nor a forking cron has ever
+   been shown to work on the *shikkhac* account (see the correction box above). The fork limit has
+   only ever been checked via cPanel UAPI, never through an actual cron run, so **a one-off cron whose
+   output lands in a file is the test that matters most** — it settles `tar` and forking at once. If
+   `tar` is missing, install it (`yum install tar`) or this approach is dead and the honest scope
+   reverts to the one-step manual extract. If a one-off cron cannot fork, the extract cron is blocked
+   and the backup cron's blocker is the same one.
 2. **Install the cron.** Upload `host-extract.sh` to `~/bin/shikkha24-extract.sh`, then cPanel →
    Cron Jobs → every 2 minutes → `/bin/sh /home/shikkhac/bin/shikkha24-extract.sh`. (`/bin/sh`
    *reads* the file, so it needs no execute bit — the same property the backup script relies on.)

@@ -64,11 +64,14 @@ const say = (message) => console.log(message)
  * Tar+gzip a directory, failing clearly if `tar` is unavailable.
  *
  * The host-side cron extractor expands this with `tar -xzf`, so the archive is
- * built with the same tool that reads it — one format, one dependency, and it is
- * a dependency already proven on this account: the daily backup runs `tar -czf`
- * and the live almarsus.com deploy extracts with `tar -xzf` over cPanel cron.
- * (`zip`/`unzip` were the original choice, but `unzip` was never verified on the
- * host, whereas `tar` is demonstrated twice over.)
+ * built with the same tool that reads it — one format, one dependency. `tar` is
+ * used over `zip`/`unzip` because it is proven on the **DianaHost platform**:
+ * the live almarsus.com deployment extracts a `.tar.gz` with `tar -xzf` over a
+ * cPanel cron every minute. That is platform-level evidence from a *different*
+ * cPanel account, not proof for ours — and the shikkha24 backup's `tar -czf` has
+ * never actually run on this host. So `tar` remains unverified on our account,
+ * and `host-extract.sh` guards for that with `command -v tar` before doing
+ * anything else. See `.sps/handoff.md` and M34.
  *
  * @param {string} dir Directory whose contents should be archived.
  * @param {string} out Absolute path of the .tar.gz to write.

@@ -52,13 +52,29 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
 
 **What almarsus.com proved, and why it matters here.** Its deploy is a working
 blueprint for the exact thing T-17 was guessing at:
-- **Extraction is a solved problem via cron `tar`.**
-  `scripts/diana-deploy-watcher-prod.sh` runs **every minute** on the same cPanel
-  account and expands a `.tar.gz` with `tar -xzf`. It waits for the upload size to
-  settle across 20s, holds a `mkdir` lock, extracts, touches a restart marker, and
-  logs. **This retires T-17's only open unknown** — `unzip` was never verified on
-  the host, but `tar` is demonstrated twice: almarsus's extractor *and* our own
-  backup cron's `tar -czf`.
+- **Extraction is a solved problem via cron `tar` — at platform level.**
+  `scripts/diana-deploy-watcher-prod.sh` runs **every minute** and expands a
+  `.tar.gz` with `tar -xzf`. It waits for the upload size to settle across 20s,
+  holds a `mkdir` lock, extracts, touches a restart marker, and logs. **This
+  retires T-17's only open unknown** — `unzip` was never verified anywhere, while
+  `tar` is demonstrated working on the DianaHost platform.
+  ⚠️ **But see M34 — the owner corrected my scope here.** almarsus runs under
+  `/home/almarsus`, a **different cPanel account** from our `/home/shikkhac`,
+  and its account is shared with bookinn.bd (hence its FTP jail `~/almarsus.com`
+  — its own isolation choice, not a pattern we need). Its watcher proves nothing
+  about what is installed on *our* account. And I claimed our own backup cron's
+  `tar -czf` as the second proof; **that was false** — `.sps/opencodereport.md`
+  C3 records `host-backup-dump.sh` has **never run** on the host, and
+  `backup-db.yml` CI is still failing today. So `tar` is **unverified on the
+  shikkhac account**, and owner action O-1 (`command -v tar`) is a genuine
+  prerequisite. The code is honest about this: `host-extract.sh` runs
+  `command -v tar` before touching anything and dies naming the remedy.
+  ⚠️ **Bigger risk than `tar`: cron itself.** The CloudLinux fork limit blocking
+  the backup cron since 2026-10-04 was checked on 2026-10-10 only through cPanel
+  UAPI (the web/PHP path), never through an actual cron run. Whether the shikkhac
+  account can fork from cron at all is still open — and if it cannot, the 2-minute
+  extract cron cannot run, `tar` or no `tar`. O-1 should test *forking* from cron,
+  not just `tar`'s presence.
 - **FTPS on port 21 is the transport that works.**
   `diana-prod.yml` uploads via `SamKirkland/FTP-Deploy-Action@v4.4.0`,
   `protocol: ftps, port: 21`, to an FTP account **scoped to `~/almarsus.com`** so
@@ -151,8 +167,9 @@ feature audit) is still queued behind them.
   mechanism upgraded to `tar` 2026-10-13, see the session block above).** The
   extraction ceiling that blocked it (T-14, "no host API can extract") is
   **surmounted by a different mechanism**: a host-side shell `tar` run by **cron**
-  — proven on this account by the live almarsus.com watcher (`tar -xzf` every
-  minute) and by our own backup cron. Built: `scripts/host-extract.sh` (the cron
+  — proven at **platform** level by the live almarsus.com watcher (`tar -xzf`
+  every minute), but **unverified on our account** (M34: almarsus is a different
+  cPanel account; our backup cron has never run). Built: `scripts/host-extract.sh` (the cron
   extractor + a heartbeat it writes *only after* confirming `tar`) and the
   `deploy-static.mjs` handoff (when the API extract no-ops, CI trusts a **fresh
   heartbeat** and waits — polling the *site*, not the API — for a page new in this
