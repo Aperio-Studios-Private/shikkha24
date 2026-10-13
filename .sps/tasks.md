@@ -633,7 +633,7 @@ not know about it.
 
 | # | Action | Why |
 |---|---|---|
-| O-1 | Set the backup cron to `0 23 * * *` running `/bin/sh /home/shikkhac/bin/shikkha24-backup-dump.sh` | currently parked at `* * * * *` running a **diagnostic probe** (`date > cron-test.txt`) — 1,440 no-op fork attempts/day since 2026-10-04 |
+| O-1 | Set the backup cron to `0 23 * * *` running `/bin/sh /home/shikkhac/bin/shikkha24-backup-dump.sh` | **the owner confirmed 2026-10-13 that no cron job exists in cPanel now** — the `* * * * *` diagnostic probe recorded on 2026-10-04 is gone, so there is nothing parked to fix and nothing is forking 1,440×/day. This is a clean install, not a schedule change |
 | O-2 | Restart the production CMS app | so the rotated `PAYLOAD_SECRET` takes effect (T-03) |
 | O-3 | Tomorrow, read `~/shikkha24-backup/dump.log` in File Manager | the only place a backup failure is visible — no Terminal, cron output goes to email |
 

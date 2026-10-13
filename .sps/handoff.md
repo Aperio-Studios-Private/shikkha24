@@ -969,11 +969,12 @@ feature audit) is still queued behind them.
 - [x] Domain purchase — ✅ `shikkha24.com` (reachability not verified from the audit environment)
 - [x] ✅ DianaHost plan purchase — ⚠️ **CORRECTED 2026-10-04: the plan is "DH 5GB SSD NVMe" (5120 M), not "PNR 2 GB".** Read off the client-area product page, not assumed: **Disk 2155 M / 5120 M (42%)**, **Bandwidth 0 M / 307200 M**, registered **11/09/2026**, recurring **TK 4899.00 BDT**. ⚠️ **Rule 7 in `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` still says "2 GB PNR, ~$47/year" and is therefore wrong on both figures.** It is left unedited pending the owner's confirmation of the actual product name, because rule 7 is a constraint rather than a note and the three mirrors must change together (rule 12) — but the discrepancy is recorded here so it is not lost. *The budget constraint itself is unaffected: still one self-hosted plan plus the domain, no card, no third-party SaaS.*
 - [x] ~~Complete the eKYC identity check~~ — **DONE 2026-10-04** (recorded at the fork-blocker entry). *This item was still open in the list after the work was finished; corrected 2026-10-10 so it stops reading as an outstanding blocker.*
-- [ ] 🔴 **Put the backup cron back to `0 23 * * *`, or delete it.** It is still parked at `* * * * *`
-      — every minute — from the 2026-10-04 fork diagnosis, i.e. **1,440 fork attempts a day on an
-      account with a demonstrated history of hitting a CloudLinux process ceiling.** The ceiling has
-      since cleared, which is precisely the condition under which this becomes live: `MAX_ARCHIVES=30`
-      only bounds the damage, and 30 archives is still 30× the intended one-per-day.
+- [ ] 🔴 **Install the backup cron at `0 23 * * *`** — **corrected 2026-10-13: the owner confirms no
+      cron job exists in cPanel now, so the `* * * * *` diagnostic probe from 2026-10-04 is gone.**
+      There is nothing parked to fix and nothing forking 1,440×/day; this is a clean install. The
+      ceiling has since cleared, which is precisely the condition under which the archive cap
+      matters: `MAX_ARCHIVES=30` only bounds the damage, and 30 archives is still 30× the intended
+      one-per-day — so install it *at the daily schedule*, never every minute.
 - [ ] Confirm with DianaHost: inode/file-count quota, and **the CloudLinux process (`nPROC`) limit — see the 🔴 BLOCKER above**
 - [x] ~~Confirm Cloudflare R2 can be enabled without a payment method~~ — **REMOVED 2026-09-14.** No Cloudflare R2.
 - [ ] Decide the CI rebuild strategy (debounce/batch vs public repo)
