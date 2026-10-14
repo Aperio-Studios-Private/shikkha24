@@ -314,6 +314,93 @@ not know about it.
 
 ---
 
+## 🔵 Proposed — awaiting the owner
+
+### T-18 — Hosting migration off DianaHost (owner requested 2026-10-14)
+- **Status:** `proposed — recorded, not started; awaiting owner answers + approval`
+- **Why:** **DianaHost has stopped responding entirely** (ticket #0590191, L2/Critical,
+  now 10+ days unresolved). The owner asked for the best alternative setup,
+  explicitly including Cloudflare R2 — reversing two standing decisions (below).
+  Four research agents verified everything live on 2026-10-14; no facts assumed.
+  Full design lives here; `.sps/handoff.md` has the one-paragraph session version.
+- **Verified facts that decide this (researched, not assumed):**
+  1. **DianaHost is a RESELLER, not the registrar.** `shikkha24.com`'s registrar
+     of record is **OwnRegistrar, Inc.** (IANA ID 1250, US — abuse@ownregistrar.com).
+     Domain is unlocked, expires **2027-09-12**, and a 60-day post-creation
+     transfer lock runs to **2026-11-11** (ICANN §3.7.5). §5.2 obliges the
+     registrar to hand over the auth code within 5 calendar days of a request;
+     §3.9.5 forbids denying a transfer over the reseller's debts. Nameservers are
+     `ns1/ns2/ns3.dianadns.com` — a DianaHost outage kills resolution entirely.
+  2. **The publish chain (T-15/T-17) is unfixable on this host and is ABANDONED,
+     not repaired** — extraction no-ops, cron cannot fork, the host will not
+     answer. The fix is to host the storefront somewhere whose job is automatic
+     rebuild-and-serve, not to fix DianaHost.
+  3. **Neon free Postgres** — no card, no time limit, 1 GB/project (we need
+     3.3 MB), suspend-not-delete on limits, sub-second wake. Use an **AWS
+     region** (Azure regions deprecated; inactive DBs there get deleted).
+     Payload+Neon is mainstream; migrations run on the **direct**
+     (non-`-pooler`) connection string, runtime traffic on the pooled one.
+  4. **Cloudflare R2 free** — 10 GB, zero egress, but **card-gated**: the owner
+     has now added a card and activated R2 (`abdullahalmamunmay@gmail.com`).
+     R2 BILLS rather than caps on overshoot → billing alerts are mandatory.
+  5. **Cloudflare free plan (DNS/CDN/Workers) needs no card.** Pages free =
+     500 builds/month — too tight for 15–20 articles/day; the target is Workers
+     static assets via `wrangler` from CI (no documented monthly deploy
+     ceiling). Build cost then = Actions minutes; measure before committing to
+     a rebuild cadence (private repo = 2,000 min/mo; public = unlimited).
+  6. **Vercel is DISQUALIFIED on terms** — Hobby is "personal, non-commercial use
+     only" in their own words, and this is an AdSense-funded business. **Render
+     free** is the CMS host: sleeps after 15 min idle (admin-only impact;
+     readers hit static Cloudflare), ephemeral disk, no SMTP ports → Brevo HTTP
+     API, already the documented email plan. Never use Render's free Postgres —
+     it **deletes itself after 30 days**. Supabase pauses after a week idle —
+     inferior to Neon.
+  7. **Changing the CMS is REJECTED** (Strapi/Directus/Keystone/Sanity all
+     checked): no benefit, weeks of rewrite; Sanity's free plan has only 2 user
+     roles against our reporter/editor/admin need. Payload stays. SQLite→Postgres
+     has no built-in tooling — a one-off script moves 26 articles + 64 districts
+     + 8 categories + 6 media docs.
+- **Target (all $0/month):** storefront → Cloudflare static with webhook-triggered
+  rebuild (zero Actions minutes; retires the adaptive-batching compromise and the
+  whole cPanel upload machinery); DB → Neon AWS ap-southeast-1; media + rotating
+  backups → R2 served from `media.shikkha24.com` (**the frontend CSP must be
+  widened to allow it** — small code change, part of P3); CMS app → Render free;
+  DNS → Cloudflare free; domain → a registrar the owner controls. **Recommended
+  registrar: Porkbun ($11.08 transfer, includes a 1-year renewal, free WHOIS
+  privacy)** — deliberately NOT Cloudflare Registrar, so one company never holds
+  domain + DNS + hosting together. **DianaHost becomes a cold archive only.**
+- **DianaHost email stays** (owner decision: unlimited free mailboxes). This is
+  independent of the *registration* — email lives on the *hosting* account and
+  keeps working via MX records set from Cloudflare DNS. Fallback if DianaHost
+  ever dies outright: Zoho Mail free tier (5 users, custom domain).
+- **Phases — each ends with something working; publishing fixed in P1:**
+  - **P0** owner gets the domain auth code + downloads a full copy of the DB and
+    media (this week).
+  - **P1** storefront → Cloudflare + the publish webhook (`lib/rebuild-trigger.ts`
+    finally points somewhere). T-15's symptom dies here; T-17's cron machinery is
+    retired, not wired.
+  - **P2** DB → Neon; one-off data script. **T-01 dies structurally** — the fresh
+    Postgres schema is generated from config, so the missing `users.roles` column
+    exists from day one.
+  - **P3** media → R2 + CSP widening.
+  - **P4** CMS → Render. **Unblocks T-10** — the 3-critical Payload upgrade can
+    finally deploy somewhere.
+  - **P5** nightly Neon pg_dump → R2 rotation, run from GitHub Actions (not any
+    host's cron) + uptime monitor.
+  - **P6** transfer the domain after 2026-11-11, repoint DNS, close DianaHost.
+- **Standing decisions reversed (rule 13 — docs parity built BEFORE code):** rule
+  7's "no international card, ever" (owner has one; activated R2) and the
+  2026-09-14 "no Cloudflare services" decision. **Budget is unchanged: $0/month.**
+- **Open, needs the owner:** who is listed as the *registrant* of record (check
+  the original purchase email from DianaHost) — it decides how easy the transfer is.
+- **Loop block.** Hypothesis: the root of "publish and nothing happens" is the
+  host, not the code — so the fix is moving where things run. Asset: none yet
+  (planning). Metric: admin publishes → the live site updates with **zero**
+  manual steps. Budget: n/a. Degraded when: any phase leaves the site stale or
+  unavailable.
+
+---
+
 ## 🟠 Queued
 
 > Each task carries a **loop block** (`.sps/loop.md`): hypothesis, the single

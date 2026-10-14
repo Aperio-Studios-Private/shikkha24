@@ -134,6 +134,39 @@ gates by name.
 **inert** until the owner confirms `tar` and installs the 2-minute cron; T-16 (the
 feature audit) is still queued behind them.
 
+> **Session 2026-10-14 — DIANAHOST UNRESPONSIVE; THE MIGRATION IS PLANNED (T-18).**
+> The owner reported DianaHost has stopped responding entirely and asked for the
+> best alternative setup, explicitly including Cloudflare R2. Four research
+> agents ran live (Neon/Postgres free tiers, Cloudflare R2 + static hosting,
+> domain transfer, Payload hosting + CMS alternatives). **Everything is recorded
+> in T-18** (`​.sps/tasks.md`) — the verified facts, the rejected options, the
+> phases, the trade-offs. Highlights:
+> - **The decisive fact: DianaHost is only a RESELLER.** `shikkha24.com`'s
+>   registrar of record is **OwnRegistrar, Inc.** (US, ICANN-accredited). The
+>   domain is unlocked, expires 2027-09-12, and a 60-day post-creation transfer
+>   lock runs to **2026-11-11**. ICANN policy gives the owner direct routes that
+>   do not require DianaHost's cooperation (§5.2 auth code in 5 days; §3.9.5 no
+>   denial over reseller debts).
+> - **Two standing decisions reversed by the owner in this session** (docs parity
+>   was written with T-18, before any code): the "no international card" hard
+>   constraint (owner now has a card and has **activated R2** under
+>   `abdullahalmamunmay@gmail.com`) and the 2026-09-14 "no Cloudflare services"
+>   decision. **Budget is unchanged: $0/month.**
+> - **Target, all free:** storefront on Cloudflare with webhook-triggered rebuilds
+>   (this is what makes publish→live automatic, and retires the entire broken
+>   cPanel upload/cron chain — T-15/T-17 are abandoned, not repaired); DB on
+>   **Neon** (Singapore); media + rotating backups on **R2**; CMS on **Render
+>   free**; DNS on Cloudflare; domain to a registrar the owner controls after
+>   the lock expires. DianaHost keeps **email only** (owner decision — unlimited
+>   free mailboxes; independent of the registration, kept alive via MX records
+>   set from Cloudflare DNS) plus a cold archive.
+> - **Rejected with evidence:** changing the CMS (no benefit, weeks of rewrite),
+>   Vercel ("personal, non-commercial" — this is an AdSense business), Render's
+>   free Postgres (self-deletes after 30 days), Supabase (weekly inactivity
+>   pause), and keeping the storefront on DianaHost at all.
+> - **Awaiting from the owner:** who is listed as registrant of record (check the
+>   original purchase email), and the go-ahead for P0.
+
 ---
 
 > **Session 2026-10-12 (ended ~09:15 UTC by owner request).** The owner reported
