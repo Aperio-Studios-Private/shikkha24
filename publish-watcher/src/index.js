@@ -91,7 +91,12 @@ async function runTick(env) {
     body: JSON.stringify({ event_type: 'rebuild' }),
   })
   if (!res.ok) {
-    console.error(`dispatch failed with HTTP ${res.status} — digest not stored, will retry`)
+    // Log GitHub's own message — it distinguishes bad-token (401) from
+    // missing-permission (403) and names the missing scope.
+    const detail = (await res.text()).slice(0, 300)
+    console.error(
+      `dispatch failed with HTTP ${res.status} — digest not stored, will retry: ${detail}`,
+    )
     return { action: 'failed', reason: `HTTP ${res.status}` }
   }
   await kv.put('digest', digest)
