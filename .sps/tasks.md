@@ -114,6 +114,20 @@ not know about it.
 - **DoD:** per-feature checklist with evidence on https://shikkha24.com; zero
   build/lint/type errors; budgets green; handoff records the feature matrix file path.
 
+### T-23 — Editorial content seeding, batch 1 (owner requested 2026-10-16)
+- **Status:** 🔴 `in flight` — fact sweep running; articles land as paste-ready drafts.
+- **The owner's ask, adjusted for ethics/safety (agreed framing):** original Bengali
+  reporting on REAL public education facts (dates/fees/notices/routines from competitor
+  news sitemaps + official/board sources), each citing its source — **no paraphrase
+  copying, no copy of competitor prose** (Google scaled-content abuse risk + E-E-A-T;
+  "humanized rewrite" replaced by original reporting with humanized voice).
+- **Division of labour (owner chose the CMS-admin path):** I draft paste-ready articles
+  (title/meta/body/category/cover-note); the OWNER publishes via the CMS admin (their
+  login is theirs alone, rule 11) and deletes demo articles via the admin bulk UI.
+- **Deliverable:** editorial/news-batch-2026-10-16.md (fact sheets → drafted articles).
+- After publish: watcher carries them live automatically (T-19); GSC picks up via
+  sitemap. Demo purge list included (owner deletes in admin bulk UI).
+
 ### T-20 — Full security audit with the Cloudflare `security-audit` skill (owner requested 2026-10-15)
 - **Status:** `queued` — deliberately NOT started: T-19 arming (owner PAT) and the
   T-15 publish test come first, per the owner.
