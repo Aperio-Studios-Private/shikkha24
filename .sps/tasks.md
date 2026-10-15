@@ -30,7 +30,18 @@ not know about it.
 ## 🔴 In flight
 
 ### T-19 — Publish watcher: CMS publish → automatic site rebuild (owner chose 2026-10-15, option A)
-- **Status:** `in flight` — docs approved; build in progress this session.
+- **Status:** ✅ DONE 2026-10-15. Evidence: `repository_dispatch` run completed
+  success (~21:15Z) carrying the owner's own 20:26/20:31 edits; live on
+  https://shikkha24.com (article /admission/25/post-nnsh4m 200; all four contact
+  emails on /contact + footer); health `{"hasToken":true,"lastDigest":"a739cc6d6626"}`.
+- **Outage log (all fixed, all evidence):** (1) mixed named/default module-Worker
+  exports silently dropped `scheduled()`; (2) CLI deploy dropped the
+  dashboard-added secret → `keep_vars = true`; (3) **the 403 root cause: GitHub
+  rejects UA-less API calls and Workers' fetch sends no User-Agent** — both token
+  types failed identically, which had nothing to do with permissions; (4)
+  fine-grained PAT limitations made diagnosis noisy — the watcher now uses a
+  classic PAT scoped `repo` (private repo). `POST /run-tick` added (ops, idempotent,
+  digest-gated).
 - **Reported:** during T-15 root-causing, the webhook trigger (`DEPLOY_WEBHOOK_URL`,
   `cms/src/lib/rebuild-trigger.ts`) proved unconfigurable on DianaHost — saving a
   Node app env var in cPanel runs a cagefs shell helper and the host's shell cannot
@@ -100,8 +111,11 @@ not know about it.
 
 
 ### T-15 — CMS edits do not appear on the live site (owner reported 2026-10-12)
-- **Status:** `blocked` on host extraction · 🔴 production · **the edit is still
-  unpublished.** Session ended 2026-10-12 ~09:15 UTC by owner request.
+- **Status:** ✅ CLOSED 2026-10-15. The original T-15 edit is live, and the
+  owner's newest publish (article + contact emails) flowed CMS → watcher →
+  rebuild → https://shikkha24.com with zero manual steps (T-19 evidence).
+  All turns of the cPanel extraction rabbit hole are superseded by the
+  Workers publish pipeline (T-18).
 - **Reported:** "CMS changes are not reflecting on the site live — after edit, adding
   anything, those are not showing in the site."
 - **ROOT CAUSE — proven, not inferred.** The storefront is **static HTML built in

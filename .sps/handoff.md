@@ -155,6 +155,15 @@ publishes of CONTENT also need either a push or a manual dispatch, because the
 CMS cannot reach GitHub. The production CMS itself still runs Payload 3.89.0
 until the next CMS deploy / P4.
 
+**PUBLISH CHAIN LIVE (T-19, 2026-10-15):** `publish-watcher/` (Worker
+`shikkha24-publish-watcher`, cron */5, KV `PUBLISH_WATCHER`) polls 7 collections
++ site-settings, sha256-digests them, fires `repository_dispatch: rebuild` on
+change, stores the digest only on success. Ops: `POST /run-tick` (idempotent) +
+`GET /health`. The 403 saga ended at GitHub's mandatory `User-Agent` header —
+Workers' fetch sends none; token type was never the blocker (classic PAT
+scoped `repo` in use; the fine-grained one can be deleted). Dashboard-added
+secrets need `keep_vars = true` (set) to survive CLI deploys.
+
 **P6 DNS SWITCH LANDED 18:5x the same day (owner-driven):** nameservers moved
 to anastasia/vicky.ns.cloudflare.com; Cloudflare zone active; the two external
 records (apex A, www CNAME) had to be deleted for the custom-domain attach
