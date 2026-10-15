@@ -58,24 +58,18 @@
 name: Deploy
 
 on:
-  # ⚠️ A push to main is the owner's "ship it" button. It builds, verifies, and —
-  # once AUTO_DEPLOY is `live` — deploys the frontend with no further action.
+  # ⚠️ The "ship it" push trigger moved to deploy-cloudflare.yml (T-18 P1,
+  # 2026-10-15). THIS workflow is triggered **manually only** now.
   #
-  # Every push runs, including a docs-only one. A `paths` filter would save a few
-  # CI minutes and would also create a silent failure: edit code and docs
-  # together, the docs path matches, nothing deploys, and the site looks broken
-  # for a reason nobody can see. Predictable beats clever here.
-  push:
-    branches: [main]
-
-  # ⚠️ T-18 P1 (2026-10-15): the CMS publish webhook no longer fires THIS
-  # workflow — one publish must build the frontend exactly once, and the
-  # automatic publisher is now `.github/workflows/deploy-cloudflare.yml`
-  # (`repository_dispatch: rebuild`), since the cPanel host cannot publish
-  # automatically at all. This file stays for ROLLBACK: `workflow_dispatch`
-  # with mode=live target=static re-publishes to cPanel while the domain's DNS
-  # still points at DianaHost. `scripts/verify-cloudflare.mjs` asserts this
-  # workflow does not re-add the trigger.
+  # Why push was removed: pushing to main once ran THIS workflow *and* the
+  # Cloudflare workflow, doubling every frontend build (a private-repo minutes
+  # problem at publishing velocity), and worse — with the repository variable
+  # AUTO_DEPLOY set to `live`, the resolve-mode step below would have attempted
+  # a LIVE cPanel deploy on every push to a host that cannot extract (T-15).
+  # The publish-on-push invariant is asserted by scripts/verify-cloudflare.mjs.
+  #
+  # Rollback to cPanel stays possible: workflow_dispatch, mode=live
+  # target=static — while the domain's DNS still points at DianaHost.
 
   workflow_dispatch:
     inputs:

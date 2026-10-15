@@ -433,11 +433,26 @@ not know about it.
     `*.workers.dev` URL serves 200 with exactly one CSP header matching the
     verify:apache profile. Budget: 3 attempts. Degraded when: any built page gets the
     wrong profile, or two CSP headers.
-  - **Owner actions for P1 live (not yet done):** confirm `wrangler whoami` account;
-    create `CLOUDFLARE_API_TOKEN` (Workers-Scripts-Edit) + `CLOUDFLARE_ACCOUNT_ID`
-    secrets; first manual live dispatch; then set `AUTO_DEPLOY=live`. Custom domain
-    waits for the DNS step (P6); DNS switching before the preview URL is verified is
+  - **Owner actions for P1 live:** ✅ **account confirmed 2026-10-15 by the owner
+    (`wrangler whoami` → Abdullahalmamunmay@gmail.com's Account, id
+    `0e2e4a6986f91edabe1dae4945a9b88b`)**; `CLOUDFLARE_ACCOUNT_ID` secret set by the
+    agent via `gh` the same day. Remaining owner action: create the API token
+    ("Edit Cloudflare Workers" template) → GitHub secret `CLOUDFLARE_API_TOKEN`;
+    first manual live dispatch; then `AUTO_DEPLOY=live`. Custom domain waits for
+    the DNS step (P6); DNS switching before the preview URL is verified is
     explicitly **out of order**.
+  - **🔴 NEW FINDING 2026-10-15 — CI red is the real P1 blocker.** gh checks: the
+    last three `ci.yml` runs on `main` (2026-10-12/13) failed, and the deploy.yml
+    comment attributes it to the dependency audit alone (T-10, Payload advisory).
+    Consequence: every automatic deploy path (push AND the CMS rebuild webhook)
+    dies at the wait-for-ci gate while CI is red — so `AUTO_DEPLOY=live` must NOT
+    be set until T-10 lands. The interim path (manual dispatch with
+    `skip-ci-gate: true`, dispatch-only by design) proves the P1 transport.
+  - **🔴 NEW FINDING 2026-10-15 — finished work was not being pushed.** Local
+    `main` was 6 commits ahead of `origin/main` (the migration-plan commit from
+    the 13:08 session included). The Oct-15 pushes produced **zero** workflow
+    runs because the commits were local-only. Rule 4 extended: a commit that
+    never reaches `origin` did not finish a deploy-system change.
   - **✅ Evidence 2026-10-15 (P1 code complete, built and gated; NOT yet live):**
     commits `f7387d5` (docs parity) → `f72dade` (worker+config+harness) →
     `33d12c3` (workflows). Gates, all green in-session: `verify:cloudflare` **75/75**

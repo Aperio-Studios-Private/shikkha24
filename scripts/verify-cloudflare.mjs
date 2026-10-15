@@ -400,6 +400,16 @@ check(
   'negative control: a re-added repository_dispatch on deploy.yml trips the guard',
   consumesRebuildDispatch({ ...oldTriggers, repository_dispatch: { types: ['rebuild'] } }),
 )
+check(
+  'deploy.yml no longer builds on push (publish-on-push belongs to deploy-cloudflare)',
+  !('push' in oldTriggers),
+  'otherwise AUTO_DEPLOY=live would also fire a LIVE cPanel deploy on every push',
+)
+// Negative control: re-arming push must trip the guard.
+check(
+  'negative control: a re-added push trigger on deploy.yml trips the guard',
+  'push' in { ...oldTriggers, push: { branches: ['main'] } },
+)
 
 // --- Report -------------------------------------------------------------------
 
