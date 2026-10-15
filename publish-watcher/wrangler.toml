@@ -1,0 +1,30 @@
+#:schema node_modules/../../frontend/node_modules/wrangler/config-schema.json
+# Publish watcher (T-19) — Shikkha24 CMS → site rebuild trigger.
+#
+# A standalone Worker, separate from the storefront (shikkha24-frontend):
+# every 5 minutes it polls the CMS's public REST API, hashes the state, and
+# fires the same `repository_dispatch` the webhook used to send. It exists
+# because the CMS's own webhook can never be configured on DianaHost (cagefs
+# fork failure, ticket #0590191). Design: docs/hosting-and-deployment.md §10.6.
+#
+# GITHUB_TOKEN is deliberately NOT here — it is a Worker secret added by the
+# owner after deploy (`wrangler secret put GITHUB_TOKEN` or the dashboard).
+
+name = "shikkha24-publish-watcher"
+main = "src/index.js"
+compatibility_date = "2026-10-15"
+workers_dev = true
+# CLI deploys drop dashboard-added secrets unless this is set — the owner's
+# GITHUB_TOKEN is added in the dashboard, so it must survive every redeploy.
+keep_vars = true
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+CMS_ORIGIN = "https://cms.shikkha24.com"
+GITHUB_REPO = "SHAHID8142/shikkha24"
+
+[[kv_namespaces]]
+binding = "PUBLISH_WATCHER"
+id = "9f6c947cf63b4028856079a312bbcd4f"
