@@ -23,7 +23,10 @@ const env = Object.fromEntries(
   envText
     .split('\n')
     .filter((line) => line.includes('='))
-    .map((line) => [line.slice(0, line.indexOf('=')).trim(), line.slice(line.indexOf('=') + 1).trim()]),
+    .map((line) => [
+      line.slice(0, line.indexOf('=')).trim(),
+      line.slice(line.indexOf('=') + 1).trim(),
+    ]),
 )
 const ORIGIN = env.CMS_ORIGIN
 if (!ORIGIN || !env.CMS_ADMIN_EMAIL || !env.CMS_ADMIN_PASSWORD) {
@@ -64,7 +67,9 @@ console.log(`login ok (user: ${login.user?.name ?? login.user?.email ?? 'unknown
 
 // ── 2. desk author ─────────────────────────────────────────────────────────
 let authorId
-const authorQ = await api(`/api/authors?where[slug][equals]=${CONTENT.author.slug}&limit=1`, { token })
+const authorQ = await api(`/api/authors?where[slug][equals]=${CONTENT.author.slug}&limit=1`, {
+  token,
+})
 if (authorQ.docs.length > 0) {
   authorId = authorQ.docs[0].id
   console.log(`author exists: id ${authorId}`)
@@ -93,9 +98,33 @@ const categoryBySlug = Object.fromEntries(categories.docs.map((c) => [c.slug, c.
 const levelByName = Object.fromEntries(levels.docs.map((l) => [l.nameBn ?? l.name, l.id]))
 
 // ── 4. lexical helpers ─────────────────────────────────────────────────────
-const textNode = (text = '') => ({ type: 'text', version: 1, text, format: 0, detail: 0, mode: 'normal', style: '', diets: [] })
-const para = (text) => ({ type: 'paragraph', version: 1, format: '', indent: 0, direction: 'ltr', children: [textNode(text)] })
-const heading = (tag, text) => ({ type: 'heading', version: 1, tag, format: '', indent: 0, direction: 'ltr', children: [textNode(text)] })
+const textNode = (text = '') => ({
+  type: 'text',
+  version: 1,
+  text,
+  format: 0,
+  detail: 0,
+  mode: 'normal',
+  style: '',
+  diets: [],
+})
+const para = (text) => ({
+  type: 'paragraph',
+  version: 1,
+  format: '',
+  indent: 0,
+  direction: 'ltr',
+  children: [textNode(text)],
+})
+const heading = (tag, text) => ({
+  type: 'heading',
+  version: 1,
+  tag,
+  format: '',
+  indent: 0,
+  direction: 'ltr',
+  children: [textNode(text)],
+})
 const linkPara = (sources) => ({
   type: 'paragraph',
   version: 1,
@@ -123,7 +152,10 @@ const lexicalBody = (article) => ({
     format: '',
     indent: 0,
     children: [
-      ...article.sections.flatMap((section) => [heading('h2', section.h), ...section.paras.map(para)]),
+      ...article.sections.flatMap((section) => [
+        heading('h2', section.h),
+        ...section.paras.map(para),
+      ]),
       linkPara(article.sources),
     ],
   },
@@ -178,7 +210,9 @@ for (const article of CONTENT.articles) {
     },
   })
   published++
-  console.log(`published: ${created.doc.slug} (id ${created.doc.id}${mediaId ? `, media ${mediaId}` : ', cover pending'})`)
+  console.log(
+    `published: ${created.doc.slug} (id ${created.doc.id}${mediaId ? `, media ${mediaId}` : ', cover pending'})`,
+  )
 }
 
 console.log(`done — published ${published}, skipped ${skipped}`)

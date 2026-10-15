@@ -43,11 +43,9 @@
  * reserved for the stacked variants, where there is width to spend.
  */
 import type { CmsArticle } from '../lib/cms'
-import { getCategoryImage } from '../lib/images'
 import { resolveCmsImage } from '../lib/media'
 import { articleUrl } from '../lib/url'
 import { formatBnBd } from '../lib/bangla-date'
-import CategoryImage from './CategoryImage.astro'
 import SponsoredLabel from './SponsoredLabel.astro'
 
 interface Props {
@@ -92,15 +90,6 @@ const photo = resolveCmsImage(article.featuredImage, article.title)
 
 const category =
   article.category && typeof article.category === 'object' ? article.category : null
-
-/**
- * Fallback to the category archetype when this article has no photo.
- *
- * An article with no image should not render an empty grey box — it should show
- * the image that represents its category. That is the whole point of the
- * archetype model in `docs/assets-prompt.md`.
- */
-const categoryImage = getCategoryImage(category?.slug)
 
 const href = articleUrl(article)
 
@@ -151,9 +140,9 @@ const imageSizes = sizes ?? (isStacked ? '(min-width: 1024px) 800px, 100vw' : '9
     ]}
   >
     {
-      /* Prefer the article's own photo; fall back to the category archetype.
-         A card with neither renders as a text-only row, which is honest. */
-      (photo || categoryImage) && (
+      /* Owner rule (2026-10-16): an article without its own cover renders as a
+         text-only card — no category archetype, no placeholder visuals. */
+      photo && (
         <div
           class:list={[
             'shrink-0 overflow-hidden bg-surface-raised dark:bg-dark-raised',
@@ -167,7 +156,7 @@ const imageSizes = sizes ?? (isStacked ? '(min-width: 1024px) 800px, 100vw' : '9
               : 'aspect-square h-20 w-20 sm:h-24 sm:w-24 rounded-md',
           ]}
         >
-          {photo ? (
+          {(
             <img
               src={photo.src}
               srcset={photo.srcset}
@@ -183,17 +172,6 @@ const imageSizes = sizes ?? (isStacked ? '(min-width: 1024px) 800px, 100vw' : '9
               decoding="async"
               class="h-full w-full object-cover"
             />
-          ) : (
-            categoryImage && (
-              <CategoryImage
-                image={categoryImage}
-                alt={article.title}
-                sizes={imageSizes}
-                widths={isStacked ? [400, 800, 1200] : [96, 192]}
-                priority={isLead}
-                class="h-full w-full object-cover"
-              />
-            )
           )}
         </div>
       )

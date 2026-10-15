@@ -37,10 +37,8 @@ import CommentSection from '../../../components/CommentSection.astro'
 import ReactionBar from '../../../components/ReactionBar.astro'
 import PhotoStory from '../../../components/PhotoStory.astro'
 import MediaEmbed from '../../../components/MediaEmbed.astro'
-import CategoryImage from '../../../components/CategoryImage.astro'
 import { countParagraphs, lexicalToHtml, lexicalToPlainText, splitHtmlAtParagraph } from '../../../lib/richtext'
 import { mediaUrl, resolveCmsImage } from '../../../lib/media'
-import { getCategoryImage } from '../../../lib/images'
 import { getPublicCmsOrigin } from '../../../lib/interactive'
 import { getApprovedComments } from '../../../lib/engagement'
 import { articleUrl } from '../../../lib/url'
@@ -174,7 +172,6 @@ const photo = resolveCmsImage(article.featuredImage, article.title)
  */
 const socialImage =
   photo?.src ?? (cmsOrigin ? `${cmsOrigin}/api/photocard/${article.id}.png` : undefined)
-const categoryImage = getCategoryImage(category?.slug)
 
 const published = article.publishedAt
   ? formatBnBd(article.publishedAt, { day: 'numeric', month: 'long', year: 'numeric' })
@@ -412,12 +409,14 @@ const imageGalleryLd =
 
         {
           /* The hero is the LCP element on this page, so it is eager and
-             high-priority. The wrapper carries `aspect-16/9` and both branches
-             write intrinsic width/height, so the box is reserved before the
-             bytes arrive — zero CLS, which the budget treats as a hard gate. */
-          (photo || categoryImage) && (
+             high-priority. The wrapper carries `aspect-16/9` and writes
+             intrinsic width/height, so the box is reserved before the bytes
+             arrive — zero CLS, which the budget treats as a hard gate.
+             Owner rule (2026-10-16): an article without its own cover renders
+             as text — no category archetype, no placeholder visual. */
+          photo && (
             <div class="mt-5 aspect-16/9 w-full overflow-hidden rounded-lg bg-surface-raised dark:bg-dark-raised">
-              {photo ? (
+              {(
                 <img
                   src={photo.src}
                   srcset={photo.srcset}
@@ -429,19 +428,7 @@ const imageGalleryLd =
                   fetchpriority="high"
                   decoding="async"
                   class="h-full w-full object-cover"
-                />
-              ) : (
-                categoryImage && (
-                  <CategoryImage
-                    image={categoryImage}
-                    alt={article.title}
-                    sizes="(min-width: 1024px) 800px, 100vw"
-                    widths={[400, 800, 1200]}
-                    priority
-                    class="h-full w-full object-cover"
-                  />
-                )
-              )}
+                />)}
             </div>
           )
         }
