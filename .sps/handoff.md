@@ -137,8 +137,23 @@ matrix verified from outside: one CSP per response, strict on `/latest/page/2`,
 article/media frames on article + `/live-tv`, real 404s, `noindex` on the
 workers.dev host, and `/verify/<unknown>` answering 200 in place. The three
 lessons are in the T-18 evidence block in `.sps/tasks.md` (html_handling,
-probe race, rewrite slash). **`AUTO_DEPLOY=live` stays OFF until T-10 makes CI
-green** — the wait-for-ci gate otherwise fails every automatic deploy.
+probe race, rewrite slash). **Then T-10 landed the same day** (see its block in
+`.sps/tasks.md`: Payload 3.90.2, the `tag`-vs-`format` seed fix, the seed
+diagnostics module, the migration snapshot repair), CI went fully green
+(run `38769941213`), **`AUTO_DEPLOY=live` was set**, and a `rebuild`
+repository_dispatch — the exact event the CMS publish webhook emits — deployed
+live end-to-end through the CI gate with no manual input (run `38771234141`,
+"Live and correct").
+
+**What is left of P1's exit test is the CMS side of the trigger:** the owner
+must create a fine-grained GitHub PAT (repository: shikkha24; permission
+`contents: read` + `actions: write`) and set `DEPLOY_WEBHOOK_URL` in the CMS
+environment on DianaHost (`https://api.github.com/repos/SHAHID8142/shikkha24/dispatches`,
+header `Authorization: Bearer <PAT>`, `Accept: application/vnd.github+json`,
+body `{"event_type":"rebuild"}`), then click Publish in the CMS. Until then,
+publishes of CONTENT also need either a push or a manual dispatch, because the
+CMS cannot reach GitHub. The production CMS itself still runs Payload 3.89.0
+until the next CMS deploy / P4.
 
 **Gates (measured 2026-10-15):** `verify:cloudflare` **75/75**; `verify:workflows`
 **5 parsed, 0 problems**; `verify:cpanel-deploy` **92/92** (after the trigger
