@@ -227,8 +227,25 @@ jobs:
           fi
           URL="https://shikkha24-frontend.$SUBDOMAIN.workers.dev/"
           echo "Probing $URL"
-          # 1. The homepage must answer 200 and actually be ours.
-          BODY=$(curl -fsS "$URL")
+
+          # A brand-new (or version-bumped) worker route takes a little while to
+          # propagate to the POP the runner lands on — the first live deploy's
+          # probe scored a 404 at +27s and a 200 at +61s (fixed by this retry).
+          # Retry until readiness or ~2 minutes; only then fail loud.
+          fetch_until_ready() {
+            local i body
+            for i in $(seq 1 12); do
+              if body=$(curl -fsS "$URL" 2>/dev/null); then printf '%s' "$body"; return 0; fi
+              echo "  attempt $i: not ready yet — waiting 10s for edge propagation"
+              sleep 10
+            done
+            return 1
+          }
+          if ! BODY=$(fetch_until_ready); then
+            echo "::error::The published homepage never came up ($URL) — deploy did not reach the edge in 2 minutes."
+            exit 1
+          fi
+          # 1. The homepage must actually be ours.
           echo "$BODY" | grep -q 'শিক্ষা২৪' || {
             echo "::error::The published homepage does not contain the site name — wrong or stale bundle."
             exit 1

@@ -29,6 +29,15 @@ directory = "./dist"
 binding = "ASSETS"
 # Astro emits dist/404.html (S0); serve it (status 404) for unknown paths.
 not_found_handling = "404-page"
+# The site's URL mode is `trailingSlash: 'never'` (astro.config.mjs) — the
+# Apache rollback path served `/latest` with 200, no redirect. The platform
+# default ("auto-trailing-slash") 307-redirects every directory URL to a
+# trailing slash, which made every category/listing URL a redirect hop and
+# disagreed with the canonical tags Astro bakes in. Verified live on the
+# first deploy (2026-10-15): /latest → 307 /latest/, /about → 307 /about/.
+# "drop-trailing-slash" restores Apache parity: 200 at the un-slashed URL,
+# 308 home for the slashed variant.
+html_handling = "drop-trailing-slash"
 # Every request passes through worker/index.ts first — it owns the CSP
 # dispatch, the security headers, the cache rules and the /verify rewrite.
 # `_headers`/`_redirects` are not applied to worker-served requests, so this

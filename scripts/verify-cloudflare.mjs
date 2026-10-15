@@ -100,6 +100,11 @@ check(
   'without it _headers cannot be bypassed and _redirects would not reach worker-served requests',
 )
 check(
+  'assets.html_handling = drop-trailing-slash (URL parity with Apache)',
+  assets.html_handling === 'drop-trailing-slash',
+  "the default 'auto-trailing-slash' 307-redirects every directory URL (verified live on the first deploy: /latest → 307 /latest/), disagreeing with Astro's trailingSlash:'never' and the baked canonical tags",
+)
+check(
   'NO legacy Workers Sites [site] block',
   !hasLegacySiteBlock(cfConfig),
   'the retired [site] pattern cannot deploy (M35)',
