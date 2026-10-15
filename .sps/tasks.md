@@ -196,6 +196,52 @@ not know about it.
 - **DoD:** CI Lighthouse gate green (all four categories ≥95) on the whole template
   list, with the pre-fix numbers recorded in `.sps/handoff.md` as the counter-proof.
 
+### T-25 — CMS media files are gone from disk: every image 500s (owner reported 2026-10-16)
+- **Status:** 🔴 `open` — root cause found, fix needs the owner (no SSH/cPanel Terminal).
+- **Owner's report:** all 12 supplied images display
+  `{"errors":[{"message":"Something went wrong."}]}` instead of the picture.
+- **Evidence (2026-10-16, live):**
+  | URL | Result |
+  |---|---|
+  | `/api/media/file/2.jpg` | **500**, 48 B `{"errors":[{"message":"Something went wrong."}]}` |
+  | `/api/media/file/demo-plate-8.webp` | **500**, 48 B — same body |
+  | `/api/media/file/9.svg` | **500**, 48 B |
+  | `/api/media/file/icon-maskable.svg` | **200**, 899 B ✅ |
+  | `/api/media?limit=12` | **200** — records intact (id 2: `demo-plate-8.webp`, 11 KB, 1600×1067) |
+  | `/api/media/2` | **200** — record fine, `url` correct |
+- **Diagnosis:** Payload serves the **record** from SQLite but cannot read the **file
+  bytes** — they are missing/moved on disk. It is not a UI bug, not a permissions
+  bug in the admin, and not a code bug: the record↔file pair is broken at the
+  filesystem level. Both the demo plates (ids 1–6) and the owner's uploads are hit;
+  only files that still exist on disk (favicon/icon) serve correctly.
+- **Consequence for T-23:** uploading covers to THIS host would fail identically, so
+  the cover upload is blocked on either (a) the owner restoring the upload directory
+  on the host, or (b) P3/P4 (media to R2 / CMS to Render) which replaces the file
+  store. The `upload-ready/` pack stays queued for whichever comes first.
+- **Owner action required (one of):**
+  1. cPanel → File Manager → `cms` app dir → check `media/` (Payload `upload.staticDir`)
+     exists and contains the image files; restore from the T-03 backup if empty.
+  2. Or tell me to treat media as broken-until-P4 and publish text-only (current live
+     state — the site is fully readable, just imageless).
+- **DoD:** an image URL returns 200 with image bytes, and the covers from
+  `editorial/assets-batch-1/upload-ready/` can be attached to articles 23–28.
+
+### T-26 — CMS admin UI/UX: buttons read as flat text, not as buttons (owner requested 2026-10-16)
+- **Status:** `queued` — after T-24 (performance), before T-22.
+- **Owner's words:** "improve the UI and UX of the CMS specially the button are too
+  flat unable to understand that it's a button to use".
+- **Scope:** Payload admin visual language — real affordance on every interactive
+  control (fill/border/shadow/hover/active/focus-visible states), primary vs
+  secondary vs destructive hierarchy, ≥48×48px touch targets, clear disabled and
+  loading states, Bengali labels stay as they are (labels are already localized),
+  consistent spacing, and a contrast pass on the admin theme (WCAG AA). No change to
+  the reader-facing storefront.
+- **Constraint:** implement via Payload's supported admin customisation
+  (`admin.components` / `admin.css` custom SCSS), not by patching `node_modules`.
+- **DoD:** every button, link-button, tab, bulk-action and pagination control has an
+  unmistakable affordance with visible hover/focus/active states; a11y contrast pass;
+  owner confirms by eye in the admin (this is a visual gate — it needs their check).
+
 ### T-20 — Full security audit with the Cloudflare `security-audit` skill (owner requested 2026-10-15)
 - **Status:** `queued` — deliberately NOT started: T-19 arming (owner PAT) and the
   T-15 publish test come first, per the owner.
