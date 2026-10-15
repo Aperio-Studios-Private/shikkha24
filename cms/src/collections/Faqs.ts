@@ -25,8 +25,7 @@ export const Faqs: CollectionConfig = {
     useAsTitle: 'question',
     group: 'শিক্ষা',
     defaultColumns: ['question', 'group', 'priority', 'updatedAt'],
-    description:
-      'সাইটের সাধারণ প্রশ্নোত্তর — /faq পাতার জন্য। Google-এ FAQ schema হিসেবেও পৌঁছায়।',
+    description: 'সাইটের সাধারণ প্রশ্নোত্তর — /faq পাতার জন্য। Google-এ FAQ schema হিসেবেও পৌঁছায়।',
   },
   access: {
     read: anyone,
