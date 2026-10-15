@@ -140,6 +140,28 @@ not know about it.
 - After publish: watcher carries them live automatically (T-19); GSC picks up via
   sitemap. Demo purge list included (owner deletes in admin bulk UI).
 
+### T-24 — Performance hardening: every Lighthouse category 95+ (owner requested 2026-10-16)
+- **Status:** `queued` — after T-23 batch 1 lands (the gates are currently red and
+  block deploys, so this task is also the unblocker for T-23's own rebuild).
+- **Owner's bar:** **all four Lighthouse categories ≥95** (performance, accessibility,
+  best practices, SEO) on the measured templates — mobile, in CI (CI is the only
+  authoritative measurement per the constraints block).
+- **Known gaps at queue time (evidence: `docs/seo/cwv-live-2026-10-16.md` + CI logs):**
+  - LH performance 67 `/`, 71 `/latest`, 56 `/contact`, 55 `/` desktop (target 95)
+  - LCP 12.95s home — hero = the CMS original at ~1.56 MB; needs resized variants,
+    `srcset`, `fetchpriority`, and a CMS-side image pipeline decision (P3/R2 coupled)
+  - Render-blocking CSS chain + `theme-init.js` (2.4s wasted in the desktop trace)
+  - Edge MISS on HTML (`max-age=0 must-revalidate`) → origin latency spikes reach LCP
+  - CI gate: article-page sidebar `div.mt-6` CLS 0.036 vs 0.02 budget (ad-card rail)
+  - Initial payload 1.92 MB home / 1.86 MB `/latest` vs 1.2 MB budget
+- **Scope:** fix each contributor with before/after numbers from the CI Lighthouse
+  artifacts, then hold all four categories ≥95 across the template list in
+  `.sps/plan.md`. Bundle-size work: trim/inline critical CSS, defer the rest, ship
+  sized WebP/AVIF covers, preload/subset the Bengali font, guarantee image boxes
+  (width/height) everywhere so CLS stays under budget.
+- **DoD:** CI Lighthouse gate green (all four categories ≥95) on the whole template
+  list, with the pre-fix numbers recorded in `.sps/handoff.md` as the counter-proof.
+
 ### T-20 — Full security audit with the Cloudflare `security-audit` skill (owner requested 2026-10-15)
 - **Status:** `queued` — deliberately NOT started: T-19 arming (owner PAT) and the
   T-15 publish test come first, per the owner.
