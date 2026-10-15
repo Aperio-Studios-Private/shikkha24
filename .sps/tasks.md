@@ -67,8 +67,22 @@ not know about it.
   and Secrets) — never in chat, never in the repo.
 
 ### T-21 — Complete SEO pass + search-engine registration (owner requested 2026-10-15)
-- **Status:** `queued` — ordered **before T-20**; starts when T-15/T-19 close (or the
-  owner says start). Runs with the `sps-seo` skill (deterministic audit engine).
+- **Status:** 🔴 `in flight` 2026-10-15 (owner: "start SEO"). Runs with the
+  `sps-seo` skill (deterministic audit engine; baseline grade F = 30/100 on the
+  source tree, with live probes confirming robots/sitemap/favicon/meta all
+  present — the score is dominated by 29 H1 anomalies + 30 missing image alts
+  + missing llms.txt).
+- **GSC VERIFIED 2026-10-15 (owner):** domain property live; sitemap submission +
+  index requests guided; alerts on. Bing import later.
+- **Owner decisions in consultation:** goal = organic traffic + Bengali keyword
+  rankings (keywords to be researched by me); competitors to be identified by me;
+  demo content will be deleted and real articles start from 2026-10-16 — so
+  per-article SEO ships as TEMPLATE + CMS guidance now, not as demo-article edits.
+- **Scope addition — editable FAQ module (owner: "must have, make them editable
+  admin can edit"):** CMS FAQ collection (add/edit/delete Q&A pairs) + storefront
+  rendering with automatic FAQPage JSON-LD from the same records + starter
+  Bengali drafts the admin refines. CMS-coupled: both sides ship together.
+- **Scope addition — Google News sitemap** (fresh-articles feed) + llms.txt.
 - **Part A — technical SEO action pass:** titles/meta/OG/Twitter (Bengali), canonicals,
   robots.txt + sitemap.xml correctness on the Workers serving path, JSON-LD per page
   type (NewsArticle for articles, ItemList for listings, Organization on home…),
