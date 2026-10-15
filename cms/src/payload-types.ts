@@ -76,6 +76,7 @@ export interface Config {
     authors: Author;
     assignments: Assignment;
     pages: Page;
+    faqs: Faq;
     'fact-checks': FactCheck;
     scholarships: Scholarship;
     deadlines: Deadline;
@@ -117,6 +118,7 @@ export interface Config {
     authors: AuthorsSelect<false> | AuthorsSelect<true>;
     assignments: AssignmentsSelect<false> | AssignmentsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
+    faqs: FaqsSelect<false> | FaqsSelect<true>;
     'fact-checks': FactChecksSelect<false> | FactChecksSelect<true>;
     scholarships: ScholarshipsSelect<false> | ScholarshipsSelect<true>;
     deadlines: DeadlinesSelect<false> | DeadlinesSelect<true>;
@@ -804,6 +806,32 @@ export interface Page {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
+ * সাইটের সাধারণ প্রশ্নোত্তর — /faq পাতার জন্য। Google-এ FAQ schema হিসেবেও পৌঁছায়।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "faqs".
+ */
+export interface Faq {
+  id: number;
+  /**
+   * পাঠক যেভাবে জিজ্ঞেস করবে, সেভাবেই লিখুন (সার্চেও ওটাই আসে)।
+   */
+  question: string;
+  /**
+   * সংক্ষিপ্ত ও নির্ভুল উত্তর; প্রয়োজনে সংযোগ (লিঙ্ক) টেক্সটে দিন।
+   */
+  answer: string;
+  group: 'general' | 'results' | 'admission' | 'scholarship' | 'circulars';
+  /**
+   * ছোট সংখ্যা আগে দেখায়।
+   */
+  priority?: number | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
@@ -1740,6 +1768,10 @@ export interface PayloadLockedDocument {
         value: number | Page;
       } | null)
     | ({
+        relationTo: 'faqs';
+        value: number | Faq;
+      } | null)
+    | ({
         relationTo: 'fact-checks';
         value: number | FactCheck;
       } | null)
@@ -2067,6 +2099,18 @@ export interface PagesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "faqs_select".
+ */
+export interface FaqsSelect<T extends boolean = true> {
+  question?: T;
+  answer?: T;
+  group?: T;
+  priority?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

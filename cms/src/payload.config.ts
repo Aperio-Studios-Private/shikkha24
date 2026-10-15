@@ -18,6 +18,7 @@ import { Comments } from './collections/Comments'
 import { Deadlines } from './collections/Deadlines'
 import { Districts } from './collections/Districts'
 import { FactChecks } from './collections/FactChecks'
+import { Faqs } from './collections/Faqs'
 import { Institutions } from './collections/Institutions'
 import { Levels } from './collections/Levels'
 import { LiveBlogs } from './collections/LiveBlogs'
@@ -277,6 +278,9 @@ export default buildConfig({
      */
     Assignments,
     withRebuildTrigger(Pages),
+    // Site-level Q&A rendered on /faq with automatic FAQPage schema. Editing it
+    // is a reader-visible change, so it belongs in the rebuild set like the rest.
+    withRebuildTrigger(Faqs),
     withRebuildTrigger(FactChecks),
 
     // ── Education ────────────────────────────────────────────────────────────
