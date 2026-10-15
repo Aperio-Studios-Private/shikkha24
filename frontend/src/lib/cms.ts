@@ -19,6 +19,7 @@
  * is what makes the frontend independently testable.
  */
 
+import faqSeed from '../data/faqs.seed.json'
 import { dhakaMonthUtcRange, formatBnBd, getDhakaYearMonth } from './bangla-date'
 import type { CmsMedia } from './media'
 
@@ -1317,4 +1318,63 @@ export async function getVideoArticles(
     totalPages: data?.totalPages ?? 1,
     totalDocs: data?.totalDocs ?? 0,
   }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * FAQ (সাধারণ জিজ্ঞাসা)
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * One question–answer pair of the `faqs` collection.
+ *
+ * Field names mirror the CMS collection. Declared here rather than imported so
+ * a schema change in the CMS cannot break the frontend build through a
+ * cross-workspace import (see the header note on `CmsCategory`).
+ */
+export interface CmsFaq {
+  question: string
+  answer: string
+  group: 'general' | 'results' | 'admission' | 'scholarship' | 'circulars'
+  priority?: number | null
+}
+
+/**
+ * The launch FAQ set, shipped as a reviewed seed document
+ * (`src/data/faqs.seed.json`).
+ *
+ * The live `/api/faqs` endpoint answers 404 until the P4 CMS deploy, and an
+ * FAQ page that silently renders empty until then is exactly the "looks
+ * disconnected from the CMS" experience the file header warns about — so the
+ * fallback is the real, approved launch content, the same pattern as
+ * `FALLBACK_CATEGORIES`. Once the collection deploys, CMS answers win and this
+ * seed only covers outages.
+ *
+ * `resolveJsonModule` (on in Astro's base tsconfig) imports the file with
+ * `group` widened to `string`; the seed is a reviewed document naming only the
+ * CMS group values, which is what makes the single narrow cast below safe.
+ */
+const FAQ_SEED: CmsFaq[] = faqSeed.map((entry) => ({
+  question: entry.question,
+  answer: entry.answer,
+  group: entry.group as CmsFaq['group'],
+  priority: entry.priority,
+}))
+
+/**
+ * Reader FAQ — the storefront of the `faqs` collection, rendered at `/faq`.
+ *
+ * Asked most often first: `sort=priority` is asked of the CMS, and the seed
+ * ships in the same priority order, so both paths agree without a local sort.
+ * Depth 0 is enough because the collection has no relations.
+ *
+ * Returns the seed on a null response *and* an empty collection, so the page
+ * can never render as an accidental blank (`docs/reliability.md` §1).
+ */
+export async function getFaqs(): Promise<CmsFaq[]> {
+  const data = await cmsFetch<{ docs?: CmsFaq[] } | null>(
+    '/api/faqs?limit=200&sort=priority&depth=0',
+    null,
+  )
+  const docs = data?.docs
+  return docs && docs.length > 0 ? docs : FAQ_SEED
 }

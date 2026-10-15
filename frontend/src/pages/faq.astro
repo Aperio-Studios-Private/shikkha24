@@ -1,0 +1,117 @@
+---
+/**
+ * সাধারণ জিজ্ঞাসা — `/faq`.
+ *
+ * The storefront of the `faqs` collection (`getFaqs` in `lib/cms.ts`): live
+ * CMS answers when the collection is deployed, the reviewed seed otherwise.
+ * Questions render grouped under fixed Bengali section headings in a
+ * reader-first order (results → admission → scholarship → general), so the
+ * page reads as a document rather than a raw CMS dump.
+ *
+ * ## Why the JSON-LD is gated at ≥2 entries
+ *
+ * A FAQPage schema over a single question (or over an empty outage fallback)
+ * is thin structured data on a page that cannot back it up. From two questions
+ * up the page genuinely answers a set, which is the point of the FAQPage type
+ * — so `mainEntity` only emits from there.
+ */
+import Layout from '../layouts/Layout.astro'
+import Breadcrumbs from '../components/Breadcrumbs.astro'
+import { getSiteSettings, getCategories, getFooterPages, FALLBACK_SETTINGS, FALLBACK_CATEGORIES } from '../lib/cms'
+import { getFaqs } from '../lib/cms'
+import type { CmsFaq } from '../lib/cms'
+
+const canonical = new URL('/faq', Astro.site ?? Astro.url).href
+
+const [settings, categories, footerPages, faqs] = await Promise.all([
+  getSiteSettings().catch(() => FALLBACK_SETTINGS),
+  getCategories().catch(() => FALLBACK_CATEGORIES),
+  getFooterPages().catch(() => []),
+  getFaqs().catch(() => []),
+])
+
+/**
+ * Display order and Bengali label of each FAQ group.
+ *
+ * The CMS `group` select order is an editor concern; readers scan results
+ * first, so the page fixes its own order here and skips groups with no
+ * questions rather than rendering an empty heading.
+ */
+const GROUP_SECTIONS: Array<{ id: CmsFaq['group']; label: string }> = [
+  { id: 'results', label: 'ফলাফল সংক্রান্ত' },
+  { id: 'admission', label: 'ভর্তি সংক্রান্ত' },
+  { id: 'scholarship', label: 'বৃত্তি সংক্রান্ত' },
+  { id: 'general', label: 'সাধারণ' },
+]
+
+// Group in one pass, then render in the fixed display order above.
+const byGroup = new Map<CmsFaq['group'], CmsFaq[]>()
+for (const faq of faqs) {
+  const list = byGroup.get(faq.group)
+  if (list) list.push(faq)
+  else byGroup.set(faq.group, [faq])
+}
+const sections = GROUP_SECTIONS.map((section) => ({
+  ...section,
+  faqs: byGroup.get(section.id) ?? [],
+})).filter((section) => section.faqs.length > 0)
+
+/**
+ * FAQPage schema. Built from `getFaqs()` in priority order; `JSON.stringify`
+ * does all the escaping and Layout renders it raw via `set:html`.
+ */
+const jsonLd =
+  faqs.length >= 2
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqs.map((faq) => ({
+          '@type': 'Question',
+          name: faq.question,
+          acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+        })),
+      }
+    : undefined
+---
+
+<Layout
+  title="সাধারণ জিজ্ঞাসা"
+  description="শিক্ষা২৪.কম সম্পর্কে সাধারণ জিজ্ঞাসা — ফলাফল, ভর্তি, বৃত্তি, বিজ্ঞাপন ও যোগাযোগ সংক্রান্ত প্রশ্নের উত্তর এক পাতায়।"
+  canonical={canonical}
+  settings={settings}
+  categories={categories}
+  footerPages={footerPages}
+  jsonLd={jsonLd}
+>
+  <div class="container-page py-6">
+    <Breadcrumbs items={[{ label: 'সাধারণ জিজ্ঞাসা' }]} />
+
+    <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
+      সাধারণ জিজ্ঞাসা
+    </h1>
+
+    <p class="mt-2 max-w-2xl text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+      পাঠকদের সবচেয়ে ঘন ঘন করা প্রশ্নের উত্তর — ফলাফল, ভর্তি, বৃত্তি ও যোগাযোগ এক পাতায়।
+    </p>
+
+    {
+      sections.map((section) => (
+        <section class="mt-8" aria-labelledby={`faq-${section.id}`}>
+          <h2 id={`faq-${section.id}`} class="font-headline text-lg font-bold text-ink dark:text-dark-ink">
+            {section.label}
+          </h2>
+          <div class="mt-3 space-y-4">
+            {section.faqs.map((faq) => (
+              <div>
+                <h3 class="text-base font-semibold text-ink dark:text-dark-ink">{faq.question}</h3>
+                <p class="mt-1 text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted">
+                  {faq.answer}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))
+    }
+  </div>
+</Layout>

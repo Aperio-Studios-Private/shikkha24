@@ -133,6 +133,10 @@ export const GET: APIRoute = async () => {
   const pages: SitemapEntry[] = [
     { loc: '/about', priority: '0.4', changefreq: 'yearly' },
     { loc: '/contact', priority: '0.4', changefreq: 'yearly' },
+    // `/faq` is the storefront of the `faqs` collection — the same static page
+    // shell, but its content is editable, so it is listed with a monthly hint
+    // rather than `yearly`.
+    { loc: '/faq', priority: '0.4', changefreq: 'monthly' },
     { loc: '/privacy-policy', priority: '0.3', changefreq: 'yearly' },
     { loc: '/terms-of-use', priority: '0.3', changefreq: 'yearly' },
     ...pageSlugs.map((slug) => ({
