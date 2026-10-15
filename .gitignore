@@ -79,3 +79,6 @@ Thumbs.db
 .lighthouseci-report/
 .lhci-tmp/
 
+
+# AI cover working files (official copies go to CMS Media)
+editorial/assets-batch-1/
