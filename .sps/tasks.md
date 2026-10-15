@@ -55,6 +55,36 @@ not know about it.
   (dashboard: Workers & Pages → shikkha24-publish-watcher → Settings → Variables
   and Secrets) — never in chat, never in the repo.
 
+### T-21 — Complete SEO pass + search-engine registration (owner requested 2026-10-15)
+- **Status:** `queued` — ordered **before T-20**; starts when T-15/T-19 close (or the
+  owner says start). Runs with the `sps-seo` skill (deterministic audit engine).
+- **Part A — technical SEO action pass:** titles/meta/OG/Twitter (Bengali), canonicals,
+  robots.txt + sitemap.xml correctness on the Workers serving path, JSON-LD per page
+  type (NewsArticle for articles, ItemList for listings, Organization on home…),
+  404/redirect hygiene, internal linking, Core Web Vitals re-measured on
+  **https://shikkha24.com** in production (mobile + desktop). Everything the audit
+  finds gets fixed and re-verified.
+- **Part B — search-engine registration, guided click-by-click for the owner:**
+  Google Search Console (domain property; I produce the exact TXT record, owner
+  pastes it in the Cloudflare DNS screen), sitemap submission, key-page indexing
+  requests; Bing Webmaster Tools (import from GSC). The owner does only what
+  Google/Bing require a human for.
+- **DoD:** sps-seo audit green-or-waived with evidence; GSC shows sitemap received;
+  key URLs submitted; performance + a11y budgets re-measured green on the live domain.
+
+### T-22 — Feature-by-feature debug + bug/error-free + futureproofing pass (owner requested 2026-10-15)
+- **Status:** `queued` — directly after T-21, before T-20.
+- **Scope:** walk every shipped feature in a planned matrix (nav, home modules,
+  article page, category/listing, exam-results, scholarship, deadline, prayer widget,
+  live TV, /verify, ad slots, 404, CMS admin flows end-to-end, publish watcher):
+  happy path + edge cases (empty CMS collections, missing media, long Bengali titles,
+  numerals, data-saver, slow network), browser-console error sweep (goal: zero
+  warnings on every template), performance + accessibility budgets re-measured per
+  template, dependency freshness (`pnpm outdated` + advisories), dead-code purge,
+  documented owner manual check per feature (rule: each section ends on a manual check).
+- **DoD:** per-feature checklist with evidence on https://shikkha24.com; zero
+  build/lint/type errors; budgets green; handoff records the feature matrix file path.
+
 ### T-20 — Full security audit with the Cloudflare `security-audit` skill (owner requested 2026-10-15)
 - **Status:** `queued` — deliberately NOT started: T-19 arming (owner PAT) and the
   T-15 publish test come first, per the owner.
