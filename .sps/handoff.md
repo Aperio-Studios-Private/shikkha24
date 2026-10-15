@@ -1230,3 +1230,18 @@ rm -rf "$DEST/sps" "$DEST/sps-cms"
 cp -R "$SRC/skills/sps" "$DEST/sps" && cp -R "$SRC/skills/sps-cms" "$DEST/sps-cms"
 chmod +x "$DEST/sps/scripts/"*.sh "$DEST/sps-cms/scripts/"*.sh
 ```
+
+## 2026-10-16 — T-23 editorial fact sweep (subagent batch run)
+
+- Deliverable: `editorial/news-batch-2026-10-16-sourcefacts.md` — 6 verified Bengali
+  education fact sheets for article drafting (T-23), each bullet citing its source URL,
+  competitor prose not copied, gaps listed under NOT COVERED at the end of the file.
+- Sources used (all verified HTTP 200 this session): shikshasangbad.com,
+  dainikshiksha.com, prothomalo.com (their news-sitemaps + single article pages each).
+- Fetch-method note for future runs: the prothomalo news-sitemap carries **no**
+  `news:title` (only image captions), shikshasangbad's carries none either; titles were
+  recovered by light page peeking before choosing items. Prothomalo article URL
+  `/education/eiu6by2ha` is currently dead ("কিছু পাওয়া যায়নি") — the High-Court context
+  for the admission-policy story was verified via dainikshiksha's writ report instead.
+- Discarded data-telemetry facts: dainikshiksha's sitemap `news:title` fields are in
+  English (their site's own translation), Bengali article text is the ground truth.

@@ -125,6 +125,11 @@ not know about it.
   (title/meta/body/category/cover-note); the OWNER publishes via the CMS admin (their
   login is theirs alone, rule 11) and deletes demo articles via the admin bulk UI.
 - **Deliverable:** editorial/news-batch-2026-10-16.md (fact sheets → drafted articles).
+- **Fact sweep (2026-10-16, done):** `editorial/news-batch-2026-10-16-sourcefacts.md` —
+  6 verified source-fact sheets (ভর্তি নীতিমালা-২০২৭, ৪৫তম বিসিএস গেজেট ১,৭০২ জন,
+  ইবতেদায়ি/দাখিল বৃত্তি কেন্দ্রতালিকা, এনইউ নিয়মিত মাস্টার্স ভর্তি, এইচএসসি ফলের সম্ভাব্য
+  তারিখ ২৫–২৯ অক্টোবর, জাবি ভর্তি পরীক্ষা জানুয়ারি) + NOT-COVERED গ্যাপ তালিকা; প্রতিটি
+  ফ্যাক্টে সোর্স URL, কোনো প্রতিযোগী-প্রোজ কপি নেই।
 - **Scope extension (owner 2026-10-16):** fill ALL categories + ALL features (polls,
   quizzes, live blogs, fact-checks, deadlines, scholarships, institutions, study-abroad
   guides, result links, citizen submissions) → docs/editorial/content-matrix.md
