@@ -259,6 +259,25 @@ not know about it.
   unmistakable affordance with visible hover/focus/active states; a11y contrast pass;
   owner confirms by eye in the admin (this is a visual gate — it needs their check).
 
+### T-27 — Local build flakiness on Node 26 (developer machine only) (found 2026-10-16)
+- **Status:** `open`, low priority — **does not affect CI or production.**
+- **Symptom:** `npx astro build` fails intermittently with `ERR_MODULE_NOT_FOUND`
+  (`dist/.prerender/chunks/<x>.mjs`) or a Tailwind module-loader crash. When it
+  "succeeds" it is not silent-degrading: a failed CMS fetch yields 52 pages instead
+  of 89 (no article/category dirs), which is how a wrong dist went unnoticed once.
+- **Measured (2026-10-16):** **4 pass / 1 fail in 5 consecutive builds = ~20 % flake**
+  on this machine.
+- **Root cause:** this machine runs **Node v26.10.0**; `.nvmrc` pins **24**. No
+  nvm/fnm is installed, so 24 cannot be selected locally.
+- **CI is NOT affected:** every workflow pins `node-version: 24`
+  (`ci.yml:48`, `deploy-cloudflare.yml:109`, `deploy.yml:166`, `backup-db.yml:104`,
+  `host-health.yml:109`). Verified 2026-10-16.
+- **Consequence for agents:** a local build failure is retryable; do not treat it as
+  a regression, and **always check the page count** (89 with a reachable CMS vs 52
+  without) before measuring or concluding anything from `dist/`.
+- **Fix when convenient:** install nvm/fnm and run builds on Node 24 locally, or
+  upgrade the repo to Node 26 deliberately (would need a CI matrix change too).
+
 ### T-20 — Full security audit with the Cloudflare `security-audit` skill (owner requested 2026-10-15)
 - **Status:** `queued` — deliberately NOT started: T-19 arming (owner PAT) and the
   T-15 publish test come first, per the owner.
