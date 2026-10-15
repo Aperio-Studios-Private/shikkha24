@@ -125,6 +125,13 @@ not know about it.
   (title/meta/body/category/cover-note); the OWNER publishes via the CMS admin (their
   login is theirs alone, rule 11) and deletes demo articles via the admin bulk UI.
 - **Deliverable:** editorial/news-batch-2026-10-16.md (fact sheets → drafted articles).
+- **Scope extension (owner 2026-10-16):** fill ALL categories + ALL features (polls,
+  quizzes, live blogs, fact-checks, deadlines, scholarships, institutions, study-abroad
+  guides, result links, citizen submissions) → docs/editorial/content-matrix.md
+  (coverage plan + sample Bengali titles per category × type + first-week batch).
+  Plus editorial/visual-prompts-ai.md — AI cover-image prompt pack with the
+  editorial-illustration house style (no fake photorealism, no AI text, credit
+  "চিত্র: AI" mandatory).
 - After publish: watcher carries them live automatically (T-19); GSC picks up via
   sitemap. Demo purge list included (owner deletes in admin bulk UI).
 
