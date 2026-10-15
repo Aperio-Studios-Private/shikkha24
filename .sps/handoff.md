@@ -42,6 +42,106 @@ verdict `not-ready`). Both now carry banners saying so. Do not read either for c
 
 ## Current Phase
 
+> **Session 2026-10-15 — T-18 P1: the storefront's publisher becomes Cloudflare
+> Workers.** DianaHost stays the CMS host until P4; the cPanel static path is now
+> **rollback-only** (manual dispatch), and the rebuild webhook (`repository_dispatch:
+> rebuild`, fired by `cms/src/lib/rebuild-trigger.ts`) now drives a **new**
+> `deploy-cloudflare.yml` instead of the cPanel `deploy.yml`. Read the P1 block in
+> `.sps/tasks.md` for state; the platform facts below are the reusable part.
+
+### Platform research — Workers static assets (verified 2026-10-15, docs live)
+
+Recorded under rule 3 so nobody re-derives or mis-remembers it:
+
+1. **Workers Sites (`[site]` + `entry-point = "workers-site"`) is the retired
+   pattern.** The uncommitted `wrangler.toml` a previous session left used it —
+   `main = "dist"` is not a valid entry point and `workers-site/` never existed
+   in this repo, so `wrangler deploy` would have failed outright. M35.
+2. **The current mechanism** is a top-level or env-level `assets` table:
+   `directory` (the upload root), optional `binding` (e.g. `ASSETS`, giving
+   `env.ASSETS.fetch(request)` from the Worker — it applies `html_handling` and
+   `not_found_handling`), `not_found_handling = "404-page"` (serves `dist/404.html`
+   with a genuine 404 status — Astro's `dist/404.html` already exists), and
+   `run_worker_first` (`true` = the Worker sees every request before assets;
+   also accepts an array of globs with `!`-negations).
+3. **`_headers` glob language cannot express our CSP dispatch.** It supports `*`
+   splats and `:placeholder` segments but **no negation and no lookahead** — the
+   S11 article rule ("exactly three segments, middle not `page`") is impossible,
+   and `/latest/page/:n` would silently stop being strict. It is the same
+   silent-failure class M-something S11 was invented for.
+4. **Multiple matching `_headers` rules merge; a repeated header's values are
+   comma-joined** (the docs suggest `!`-detach, which is order-fragile). A
+   comma inside a `Content-Security-Policy` value is exactly the Cloudflare
+   bug the 2026-09-14 removal decision was written around. **A Worker that sets
+   the header once, in code, is the only way to guarantee "exactly one CSP".**
+5. **`_redirects`/`_headers` are NOT applied to worker-served requests** (docs'
+   caution under `run_worker_first`). So the Worker owns: CSP profile dispatch,
+   security headers, cache rules, the `/verify/<unknown-id>` rewrite, and a
+   `X-Robots-Tag: noindex` on `*.workers.dev` preview hosts (new-host SEO
+   protection the .htaccess never needed).
+6. **Deploys are atomic version uploads** (`wrangler deploy` from CI with
+   `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`; `--dry-run` builds and
+   validates without uploading). Rollback instant via Workers' own version
+   rollback; domain-level rollback remains "point DNS back to DianaHost".
+
+### M35 — code drifted ahead of the task record (again: the M21 shape)
+
+The 2026-10-15 session opener found `frontend/wrangler.toml` +
+`frontend/package.json` changes implementing T-18 P1 with **no `.sps/tasks.md`
+entry and no docs parity**, and the few lines written used the wrong platform
+pattern (Workers Sites). Two lessons: (a) the drift gate for *tasks* is reading
+`git status` first — an uncommitted change with no task behind it is the signal;
+(b) a snippet written from memory of a platform (Workers Sites) rather than the
+current docs shipped unusable config — the rule-3 research habit exists precisely
+for this. Owner chose "keep and fix, recorded properly"; both files were kept and
+rewritten correctly in this session.
+
+### What this session changed
+
+- `frontend/wrangler.toml` — rewritten to `[assets]` + `run_worker_first` +
+  `not_found_handling = "404-page"`; legacy `[site]` removed. Single environment
+  for now (workers.dev preview); `routes`/custom-domain land in P6 after DNS.
+- `frontend/worker/` — `csp.ts` (the three profiles, byte-identical by contract
+  check with `frontend/public/.htaccess`), `dispatch.ts` (the SetEnvIf regexes
+  ported 1:1), `headers.ts` (security + cache rules), `index.ts` (entry:
+  asset-first fetch, `/verify/*` rewrite, header application).
+- `frontend/public/.assetsignore` — keeps `.htaccess` out of the Workers upload
+  (wrangler would otherwise publish it as a plain-text asset).
+- `scripts/verify-cloudflare.mjs` + `pnpm verify:cloudflare` — the route matrix
+  (from `verify:apache`'s expectations), the .htaccess↔worker CSP contract, the
+  wrangler.toml contract and the new workflow's gate ordering. Counter-proved.
+- `.github/workflows/deploy-cloudflare.yml` — push / `repository_dispatch:
+  rebuild` / manual. `wait-for-ci` is the first post-checkout step (dispatch-only
+  override, same as `deploy.yml`); build steps mirror `deploy.yml`'s frontend
+  half (thin-build guard, links, search); `wrangler deploy` runs dry-run by
+  default and live only via `AUTO_DEPLOY=live` or an explicit `mode` input.
+- `.github/workflows/deploy.yml` — `repository_dispatch` removed; push/dispatch-manual
+  still run the cPanel path as rollback. No AUTO_DEPLOY change (if it were ever
+  set to live now, a push would also fire a live cPanel deploy — the docs and the
+  workflow comment say to remove that trigger during migration; done here).
+
+**Gates:** lint 0 errors; `typecheck:frontend` 0 errors; `verify:cloudflare`
+green with counter-proofs; `verify:workflows`, `verify:deploy-mode`,
+`verify:deploy-inputs`, `verify:cpanel-deploy`, `verify:apache` re-run green
+after the deploy.yml edit. `verify:prayer-times` still fails (pre-existing,
+owner decision pending) — run gates by name.
+
+**Why the Worker and not `_headers`:** (docs, 2026-10-15) `_headers` matches by
+splat/placeholder globs only — it cannot say "3 segments whose middle is not
+`page`", so `/latest/page/2` would fall to a relaxed profile (the exact S11
+failure). It also **comma-joins** header values when multiple rules match — for
+CSP that is the Cloudflare bug this project left in 2026-09-14 — and with
+`run_worker_first`, `_redirects`/`_headers` are not applied to worker-served
+requests at all. A worker-owned header set is single-mechanism, regex-complete
+and Node-testable (`scripts/verify-cloudflare.mjs` mirrors `verify:apache`).
+
+> **Session 2026-10-14 (migration DECIDED; P0/P1 not started).** The owner
+> decided to move OFF DianaHost: Cloudflare (Workers/R2/DNS) + Neon + Render,
+> researched live that day — full record in T-18 and
+> `docs/migration-plan-2026-10-14.md`. Awaiting owner: registrant-of-record
+> answer and P0 go-ahead. (Phase 1 code began in a later session without being
+> recorded here first — see M35 above.)
+
 > **Session 2026-10-13.** The owner pointed at a sibling project already deployed
 > on DianaHost — **`al-marsus` / almarsus.com** (repo
 > `SHAHID8142/AI-Marsus2026-Final-Production`, at `/Volumes/SSD/CODES/al-marsus`) —

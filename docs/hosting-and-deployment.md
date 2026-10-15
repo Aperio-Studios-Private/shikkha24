@@ -3,6 +3,18 @@
 **Created:** 2026-09-11 · **Updated 2026-10-04** — rewritten after the first real production deploy.
 **Status:** describes the deployment that is actually running on DianaHost.
 
+> **🔴 UPDATE 2026-10-15 — T-18 Phase 1 landed: the storefront now publishes via
+> Cloudflare Workers, and this document's cPanel static path (§3.1, §4.2) is
+> ROLLBACK-ONLY (manual dispatch).** DianaHost stopped responding (#0590191, open
+> 10+ days); the owner decided on 2026-10-14 to migrate off it
+> (`docs/migration-plan-2026-10-14.md`) and approved Phase 1 on 2026-10-15. The
+> publisher is `.github/workflows/deploy-cloudflare.yml` → `wrangler deploy`
+> (Workers static assets + a small header/rewrite Worker); the CMS rebuild webhook
+> (`repository_dispatch: rebuild`) now triggers that workflow, **not** `deploy.yml`.
+> The mechanism, the research behind the Worker-first design, and the owner setup
+> steps are in **§10**. The CMS, database and media still run on DianaHost until
+> migration P4/P2/P3 — everything else in this document still describes them.
+
 > **Read this before changing anything about deployment.** Every claim marked
 > **VERIFIED** was confirmed by the owner against the live host on 2026-10-04. Claims marked
 > **DESIGNED** describe a build that is written but has not yet been run against production —
@@ -518,3 +530,121 @@ support, and until they are, they are unknowns:
 | `docs/backup-and-recovery.md` | the daily dump, restore runbook, DR scenarios |
 | `docs/security.md` | headers/CSP, rate limiting, PII, the Node-EOL finding |
 | `.sps/plan.md` | the approved implementation plan |
+
+---
+
+## 10. The Cloudflare Workers publisher (T-18 P1 — built 2026-10-15)
+
+DianaHost cannot extract, cannot fork a cron, and stopped answering its own
+critical ticket. The storefront's *publisher* therefore moved to a host whose
+deploy is atomic and automatic. **DianaHost still serves the site today** (DNS
+still points there); Workers is the publishing target the moment the preview
+URL is verified, and the cPanel path stays as rollback.
+
+### 10.1 The publish chain
+
+```
+editor clicks Publish in the CMS
+  → cms/src/lib/rebuild-trigger.ts (debounced)
+  → GitHub repository_dispatch (type: rebuild)
+  → .github/workflows/deploy-cloudflare.yml
+      wait-for-ci gate → build (CMS_URL) → verify:build-output / links / search
+      → wrangler deploy            ← atomic version upload
+  → live on shikkha24-frontend.<account>.workers.dev (today)
+                                     / shikkha24.com (after DNS moves, P6)
+```
+
+`deploy.yml` keeps its cPanel machinery for **manual rollback only**
+(`workflow_dispatch`, `mode=live target=static`) — its automatic
+`repository_dispatch` trigger was removed on 2026-10-15 so one publish builds
+the frontend exactly once.
+
+### 10.2 Configuration — Workers static assets, not Workers Sites
+
+`frontend/wrangler.toml` (the schema-shown, currently-shipped shape):
+
+```toml
+name = "shikkha24-frontend"
+main = "./worker/index.ts"
+compatibility_date = "2026-10-15"
+workers_dev = true                    # preview URL until the custom domain (P6)
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "404-page"       # Astro's dist/404.html, served with 404
+run_worker_first = true               # every request passes through the Worker
+```
+
+⚠️ **Workers Sites (`[site]` + `entry-point = "workers-site"`) is retired.** A
+first draft of this config used it and could never have deployed (M35). The
+`assets` table is the supported mechanism.
+
+### 10.3 Why the headers live in a Worker, not in `_headers`
+
+This is the load-bearing design decision of Phase 1; the research is recorded in
+`.sps/handoff.md` (2026-10-15 block). In short:
+
+1. `_headers` matches **splat/placeholder globs only** — no negation, no
+   lookahead. It cannot say "exactly three segments whose middle is not
+   `page`", which is the S11 article rule; `/latest/page/:n` would silently
+   inherit a relaxed policy and start carrying AdSense permissions it must not
+   have.
+2. When multiple `_headers` rules match one request they **merge**, and a
+   repeated header's values are **comma-joined**. A comma inside a
+   `Content-Security-Policy` value is the exact Cloudflare behaviour this
+   project removed Cloudflare to escape on 2026-09-14.
+3. With `run_worker_first = true`, `_headers`/`_redirects` are **not applied to
+   worker-served requests** anyway. One mechanism, owned in code, is the only
+   coherent shape.
+
+So `frontend/worker/` owns: the **three CSP profiles** (strict / relaxed-ad /
+media) with the SetEnvIf route regexes ported 1:1 from `frontend/public/.htaccess`
+(including the S11 three-segment article rule), the security headers (HSTS,
+X-Content-Type-Options, Referrer-Policy, Permissions-Policy, X-Frame-Options),
+the cache rules (`/_astro/*` + `/fonts/*` immutable; everything else
+must-revalidate; `sw.js` no-cache), the `/verify/<unknown-id>` rewrite (fetch
+the asset; on 404 serve `/verify/not-found/` with 200 — the Apache conditions
+`-f`/`-d` become "the asset fetch returned 404"), and `X-Robots-Tag: noindex`
+on `*.workers.dev` preview hostnames.
+
+**The drift guard:** `scripts/verify-cloudflare.mjs` parses the three CSP
+values out of `.htaccess` and asserts the Worker's constants are
+**byte-identical**, then runs the `verify:apache` route matrix against the
+dispatch and the rewrite. Changing one side without the other turns the check
+red. `public/.htaccess` itself stays in the repo (it is the rollback path) and
+is excluded from the Workers upload by `frontend/public/.assetsignore`.
+
+### 10.4 CI wiring and safety properties
+
+- **CI gate first:** `scripts/wait-for-ci.mjs` is the first step after
+  checkout — no build runs above it, `skip-ci-gate` is dispatch-only, and
+  `permissions` carries `actions: read` (M31). Same shape as `deploy.yml`.
+- **Dry run is the default,** unchanged from the cPanel design: push and
+  repository_dispatch resolve `mode` from the `AUTO_DEPLOY` repository
+  variable (`dry-run` unless the owner sets `live`); a dry run does
+  `wrangler deploy --dry-run` — build, bundle and validate, upload nothing.
+- **Verify before publish:** the workflow runs the same frontend gates the
+  cPanel path ran (`verify:build-output` thin-build guard, `verify:links`,
+  `verify:search-init`) before `wrangler` is invoked.
+- **Rollback, two levels:** re-run `deploy.yml` (`mode=live target=static`) to
+  republish to cPanel **while DNS still points there**, or roll the Worker back
+  to a previous version in the Cloudflare dashboard (every upload is a version).
+
+### 10.5 Owner setup for the first live publish (no DNS change required)
+
+1. Confirm the Cloudflare account: `pnpm --filter @shikkha24/frontend exec wrangler whoami`
+   → must show `abdullahalmamunmay@gmail.com` (verified 2026-10-14).
+2. Create an API token with the **"Edit Cloudflare Workers"** template, and add
+   both secrets in GitHub: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
+3. Dispatch `deploy-cloudflare.yml` (`workflow_dispatch`, `mode=live`), then
+   verify the printed `*.workers.dev` URL: 200, and **exactly one**
+   `Content-Security-Policy` header per page, matching the page's profile
+   (`verify:apache`'s matrix is the reference).
+4. Only then set the repository variable `AUTO_DEPLOY=live` — from that moment
+   a push, or the CMS publish webhook, publishes with zero manual steps. That
+   is migration Phase 1's exit test: editor publishes → live, untouched.
+
+The custom domain (`routes = ["https://shikkha24.com/*"]`) attaches only after
+the zone is active in Cloudflare (migration P6) — configuring it before the
+zone exists makes `wrangler deploy` fail; the config deliberately omits it.

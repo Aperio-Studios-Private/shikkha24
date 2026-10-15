@@ -29,8 +29,8 @@ read these three files in this order:
 
 | Document | Status | What it is for |
 |---|---|---|
-| **`deployment-runbook.md`** | ✅ LIVE | The day-to-day deploy. Frontend by hand **or by workflow**, CMS updates, seeding, verification, and the traps that have each cost a failed deploy. |
-| **`hosting-and-deployment.md`** | ✅ LIVE | Why CI exists, the real pipeline, the cPanel API mechanism (**built 2026-10-04, never yet run live**), quotas, and the unresolved Node-version question. |
+| **`deployment-runbook.md`** | ✅ LIVE | The day-to-day deploy. **The frontend publishes to Cloudflare Workers since 2026-10-15 (T-18 P1; runbook §2.4)** — the cPanel path is rollback-only. CMS updates, seeding, verification, and the traps that have each cost a failed deploy. |
+| **`hosting-and-deployment.md`** | ✅ LIVE | Why CI exists, the real pipeline, the cPanel API mechanism (now **rollback-only** for the frontend), the **Cloudflare Workers publisher (§10, T-18 P1)**, quotas, and the unresolved Node-version question. |
 | **`cms-deployment.md`** | ✅ LIVE | Full first-time CMS setup: subdomain, Node app, standalone bundle, schema bootstrap, seeding, updates. |
 
 ## Operations and incident response

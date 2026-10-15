@@ -101,6 +101,18 @@ Expected DianaHost footprint: **≈400–700 MB** (CMS standalone), plus media (
 
 **No Cloudflare fallback:** media stays on DianaHost under a strict upload quota (aggressive WebP/AVIF, originals discarded, per-day upload cap). This is the active architecture (owner decision 2026-09-14).
 
+### ⚠️ Architecture amendment (2026-10-15) — T-18 P1: the storefront publishes via Cloudflare Workers
+
+> **Supersedes the frontend row above** (and the 2026-09-14 "no Cloudflare" line for the
+> *storefront's publisher* only — the media row below stays operative until migration P3).
+> DianaHost stopped responding (ticket #0590191, 10+ days); the owner decided on
+> 2026-10-14 to migrate off it (`docs/migration-plan-2026-10-14.md`), and approved P1 on
+> 2026-10-15. The Astro static site now deploys **GitHub Actions → Cloudflare Workers
+> static assets**; the cPanel path in `deploy.yml` becomes rollback-only (manual
+> dispatch). The CMS, database and media rows are unchanged until their phases (P4, P2, P3).
+> The TTFB gate (rule 9) becomes a Cloudflare property once DNS moves in P6; it is not
+> measurable on the current DNS while the zone still points at DianaHost.
+
 ---
 
 ## Scope amendment (2026-09-12) — media, newsletter and identity

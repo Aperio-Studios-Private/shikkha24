@@ -168,7 +168,51 @@ extract the newest `frontend-<run>.tar.gz` in cPanel → File Manager into `publ
 then delete the archive. The CI run will have failed loudly and named the exact archive. **To retire
 that step for good, do the two owner setup actions in `docs/hosting-and-deployment.md` §4.2.3** —
 confirm `tar` on the host, then install the 2-minute cron — and set `DEPLOY_WEBHOOK_URL` +
-`AUTO_DEPLOY=live` in GitHub. **Both are blocked on #0590191.**
+`AUTO_DEPLOY=live` in GitHub. **Both are blocked on #0590191.** *(Superseded as the
+publishing path by §2.4 below — 2026-10-15. Kept as the rollback procedure.)*
+
+---
+
+### 🔴 2.4 From 2026-10-15: the frontend publishes to Cloudflare Workers — §§2.1–2.3 become rollback
+
+> Migration T-18 Phase 1 (owner-approved 2026-10-15). DianaHost cannot extract or
+> fork a cron and stopped answering #0590191, so the storefront's **publisher** is
+> now `.github/workflows/deploy-cloudflare.yml` → `wrangler deploy`. The cPanel
+> path above is **rollback-only**: dispatch it by hand (`workflow_dispatch`,
+> `mode=live target=static`) and it still works **while DNS points at DianaHost**.
+> Mechanism + research: `docs/hosting-and-deployment.md` §10.
+
+**The chain:** editor publishes → `repository_dispatch: rebuild` → CI gate →
+build → `wrangler deploy` (atomic) → live on
+`shikkha24-frontend.<account>.workers.dev` (the custom domain attaches after
+DNS moves, migration P6).
+
+**By hand:**
+
+```sh
+# Plan it — build + validate, upload nothing:
+pnpm --filter @shikkha24/frontend exec wrangler deploy --dry-run
+
+# Publish it (needs wrangler auth, or CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID):
+pnpm --filter @shikkha24/frontend exec wrangler deploy
+```
+
+`pnpm --filter @shikkha24/frontend exec wrangler dev` (after a real build)
+serves the site locally through the same Worker — including the CSP dispatch
+and the `/verify/*` rewrite.
+
+**Verify a publish (do not skip):** fetch the printed URL once per profile in
+`verify:apache`'s matrix — expect HTTP 200 and **exactly one**
+`Content-Security-Policy` header matching the page's profile (article pages
+relaxed, `/latest/page/2` strict, `/live-tv` media). Exactly one header is the
+invariant: a page carrying two CSP values means a source is double-applying,
+and comma-joined policies are the failure this migration design exists to
+avoid.
+
+**Owner setup, once (§10.5 of the hosting doc):** `CLOUDFLARE_API_TOKEN` +
+`CLOUDFLARE_ACCOUNT_ID` secrets → first live dispatch → verify → then set
+`AUTO_DEPLOY=live`. Until the secrets exist, workflow runs can only build and
+dry-run.
 
 ---
 

@@ -21,8 +21,18 @@
 - Payable infrastructure is limited to what can be bought locally (bKash / bank transfer) — currently DianaHost only
 - Hosting purchased: **DianaHost PNR 2 GB SSD NVMe** — 2 GB storage, 200 GB/month bandwidth, 3 addon domains, 30 sub-domains, 30 FTP accounts, 50 databases, unlimited email accounts, cPanel, SSH on demand, Python/Ruby/Node.js support (~$47.04/year)
 
-## Hosting & storage architecture (decided 2026-09-11; amended 2026-09-14)
-- **Frontend (Astro static) → DianaHost `public_html`** — Apache serves the static HTML directly. No CDN, no edge caching. The 200 GB/month bandwidth cap applies to all traffic including media. SSL via DianaHost AutoSSL (Let's Encrypt via cPanel).
+## Hosting & storage architecture (decided 2026-09-11; amended 2026-09-14; amended 2026-10-15 — T-18 P1)
+> **⚠️ Amendment 2026-10-15 (T-18 P1, owner-approved this session):** DianaHost has
+> stopped responding (ticket #0590191 unresolved 10+ days); the owner decided on
+> 2026-10-14 to migrate OFF DianaHost (plan: `docs/migration-plan-2026-10-14.md`).
+> **Phase 1 is now in build:** the storefront publishes via GitHub Actions →
+> **Cloudflare Workers static assets** (publish chain: CMS publish →
+> `repository_dispatch: rebuild` → build → `wrangler deploy`), making the cPanel
+> static path **rollback-only (manual dispatch)**. The rows below describe the
+> architecture this migration replaces; Phase-4/5 (CMS → Render, DB → Neon,
+> media → R2) and P6 (DNS/domain) are still pending, so those rows remain the
+> operative reality for the CMS, database and media until their phase lands.
+- **Frontend (Astro static) → DianaHost `public_html`** — Apache serves the static HTML directly. No CDN, no edge caching. The 200 GB/month bandwidth cap applies to all traffic including media. SSL via DianaHost AutoSSL (Let's Encrypt via cPanel). *(Superseded for publishing by the 2026-10-15 amendment above; DianaHost remains the rollback target until the domain's DNS moves in P6.)*
 - **Media → DianaHost disk** (`data/media/`) — moved off Cloudflare R2 in S9 (2026-09-12). Aggressive WebP conversion, originals discarded, per-day upload cap.
 - **Payload CMS → DianaHost PNR 2 GB**, built in CI with Next.js `output: 'standalone'` so only dependency-traced modules ship (≈300–600 MB) instead of a full `node_modules` (0.7–1.2 GB).
 - **Backups → GitHub Actions artifacts** (7-day retention) + owner local download. No Cloudflare R2. See `docs/backup-and-recovery.md`.

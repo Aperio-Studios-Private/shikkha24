@@ -391,7 +391,54 @@ not know about it.
 - **Standing decisions reversed (rule 13 — docs parity built BEFORE code):** rule
   7's "no international card, ever" (owner has one; activated R2) and the
   2026-09-14 "no Cloudflare services" decision. **Budget is unchanged: $0/month.**
-- **Open, needs the owner:** who is listed as the *registrant* of record (check
+- **P0 unverified (owner asked 2026-10-15, answered "I don't know"):** whether the
+  auth code and the off-host DB/media copies exist is unknown. **Every cutover step
+  (DNS, domain transfer, closing DianaHost) stays gated on P0; Phase-1 code and
+  preview-URL testing do not.**
+- **🆕 P1 `doing` (2026-10-15) — storefront publishes via GitHub Actions → Cloudflare
+  Workers.** Owner approved continuing P1 this session ("we have recently changed the
+  deploy system so we need to work on it").
+  - **⚠️ Deviation recorded (rule 13/14):** a previous session left uncommitted P1
+    files (`frontend/wrangler.toml` — since found to use the **retired Workers Sites
+    `[site]` pattern**, which cannot deploy; + `frontend/package.json` wrangler deps)
+    with **no task entry and no docs update**. Owner chose: keep and fix, recorded
+    properly. The mistake is recorded in `.sps/handoff.md` (M35).
+  - **Design, proven against today's platform docs (researched 2026-10-15, see
+    handoff):** Workers static assets (`[assets]`: `directory = ./dist`,
+    `not_found_handling = "404-page"`) + **`run_worker_first = true`** with a small
+    Worker that owns security headers, the CSP route dispatch and the `/verify/*`
+    rewrite. **Why the Worker and not `_headers`/`_redirects`:** (1) `_headers`
+    matching is glob-only — it cannot express the S11 article rule ("exactly three
+    segments, middle is not `page`"), and `/latest/page/2` would then stop being
+    strict, the exact silent-failure class S11 fixed; (2) multiple `_headers` rules
+    matching one request **comma-join** repeated headers — on CSP that is the
+    precise Cloudflare bug this project removed Cloudflare to escape on 2026-09-14;
+    (3) with `run_worker_first`, `_redirects`/`_headers` are documented as **not
+    applied to worker-served requests**, so the Worker owning both is the only
+    coherent single-mechanism design. The Worker's CSP strings are asserted
+    **byte-identical** to `frontend/public/.htaccess` by a contract check, so the
+    Apache rollback path and the Workers path cannot drift.
+  - **Files (this session):** `frontend/wrangler.toml` (rewritten modern config),
+    `frontend/worker/` (CSP profiles + route dispatch + entry), `frontend/public/.assetsignore`
+    (keeps `.htaccess` out of the upload), `scripts/verify-cloudflare.mjs` (route
+    matrix + contracts, counter-proved), `.github/workflows/deploy-cloudflare.yml`
+    (push/dispatch/manual; wait-for-ci gate first; dry-run default via `AUTO_DEPLOY`),
+    `deploy.yml` loses `repository_dispatch` (the rebuild webhook now drives the
+    Cloudflare workflow only — prevents a double build per publish and a dead-host
+    upload attempt).
+  - **Loop block.** Hypothesis: the publish chain that cannot land on DianaHost lands
+    on Workers where deploys are atomic. Asset: the files above, nothing else. Metric
+    (before any cutover): `wrangler deploy --dry-run` exits 0 and
+    `verify:cloudflare` passes its route matrix; **after owner secrets:** a live
+    `*.workers.dev` URL serves 200 with exactly one CSP header matching the
+    verify:apache profile. Budget: 3 attempts. Degraded when: any built page gets the
+    wrong profile, or two CSP headers.
+  - **Owner actions for P1 live (not yet done):** confirm `wrangler whoami` account;
+    create `CLOUDFLARE_API_TOKEN` (Workers-Scripts-Edit) + `CLOUDFLARE_ACCOUNT_ID`
+    secrets; first manual live dispatch; then set `AUTO_DEPLOY=live`. Custom domain
+    waits for the DNS step (P6); DNS switching before the preview URL is verified is
+    explicitly **out of order**.
+- **Open, needs the owner (T-18):** who is listed as the *registrant* of record (check
   the original purchase email from DianaHost) — it decides how easy the transfer is.
 - **Loop block.** Hypothesis: the root of "publish and nothing happens" is the
   host, not the code — so the fix is moving where things run. Asset: none yet
