@@ -289,7 +289,7 @@ check('the production host is not a preview host', isPreviewHost('shikkha24.com'
 console.log('5. /verify rewrite (port of the .htaccess RewriteCond pair)')
 check(
   'unknown card id serves the not-found page',
-  resolveRewrite('/verify/SHK-XX-404', 404) === '/verify/not-found/',
+  resolveRewrite('/verify/SHK-XX-404', 404) === '/verify/not-found',
 )
 check(
   'a real card (built page, 200) is never rewritten',

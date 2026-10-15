@@ -51,7 +51,12 @@ export function resolveRewrite(pathname: string, status: number): string | null 
   // Exactly `/verify/<one-or-more-segment-chars>` with an optional slash. The
   // empty `/verify/` must NOT rewrite — an empty lookup is a broken link, not
   // a scanned card.
-  return /^\/verify\/[^/?#]+\/?$/.test(pathname) ? '/verify/not-found/' : null
+  //
+  // ⚠️ The target carries NO trailing slash: under `drop-trailing-slash` the
+  // slashed form answers a 307 to the un-slashed one, which would bounce every
+  // scanned press card off its scanned URL — the S14 contract is "the reader's
+  // URL is unchanged; only the body differs". Verified live 2026-10-15.
+  return /^\/verify\/[^/?#]+\/?$/.test(pathname) ? '/verify/not-found' : null
 }
 
 /** Serve an asset (or the rewrite target) with the Worker-owned headers attached. */
