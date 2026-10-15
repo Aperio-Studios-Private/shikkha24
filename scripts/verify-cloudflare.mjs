@@ -81,9 +81,32 @@ const dateOk =
   Date.parse(cfConfig.compatibility_date) <= Date.now()
 check('compatibility_date is a past-or-today date', dateOk, cfConfig.compatibility_date)
 check(
-  'workers_dev stays on until the custom domain attaches (P6)',
+  'workers_dev stays on (deploy probe + rollback channel)',
   cfConfig.workers_dev === true,
   'otherwise the deploy strands with no reachable URL',
+)
+// P6: the production domain attaches as Workers custom domains — Cloudflare
+// synthesises the DNS records and edge certificates from these entries.
+const routes = Array.isArray(cfConfig.routes) ? cfConfig.routes : []
+const hasCustom = (list, pattern) =>
+  Array.isArray(list) && list.some((r) => r?.pattern === pattern && r?.custom_domain === true)
+check('apex is attached as a Workers custom domain (P6)', hasCustom(routes, 'shikkha24.com'))
+check('www is attached as a Workers custom domain (P6)', hasCustom(routes, 'www.shikkha24.com'))
+check(
+  'exactly the apex and www are attached, nothing else',
+  routes.length === 2,
+  JSON.stringify(routes),
+)
+check(
+  'negative control: a folder missing the www route trips the guard',
+  !hasCustom(
+    routes.filter((r) => r?.pattern !== 'www.shikkha24.com'),
+    'www.shikkha24.com',
+  ),
+)
+check(
+  'negative control: a non-custom-domain www route trips the guard',
+  !hasCustom([{ pattern: 'www.shikkha24.com' }], 'www.shikkha24.com'),
 )
 
 const assets = cfConfig.assets ?? {}

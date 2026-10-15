@@ -9,20 +9,25 @@
 # (`[site]` + `entry-point = "workers-site"`); earlier drafts used it and that
 # config could never have deployed (see .sps/handoff.md, M35).
 #
-# ⚠️ No `routes`/custom-domain entry yet: routes require the shikkha24.com
-# zone to already be active in this Cloudflare account. It is added with the
-# DNS switch in migration P6 — adding it early makes `wrangler deploy` fail.
+# ⚠️ Routes/custom domain: added 2026-10-15 once the shikkha24.com zone went
+# active in this Cloudflare account (owner moved nameservers from
+# ns1–3.dianadns.com to Cloudflare the same day — P6). `custom_domain = true`
+# makes Cloudflare create the DNS records + edge certificates itself. Apex and
+# www are both attached.
 
 #:schema node_modules/wrangler/config-schema.json
 name = "shikkha24-frontend"
 main = "./worker/index.ts"
 compatibility_date = "2026-10-15"
-
-# The preview URL (`https://shikkha24-frontend.<account>.workers.dev`) is how
-# the site is reachable until the custom domain attaches. It carries
-# `X-Robots-Tag: noindex` (see worker/headers.ts) so it cannot cannibalise the
-# production domain's search presence.
+# The preview URL (`https://shikkha24-frontend.<account>.workers.dev`) stays
+# reachable alongside the production domain (the deploy's live probe uses it),
+# and carries `X-Robots-Tag: noindex` (via worker/headers.ts) so it cannot
+# cannibalise search presence.
 workers_dev = true
+routes = [
+  { pattern = "shikkha24.com", custom_domain = true },
+  { pattern = "www.shikkha24.com", custom_domain = true },
+]
 
 [assets]
 directory = "./dist"
