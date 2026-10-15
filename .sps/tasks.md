@@ -143,9 +143,16 @@ not know about it.
 ### T-24 — Performance hardening: every Lighthouse category 95+ (owner requested 2026-10-16)
 - **Status:** `queued` — after T-23 batch 1 lands (the gates are currently red and
   block deploys, so this task is also the unblocker for T-23's own rebuild).
-- **Owner's bar:** **all four Lighthouse categories ≥95** (performance, accessibility,
-  best practices, SEO) on the measured templates — mobile, in CI (CI is the only
-  authoritative measurement per the constraints block).
+- **Owner's bar (confirmed 2026-10-16):** **all four Lighthouse categories ≥95**
+  (performance, accessibility, best practices, SEO) on **mobile**, on **every**
+  measured template — in CI (CI is the only authoritative measurement per the
+  constraints block). Current thresholds in `lighthouserc.json` are 0.9; T-24 ends
+  with them raised to 0.95.
+- **First blocker — article-template CLS 0.036 vs budget (owner chose: fix properly,
+  not relax):** the `articleTop` ad box (`div.mt-6 flex justify-center`, 380×90)
+  moves 90px during load on `/education-news/20/demo-madrasa-new-syllabus/`, which
+  is the seeded CI fixture — so the deploy gate stays red until the shifting
+  element's space is reserved. Deploys (incl. T-23 batch 1) are blocked on this.
 - **Known gaps at queue time (evidence: `docs/seo/cwv-live-2026-10-16.md` + CI logs):**
   - LH performance 67 `/`, 71 `/latest`, 56 `/contact`, 55 `/` desktop (target 95)
   - LCP 12.95s home — hero = the CMS original at ~1.56 MB; needs resized variants,
