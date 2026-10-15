@@ -137,8 +137,35 @@ not know about it.
   Plus editorial/visual-prompts-ai.md — AI cover-image prompt pack with the
   editorial-illustration house style (no fake photorealism, no AI text, credit
   "চিত্র: AI" mandatory).
+- **PUBLISHED 2026-10-16 (desk-reporter run, owner-granted):** all six articles are
+  live in the CMS (ids 23–28) and on the site:
+  `/admission/23/admission-policy-2027`, `/jobs-career/24/45th-bcs-appointment-notice`,
+  `/scholarship/25/madrasah-scholarship-exam-centres-2026`,
+  `/university/26/nu-masters-admission-2024-25`,
+  `/education-news/27/hsc-result-2026-possible-date`,
+  `/admission/28/ju-admission-exam-2026-27` — each HTTP 200, one H1, zero template
+  images; `/latest` + homepage show all six; news sitemap carries 6 URLs (was 0).
+  Tooling: `scripts/publish-batch-1.mjs` + `-content.json` (login → desk author →
+  lexical bodies → published; idempotent by slug).
+- **Demo purge completed by me via API** (owner's UI bulk delete missed them):
+  `demo-hsc-result-2026` (id 1), `demo-teacher-recruitment-2026` (id 22) deleted
+  HTTP 200; `demo-madrasa-new-syllabus` (id 20) is gone from the CMS entirely.
+  CMS now holds exactly the six real articles. The only remaining "demo" strings on
+  the site are the intentional `DemoAd` ad placeholders (replaced by AdSense at S7).
+- **Imageless rule shipped (owner 2026-10-16):** the category-archetype fallback was
+  removed from `ArticleCard`, the homepage rail and the article hero. The template
+  visuals the owner could not find in (or delete from) the media gallery were
+  `frontend/src/assets/categories/*.jpg` — repo assets, not CMS media; the demo
+  plates in the media library were uploads of those same visuals.
+- **⚠️ OWNER ASSISTANCE NEEDED (covers):** REST multipart upload is broken on the
+  live host — its proxy drops non-file form fields, so `alt` never arrives
+  (proven 2026-10-16 with curl AND Node; file-only reaches validation, alt-only
+  reports "No files were uploaded"). Upload pack is ready for pure clicking:
+  `editorial/assets-batch-1/upload-ready/` (6 covers renamed per article + README
+  with the exact Bengali alt text and `চিত্র: AI` credit). After the owner uploads,
+  I PATCH `featuredImage` onto ids 23–28. Unlocks automatically at P4 (Render).
 - After publish: watcher carries them live automatically (T-19); GSC picks up via
-  sitemap. Demo purge list included (owner deletes in admin bulk UI).
+  sitemap.
 
 ### T-24 — Performance hardening: every Lighthouse category 95+ (owner requested 2026-10-16)
 - **Status:** `queued` — after T-23 batch 1 lands (the gates are currently red and
