@@ -34,7 +34,7 @@ const CMS_ENDPOINTS = [
   '/api/live-streams?limit=1&sort=-updatedAt&depth=0',
   '/api/media?limit=1&sort=-updatedAt&depth=0',
   '/api/globals/site-settings',
-];
+]
 
 /**
  * Fetch every endpoint and hash the concatenated state.
@@ -44,20 +44,20 @@ const CMS_ENDPOINTS = [
  * @returns {Promise<string|null>} hex digest, or null when probing failed
  */
 async function buildDigest(cmsOrigin) {
-  const parts = [];
+  const parts = []
   for (const path of CMS_ENDPOINTS) {
-    const res = await fetch(cmsOrigin + path, { cache: 'no-store' });
+    const res = await fetch(cmsOrigin + path, { cache: 'no-store' })
     if (!res.ok) {
-      console.error(`probe failed: ${path} → ${res.status}`);
-      return null;
+      console.error(`probe failed: ${path} → ${res.status}`)
+      return null
     }
     // The endpoint path is part of the hash so adding/removing an endpoint
     // changes the digest on the next tick even with unchanged content.
-    parts.push(`${path}\n${await res.text()}`);
+    parts.push(`${path}\n${await res.text()}`)
   }
-  const data = new TextEncoder().encode(parts.sort().join('\x1e'));
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  const data = new TextEncoder().encode(parts.sort().join('\x1e'))
+  const hash = await crypto.subtle.digest('SHA-256', data)
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 /**
@@ -70,14 +70,14 @@ async function buildDigest(cmsOrigin) {
  *                     reason?: string}>}
  */
 async function runTick(env) {
-  const { PUBLISH_WATCHER: kv, CMS_ORIGIN, GITHUB_REPO, GITHUB_TOKEN } = env;
-  const digest = await buildDigest(CMS_ORIGIN);
-  if (digest === null) return { action: 'skipped', reason: 'cms unreachable' };
-  const last = await kv.get('digest');
-  if (last === digest) return { action: 'unchanged' };
+  const { PUBLISH_WATCHER: kv, CMS_ORIGIN, GITHUB_REPO, GITHUB_TOKEN } = env
+  const digest = await buildDigest(CMS_ORIGIN)
+  if (digest === null) return { action: 'skipped', reason: 'cms unreachable' }
+  const last = await kv.get('digest')
+  if (last === digest) return { action: 'unchanged' }
   if (!GITHUB_TOKEN) {
-    console.error('content changed but GITHUB_TOKEN is not set — dispatch skipped, will retry');
-    return { action: 'skipped', reason: 'no token' };
+    console.error('content changed but GITHUB_TOKEN is not set — dispatch skipped, will retry')
+    return { action: 'skipped', reason: 'no token' }
     // not stored: the first tick after the token lands dispatches immediately
   }
   const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/dispatches`, {
@@ -89,14 +89,14 @@ async function runTick(env) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ event_type: 'rebuild' }),
-  });
+  })
   if (!res.ok) {
-    console.error(`dispatch failed with HTTP ${res.status} — digest not stored, will retry`);
-    return { action: 'failed', reason: `HTTP ${res.status}` };
+    console.error(`dispatch failed with HTTP ${res.status} — digest not stored, will retry`)
+    return { action: 'failed', reason: `HTTP ${res.status}` }
   }
-  await kv.put('digest', digest);
-  console.log(`rebuild dispatched — ${digest.slice(0, 12)} (was ${String(last).slice(0, 12)})`);
-  return { action: 'dispatched' };
+  await kv.put('digest', digest)
+  console.log(`rebuild dispatched — ${digest.slice(0, 12)} (was ${String(last).slice(0, 12)})`)
+  return { action: 'dispatched' }
 }
 
 /**
@@ -110,7 +110,7 @@ export default {
    *          GITHUB_REPO: string, GITHUB_TOKEN?: string }} env
    */
   async scheduled(_controller, env) {
-    await runTick(env);
+    await runTick(env)
   },
 
   /**
@@ -119,16 +119,16 @@ export default {
    *          CMS_ORIGIN: string }} env
    */
   async fetch(request, env) {
-    const url = new URL(request.url);
+    const url = new URL(request.url)
     if (url.pathname === '/health') {
-      const lastDigest = await env.PUBLISH_WATCHER.get('digest');
+      const lastDigest = await env.PUBLISH_WATCHER.get('digest')
       return Response.json({
         ok: true,
         hasToken: Boolean(env.GITHUB_TOKEN),
         lastDigest: lastDigest ? lastDigest.slice(0, 12) : null,
         polling: CMS_ENDPOINTS.length,
-      });
+      })
     }
-    return new Response('Not found', { status: 404 });
+    return new Response('Not found', { status: 404 })
   },
-};
+}
