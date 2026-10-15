@@ -18,9 +18,9 @@
  *   and retries — a publish is never lost or double-dispatched.
  * - The polled endpoints are the public REST API, which returns only
  *   published documents — draft saves cannot trigger a rebuild.
- * - Single `default` export: module Workers resolve mixed named/default
- *   exports to the default object alone, which silently breaks the cron
- *   handler (observed live: "Handler does not export a scheduled()").
+ * - ONE default export holding both handlers: module Workers resolve mixed
+ *   named/default exports to the default object alone, which silently breaks
+ *   the cron handler (observed live: "Handler does not export a scheduled()").
  * - Design + operations: docs/hosting-and-deployment.md §10.6.
  */
 
@@ -61,7 +61,7 @@ async function buildDigest(cmsOrigin) {
 }
 
 /**
- * One tick's business logic — shared by the cron handler and tests.
+ * One tick's business logic — shared by the cron handler and /run-tick.
  * Compares state, dispatches on change, persists only on success.
  *
  * @param {{ PUBLISH_WATCHER: KvNamespace, CMS_ORIGIN: string,
@@ -87,6 +87,9 @@ async function runTick(env) {
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
       'Content-Type': 'application/json',
+      // GitHub REJECTS API calls without a User-Agent, and Workers' fetch
+      // sends none by default — the cause of every 403 we saw (2026-10-15).
+      'User-Agent': 'shikkha24-publish-watcher/1.0',
     },
     body: JSON.stringify({ event_type: 'rebuild' }),
   })
@@ -97,7 +100,7 @@ async function runTick(env) {
     console.error(
       `dispatch failed with HTTP ${res.status} — digest not stored, will retry: ${detail}`,
     )
-    return { action: 'failed', reason: `HTTP ${res.status}` }
+    return { action: 'failed', reason: `HTTP ${res.status}: ${detail}` }
   }
   await kv.put('digest', digest)
   console.log(`rebuild dispatched — ${digest.slice(0, 12)} (was ${String(last).slice(0, 12)})`)
@@ -105,11 +108,13 @@ async function runTick(env) {
 }
 
 /**
- * Single module-Worker default export. `scheduled` is the cron entry;
- * `fetch` serves /health for manual inspection (docs §10.6).
+ * Single module-Worker default export — `scheduled` (cron) and `fetch` (HTTP)
+ * both live here for the mixed-export reason in the file header.
  */
 export default {
   /**
+   * Cron entry, fired every 5 minutes by the [triggers] schedule.
+   *
    * @param {{ cron: string }} _controller — unused
    * @param {{ PUBLISH_WATCHER: KvNamespace, CMS_ORIGIN: string,
    *          GITHUB_REPO: string, GITHUB_TOKEN?: string }} env
@@ -119,6 +124,8 @@ export default {
   },
 
   /**
+   * HTTP entry: /health for inspection, POST /run-tick for on-demand ticks.
+   *
    * @param {Request} request
    * @param {{ PUBLISH_WATCHER: KvNamespace, GITHUB_TOKEN?: string,
    *          CMS_ORIGIN: string }} env
@@ -133,6 +140,13 @@ export default {
         lastDigest: lastDigest ? lastDigest.slice(0, 12) : null,
         polling: CMS_ENDPOINTS.length,
       })
+    }
+    if (url.pathname === '/run-tick' && request.method === 'POST') {
+      // Ops: run the same digest-change-gated tick on demand (no cron wait).
+      // Safe unauthenticated: it can only publish ALREADY-public content and
+      // is idempotent (the digest is stored only on success — repeat calls
+      // return "unchanged" until the CMS actually changes).
+      return Response.json(await runTick(env))
     }
     return new Response('Not found', { status: 404 })
   },
