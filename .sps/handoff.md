@@ -155,6 +155,19 @@ publishes of CONTENT also need either a push or a manual dispatch, because the
 CMS cannot reach GitHub. The production CMS itself still runs Payload 3.89.0
 until the next CMS deploy / P4.
 
+**SEO STRATEGY SET (T-21, research committed):** docs/seo/keyword-competitor-research.md
+(4 live competitors; every claim cites a fetched URL). Wedges we exploit:
+spec-valid Google News sitemap (only Prothom Alo's is valid in the vertical),
+FAQPage/HowTo/JobPosting/CollectionPage schema (NO competitor emits them),
+ASCII slugs + self-canonicals (DS ships empty canonicals + mojibake slugs),
+sub-300 KB SSR (P 2.8-3.3 MB, DS homepage = JS shell with zero links),
+curated llms.txt (404 on all but one broken Yoast one). 12 Bengali targets:
+এসএসসি রুটিন, এইচএসসি রুটিন, এসএসসি ফলাফল(বোর্ডভিত্তিক), ফলাফল দেখার নিয়ম(SMS/ওয়েব),
+ভর্তি বিজ্ঞপ্তি, একাদশ শ্রেণিতে ভর্তি, বিশ্ববিদ্যালয় ভর্তি বিজ্ঞপ্তি, জাতীয় বিশ্ববিদ্যালয় তথ্য,
+নিয়োগ বিজ্ঞপ্তি, বৃত্তি পরীক্ষা, সিলেবাস, পরীক্ষার কেন্দ্র তালিকা ও ফরম পূরণ.
+AllResultBD model = evergreen board-wise flat pages; big papers underserve নিয়োগ.
+Limits: no volume/SERP data yet (GSC will be the oracle after a week).
+
 **PUBLISH CHAIN LIVE (T-19, 2026-10-15):** `publish-watcher/` (Worker
 `shikkha24-publish-watcher`, cron */5, KV `PUBLISH_WATCHER`) polls 7 collections
 + site-settings, sha256-digests them, fires `repository_dispatch: rebuild` on
