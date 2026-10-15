@@ -218,11 +218,28 @@ not know about it.
   the cover upload is blocked on either (a) the owner restoring the upload directory
   on the host, or (b) P3/P4 (media to R2 / CMS to Render) which replaces the file
   store. The `upload-ready/` pack stays queued for whichever comes first.
+- **Sharpened evidence (2026-10-16, all 8 media records probed):**
+  | created | file | HTTP | bytes |
+  |---|---|---|---|
+  | 2026-10-13 | `icon-maskable.svg` | **200** | 899 |
+  | 2026-10-13 | `apple-touch-icon.png` | **200** | 2334 |
+  | 2026-10-04 | `demo-plate-7…12.webp` (ids 1–6) | **500** | 48 (error body) |
+  → **Everything uploaded 2026-10-13 serves; everything from 2026-10-04 is gone.**
+  The two working files live in the CMS `public/` output; the six broken ones are all
+  in the **media upload directory** — so that directory was lost/emptied, it is not a
+  per-file or per-record problem.
+- **The owner's 12 images are NOT in the CMS at all** — only 8 media records exist and
+  none is newer than 2026-10-13, so their admin upload never completed either (same
+  host-level upload problem the REST API hits). Nothing of theirs is lost on the
+  server; the files are still in `editorial/assets-batch-1/`.
 - **Owner action required (one of):**
-  1. cPanel → File Manager → `cms` app dir → check `media/` (Payload `upload.staticDir`)
-     exists and contains the image files; restore from the T-03 backup if empty.
-  2. Or tell me to treat media as broken-until-P4 and publish text-only (current live
-     state — the site is fully readable, just imageless).
+  1. cPanel → File Manager → the CMS app directory → find Payload's upload dir
+     (`upload.staticDir`; typically `media/` beside the app) → confirm it exists and
+     is writable, and restore its contents from the T-03 backup if it is empty.
+     Then a fresh upload from `upload-ready/` will tell us in one attempt whether the
+     directory is healthy again.
+  2. Or tell me to treat media as broken-until-P4 and keep publishing text-only
+     (current live state — fully readable, just imageless).
 - **DoD:** an image URL returns 200 with image bytes, and the covers from
   `editorial/assets-batch-1/upload-ready/` can be attached to articles 23–28.
 
