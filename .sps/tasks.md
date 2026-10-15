@@ -388,6 +388,22 @@ not know about it.
   - **P5** nightly Neon pg_dump → R2 rotation, run from GitHub Actions (not any
     host's cron) + uptime monitor.
   - **P6** transfer the domain after 2026-11-11, repoint DNS, close DianaHost.
+    **RE-SEQUENCED 2026-10-15 (owner decision):** the DNS move happens **now**,
+    in front of P2–P5. Rationale: the DianaHost shell cannot fork — the second
+    `cagefs_enter: Unable to fork` hit (saving a cPanel Node env var blocks the
+    CMS publish webhook; the first broke extraction and cron), so the public
+    shikkha24.com is frozen at its 2026-10-12 content with no working rebuild
+    path; the whole migration plan exists to decouple from this host, and DNS
+    is the step that does it. The sequence swap is safe because (1) the storefront
+    is live and verified on Workers; (2) pointing the domain at Workers needs no
+    registrar TRANSFER — changing nameservers is not blocked by the 2026-11-11
+    lock; (3) the CMS (`cms.shikkha24.com`) keeps its A record to DianaHost, so
+    the editor keeps working unchanged until P4 moves it to Render; (4) rollback
+    becomes a one-toggle dashboard action. **Owner statement recorded the same
+    day: nothing in the CMS database needs backing up (demo-stage content;
+    re-usable via `seed:demo`) — the P0 data-preservation requirement is waived
+    by the owner.** The 60-day lock only holds the registrar transfer (2026-11-11),
+    not nameservers.
 - **Standing decisions reversed (rule 13 — docs parity built BEFORE code):** rule
   7's "no international card, ever" (owner has one; activated R2) and the
   2026-09-14 "no Cloudflare services" decision. **Budget is unchanged: $0/month.**
