@@ -85,16 +85,16 @@ const bullets = (items: string[]): LexNode => ({
   version: 1,
   listType: 'bullet',
   /**
-   * `format` on a Lexical **list** carries the HTML tag, not text alignment —
-   * `ul` for bullets, `ol` for numbered. This was `''`, which older Payload
-   * accepted and 3.90 rejects outright:
-   *
-   *   list node failed to validate: List tag must be one of ol, ul.
-   *
-   * For every other node type `''` is correct (it means "not aligned"), which is
-   * why only the list needed changing.
+   * A Lexical list node's HTML tag lives in `tag` — 'ul' for bullets, 'ol' for
+   * numbered — and @payloadcms/richtext-lexical's `listValidation` rejects the
+   * node unless `tag` is exactly one of the two ("List tag must be one of ol,
+   * ul.", features/lists/shared/validate.js). Payload ≤3.89 never validated
+   * it, which is why the seed passed before the upgrade. `format` is text
+   * *alignment* and stays '' — putting the tag THERE was the reverted first
+   * attempt (T-10, a6aa265), which silenced nothing.
    */
-  format: 'ul',
+  tag: 'ul',
+  format: '',
   indent: 0,
   direction: 'ltr',
   children: items.map((item) => ({

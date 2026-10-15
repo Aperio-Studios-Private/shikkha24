@@ -10,9 +10,11 @@
 import { getPayload } from 'payload'
 
 import config from '../payload.config'
+import { installSeedDiagnostics } from './diagnostics'
 import { seed } from './index'
 
 const payload = await getPayload({ config })
+installSeedDiagnostics(payload)
 
 try {
   const report = await seed(payload)

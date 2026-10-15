@@ -15,8 +15,10 @@ import config from '../payload.config'
 import { seedDemo } from './demo'
 import { seedDemoEducation } from './demo-education'
 import { seedDemoEngagement } from './demo-engagement'
+import { installSeedDiagnostics } from './diagnostics'
 
 const payload = await getPayload({ config })
+installSeedDiagnostics(payload)
 
 try {
   const report = await seedDemo(payload)
