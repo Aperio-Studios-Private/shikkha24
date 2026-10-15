@@ -68,72 +68,14 @@ if (!isEnabled('audioReader')) return null
 
 {/*
   The article text travels as non-executable JSON, not through `define:vars`.
-  `define:vars` emits an **inline** `<script>`, which the site's CSP
-  (`script-src 'self'`, no `'unsafe-inline'`) blocks — the reader would get a
-  dead button. A `type="application/json"` tag is not a script as far as the CSP
-  is concerned, so the logic can live in a normal external module.
+  `define:vars` emits an **inline** `{/*
+  Loaded as a **classic** same-origin script, not a bundled module.
+
+  Astro turns a bare `<script>` into a deferred module, and a deferred reveal of
+  this bar shifts everything below it by the bar's height — measured 0.036 CLS on
+  the article template, over the 0.02 budget. A classic script blocks parsing
+  where it sits, so the bar is part of the first layout and nothing moves. The
+  site CSP (`script-src 'self'`) allows it; only inline scripts are blocked,
+  which is why the article text travels in the JSON tag above.
 */}
-<script type="application/json" data-audio-text set:html={JSON.stringify(text)} />
-
-<script>
-  (function () {
-    const wrap = document.getElementById('article-audio')
-    const playBtn = document.getElementById('audio-play')
-    const stopBtn = document.getElementById('audio-stop')
-    const label = document.getElementById('audio-play-label')
-    const data = document.querySelector('[data-audio-text]')
-    if (!wrap || !playBtn || !stopBtn || !data) return
-
-    // No synthesis support → stay hidden. A visible button that does nothing
-    // is worse than no button.
-    if (!('speechSynthesis' in window)) return
-
-    let articleText = ''
-    try {
-      articleText = JSON.parse(data.textContent || '""')
-    } catch {
-      return
-    }
-    if (!articleText) return
-
-    wrap.classList.remove('hidden')
-    wrap.classList.add('flex')
-
-    let speaking = false
-
-    function refresh() {
-      speaking = window.speechSynthesis.speaking
-      if (label) label.textContent = speaking ? 'বিরতি' : 'শুনুন'
-    }
-
-    playBtn.addEventListener('click', () => {
-      if (window.speechSynthesis.speaking) {
-        // speaking but paused → resume; speaking → pause.
-        if (window.speechSynthesis.paused) window.speechSynthesis.resume()
-        else window.speechSynthesis.pause()
-        refresh()
-        return
-      }
-
-      const utterance = new SpeechSynthesisUtterance(articleText)
-      // bn-BD is essential: without it a device may use an English voice and
-      // read Bengali as gibberish.
-      utterance.lang = 'bn-BD'
-      utterance.rate = 0.95
-      utterance.onend = refresh
-      utterance.onstart = refresh
-
-      window.speechSynthesis.speak(utterance)
-      refresh()
-    })
-
-    stopBtn.addEventListener('click', () => {
-      window.speechSynthesis.cancel()
-      refresh()
-    })
-
-    // Leaving the page must stop audio — a voice continuing after navigation
-    // is genuinely alarming.
-    window.addEventListener('beforeunload', () => window.speechSynthesis.cancel())
-  })()
-</script>
+<script src="/article-audio.js" is:inline></script>
