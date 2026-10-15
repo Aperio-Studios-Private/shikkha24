@@ -68,10 +68,14 @@ on:
   push:
     branches: [main]
 
-  # The CMS webhook calls this when an editor publishes.
-  # `client_payload` is `{ reason: 'debounced'|'breaking'|'max-wait', at }`.
-  repository_dispatch:
-    types: [rebuild]
+  # ⚠️ T-18 P1 (2026-10-15): the CMS publish webhook no longer fires THIS
+  # workflow — one publish must build the frontend exactly once, and the
+  # automatic publisher is now `.github/workflows/deploy-cloudflare.yml`
+  # (`repository_dispatch: rebuild`), since the cPanel host cannot publish
+  # automatically at all. This file stays for ROLLBACK: `workflow_dispatch`
+  # with mode=live target=static re-publishes to cPanel while the domain's DNS
+  # still points at DianaHost. `scripts/verify-cloudflare.mjs` asserts this
+  # workflow does not re-add the trigger.
 
   workflow_dispatch:
     inputs:

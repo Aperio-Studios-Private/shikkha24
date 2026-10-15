@@ -1,0 +1,243 @@
+# Shikkha24 — deploy workflow (Cloudflare, T-18 P1)
+#
+# ## What this deploys
+#
+#   The Astro static build → Cloudflare Workers static assets, via `wrangler deploy`.
+#   DianaHost cannot publish automatically (extraction no-ops; cron cannot fork;
+#   #0590191 unresolved) — this is the publishing half of migration T-18 P1,
+#   owner-approved 2026-10-15. The cPanel workflow (`deploy.yml`) remains as the
+#   ROLLBACK path for as long as the domain's DNS points at DianaHost.
+#
+# ## The publish chain
+#
+#   editor clicks Publish → CMS rebuild-trigger (debounced) →
+#   `repository_dispatch` type `rebuild` → THIS workflow → build → `wrangler deploy`.
+#
+#   `deploy.yml` deliberately no longer listens for `repository_dispatch` — one
+#   publish must trigger exactly one frontend build.
+#   (`scripts/verify-cloudflare.mjs` asserts this, so the trigger is not
+#   silently re-added by a future edit.)
+#
+# ## Dry run is the default (same rule as deploy.yml)
+#
+# push and repository_dispatch resolve `mode` from the `AUTO_DEPLOY` repository
+# variable — anything but `live` runs `wrangler deploy --dry-run`, which builds,
+# bundles and validates but uploads nothing. Going live is a deliberate act:
+# either set the variable, or dispatch by hand with `mode: live`.
+#
+# ## Order of the two gates
+#
+#   1. wait-for-ci — first step after checkout, BEFORE dependencies install. No
+#      build above it (M-log: a red tree must cost seconds, not a full install).
+#      `skip-ci-gate` is dispatch-only; a push can never bypass CI.
+#   2. verify:cloudflare — the deploy-path contract (CSP parity with .htaccess,
+#      route matrix, wrangler.toml shape, this file's own ordering). It replaces
+#      the Apache harness here on purpose: `.htaccess` is the rollback path and
+#      is still exercised by `deploy.yml` + `verify:apache`; the LIVE publisher
+#      must be gated by the contract of what it actually deploys.
+#
+# SECRETS REQUIRED:
+#   CMS_URL, PUBLIC_CMS_ORIGIN      — build-time CMS origins (as deploy.yml)
+#   CLOUDFLARE_API_TOKEN            — API token, "Edit Cloudflare Workers" template
+#   CLOUDFLARE_ACCOUNT_ID           — the numeric account id (dashboard → Workers)
+#
+# VARIABLES:
+#   AUTO_DEPLOY=live                — let push / publish-webhook deploy live
+#
+# Rollback (two levels):
+#   • re-run deploy.yml (workflow_dispatch, mode=live target=static) — serves
+#     cPanel again while DNS still points there; or
+#   • Workers → your deployment → roll back a version (every upload is a version).
+
+name: Deploy (Cloudflare)
+
+on:
+  push:
+    branches: [main]
+
+  # The CMS publish webhook (cms/src/lib/rebuild-trigger.ts) calls this when an
+  # editor publishes. `client_payload` is `{ reason: 'debounced'|'breaking'|'max-wait', at }`.
+  repository_dispatch:
+    types: [rebuild]
+
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Why this deploy was triggered'
+        required: false
+        default: 'manual'
+      mode:
+        description: 'live = publish to Workers; dry-run = build + validate, upload nothing'
+        required: false
+        default: 'dry-run'
+      skip-ci-gate:
+        description: 'Deploy without waiting for CI (dispatch-only, CI is red/unrelated)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  # Required by the CI gate below (lists this repo's CI runs through the
+  # Actions API). Without it every poll returns 403 — fail fast, not retry.
+  actions: read
+
+jobs:
+  deploy:
+    name: Build + deploy to Cloudflare Workers
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # ── CI gate — deliberately the FIRST thing after checkout, before
+      #    `pnpm install`. A red tree should cost seconds, not a full build.
+      - name: Wait for CI to pass
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.skip-ci-gate) }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI_GATE_TIMEOUT_MS: ${{ vars.CI_GATE_TIMEOUT_MS || '900000' }}
+        run: node scripts/wait-for-ci.mjs
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.22.0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: CI gate overridden
+        # Reached only via workflow_dispatch with skip-ci-gate=true.
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.skip-ci-gate }}
+        run: |
+          echo "::warning::CI GATE OVERRIDDEN — deploying ${{ github.sha }} with an unverified tree."
+          echo "::warning::This deploy is NOT covered by CI. Confirm the failure is unrelated to what you are shipping."
+
+      # ── Resolve the effective mode ────────────────────────────────────────
+      - name: Resolve mode
+        id: cfg
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_REASON: ${{ inputs.reason }}
+          PAYLOAD_REASON: ${{ github.event.client_payload.reason }}
+          AUTO_DEPLOY: ${{ vars.AUTO_DEPLOY }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            MODE="$INPUT_MODE"
+          else
+            # push (the owner's ship-it) and the CMS publish webhook both defer
+            # to the AUTO_DEPLOY variable — the same deliberate-act rule the
+            # cPanel workflow has always had.
+            MODE="${AUTO_DEPLOY:-dry-run}"
+          fi
+          # AUTO_DEPLOY is free text; normalise before anything compares it.
+          MODE=$(printf '%s' "$MODE" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+          case "$MODE" in
+            live|dry-run) ;;
+            *)
+              echo "::error::Unrecognised mode '$MODE'. AUTO_DEPLOY accepts 'live' or 'dry-run' (got '${AUTO_DEPLOY:-<unset>}')."
+              exit 1
+              ;;
+          esac
+          if [ "$MODE" = "live" ]; then DRY_RUN=false; else DRY_RUN=true; fi
+          REASON="${PAYLOAD_REASON:-$INPUT_REASON}"
+          {
+            echo "mode=$MODE"
+            echo "dry_run=$DRY_RUN"
+            echo "reason=$REASON"
+          } >> "$GITHUB_OUTPUT"
+          if [ "$MODE" = "live" ]; then
+            echo "::warning::LIVE DEPLOY — this publishes to Cloudflare Workers."
+          else
+            echo "Dry run: build + validate + upload nothing."
+          fi
+
+      # ── Build the frontend — same steps and env as deploy.yml ────────────
+      - name: Astro sync (generate content + env types)
+        run: pnpm --filter @shikkha24/frontend exec astro sync
+
+      - name: Build (frontend)
+        env:
+          # Same three-CMS-value contract as deploy.yml:
+          #   CMS_URL — build-time content source; a thin build must not pass silently
+          #   PUBLIC_CMS_ORIGIN — browser-facing origin for the interactive islands
+          #   PUBLIC_MEDIA_BASE_URL — prefixes /api/media/file/... (unset = broken images)
+          CMS_URL: ${{ secrets.CMS_URL }}
+          PUBLIC_CMS_ORIGIN: ${{ secrets.PUBLIC_CMS_ORIGIN }}
+          PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL || 'https://shikkha24.com' }}
+          PUBLIC_MEDIA_BASE_URL: ${{ vars.PUBLIC_MEDIA_BASE_URL || 'https://cms.shikkha24.com' }}
+        run: pnpm run build:frontend
+
+      # ── Verify, before anything is uploaded ──────────────────────────────
+      - name: Verify build output (thin-build guard)
+        # A CMS outage at rebuild time does not fail the Astro build; without
+        # this guard a rebuild could publish a fraction of the site. Same gate
+        # the cPanel path runs, for the same reason.
+        env:
+          CMS_URL: ${{ secrets.CMS_URL }}
+        run: pnpm run verify:build-output
+
+      - name: Verify internal links
+        run: pnpm run verify:links
+
+      - name: Verify search bootstrap
+        run: pnpm run verify:search-init
+
+      - name: Verify the Cloudflare deploy path
+        run: pnpm run verify:cloudflare
+
+      # ── Publish ───────────────────────────────────────────────────────────
+      - name: Deploy to Workers
+        working-directory: frontend
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.cfg.outputs.dry_run }}" = "true" ]; then
+            pnpm exec wrangler deploy --dry-run
+          else
+            pnpm exec wrangler deploy
+          fi
+
+      # ── Verify the LIVE site (only a live publish; T-15's lesson: a deploy
+      #    that reports green while the site is stale is the worst failure) ──
+      - name: Verify the published Worker
+        if: ${{ steps.cfg.outputs.dry_run == 'false' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          SUBDOMAIN=$(curl -fsS \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" \
+            | jq -r '.result.subdomain // empty')
+          if [ -z "$SUBDOMAIN" ]; then
+            echo "::error::Could not read the account's workers.dev subdomain from the API."
+            exit 1
+          fi
+          URL="https://shikkha24-frontend.$SUBDOMAIN.workers.dev/"
+          echo "Probing $URL"
+          # 1. The homepage must answer 200 and actually be ours.
+          BODY=$(curl -fsS "$URL")
+          echo "$BODY" | grep -q 'শিক্ষা২৪' || {
+            echo "::error::The published homepage does not contain the site name — wrong or stale bundle."
+            exit 1
+          }
+          # 2. Exactly ONE Content-Security-Policy header per response — a second
+          #    value would comma-join and invalidate the whole policy.
+          CSP_COUNT=$(curl -fsSI "$URL" | grep -ci '^content-security-policy:' || true)
+          [ "$CSP_COUNT" = "1" ] || {
+            echo "::error::Homepage carries $CSP_COUNT CSP headers (expected exactly 1)."
+            exit 1
+          }
+          echo "Live and correct: $URL"
