@@ -7617,6 +7617,13 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "reset_password_requested_at": {
+          "name": "reset_password_requested_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {
@@ -8134,6 +8141,13 @@
         },
         "lock_until": {
           "name": "lock_until",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reset_password_requested_at": {
+          "name": "reset_password_requested_at",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
