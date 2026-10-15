@@ -82,7 +82,11 @@ not know about it.
   admin can edit"):** CMS FAQ collection (add/edit/delete Q&A pairs) + storefront
   rendering with automatic FAQPage JSON-LD from the same records + starter
   Bengali drafts the admin refines. CMS-coupled: both sides ship together.
-- **Scope addition — Google News sitemap** (fresh-articles feed) + llms.txt.
+- **Scope addition — Google News sitemap + llms.txt: 2026-10-16 VERIFIED ALREADY LIVE,** no build
+  needed: `news-sitemap.xml` carries the owner's 90-minute-old article (post-nnsh4m),
+  `news:language bn` + CMS publication name + 48h filter (second spec-valid file in the
+  vertical per the research); llms.txt curated+live (the source-audit "missing" flags were
+  tree-path noise; live probes settle them).
 - **Part A — technical SEO action pass:** titles/meta/OG/Twitter (Bengali), canonicals,
   robots.txt + sitemap.xml correctness on the Workers serving path, JSON-LD per page
   type (NewsArticle for articles, ItemList for listings, Organization on home…),
