@@ -44,6 +44,9 @@ const settings = await getSiteSettings().catch(() => FALLBACK_SETTINGS)
     <title>{settings.siteName}</title>
   </head>
   <body>
+    <h1 style="font-family: sans-serif; font-size: 1.5rem; font-weight: 700; text-align: center; margin: 0; padding: 2rem 2rem 0;">
+      {settings.siteName}
+    </h1>
     <p style="font-family: sans-serif; text-align: center; padding: 2rem;">
       <a href={canonical}>এগিয়ে যান</a>
     </p>

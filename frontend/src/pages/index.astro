@@ -131,6 +131,16 @@ const mastheadSlugs = new Set(masthead.map((article) => article.slug))
 const remainingLatest = latest.filter((article) => !mastheadSlugs.has(article.slug))
 
 /**
+ * Homepage H1 — the page's subject is the site itself, so the heading is the
+ * brand (with the tagline when the CMS has one). Visually hidden: the masthead
+ * already shows the brand, and a second visible brand line would read as a
+ * banner, not a heading.
+ */
+const homeHeading = settings.tagline
+  ? `${settings.siteName} — ${settings.tagline}`
+  : settings.siteName
+
+/**
  * Site-level JSON-LD: Organization + WebSite + SearchAction.
  *
  * `docs/seo-plan.md` §4 calls for Organization (name, logo, sameAs,
@@ -190,6 +200,8 @@ const siteJsonLd = {
   footerPages={footerPages}
   jsonLd={[orgJsonLd, siteJsonLd]}
 >
+  <h1 class="sr-only">{homeHeading}</h1>
+
   {/* 1 — Breaking ticker. Renders nothing when nothing is flagged. */}
   <BreakingTicker articles={breaking} />
 
