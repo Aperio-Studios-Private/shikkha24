@@ -55,6 +55,20 @@ not know about it.
   (dashboard: Workers & Pages → shikkha24-publish-watcher → Settings → Variables
   and Secrets) — never in chat, never in the repo.
 
+### T-20 — Full security audit with the Cloudflare `security-audit` skill (owner requested 2026-10-15)
+- **Status:** `queued` — deliberately NOT started: T-19 arming (owner PAT) and the
+  T-15 publish test come first, per the owner.
+- **Skill installed this session:** cloudflare/security-audit-skill @ c1c8a8c
+  (~/.claude/skills/security-audit-skill, registers as `security-audit`).
+- **Scope when run:** the full checkout — CMS (Payload admin surface, auth, seed
+  diagnostics), the Astro storefront build + Workers (headers/CSP dispatch,
+  custom-domain serving), the publish watcher (T-19: token handling, dispatch
+  path, KV), CI workflows and their secrets surface. Defensive, source-first;
+  findings need a concrete trust boundary + affected principal.
+- **Deliverable:** prioritised findings with source evidence + smallest fix;
+  anything exploitable through the public site or CMS goes straight to a T-task.
+
+
 ### T-15 — CMS edits do not appear on the live site (owner reported 2026-10-12)
 - **Status:** `blocked` on host extraction · 🔴 production · **the edit is still
   unpublished.** Session ended 2026-10-12 ~09:15 UTC by owner request.
