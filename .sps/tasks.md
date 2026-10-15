@@ -29,6 +29,32 @@ not know about it.
 
 ## 🔴 In flight
 
+### T-19 — Publish watcher: CMS publish → automatic site rebuild (owner chose 2026-10-15, option A)
+- **Status:** `in flight` — docs approved; build in progress this session.
+- **Reported:** during T-15 root-causing, the webhook trigger (`DEPLOY_WEBHOOK_URL`,
+  `cms/src/lib/rebuild-trigger.ts`) proved unconfigurable on DianaHost — saving a
+  Node app env var in cPanel runs a cagefs shell helper and the host's shell cannot
+  fork (`cagefs_enter: Unable to fork`, ticket #0590191; the same failure breaks
+  extraction and cron). Not fixable from inside cPanel.
+- **Owner decision (2026-10-15, question prompt):** option **A — a standalone
+  Cloudflare Worker cron-watcher**, chosen over waiting for P4 (Render) where the
+  webhook returns as the instant path. The same day the domain moved to Cloudflare
+  (P6 re-sequenced), making the watcher the natural resident there.
+- **Design (documented: docs/hosting-and-deployment.md §10.6–10.7):** cron
+  `*/5 * * * *`; poll the public REST endpoints (`articles, deadlines, categories,
+  scholarships, circulars, live-streams, media` + global `site-settings`, each
+  `?limit=1&sort=-updatedAt&depth=0` — header-contact 404s, excluded); sha256 of
+  the concatenated response bodies; compare with Workers KV; on change POST
+  `api.github.com/repos/SHAHID8142/shikkha24/dispatches` (`event_type: rebuild`);
+  **store the digest only after a successful dispatch** (a failed dispatch
+  retriggers next tick, so a publish is never lost). Drafts never appear in the
+  public REST, so draft saves cannot trigger. Latency: ≤5 min poll + ~3 min
+  build; free tier (cron + KV + 100k req/day).
+- **Owner item to arm it:** fine-grained GitHub PAT (only repos: shikkha24;
+  permission: Actions read+write) pasted as Worker secret `GITHUB_TOKEN`
+  (dashboard: Workers & Pages → shikkha24-publish-watcher → Settings → Variables
+  and Secrets) — never in chat, never in the repo.
+
 ### T-15 — CMS edits do not appear on the live site (owner reported 2026-10-12)
 - **Status:** `blocked` on host extraction · 🔴 production · **the edit is still
   unpublished.** Session ended 2026-10-12 ~09:15 UTC by owner request.
