@@ -120,11 +120,27 @@ rewritten correctly in this session.
   set to live now, a push would also fire a live cPanel deploy — the docs and the
   workflow comment say to remove that trigger during migration; done here).
 
-**Gates:** lint 0 errors; `typecheck:frontend` 0 errors; `verify:cloudflare`
-green with counter-proofs; `verify:workflows`, `verify:deploy-mode`,
-`verify:deploy-inputs`, `verify:cpanel-deploy`, `verify:apache` re-run green
-after the deploy.yml edit. `verify:prayer-times` still fails (pre-existing,
-owner decision pending) — run gates by name.
+**Dependencies (rule 8 ledger, this session):** `wrangler` **4.151.0** (root
+`frontend`, pinned exactly; MIT OR Apache-2.0) — deploys the Worker;
+`smol-toml` **1.8.0** (root, pinned; MIT) — promotes an existing transitive to
+a direct devDependency so the harness parses `wrangler.toml` with a real TOML
+parser instead of guessing; `workerd` build allowed (Apache-2.0,
+Cloudflare's local runtime — needed by `wrangler dev` only). **Removed:**
+`@cloudflare/workers-types` (the Worker types its binding with a local
+interface; the DOM lib already supplies `Request`/`Response`, and dropping the
+package avoids duplicate-global conflicts under Astro's strict tsconfig).
+
+**Gates (measured 2026-10-15):** `verify:cloudflare` **75/75**; `verify:workflows`
+**5 parsed, 0 problems**; `verify:cpanel-deploy` **92/92** (after the trigger
+move); `verify:deploy-mode` **47/47**; `verify:deploy-inputs` **10/10**;
+`verify:apache` PASS (the parity base untouched); lint **0 errors** (16
+pre-existing warnings, none new); root `typecheck` **0 errors**;
+`wrangler deploy --dry-run` **exit 0** on the real dist (527 assets;
+`WRANGLER_LOG=debug` shows `Ignoring asset: .htaccess`). `verify:prayer-times`
+still fails (pre-existing, owner decision pending) — run gates by name.
+
+**Commits:** `f7387d5` (docs parity first, rule 13) → `f72dade` (worker +
+wrangler.toml + harness + dependency records) → `33d12c3` (workflows).
 
 **Why the Worker and not `_headers`:** (docs, 2026-10-15) `_headers` matches by
 splat/placeholder globs only — it cannot say "3 segments whose middle is not

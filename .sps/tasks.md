@@ -438,6 +438,18 @@ not know about it.
     secrets; first manual live dispatch; then set `AUTO_DEPLOY=live`. Custom domain
     waits for the DNS step (P6); DNS switching before the preview URL is verified is
     explicitly **out of order**.
+  - **✅ Evidence 2026-10-15 (P1 code complete, built and gated; NOT yet live):**
+    commits `f7387d5` (docs parity) → `f72dade` (worker+config+harness) →
+    `33d12c3` (workflows). Gates, all green in-session: `verify:cloudflare` **75/75**
+    (incl. runtime negative controls); `verify:workflows` **5 parsed, 0 problems**;
+    `verify:cpanel-deploy` **92/92** after the trigger move; `verify:deploy-mode`
+    **47/47**; `verify:deploy-inputs` **10/10**; `verify:apache` PASS (parity base
+    untouched); lint **0 errors** (16 pre-existing warnings, none new); typecheck
+    (frontend + cms) **0 errors**; `wrangler deploy --dry-run` **exit 0 on the real
+    dist** (527 assets; debug log shows `.htaccess` excluded from upload).
+  - **P1 next:** the owner's secrets + first live dispatch (above) → verify the
+    workers.dev URL with the runbook §2.4 check → `AUTO_DEPLOY=live` → end-to-end
+    CMS-publish test (that closes P1; the edit waiting since T-15 publishes then).
 - **Open, needs the owner (T-18):** who is listed as the *registrant* of record (check
   the original purchase email from DianaHost) — it decides how easy the transfer is.
 - **Loop block.** Hypothesis: the root of "publish and nothing happens" is the
