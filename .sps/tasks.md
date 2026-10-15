@@ -462,9 +462,28 @@ not know about it.
     untouched); lint **0 errors** (16 pre-existing warnings, none new); typecheck
     (frontend + cms) **0 errors**; `wrangler deploy --dry-run` **exit 0 on the real
     dist** (527 assets; debug log shows `.htaccess` excluded from upload).
-  - **P1 next:** the owner's secrets + first live dispatch (above) → verify the
-    workers.dev URL with the runbook §2.4 check → `AUTO_DEPLOY=live` → end-to-end
-    CMS-publish test (that closes P1; the edit waiting since T-15 publishes then).
+  - **✅✅ LIVE 2026-10-15 — P1 transport proven end-to-end (the first three live
+    deploys are real):** **https://shikkha24-frontend.abdullahalmamunmay.workers.dev**
+    (owner-confirmed account). Run `38765868214` (and the two before it) green in
+    ~2 min each. Live-verified from outside: homepage 200 with **exactly one CSP**
+    (relaxed profile), `/latest/page/2` **strict**, article + `/live-tv` carry the
+    media frames, unknown paths answer 404, `X-Robots-Tag: noindex` on the
+    preview host, `_astro/*` immutable, and `/verify/<unknown-id>` serves 200 in
+    place (URL unchanged — S14 contract).
+    **Three live lessons, each now a gate:** (1) platform default
+    `html_handling` 307-redirected every directory URL site-wide →
+    `drop-trailing-slash` (harness-checked); (2) the live probe raced edge
+    propagation (404 at +27s, 200 at +61s) → the verify step now retries ~2 min;
+    (3) the `/verify` rewrite target needed the un-slashed form after (1).
+    Commits `c800acf`, `09798a8`; `CLOUDFLARE_ACCOUNT_ID` secret set; token
+    created by the owner.
+  - **P1 remainder — one step + one prerequisite:** T-10 (CI red: dependency
+    audit) must land **before** `AUTO_DEPLOY=live`, else every automatic deploy
+    (push / CMS publish webhook) dies at the wait-for-ci gate. With T-10 green:
+    set `AUTO_DEPLOY=live` → the real exit test: the owner edits in the CMS →
+    Publish → the site updates with zero manual steps (that also publishes the
+    edit waiting since T-15). Until then, publishes are manual dispatches
+    (`mode=live`, skip-ci-gate) — proven above.
 - **Open, needs the owner (T-18):** who is listed as the *registrant* of record (check
   the original purchase email from DianaHost) — it decides how easy the transfer is.
 - **Loop block.** Hypothesis: the root of "publish and nothing happens" is the

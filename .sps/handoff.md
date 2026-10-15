@@ -130,6 +130,16 @@ Cloudflare's local runtime — needed by `wrangler dev` only). **Removed:**
 interface; the DOM lib already supplies `Request`/`Response`, and dropping the
 package avoids duplicate-global conflicts under Astro's strict tsconfig).
 
+**LIVE (2026-10-15, same session):** the owner created the API token; the
+storefront publishes to **https://shikkha24-frontend.abdullahalmamunmay.workers.dev**.
+Three live deploys (runs `38764405366`, `38765232628`, `38765868214`), the final
+matrix verified from outside: one CSP per response, strict on `/latest/page/2`,
+article/media frames on article + `/live-tv`, real 404s, `noindex` on the
+workers.dev host, and `/verify/<unknown>` answering 200 in place. The three
+lessons are in the T-18 evidence block in `.sps/tasks.md` (html_handling,
+probe race, rewrite slash). **`AUTO_DEPLOY=live` stays OFF until T-10 makes CI
+green** — the wait-for-ci gate otherwise fails every automatic deploy.
+
 **Gates (measured 2026-10-15):** `verify:cloudflare` **75/75**; `verify:workflows`
 **5 parsed, 0 problems**; `verify:cpanel-deploy` **92/92** (after the trigger
 move); `verify:deploy-mode` **47/47**; `verify:deploy-inputs` **10/10**;
