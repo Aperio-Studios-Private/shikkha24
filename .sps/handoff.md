@@ -155,6 +155,17 @@ publishes of CONTENT also need either a push or a manual dispatch, because the
 CMS cannot reach GitHub. The production CMS itself still runs Payload 3.89.0
 until the next CMS deploy / P4.
 
+**P6 DNS SWITCH LANDED 18:5x the same day (owner-driven):** nameservers moved
+to anastasia/vicky.ns.cloudflare.com; Cloudflare zone active; the two external
+records (apex A, www CNAME) had to be deleted for the custom-domain attach
+(error 100117 — the owner deleted one `cpanel` A first, restored it); deploy
+run `38785440523` (rerun) attached shikkha24.com + www. PROOF: identical etag
+("9ec646a613b93b72d45900ff1a13576a") on the production domain and the
+workers.dev preview; /latest/page/2 = 200 (Worker) not 301 (Apache); full
+matrix green on shikkha24.com with X-Robots-Tag absent (production host
+indexes normally). Old DianaHost copy now idle behind DNS; rollback = un-proxy
+the two Worker domains + re-add the apex A → 103.169.160.90.
+
 **Gates (measured 2026-10-15):** `verify:cloudflare` **75/75**; `verify:workflows`
 **5 parsed, 0 problems**; `verify:cpanel-deploy` **92/92** (after the trigger
 move); `verify:deploy-mode` **47/47**; `verify:deploy-inputs` **10/10**;
