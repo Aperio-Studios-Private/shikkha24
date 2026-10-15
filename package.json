@@ -2,7 +2,7 @@
   "name": "shikkha24",
   "version": "0.0.0",
   "private": true,
-  "description": "Shikkha24 (শিক্ষা২৪) — Bengali-first education news portal. Monorepo: Astro static frontend + Payload CMS 3.",
+  "description": "Shikkha24 (\u09b6\u09bf\u0995\u09cd\u09b7\u09be\u09e8\u09ea) \u2014 Bengali-first education news portal. Monorepo: Astro static frontend + Payload CMS 3.",
   "license": "UNLICENSED",
   "packageManager": "pnpm@11.22.0",
   "engines": {
@@ -22,6 +22,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "verify:apache": "node scripts/verify-apache.mjs",
+    "verify:cloudflare": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/verify-cloudflare.mjs",
     "verify:cpanel-deploy": "node scripts/verify-cpanel-deploy.mjs",
     "verify:host-extract": "node scripts/verify-host-extract.mjs",
     "verify:deploy-mode": "node scripts/verify-deploy-mode.mjs",
@@ -50,7 +51,7 @@
     "verify:sync": "node scripts/verify-cms-sync.mjs",
     "verify:endpoints": "pnpm --filter @shikkha24/cms verify:endpoints",
     "verify:reporter": "pnpm --filter @shikkha24/cms verify:reporter",
-    "verify": "pnpm run lint && pnpm run verify:astro-imports && pnpm run verify:dark-tokens && pnpm run verify:site-name && pnpm run verify:bengali-spacing && pnpm run verify:prayer-times && pnpm run verify:gpa && pnpm run verify:cgpa && pnpm run verify:bookmarks && pnpm run verify:ad-split && pnpm run verify:client-ip && pnpm run verify:sqlite-wal && pnpm run verify:cms-bundle && pnpm run verify:origins && pnpm run verify:pnpm-fallback && pnpm run verify:host-extract && pnpm run typecheck && pnpm run build && pnpm run verify:build-output && pnpm run verify:links && pnpm run verify:search-init && pnpm run verify:apache && pnpm run verify:cpanel-deploy && pnpm run verify:deploy-mode && pnpm run verify:deploy-inputs && pnpm run verify:backup",
+    "verify": "pnpm run lint && pnpm run verify:astro-imports && pnpm run verify:dark-tokens && pnpm run verify:site-name && pnpm run verify:bengali-spacing && pnpm run verify:prayer-times && pnpm run verify:gpa && pnpm run verify:cgpa && pnpm run verify:bookmarks && pnpm run verify:ad-split && pnpm run verify:client-ip && pnpm run verify:sqlite-wal && pnpm run verify:cms-bundle && pnpm run verify:origins && pnpm run verify:pnpm-fallback && pnpm run verify:host-extract && pnpm run typecheck && pnpm run build && pnpm run verify:build-output && pnpm run verify:links && pnpm run verify:search-init && pnpm run verify:apache && pnpm run verify:cloudflare && pnpm run verify:cpanel-deploy && pnpm run verify:deploy-mode && pnpm run verify:deploy-inputs && pnpm run verify:backup",
     "audit:ci": "pnpm audit --audit-level=high",
     "verify:origins": "pnpm --filter @shikkha24/cms verify:origins",
     "verify:pnpm-fallback": "node scripts/verify-pnpm-fallback.mjs",
@@ -61,6 +62,7 @@
     "@biomejs/biome": "2.5.13",
     "@lhci/cli": "0.15.1",
     "linkedom": "0.18.13",
+    "smol-toml": "1.8.0",
     "yaml": "2.8.1"
   }
 }

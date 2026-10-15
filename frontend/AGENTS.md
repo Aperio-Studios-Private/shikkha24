@@ -23,14 +23,18 @@ astro dev stop
 
 ## What this workspace is
 
-Astro 7 static output, deployed to DianaHost `public_html`. It is **built in CI only** —
-Astro 7 and Vite 8 cannot run on DianaHost's Node 20.18.2
-(`docs/hosting-and-deployment.md` §5).
+Astro 7 static output. Since 2026-10-15 (T-18 P1) it **publishes to Cloudflare
+Workers** (`.github/workflows/deploy-cloudflare.yml` → `wrangler deploy`; see
+`wrangler.toml` + `worker/`); the DianaHost cPanel path is rollback-only. It is
+**built in CI only** — Astro 7 and Vite 8 cannot run on DianaHost's Node
+20.18.2 (`docs/hosting-and-deployment.md` §5).
 
 - `src/styles/global.css` — design tokens + Bengali typography floor
 - `src/styles/fonts.css` — auto-generated; regenerate with `node scripts/fetch-fonts.mjs`
 - `src/lib/feature-flags.ts` — build-time feature flags
 - `public/.htaccess` — Apache security headers and the strict CSP profile
+  (**rollback path only**; the Workers publisher's equivalent lives in `worker/`,
+  and `scripts/verify-cloudflare.mjs` keeps the two byte-identical)
 
 ## Astro documentation
 

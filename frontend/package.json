@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.0",
   "private": true,
-  "description": "Shikkha24 public site — Astro 7 static output deployed to DianaHost public_html.",
+  "description": "Shikkha24 public site — Astro 7 static output deployed to Cloudflare Workers.",
   "license": "UNLICENSED",
   "engines": {
     "node": ">=22.12.0"
@@ -15,7 +15,10 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "astro": "astro"
+    "astro": "astro",
+    "workers:deploy": "wrangler deploy",
+    "workers:deploy:dry": "wrangler deploy --dry-run",
+    "workers:dev": "wrangler dev"
   },
   "dependencies": {
     "astro": "7.3.2",
@@ -26,7 +29,8 @@
     "@tailwindcss/vite": "4.3.3",
     "pagefind": "1.5.2",
     "tailwindcss": "4.3.3",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "wrangler": "4.151.0"
   },
   "allowScripts": {
     "esbuild": true

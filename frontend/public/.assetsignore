@@ -1,0 +1,6 @@
+# Wrangler skips uploading these asset names (same syntax as .gitignore).
+#
+# .htaccess is the Apache rollback configuration: Workers cannot interpret it,
+# and uploading it would publish our full security directives as a plain-text
+# file. The Workers equivalent of its rules lives in frontend/worker/.
+.htaccess

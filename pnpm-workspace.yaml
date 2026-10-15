@@ -15,10 +15,14 @@ packages:
 
 # Native toolchains that MUST run post-install scripts to fetch their binaries.
 # Without these the builds fail: esbuild (Vite/Astro), sharp (Payload image
-# resizing). Each is a pinned, license-reviewed dependency (agent rule 8).
+# resizing), workerd (wrangler's local dev runtime — required by `wrangler dev`
+# only, not by `wrangler deploy`). Each is a pinned, license-reviewed
+# dependency (agent rule 8).
 allowBuilds:
   esbuild: true
   sharp: true
+  # Added 2026-10-15 with wrangler 4.151.0 (T-18 P1). Apache-2.0.
+  workerd: true
 
 # ── Security overrides (pnpm 10+ reads these from THIS file, not package.json) ─
 #
