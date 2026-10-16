@@ -66,13 +66,33 @@
   /* Two DISTINCT dark tokens — do not conflate them (`.sps/task.md` S2):
      charcoal is the light-mode text colour, #121212 is the dark-mode canvas. */
   --color-brand-red: #da1c25;
+  /* Red for text SITTING ON a `brand-red` tint (badges, inline notices).
+     `--color-brand-red` on its own 10% tint measures 4.27:1 and fails AA; even
+     a /7 tint only reaches 4.49:1, so lightening the tint cannot fix it — the
+     text itself has to be darker. This value measures 5.12:1 on the /8 tint and
+     6.03:1 on white, so it is safe on either. Do NOT swap `--color-brand-red`
+     for this globally: on plain white the brand red already passes (5.03:1) and
+     the brand must stay recognisable. */
+  --color-brand-red-on-tint: #c4161e;
+  /* Dark-mode counterpart for red text on a red tint. In dark mode the badge
+     keeps `--color-brand-red` as its text colour, which measures 2.73-3.23:1 on
+     the dark tint (`bg-brand-red/20`) — a bad AA failure. Lighthouse only runs
+     light mode, so CI cannot see it; verified by hand-computing the ratios.
+     `red-400` measures 5.49:1 on that tint and pairs with the existing
+     `dark:text-teal-400` convention for dark-mode accents. */
+  --color-brand-red-on-tint-dark: #f87171;
   --color-brand-charcoal: #1f1f1f;
   --color-dark-base: #121212;
 
   /* Tints used for borders, dividers and muted text in light mode. */
   --color-ink: #1f1f1f;
   --color-ink-muted: #5a5a5a;
-  --color-ink-subtle: #8a8a8a;
+  /* #8a8a8a measured 3.45:1 on white and 3.22:1 on `--color-surface-raised`
+     — both below AA's 4.5:1, and the footer's headings, links and legal line
+     all sit on the raised surface, so that is the worst case, not white.
+     #707070 is 4.95:1 on white and 4.62:1 on the raised surface: it clears AA
+     on the harder surface too, and still steps down from `--color-ink-muted`. */
+  --color-ink-subtle: #707070;
   --color-rule: #e4e4e4;
   --color-surface: #ffffff;
   --color-surface-raised: #f7f7f7;

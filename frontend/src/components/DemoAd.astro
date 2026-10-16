@@ -71,7 +71,10 @@ const CREATIVES = [
           'font-headline font-bold',
           format === 'skyscraper' ? 'text-sm' : 'text-base',
           creative.tone === 'red' && 'text-brand-red',
-          creative.tone === 'teal' && 'text-teal-600 dark:text-teal-400',
+          // teal-700, not teal-600: teal-600 (#009689) measures 3.42:1 on the
+          // raised surface (#f7f7f7) and fails WCAG AA. teal-700 is 5.11:1 there and
+          // 5.47:1 on white (T-24).
+          creative.tone === 'teal' && 'text-teal-700 dark:text-teal-400',
           creative.tone === 'indigo' && 'text-indigo-600 dark:text-indigo-400',
           creative.tone === 'amber' && 'text-amber-600 dark:text-amber-400',
         ]}

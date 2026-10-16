@@ -60,7 +60,10 @@ const cardUrl = cardPath && cmsOrigin ? `${cmsOrigin}${cardPath}` : null
     href={`https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`}
     target="_blank"
     rel="noopener noreferrer"
-    class="inline-flex h-12 items-center gap-1.5 rounded-md bg-[#25d366] px-3 text-sm font-medium text-white"
+{/* Deepened brand shades: white on WhatsApp #25d366 measured 1.98:1 and on
+    Facebook #1877f2 4.23:1, both failing WCAG AA (4.5:1). #075e54 is WhatsApp's
+    own official dark teal (7.67:1) and #166fe5 is 4.73:1 — recognisable and AA. */}
+    class="inline-flex h-12 items-center gap-1.5 rounded-md bg-[#075e54] px-3 text-sm font-medium text-white"
     aria-label="হোয়াটসঅ্যাপে শেয়ার করুন"
   >
     <ShareIcon name="whatsapp" />
@@ -71,7 +74,7 @@ const cardUrl = cardPath && cmsOrigin ? `${cmsOrigin}${cardPath}` : null
     href={`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`}
     target="_blank"
     rel="noopener noreferrer"
-    class="inline-flex h-12 items-center gap-1.5 rounded-md bg-[#1877f2] px-3 text-sm font-medium text-white"
+    class="inline-flex h-12 items-center gap-1.5 rounded-md bg-[#166fe5] px-3 text-sm font-medium text-white"
     aria-label="ফেসবুকে শেয়ার করুন"
   >
     <ShareIcon name="facebook" />

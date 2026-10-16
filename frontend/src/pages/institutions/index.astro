@@ -95,7 +95,7 @@ const jsonLd =
     : undefined
 
 const chipClass =
-  'rounded-full border border-rule px-3 py-1.5 text-sm text-ink transition hover:border-brand-red/50 aria-pressed:border-brand-red aria-pressed:bg-brand-red/10 aria-pressed:font-semibold aria-pressed:text-brand-red dark:border-dark-rule dark:text-dark-ink'
+  'rounded-full border border-rule px-3 py-1.5 text-sm text-ink transition hover:border-brand-red/50 aria-pressed:border-brand-red aria-pressed:bg-brand-red/10 aria-pressed:font-semibold aria-pressed:text-brand-red-on-tint dark:text-brand-red-on-tint-dark dark:border-dark-rule dark:text-dark-ink'
 ---
 
 <Layout
@@ -160,7 +160,7 @@ const chipClass =
               >
                 <a href={`/institutions/${i.slug}`} class="block rounded-lg border border-rule bg-surface p-4 transition hover:border-brand-red/40 dark:border-dark-rule dark:bg-dark-surface dark:hover:border-brand-red/60">
                   <div class="flex flex-wrap items-center gap-2">
-                    {typeLabel && <span class="rounded bg-brand-red/10 px-2 py-0.5 text-xs font-semibold text-brand-red dark:bg-brand-red/20">{typeLabel}</span>}
+                    {typeLabel && <span class="rounded bg-brand-red/10 px-2 py-0.5 text-xs font-semibold text-brand-red-on-tint dark:text-brand-red-on-tint-dark dark:bg-brand-red/20">{typeLabel}</span>}
                     {discipline && <span class="rounded bg-surface-raised px-2 py-0.5 text-xs font-semibold text-ink-muted dark:bg-dark-raised dark:text-dark-ink-muted">{discipline}</span>}
                     {i.isVerified && <span class="text-xs text-green-600 dark:text-green-400">✓ যাচাইকৃত</span>}
                   </div>

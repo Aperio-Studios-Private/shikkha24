@@ -76,7 +76,7 @@ const jsonLd = circulars.length > 0 ? {
           return (
             <li class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
               <div class="flex flex-wrap items-center gap-2">
-                {typeLabel && <span class="rounded bg-brand-red/10 px-2 py-0.5 text-xs font-semibold text-brand-red dark:bg-brand-red/20">{typeLabel}</span>}
+                {typeLabel && <span class="rounded bg-brand-red/10 px-2 py-0.5 text-xs font-semibold text-brand-red-on-tint dark:text-brand-red-on-tint-dark dark:bg-brand-red/20">{typeLabel}</span>}
                 {urgency && <span class:list={['text-xs font-semibold', urgency.urgent ? 'text-brand-red' : 'text-ink-subtle dark:text-dark-ink-muted']}>{urgency.text}</span>}
               </div>
               <h2 class="font-headline mt-2 text-lg font-bold text-ink dark:text-dark-ink">{c.title}</h2>
