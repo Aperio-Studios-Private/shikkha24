@@ -51,6 +51,12 @@
  * Run: node scripts/verify-prayer-times.mjs
  */
 import { execFileSync } from 'node:child_process'
+import { readdirSync, readFileSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+/** This file's directory, so the built-artifact check resolves `frontend/dist` from the repo root. */
+const HERE = dirname(fileURLToPath(import.meta.url))
 
 /** The method the owner selected on 2026-10-05. Keep in step with HeaderWidgets.astro. */
 const EXPECTED_METHOD_INDEX = 15
@@ -235,6 +241,51 @@ for (const city of CITIES) {
     }
   }
 }
+
+/**
+ * The check that was missing, and the reason it matters.
+ *
+ * Everything above validates the **source constant** and the API. None of it looks
+ * at what was actually built, so on 2026-10-16 production was found still serving
+ * the pre-fix bundle: the live `HeaderWidgets` JS built
+ * `…&method=${b}` and stopped, with no `&school=` at all. Asked for Dhaka that day
+ * it returned **Asr 15:04 against the correct Hanafi 15:55 — 51 minutes early**,
+ * on a religious obligation, while this verifier reported PASS.
+ *
+ * A source check cannot see a stale deploy. This one reads the emitted JavaScript,
+ * so a build that drops the parameter fails here instead of in front of readers.
+ * It is skipped (with a note, never silently) when `frontend/dist` is absent,
+ * because the verifier must still be runnable before a build.
+ */
+function checkBuiltArtifact() {
+  const distDir = resolve(HERE, '../frontend/dist/_astro')
+  let files
+  try {
+    files = readdirSync(distDir).filter((f) => f.startsWith('HeaderWidgets') && f.endsWith('.js'))
+  } catch {
+    notes.push('frontend/dist/_astro not found — skipped the built-artifact check (run a build to enable it)')
+    return
+  }
+
+  if (files.length === 0) {
+    failures.push('frontend/dist/_astro has no HeaderWidgets bundle — the build looks incomplete')
+    return
+  }
+
+  for (const file of files) {
+    const code = readFileSync(join(distDir, file), 'utf8')
+    // The parameter survives minification as a literal `school=` either way, so
+    // its presence is the honest signal that the built widget asks for Hanafi.
+    if (!/school=/.test(code)) {
+      failures.push(
+        `built bundle ${file} does not send \`school=\` — Asr would be served ` +
+          `Shafi'i (up to ~51 min early for Dhaka)`,
+      )
+    }
+  }
+}
+
+checkBuiltArtifact()
 
 if (failures.length === 0) {
   console.log('verify:prayer-times — OK')
