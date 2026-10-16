@@ -168,8 +168,25 @@ not know about it.
   sitemap.
 
 ### T-24 — Performance hardening: every Lighthouse category 95+ (owner requested 2026-10-16)
-- **Status:** `queued` — after T-23 batch 1 lands (the gates are currently red and
-  block deploys, so this task is also the unblocker for T-23's own rebuild).
+- **Status:** 🟢 `partly done, deployed` — accessibility/SEO/best-practices complete;
+  performance remains. 2026-10-16.
+- **DONE and live (commits `0fa038d`, `bfa91b3`):**
+  | template | a11y | best-practices | SEO | color-contrast | heading-order |
+  |---|---|---|---|---|---|
+  | `/` | 96 → **100** | 96 → **100** | 100 | fail → **pass** | pass |
+  | `/latest/` | 95 → **100** | 96 → **100** | 100 | fail → **pass** | fail → **pass** |
+  | article | 97 → **100** | 96 → **100** | 100 | fail → **pass** | pass |
+  | `/category/*`, `/author/*` | → **100** | | | | fail → **pass** |
+  Verified live in production CSS: `--color-ink-subtle:#707070`,
+  `--color-brand-red-on-tint:#c4161e`, `--color-brand-red-on-tint-dark:#f87171`,
+  share buttons `#075e54`/`#166fe5`. CI + Deploy both green.
+- **REMAINING — performance ≥95:** measured 93 (`/`), 96 (`/latest/`), 91 (article);
+  LCP 2.55–3.16s vs the 1.5s target. `render-blocking-insight` scores 0.5/0.
+- **Counter-proved:** inlining all CSS (`inlineStylesheets: 'always'`, 49 KB inline)
+  made it **worse** — perf 98 → 97, FCP 1.21 → 1.38s, LCP 2.33 → 2.41s. Reverted;
+  the bytes cost more than the blocking round-trip they save. The remaining lever is
+  the render delay itself (defer/trim CSS, `theme-init.js` on the critical path,
+  and the LCP element is a card headline, not an image).
 - **Owner's bar (confirmed 2026-10-16):** **all four Lighthouse categories ≥95**
   (performance, accessibility, best practices, SEO) on **mobile**, on **every**
   measured template — in CI (CI is the only authoritative measurement per the
@@ -244,7 +261,21 @@ not know about it.
   `editorial/assets-batch-1/upload-ready/` can be attached to articles 23–28.
 
 ### T-26 — CMS admin UI/UX: buttons read as flat text, not as buttons (owner requested 2026-10-16)
-- **Status:** `queued` — after T-24 (performance), before T-22.
+- **Status:** 🟡 `code complete, not yet live` — implemented and verified 2026-10-16,
+  committed `b711eb3`. **Needs a CMS deploy on DianaHost to appear**: the Cloudflare
+  workflow deploys only the storefront; the CMS is not built by it.
+- **Implemented:** `cms/src/app/(payload)/custom.scss` (Payload's supported override
+  point, already imported by `app/(payload)/layout.tsx`; `node_modules` untouched).
+  Radius, 600 weight, 44px min block-size, resting/hover/active shadows, press
+  settle, `:focus-visible` ring; primary hover lifts instead of fading; secondary /
+  subtle / `style-none` get a real surface so plain-text actions stop looking like
+  body text; `.delete-document__toggle` (which Payload strips to
+  `border:0; background:none; box-shadow:none; border-radius:0`) becomes a visible
+  control with an error-red hover; list/bulk-action controls included.
+- **Verified:** `next build` succeeds; rules present in the emitted admin CSS
+  (`.next/static/chunks/0b_6tkjnsmwlc.css`). Every selector checked against the
+  compiled `@payloadcms/ui/dist/styles.css` — that caught two dead rules
+  (`btn--color-error` does not exist; `--theme-error-700` is not in Payload's scale).
 - **Owner's words:** "improve the UI and UX of the CMS specially the button are too
   flat unable to understand that it's a button to use".
 - **Scope:** Payload admin visual language — real affordance on every interactive
