@@ -407,6 +407,25 @@ not know about it.
   an admin session.
 - **`/admin` returns 200** as expected for a login page; the API root returns the
   admin HTML shell. No version string leaked in the bodies once `X-Powered-By` goes.
+- **DONE 2026-10-16 — dependency advisories: 13 → 8 (commit `0ce0ab5`).**
+  - **Fixed `dompurify` 3.4.8 → 3.4.17.** Not a stale range: it is the **exact
+    version `monaco-editor@0.56.0` pins**, so no update would ever reach the fix —
+    an override was the only route. Added to the existing override block using the
+    same exact-version-scoped convention, with advisory IDs, licence
+    (MPL-2.0 OR Apache-2.0, unchanged) and the reachability path recorded:
+    `cms → @payloadcms/ui → @monaco-editor/react → monaco-editor → dompurify`.
+    Monaco is the CMS code editor — admin-only, sanitising text an editor pastes
+    into their own session, never on a reader-facing path. **Cleared all 3 low
+    advisories.**
+  - **Honoured the standing instruction on the ignore list** ("re-check these on
+    every dependency bump") by querying all four exemptions upstream: **every one
+    still reports `patched=[None]`**, so none is a stale suppression. The ignore
+    list is honest.
+  - **Remaining 8 = 4 moderate + 4 ignored high**, all upstream-unpatched or on CI
+    dev-tooling paths, each already documented in `pnpm-workspace.yaml`.
+  - **Verified:** audit 13 → 8 with **zero** `dompurify` mentions left; CMS checks
+    green (398 access, 12 origins, 11 social, 11 newsletter); typecheck clean;
+    89-page build; biome clean; build-output + cloudflare gates pass.
 - **Still T-20's job, not done here:** auth/session hardening, the dependency
   advisory set, the header matrix, secrets rotation, and rate-limit durability. This
   was opportunistic probing while I had credentials, not the audit.
