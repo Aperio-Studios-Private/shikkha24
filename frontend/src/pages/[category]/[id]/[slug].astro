@@ -214,7 +214,16 @@ const jsonLd = {
   '@type': 'NewsArticle',
   headline: article.title,
   description: article.excerpt ?? undefined,
-  image: photo?.src ? [photo.src] : undefined,
+  // ⚠️ Use `socialImage`, not `photo?.src`. The schema used to emit `image` only
+  // when the article had a featured photo, so an article without one carried **no
+  // `image` property at all** — and Google News treats `image` as required for
+  // `NewsArticle`. Since the CMS media files are currently unreadable on the host
+  // (T-25), that was *every* article. `socialImage` already resolves the correct
+  // chain (featured photo → this article's branded photocard → nothing, and
+  // `Layout` supplies `/og-default.png`), and its photocard branch is verified
+  // live: `GET /api/photocard/23.png` → 200, 80,860 bytes. The schema now
+  // agrees with the `og:image` tag instead of silently disagreeing with it.
+  image: socialImage ? [socialImage] : undefined,
   datePublished: article.publishedAt ?? undefined,
   dateModified: article.updatedAt ?? article.publishedAt ?? undefined,
   author: author
