@@ -90,9 +90,22 @@ for (const name of files) {
    * This is the same silent-failure shape as the import map (M29) — a control
    * that stops working without anything turning red — so it gets a check rather
    * than a comment asking people to remember the ordering.
+   *
+   * ⚠️ **The pattern must match the command line as WRITTEN IN THE WORKFLOW, and
+   * that is not the same as the command an author thinks of.** The first version
+   * of this regex listed the underlying tools (`astro build`, `next build`,
+   * `payload migrate`) and missed *every* build script this repository actually
+   * has: `deploy.yml` invokes `pnpm run build:frontend`, `pnpm run build:cms` and
+   * `node scripts/deploy-cms.mjs`. A negative control proved it — a step doing
+   * `pnpm run build:frontend` placed above the gate was **not** flagged, so the
+   * check passed on the exact violation it exists to catch.
+   *
+   * So the pattern names the scripts (`build`, `build:*`) rather than only their
+   * underlying binaries. `\bbuild` also covers a bare `astro build` or
+   * `next build`, since it matches the word wherever it appears.
    */
   const DOES_WORK =
-    /next build|astro build|deploy-cms|deploy-frontend|payload migrate|migrate:create/
+    /\bbuild\b|\bbuild:|deploy-cms|deploy-frontend|payload migrate|migrate:create|wrangler deploy/
   for (const [jobName, job] of Object.entries(doc.jobs ?? {})) {
     const steps = job.steps ?? []
     const gateIndex = steps.findIndex(
