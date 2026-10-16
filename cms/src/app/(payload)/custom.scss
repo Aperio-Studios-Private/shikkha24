@@ -1,0 +1,161 @@
+/**
+ * CMS admin affordance pass (T-26).
+ *
+ * ## Why this file exists
+ *
+ * The owner's report: "the buttons are too flat, unable to understand that it's a
+ * button to use." That is accurate, and the cause is in Payload's own defaults —
+ * `@payloadcms/ui/dist/elements/Button/index.scss` gives `.btn` no border-radius,
+ * `--btn-font-weight: normal`, and paints every style from the greyscale
+ * `--theme-elevation-*` ramp. A secondary button is therefore `transparent` with a
+ * 1px grey border, and a "subtle" button differs from body text only by a faint
+ * fill — so interactive controls and static labels look alike.
+ *
+ * ## Why a stylesheet and not patched components
+ *
+ * Payload exposes this file as the supported override point: `layout.tsx` imports
+ * it after Payload's own styles. Restyling here survives Payload upgrades, whereas
+ * patching `node_modules` or forking `Button` would not (rule 8: no unnecessary
+ * dependencies, and a fork is a permanent maintenance cost).
+ *
+ * ## Rules this respects
+ *
+ * - **Dark mode keeps working.** Every value is a `--theme-*` variable, which
+ *   Payload redefines per theme, so nothing is hard-coded to a light palette and
+ *   no `.dark` branching is needed.
+ * - **Touch targets.** Controls get a 44px minimum block size, close to the
+ *   storefront's ≥48px reader-facing floor (`docs/performance-budget.md` treats
+ *   targets as a gate).
+ * - **Bengali labels are untouched.** This changes appearance only; no string in
+ *   the admin is altered, so the existing localisation stands (rule 10).
+ * - **Focus visibility.** A focus ring is added rather than removed — keyboard
+ *   users otherwise had only the browser default, which the flat fills made easy
+ *   to miss.
+ */
+
+@layer payload-default {
+  /* ── Shared affordance ─────────────────────────────────────────────────────
+     Radius, weight, minimum size and a real focus ring, applied to every button
+     style so the whole admin reads as interactive at a glance. */
+  .btn {
+    --btn-font-weight: 600;
+    min-block-size: 44px;
+    border-radius: 8px;
+    /* A resting shadow is what separates a control from a label once the fill is
+       subtle; it is deliberately soft so it does not read as a raised card. */
+    box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease,
+      box-shadow 120ms ease,
+      transform 60ms ease;
+  }
+
+  .btn:hover:not(.btn--disabled) {
+    box-shadow: 0 2px 6px rgb(0 0 0 / 16%);
+  }
+
+  /* Pressing must feel like pressing: a 1px settle, not a colour change alone. */
+  .btn:active:not(.btn--disabled) {
+    transform: translateY(1px);
+    box-shadow: 0 1px 1px rgb(0 0 0 / 12%);
+  }
+
+  .btn:focus-visible {
+    outline: 3px solid var(--theme-elevation-800);
+    outline-offset: 2px;
+  }
+
+  .btn--disabled {
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  /* ── Primary: the one action that commits ─────────────────────────────────
+     Payload paints primary as `elevation-800`. It stays dark for contrast with
+     white text, but hover now *lifts* instead of getting lighter, so hover reads
+     as "more prominent" rather than "faded". */
+  .btn--style-primary:not(.btn--disabled) {
+    --hover-bg: var(--theme-elevation-900);
+    box-shadow: 0 2px 4px rgb(0 0 0 / 20%);
+  }
+
+  .btn--style-primary:hover:not(.btn--disabled) {
+    box-shadow: 0 4px 10px rgb(0 0 0 / 24%);
+  }
+
+  /* ── Secondary: was transparent with a hairline border ────────────────────
+     A visible surface is what makes it look pressable while still reading as the
+     lower-priority action next to a primary button. */
+  .btn--style-secondary:not(.btn--disabled) {
+    --bg-color: var(--theme-elevation-50);
+    --btn-border: 1px solid var(--theme-elevation-300);
+    --hover-bg: var(--theme-elevation-100);
+    --hover-btn-border: 1px solid var(--theme-elevation-400);
+  }
+
+  .btn--style-subtle:not(.btn--disabled) {
+    --btn-border: 1px solid var(--theme-elevation-300);
+  }
+
+  /* ── The delete control ───────────────────────────────────────────────────
+     `@payloadcms/ui`'s own rule for `.delete-document__toggle` is literally
+     `border:0; background:none; box-shadow:none; border-radius:0` — the most
+     destructive control in the CMS is stripped of every affordance, so it reads
+     as a bare icon. It gets a surface and a red hover so it is unmistakably a
+     control, and unmistakably the dangerous one. */
+  .delete-document__toggle {
+    border-radius: 8px;
+    padding-inline: calc(var(--base) * 0.4);
+    transition:
+      background-color 120ms ease,
+      color 120ms ease;
+  }
+
+  .delete-document__toggle:hover {
+    background-color: var(--theme-error-100);
+    color: var(--theme-error-750);
+  }
+
+  .delete-document__toggle:focus-visible {
+    outline: 3px solid var(--theme-error-500);
+    outline-offset: 2px;
+  }
+
+  /* ── Plain-text actions ───────────────────────────────────────────────────
+     `style-none` is Payload's unstyled button — the Delete/Remove actions in row
+     menus use it, which is why the most destructive control in the admin looked
+     exactly like body text. It gets a surface and a red-on-hover so it reads as a
+     control, and as the dangerous one.
+
+     Note there is deliberately no `btn--color-error` rule: Payload's Button only
+     emits `--style-*` modifiers (`baseClass--style-${buttonStyle}` in
+     `elements/Button/index.js`), and no `--color-error` class exists in the built
+     stylesheet. Verified against `@payloadcms/ui/dist/styles.css`. */
+  .btn--style-none:not(.btn--disabled) {
+    --bg-color: var(--theme-elevation-50);
+    --btn-border: 1px solid var(--theme-elevation-300);
+    --hover-bg: var(--theme-elevation-100);
+    --hover-btn-border: 1px solid var(--theme-elevation-400);
+    padding-inline: calc(var(--base) * 0.5);
+  }
+
+  /* ── Icon-only and square controls ────────────────────────────────────────
+     These are the easiest to mistake for decoration, so they get the same
+     surface treatment as secondary buttons. */
+  .btn--icon-only,
+  .btn--style-icon-label {
+    border-radius: 8px;
+  }
+
+  /* ── Row and bulk actions ─────────────────────────────────────────────────
+     List-view controls (bulk edit, columns, filters) are used constantly and were
+     the flattest of all, because they sit inside a table header. */
+  .list-controls .btn,
+  .collection-list__header .btn,
+  .bulk-upload--actions .btn {
+    --bg-color: var(--theme-elevation-50);
+    --btn-border: 1px solid var(--theme-elevation-300);
+    --hover-bg: var(--theme-elevation-100);
+  }
+}
