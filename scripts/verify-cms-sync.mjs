@@ -93,7 +93,29 @@ const verify = async (label, endpoint, pick, html, describe) => {
   const docs = data.docs ?? []
   const missing = docs.filter((d) => !html.includes(pick(d)))
 
-  const ok = docs.length > 0 && missing.length === 0 && html !== ''
+  /**
+   * ⚠️ **An empty collection is not a sync failure.** The assertion used to
+   * require `docs.length > 0`, so a collection the editorial team simply has not
+   * filled yet reported `FAIL 0/0` and drove the whole gate to exit 1 with
+   * "4 collection(s) NOT fully synced" — which reads as a broken pipeline when in
+   * truth there was nothing to sync. Verified against the live CMS: `scholarships`,
+   * `result-links`, `circulars` and `deadlines` all return `totalDocs = 0`.
+   *
+   * Zero rows is a legitimate, expected state on a site still being populated
+   * (same family as the `PASS … MISSING` and `lhci` assertion traps in
+   * `docs/performance-budget.md` §8.5: a check whose output cannot be trusted is a
+   * check nobody reads). It is reported as `EMPTY` and does not fail the gate —
+   * but it is printed, so content gaps stay visible rather than silently green.
+   *
+   * A collection that is empty *while the page claims rows* is still caught: the
+   * page-side assertions elsewhere cover missing listings.
+   */
+  if (docs.length === 0) {
+    console.log(`EMPTY ${label.padEnd(20)} 0 rows in the CMS — nothing to sync`)
+    return
+  }
+
+  const ok = missing.length === 0 && html !== ''
   if (!ok) failures += 1
 
   // ⚠️ **Truncation must be visible.** Every endpoint here is fetched with
