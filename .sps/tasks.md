@@ -465,10 +465,16 @@ not know about it.
 - **T-25 remains open and is unrelated:** the 6 October-4 `demo-plate-*.webp` files
   are still missing from disk (500). Nothing references them, so the impact is nil.
 
-### T-25 RE-PROBED 2026-10-16 — the host's multipart proxy is the exact blocker, now proven end-to-end
+### T-25 RE-PROBED 2026-10-16 — media files absent from disk (⚠️ the multipart finding below was WRONG — see T-23)
 - **The 6 October-4 media still 500** (`demo-plate-7…12.webp`) — T-25 unchanged.
-- **T-23 cannot be finished over the API, and this is now proven rather than
-  assumed.** The blockers were tested one at a time, with a valid admin JWT obtained
+> ⚠️ **CORRECTION (2026-10-16, later the same day): the conclusion below is WRONG.**
+> The proxy was never at fault. Payload wants text fields inside a `_payload` JSON
+> part, not as separate multipart fields — `-F "alt=…"` is simply the wrong request
+> shape. T-23 was completed over the API with `201`s once the shape was right. Kept
+> here only as a record of the wrong turn; see the T-23 entry above for the fix.
+
+- ~~**T-23 cannot be finished over the API, and this is now proven rather than
+  assumed.**~~ The blockers were tested one at a time, with a valid admin JWT obtained
   from `cms/.env.local` (login returns 200):
   | Attempt | Result | Reading |
   |---|---|---|
