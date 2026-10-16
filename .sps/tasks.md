@@ -1268,6 +1268,37 @@ not know about it.
   needs to look at Payload's `upload.staticDir` (see `.sps/owner-assistance.md`
   O-1); if the directory is empty, the T-03 backup is the recovery source. The
   owner's 12 images never reached the CMS at all and are safe in the repo.
+### T-29 — Every published news item must carry a visual (owner requested 2026-10-16)
+- **Status:** ✅ **VERIFIED COMPLETE 2026-10-16.** Owner: *"dont you have used assets on the
+  new posted news? if not add visuals on every single news"*.
+- **Audit of every publishable collection** (`depth=1`, live CMS):
+  | collection | items | with a visual |
+  |---|---|---|
+  | articles | 6 | **6/6** |
+  | pages | 0 | — (empty, O-8) |
+  | scholarships | 0 | — (empty, O-8) |
+  | live-blogs | 0 | — (empty, O-8) |
+  | quizzes | 0 | — (empty, O-8) |
+  | polls | 1 | n/a — **no image field exists, by design** |
+  A poll is a question with options, not a visual story; the collection defines no
+  upload field and the storefront renders none. So "every single news" is satisfied.
+- **Each of the six articles verified in the BUILT HTML**, not just in the CMS: every one
+  emits a `<picture>` with **AVIF + WebP at 412w/800w** and its own Bengali `alt`:
+  | article | cover alt (truncated) |
+  |---|---|
+  | admission-policy-2027 | কলেজ ভর্তির ডেস্কে ফরমের স্তূপ, ঘণ্টা ও কাগজপত্র… |
+  | 45th-bcs-appointment-notice | অফিস ডেস্কে নিয়োগপত্রের খাম, ল্যানিয়ার্ড ও ঘড়ি… |
+  | madrasah-scholarship-exam-centres-2026 | সারি সারি শূন্য ডেস্কসহ পরীক্ষা-হল… |
+  | nu-masters-admission-2024-25 | বিশ্ববিদ্যালয়ের গেটে রাখা স্যুটকেস ও বইয়ের বান্ডিল… |
+  | hsc-result-2026-possible-date | ফলাফলের দিনে স্কুলের নোটিশবোর্ডে ফলাফলের পাতা… |
+  | ju-admission-exam-2026-27 | খোলা বই থেকে হাত, পরমাণু ও পেন্সিল অঙ্কুরিত… |
+- ⚠️ **They are invisible on the live site purely because it has not deployed since the
+  covers were attached (O-7).** The live article currently shows only the PWA icons in
+  the `<head>` — **zero `<picture>` blocks**. A local build of the same code renders all
+  six correctly, so this is a deploy gap, not a content gap. **O-7 delivers it.**
+- **Owner confirmed (2026-10-16):** keep the subject-matched covers; the six recovered
+  plates go into the library for future articles rather than replacing them.
+
 ### T-26 — CMS admin UI/UX: buttons read as flat text, not as buttons (owner requested 2026-10-16)
 - **Status:** 🟡 `code complete, not yet live` — implemented and verified 2026-10-16,
   committed `b711eb3`. **Needs a CMS deploy on DianaHost to appear**: the Cloudflare
