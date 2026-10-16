@@ -69,6 +69,11 @@ minutes are billed. If the budget cannot be raised, the durable fix is either ma
 the repo public or moving the build to a host that does not meter CI — a decision
 for you, not something I should assume.
 
+**Narrowed 2026-10-16:** `GET /repos/SHAHID8142/shikkha24/actions/permissions` returns
+`{"enabled": true, "allowed_actions": "all"}`, so Actions is *not* disabled at the repo
+level — the block is **account-level billing**, and reading the billing endpoint needs
+a `user`-scoped token I do not have. That is why only you can clear it.
+
 ## 🔴 Blocking — the site cannot show images until these are done
 
 ### O-1. CMS media files are missing from disk (T-25)
