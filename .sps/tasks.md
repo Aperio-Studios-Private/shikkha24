@@ -414,6 +414,27 @@ not know about it.
   made the deferral read as 7 sections instead of 4. Empty categories now render
   nothing. Verified 3 → 0 empty wrappers; perf unchanged (94 / FCP 2.10s / LCP 2.85s
   / CLS 0.000), so it is a cleanup, not a performance change.
+- **DIAGNOSED 2026-10-16 — the LCP element is identified, and it is not deferrable.
+  This is why section deferral could never move LCP.** Lighthouse reports the LCP
+  node as **`article.group > a > div.flex > h2.font-headline`** — a *text headline* —
+  with `boundingRect top=285, height=98` inside the **823 px** mobile viewport. In the
+  document it begins at **byte 25,103 (35 %)**, inside the section starting at byte
+  24,888, and it is **not inside any `defer-layout` wrapper**.
+  - So the LCP element is the **lead/top-story block just below the header** — it is
+    partly *inside* the first screen and therefore **must not be deferred**: deferring
+    it would delay the very paint we are trying to move. My category deferral work
+    was correct for `styleLayout`, and correctly had **no effect on LCP**.
+  - **`render-blocking-resources` now reports "Est savings of 0 ms"** for both
+    `Layout.css` and `theme-init.js`. The blocking resources remain, but costing
+    nothing measurable — the render-blocking avenue is closed.
+  - **Font loading is already optimal:** `font-display: swap` plus `size-adjust:
+    99.2%` and all three metric overrides (`ascent-override: 95.3125%`,
+    `descent-override: 28.418%`, `line-gap-override: 8.9844%`), and both weights are
+    preloaded. There is no cheaper font path left.
+  **Net: remaining LCP time is the browser loading the Bengali webfont and styling
+  the first screen at ×4 CPU throttling. Every byte-level and deferral lever is now
+  measured and closed; further gains need a smaller first-screen DOM or a lighter
+  font payload, not more CSS/network tuning.**
 - **REMAINING — the honest picture:** render blocking is fixed, but LCP is still
   2.55–3.15s. LCP breakdown says **TTFB 451 ms (15 %) + render delay 2,552 ms
   (85 %)**, and the LCP element is a Bengali **card headline** — so the cost is
