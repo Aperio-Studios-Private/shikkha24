@@ -650,6 +650,42 @@ not know about it.
   - **`cwebp` and `avifenc` are both available locally**, and `image/webp` +
     `image/avif` are already in the CMS's `ALLOWED_MIME_TYPES`, so this needs no new
     dependency and no host change.
+  - **THE FIX IS PROVEN, and it is Astro's remote-image pipeline (commits
+    `d43514c`, `104b793`).** `frontend/src/lib/media.ts` rejected that route on the
+    grounds that "the CMS already generates WebP variants" — **but that premise is
+    false** (see above: `media.sizes` is `[]` on every document ever created). The
+    reasoning was sound; the fact underneath it was not.
+  - **Verified end-to-end with a throwaway page, not assumed:** with
+    `image.domains = ['cms.shikkha24.com']`, Astro emits a real `<picture>` —
+    AVIF **and** WebP sources at 412w/800w, hashed and cacheable:
+
+    ```
+    <source srcset="…_Z13v0xN.avif 412w, …_AOlNW.avif 800w" type="image/avif">
+    <source srcset="…_Xzweh.webp 412w, …_Z2rhfcT.webp 800w" type="image/webp">
+    <img src="…_Z21qppk.webp" …>
+    ```
+
+    | variant | Astro output | `optimize-images.mjs` | original |
+    |---|---|---|---|
+    | AVIF 412w | **3.8 KB** | 3.8 KB | 89,653 B |
+    | AVIF 800w | **9.0 KB** | 9.0 KB | |
+    | WebP 412w | 6.8 KB | 7.2 KB | |
+
+    Two independent methods agree to within rounding. **The 412 px AVIF is 96 %
+    smaller than the original** — six covers go from **971 KB to ~64 KB**.
+  - **`scripts/optimize-images.mjs` is still worth keeping** even though Astro can do
+    the encoding: it is the tool for images that are **not** on a CMS route (the
+    editorial batch folders, `final/`), and it produced the independent second
+    measurement above. It is not the fix for T-24; Astro is.
+  - **One real constraint found:** Astro refuses remote images without explicit
+    `width`/`height` (`MissingImageDimension`, to protect CLS). Payload records both
+    via its pure-JS probe, so our CMS data already satisfies it — but any hand-rolled
+    remote `<Image>` would need them passed explicitly.
+  - ⚠️ **REMAINING to close T-24:** route `ArticleCard` (and the other CMS-image call
+    sites) through `<Picture>` instead of the plain `<img>` that `resolveCmsImage`
+    feeds, then re-measure. **Expected: LCP 3.4 s → well under 1.5 s** and the
+    performance score above 95, because the LCP element is currently a 218 KB JPEG
+    that would become a ~4–20 KB AVIF.
   - ⚠️ **Not yet implemented.** The conversion must happen **before upload**, because
     the host can never generate variants. Doing this properly means a repeatable
     script (so future batches get it automatically), not six ad-hoc conversions.
