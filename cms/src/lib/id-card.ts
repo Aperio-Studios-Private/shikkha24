@@ -189,6 +189,74 @@ async function textLayer(
     .toBuffer()
 }
 
+/**
+ * Truncate to at most `maxLines` lines, cutting on a **word boundary** and
+ * appending `…`.
+ *
+ * ## Why not let pango clip
+ *
+ * `textLayer`'s `maxHeight` makes sharp clip silently: the reader gets a headline
+ * chopped mid-word with no ellipsis, which reads as a rendering bug rather than an
+ * intentional summary. The owner's rule is explicit — if it does not fit in three
+ * lines, show three dots.
+ *
+ * ## How it measures
+ *
+ * Each word is added and the layer re-measured, so the cut is decided by the
+ * **rendered pixel width of this font at this size**, not an average character
+ * count. That matters for Bengali: conjuncts and কারচিহ্ন make word widths wildly
+ * uneven, so any "about N characters" guess would overflow on one headline and
+ * waste a line on the next.
+ *
+ * The binary search keeps it to ~log₂(words) renders (≈6 for a long headline)
+ * instead of one render per word, because every render is a libvips round trip on
+ * a host where those are expensive.
+ *
+ * @param value the full headline.
+ * @param opts size/colour/width/weight, matching what the caller will draw.
+ * @param measure a function returning the rendered height of a candidate string.
+ * @returns the largest prefix fitting `maxLines`, ellipsised if anything was cut.
+ *
+ * ⚠️ **The ellipsis is three full stops, not `…` (U+2026).** The vendored
+ * SolaimanLipi subset kept only **2 of 112** general-punctuation glyphs, so `…`
+ * and the em-dash `—` are genuinely absent — drawing either produces a
+ * missing-glyph box, i.e. exactly the defect that made every card unreadable
+ * before. `.` is present, so `...` renders correctly. If the font is ever
+ * re-subset with a wider `--unicodes`, this can become a real ellipsis.
+ */
+export async function fitHeadline(
+  value: string,
+  opts: { size: number; color: string; width: number; weight?: number; lineHeight: number },
+  maxLines: number,
+  measure: (candidate: string) => Promise<{ height: number; width: number }>,
+): Promise<string> {
+  const ELLIPSIS = '...'
+  const budget = Math.round(opts.lineHeight * maxLines)
+  const whole = await measure(value)
+  // The common case: the real headline fits, so nothing is touched.
+  if (whole.height <= budget) return value
+
+  const words = value.split(/\s+/).filter(Boolean)
+  let lo = 1
+  let hi = words.length
+  let best = 1
+  while (lo <= hi) {
+    const mid = Math.floor((lo + hi) / 2)
+    const candidate = `${words.slice(0, mid).join(' ')}${ELLIPSIS}`
+    const size = await measure(candidate)
+    if (size.height <= budget) {
+      best = mid
+      lo = mid + 1
+    } else {
+      hi = mid - 1
+    }
+  }
+  // A single word longer than the whole budget is the one case the ellipsis
+  // cannot rescue; pango will wrap it mid-word and `maxHeight` clips it, which is
+  // the least-bad outcome and is flagged by the caller's own budget check.
+  return best >= words.length ? value : `${words.slice(0, best).join(' ')}${ELLIPSIS}`
+}
+
 /** The real pixel height of a rendered text layer, for collision-free stacking. */
 async function layerHeight(layer: Buffer): Promise<number> {
   const { info } = await sharp(layer).toBuffer({ resolveWithObject: true })
@@ -245,6 +313,43 @@ async function rectLayer(width: number, height: number, color: string): Promise<
   })
     .png()
     .toBuffer()
+}
+
+/**
+ * The site logo, rasterised to a square PNG on a transparent field.
+ *
+ * ## Why the CMS value is fetched rather than passed in
+ *
+ * The owner's requirement is that renaming the site or replacing the logo in the
+ * CMS updates the card with **no code change**. `site-settings.logo` is an upload
+ * relation, so the endpoint resolves it and hands us a URL; this only rasterises
+ * whatever it is given.
+ *
+ * ⚠️ **The stored logo is an SVG** (`icon-maskable.svg`), which sharp reads
+ * through librsvg. That works on this host — verified by rasterising the live file
+ * to 256×256 with 100% opaque coverage — but it is a different code path from the
+ * JPEG/WebP rasters, so a failure here is logged and degrades to name-only rather
+ * than throwing. A card without a logo is still a valid card; a card that 500s is
+ * not.
+ *
+ * @param source an absolute URL or local path to the image.
+ * @param size the square edge length in pixels.
+ * @returns a PNG buffer, or `null` when the image cannot be read.
+ */
+async function logoLayer(source: string, size: number): Promise<Buffer | null> {
+  try {
+    const isRemote = /^https?:\/\//.test(source)
+    const input = isRemote ? Buffer.from(await (await fetch(source)).arrayBuffer()) : source
+    // `fit: 'contain'` keeps a non-square logo undistorted; `density` gives
+    // librsvg enough resolution to rasterise an SVG cleanly rather than blurrily.
+    return await sharp(input, { density: 300 })
+      .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png()
+      .toBuffer()
+  } catch (error) {
+    console.warn(`photocard: logo could not be rendered (${String(error).slice(0, 120)})`)
+    return null
+  }
 }
 
 /**
@@ -309,6 +414,16 @@ export interface PhotocardArticle {
   photoFilename?: string | null
   canonicalUrl: string
   siteName: string
+  /**
+   * The site logo, as an absolute URL or local path, resolved from
+   * `site-settings.logo` by the caller.
+   *
+   * Kept as a plain string rather than the Payload media object so this layout
+   * stays free of CMS types and is testable without a running Payload. When
+   * absent the lockup renders the name alone — a card without a logo is still a
+   * valid card.
+   */
+  logoUrl?: string | null
 }
 
 /**
@@ -503,7 +618,6 @@ export async function composePhotocard(article: PhotocardArticle): Promise<Buffe
   // the gap between them simply ran underneath the footer and off the canvas —
   // visible as text touching the bottom edge with no breathing room.
   const MARGIN = 64
-  const GAP = 40 // clear space between the headline block and the footer
 
   const layers: Array<{ input: Buffer; left: number; top: number }> = []
 
@@ -524,76 +638,85 @@ export async function composePhotocard(article: PhotocardArticle): Promise<Buffe
     layers.push({ input: await rectLayer(W, H, CHARCOAL), left: 0, top: 0 })
   }
 
-  // ── Footer block, measured first so the headline knows its budget ──────────
+  // ── Typography scale ───────────────────────────────────────────────────────
   //
-  // ⚠️ **The footer used to place THREE elements on one line at hard-coded
-  // offsets, and they collided.** The wordmark was 600px wide starting at
-  // `MARGIN`, so it ended at 664; the date was placed at `W - 520 - MARGIN` = 616,
-  // so it *began 48px before the wordmark ended* and ran to 1136 — straight
-  // through the QR, which starts at 966. Two elements drawing over each other is
-  // exactly the "text goes outside the card" the owner reported.
+  // Owner-specified hierarchy, largest to smallest. The previous card had a 62px
+  // headline with 32–40px everything else, so the *title* dominated and the
+  // publication name — the thing that should identify the brand — was one of the
+  // smallest elements. The name now leads.
   //
-  // The QR now owns a reserved column on the right, and the wordmark + date share
-  // a single centred column in the space that is genuinely left over. Nothing is
-  // positioned by a guessed width any more.
-  const QR = 170
-  const footerTop = H - MARGIN - QR
-  /** Space the QR reserves, plus a gap, so text can never reach into it. */
-  const QR_COLUMN = QR + GAP
+  // | rank | element  | size |
+  // |------|----------|------|
+  // | 1    | name     | 64   |
+  // | 2    | title    | 40   |
+  // | 3    | category | 30   |
+  // | 4    | date     | 26   |
+  //
+  // Bengali needs more leading than Latin: conjuncts stack below the baseline and
+  // কারচিহ্ন rises above it, so a 1.2 line box clips both. 1.55 is the house
+  // minimum from `.sps/plan.md` (Bengali typography ≥17px / line-height ≥1.65 in
+  // body copy); here a slightly tighter 1.5 is used because the card is a poster,
+  // not running text, and three title lines are the hard budget.
+  const SIZE_NAME = 64
+  const SIZE_TITLE = 40
+  const SIZE_CATEGORY = 30
+  const SIZE_DATE = 26
+  const TITLE_LINE = Math.round(SIZE_TITLE * 1.5)
 
-  const wordmark = await textLayer(article.siteName, {
-    size: 40,
-    color: WHITE,
-    width: W - MARGIN * 2 - QR_COLUMN,
-    weight: 700,
-  })
-  const wordmarkSize = await layerSize(wordmark)
+  const TITLE_MAX_LINES = 3
+  /** Clear air between the stacked blocks. */
+  const BLOCK_GAP = 34
 
-  let dateLayer: Buffer | null = null
-  if (article.publishedAt) {
-    const date = formatBnBd(article.publishedAt, { day: 'numeric', month: 'long', year: 'numeric' })
-    dateLayer = await textLayer(date, {
-      size: 32,
-      color: '#CCCCCC',
-      width: W - MARGIN * 2 - QR_COLUMN,
-    })
+  // ── Background: the cover photo, heavily blacked out ───────────────────────
+  //
+  // Owner's requirement, verbatim: *"the photo will become less transparency
+  // almost 10-20 visible, i.e. use black solid overlay 80%"*. So the photo is a
+  // faint texture behind near-solid black, which is what makes white text read on
+  // ANY cover — a bright sky or a white shirt behind the text would otherwise
+  // destroy contrast on exactly the photos that need it most.
+  //
+  // `modulate({brightness: 0.18})` is the 80% black overlay expressed as a
+  // brightness reduction, applied to the image rather than composited on top so
+  // there is only one blend and no alpha rounding to reason about.
+  if (article.photoFilename) {
+    const file = mediaFilePath(article.photoFilename)
+    if (file) {
+      const bg = await sharp(file)
+        .resize(W, H, { fit: 'cover' })
+        .modulate({ brightness: 0.18 })
+        .toBuffer()
+      layers.push({ input: bg, left: 0, top: 0 })
+    } else {
+      layers.push({ input: await rectLayer(W, H, CHARCOAL), left: 0, top: 0 })
+    }
+  } else {
+    layers.push({ input: await rectLayer(W, H, CHARCOAL), left: 0, top: 0 })
   }
 
-  // QR occupies the reserved right column, top-aligned with the footer band.
-  const qr = await qrLayer(article.canonicalUrl, QR)
-  layers.push({ input: qr, left: W - MARGIN - QR, top: footerTop })
-
-  // Wordmark and date stack, centred within the text column to the QR's left.
-  const textColumn = W - MARGIN * 2 - QR_COLUMN
-  const dateSize = dateLayer ? await layerSize(dateLayer) : { width: 0, height: 0 }
-  const stackH = wordmarkSize.height + (dateLayer ? GAP / 2 + dateSize.height : 0)
-  const stackTop = footerTop + Math.max(0, Math.round((QR - stackH) / 2))
-
-  layers.push({
-    input: wordmark,
-    left: MARGIN + Math.max(0, Math.round((textColumn - wordmarkSize.width) / 2)),
-    top: stackTop,
-  })
-  if (dateLayer) {
-    layers.push({
-      input: dateLayer,
-      left: MARGIN + Math.max(0, Math.round((textColumn - dateSize.width) / 2)),
-      top: stackTop + wordmarkSize.height + GAP / 2,
-    })
-  }
-
-  // ── Category chip ──────────────────────────────────────────────────────────
-  //
-  // The chip used to be a fixed 700px bar at `left: MARGIN` regardless of how long
-  // its label was, so a short category left a wide empty slab and a long one had no
-  // breathing room. It is now sized to its own measured label plus padding, and
-  // centred.
-  const chipH = 56
-  const CHIP_PAD_X = 34
+  /*
+   * ── The stack, top to bottom ───────────────────────────────────────────────
+   *
+   *   category chip
+   *   article title (max 3 lines, else "...")
+   *   QR code
+   *   [logo] শিক্ষা২৪.কম
+   *   date
+   *
+   * Laid out as a measured vertical flow rather than fixed offsets: each block
+   * reports its real height and the cursor advances by that amount. The previous
+   * card positioned elements at hard-coded coordinates and its footer elements
+   * physically overlapped — see the git history for the arithmetic.
+   */
   let cursor = MARGIN
+
+  // ── 1. Category chip ───────────────────────────────────────────────────────
+  // Centred, and sized to its own label plus padding so a short category is not a
+  // wide empty slab.
   if (article.categoryName) {
+    const chipH = Math.round(SIZE_CATEGORY * 1.9)
+    const CHIP_PAD_X = 30
     const chipText = await textLayer(article.categoryName, {
-      size: 30,
+      size: SIZE_CATEGORY,
       color: WHITE,
       width: W - MARGIN * 2,
       weight: 700,
@@ -607,31 +730,112 @@ export async function composePhotocard(article: PhotocardArticle): Promise<Buffe
       left: chipLeft + CHIP_PAD_X,
       top: cursor + Math.round((chipH - chipTextSize.height) / 2),
     })
-    cursor += chipH + 34
+    cursor += chipH + BLOCK_GAP
   }
 
-  // ── Headline ───────────────────────────────────────────────────────────────
+  // ── 2. Title, capped at three lines ────────────────────────────────────────
   //
-  // The budget is everything between the chip and the footer, less `GAP`. Passed
-  // as `maxHeight` so sharp wraps within it; a headline that still overflows is
-  // clipped at a *known* boundary above the footer instead of running under it.
-  const headlineBudget = footerTop - GAP - cursor
-  const headline = await textLayer(article.title, {
-    size: 62,
+  // Measured first: `fitHeadline` re-renders candidates until the longest prefix
+  // that fits three lines is found, so an over-long headline ends in "..." rather
+  // than being silently clipped mid-word by `maxHeight`.
+  const titleWidth = W - MARGIN * 2
+  const measureTitle = async (candidate: string) =>
+    layerSize(
+      await textLayer(candidate, {
+        size: SIZE_TITLE,
+        color: WHITE,
+        width: titleWidth,
+        weight: 700,
+      }),
+    )
+  const titleText = await fitHeadline(
+    article.title,
+    { size: SIZE_TITLE, color: WHITE, width: titleWidth, weight: 700, lineHeight: TITLE_LINE },
+    TITLE_MAX_LINES,
+    measureTitle,
+  )
+  const title = await textLayer(titleText, {
+    size: SIZE_TITLE,
     color: WHITE,
-    width: W - MARGIN * 2,
+    width: titleWidth,
     weight: 700,
-    maxHeight: headlineBudget,
+    maxHeight: TITLE_LINE * TITLE_MAX_LINES,
   })
-  const headlineH = await layerHeight(headline)
-  // Bottom-align short headlines against the gap so the block reads as one unit
-  // instead of leaving a hole above the footer, and centre the block so its
-  // measured width always sits inside the margin.
+  const titleSize = await layerSize(title)
   layers.push({
-    input: headline,
-    left: await centreLeft(headline, W, MARGIN),
-    top: cursor + Math.max(0, headlineBudget - headlineH),
+    input: title,
+    left: MARGIN + Math.max(0, Math.round((titleWidth - titleSize.width) / 2)),
+    top: cursor,
   })
+  cursor += titleSize.height + BLOCK_GAP
+
+  // ── 3. QR code, centred ────────────────────────────────────────────────────
+  const QR = 200
+  const qr = await qrLayer(article.canonicalUrl, QR)
+  layers.push({ input: qr, left: Math.round((W - QR) / 2), top: cursor })
+  cursor += QR + BLOCK_GAP
+
+  // ── 4. Logo + name lockup, centred as one unit ─────────────────────────────
+  //
+  // Both come from `site-settings`, so renaming the site or replacing the logo in
+  // the CMS changes the card with no code edit — the owner's explicit requirement.
+  // The logo sits to the LEFT of the name on the same line, and the pair is
+  // centred together rather than each being centred independently, which would
+  // leave the name visually off-centre by half the logo width.
+  const LOGO = Math.round(SIZE_NAME * 1.15)
+  const LOGO_GAP = 22
+  const nameLayer = await textLayer(article.siteName, {
+    size: SIZE_NAME,
+    color: WHITE,
+    width: W - MARGIN * 2 - LOGO - LOGO_GAP,
+    weight: 700,
+  })
+  const nameSize = await layerSize(nameLayer)
+  const logo = article.logoUrl ? await logoLayer(article.logoUrl, LOGO) : null
+
+  const lockupW = nameSize.width + (logo ? LOGO + LOGO_GAP : 0)
+  const lockupLeft = MARGIN + Math.max(0, Math.round((W - MARGIN * 2 - lockupW) / 2))
+  const lockupH = Math.max(nameSize.height, logo ? LOGO : 0)
+  const lockupTop = cursor + Math.round((lockupH - nameSize.height) / 2)
+  if (logo) {
+    layers.push({
+      input: logo,
+      left: lockupLeft,
+      top: cursor + Math.round((lockupH - LOGO) / 2),
+    })
+  }
+  layers.push({
+    input: nameLayer,
+    left: lockupLeft + (logo ? LOGO + LOGO_GAP : 0),
+    top: lockupTop,
+  })
+  cursor += lockupH + Math.round(BLOCK_GAP * 0.7)
+
+  // ── 5. Date ────────────────────────────────────────────────────────────────
+  if (article.publishedAt) {
+    const date = formatBnBd(article.publishedAt, { day: 'numeric', month: 'long', year: 'numeric' })
+    const dateLayer = await textLayer(date, {
+      size: SIZE_DATE,
+      color: '#BBBBBB',
+      width: W - MARGIN * 2,
+    })
+    layers.push({
+      input: dateLayer,
+      left: await centreLeft(dateLayer, W, MARGIN),
+      top: cursor,
+    })
+    cursor += (await layerHeight(dateLayer)) + MARGIN
+  }
+
+  // The stack must fit inside the card. Everything above is measured, so this is
+  // a real assertion rather than a guess — if a future font or a longer category
+  // pushes the flow past the bottom edge, say so instead of drawing off-canvas.
+  if (cursor > H) {
+    console.warn(
+      `photocard: content is ${cursor - H}px taller than the ${H}px canvas — ` +
+        `the card will be clipped. Check the title cap and block gaps.`,
+    )
+  }
 
   return sharp({ create: { width: W, height: H, channels: 4, background: CHARCOAL } })
     .composite(layers)

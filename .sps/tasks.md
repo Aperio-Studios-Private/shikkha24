@@ -830,10 +830,19 @@ not know about it.
 
     Lighthouse agrees independently: `modern-image-formats` **score 0, "Est savings
     of 360 KiB"** and `uses-responsive-images` **score 0, "Est savings of 525 KiB"**.
-  - **Why there are no variants:** `media.sizes` is **`[]`** on every cover. The host
-    **cannot create a thread or fork**, so **sharp cannot load at all** (T-07,
-    documented in `payload.config.ts:506`) — therefore no `imageSizes`, no
-    `formatOptions`. `frontend/src/lib/media.ts` builds the `srcset` correctly from
+  - **Why there are no variants:** `media.sizes` is **`[]`** on every cover.
+    ⚠️ **CORRECTED 2026-10-16 — the reason recorded here was wrong.** This entry
+    used to say the host "cannot create a thread or fork, so sharp cannot load at
+    all" (T-07, `payload.config.ts:506`). **Sharp does run on this host** — both
+    card endpoints, which are pure libvips, return 200 live. The actual cause was
+    **NPROC exhaustion** (CloudLinux limit 100, consumed by two `next-server`
+    instances at ~40–60 threads each, because Next.js spawns one worker thread per
+    CPU core). DianaHost raised the limit to 200 and the owner set
+    `TOKIO_WORKER_THREADS=2` / `UV_THREADPOOL_SIZE=4`, per ticket #0590191.
+    **So the missing variants are a configuration gap, not a host incapability** —
+    `imageSizes` can be enabled once the thread budget allows it. Do not reason
+    from the withdrawn claim. See T-30 for the full correction.
+  - `frontend/src/lib/media.ts` builds the `srcset` correctly from
     `media.sizes`, but with zero variants `buildSrcset` returns `undefined` and only
     the **full-size original** is ever served. **The storefront code is right; the
     upload is what lacks variants.**
@@ -1955,6 +1964,91 @@ not know about it.
 > asset it may touch, one scalar metric fixed **before** the edit, an attempt
 > budget, and the condition that sends it back. Filling these in is the point —
 > a task with no metric is how M24 happened.
+
+### T-30 — ✅ Photocard: glyph boxes fixed, layout redesigned (owner reported 2026-10-16)
+- **Status:** ✅ **Code done and verified locally. NOT yet deployed — the CMS deploy
+  path is the only thing outstanding.**
+- **Two separate bugs, and the owner reported both as one symptom.** Worth stating
+  plainly because the first diagnosis was wrong twice: "the text is broken" was a
+  *font* problem, and "the text goes outside the card" was a *geometry* problem.
+  Fixing one did nothing for the other.
+
+#### Bug 1 — every Bengali glyph drew as a box (root cause: WOFF2 is unreadable server-side)
+- **Symptom.** `https://cms.shikkha24.com/api/photocard/23.png` returned HTTP 200
+  with the headline rendered as rows of hex-looking boxes (`09 09 09 09`,
+  `B8 B0 95 BE B0 BF`). A 200 did **not** mean the text was correct — a font
+  failure renders glyph-index boxes silently.
+- **Root cause.** fontconfig could not read the vendored **WOFF2**. FreeType needs
+  a **Brotli-enabled build** to decode WOFF2; this host's does not have one, so
+  `fc-cache` **skipped both files without an error**:
+  - `fc-cache -fv ~/.fonts` → `new cache contents: 0 fonts`
+  - `fc-list | grep -i solaiman` → empty
+  - `fc-match 'SolaimanLipi'` → `NimbusSans-Regular.otf: "Nimbus Sans" "Regular"`
+- **Fix.** Install the **TTF** form. `scripts/fetch-fonts.mjs` only ever emitted
+  WOFF2 — the browser's format — for a renderer that needs a desktop format. Both
+  formats are now committed (`editorial/font-fix/`,
+  `frontend/public/fonts/server/`) and the live install is verified:
+  `fc-cache` → `2 fonts`, `fc-match 'SolaimanLipi'` → `SolaimanLipi-400.ttf`.
+- ⚠️ **`fontfile` is ignored when Pango is active** — Pango resolves by family
+  name, so copying the font into `cms/fonts/` could never have worked. Verified:
+  setting `fontfile` to Times New Roman produced byte-identical output.
+- ⚠️ **`~/.fonts` is per-account and not in the deploy pipeline.** A home-dir reset
+  silently restores the boxes and looks like a code regression. `fetch-fonts.mjs`
+  should emit TTF and the deploy should install it — still open.
+- **Correction — a claim made here was false.** An earlier entry in this file
+  asserted "on DianaHost sharp cannot load at all" (503s on both card endpoints).
+  Live now returns **200 for both**, so that conclusion was **stale**. The real
+  ticket (#0590191) cause was **CloudLinux NPROC exhaustion**: limit 100, consumed
+  by two `next-server` instances at ~40–60 threads each, because Next.js starts one
+  worker thread **per CPU core**. DianaHost raised NPROC to 200; the owner set
+  `TOKIO_WORKER_THREADS=2` / `UV_THREADPOOL_SIZE=4`. **This was never a libvips
+  capability limit**, and it is why a Vercel migration was considered — which would
+  have violated Vercel's non-commercial terms and lost the SQLite archive.
+
+#### Bug 2 — text drew outside the card (root cause: hard-coded offsets that collided)
+- **Measured on the live card:** left gap **61px** and right gap **60px** against a
+  declared `MARGIN = 64`. Text was touching the edges.
+- **Root cause.** The footer placed **three elements on one line at hard-coded
+  offsets**. At `W=1200, MARGIN=64`: the wordmark (600px) started at 64 and ended at
+  **664**; the date was placed at `W - 520 - MARGIN` = **616**, i.e. 48px *inside*
+  the wordmark, and ran to **1136** — **170px straight through the QR**, which
+  started at 966. Three collisions from one line of arithmetic.
+- **Fix.** Every element is positioned from its own **measured** width via new
+  `layerSize()` / `centreLeft()` helpers; the chip is sized to its label instead of
+  a fixed 700px slab. Margins went **61/60px → 70/65px**.
+- ⚠️ **The gate that should have caught this asserted the wrong number.**
+  `verify/id-card.ts` required a **36px** margin (`1200 * 0.03`) while the layout
+  promises **64px** — so text at 61px passed a check written to catch exactly this.
+  A gate that asserts a *fraction* of the promised margin certifies the defect it
+  exists to catch. Bound corrected to 64, and a centring assertion added.
+  **Counter-proved:** restoring the old hard-coded offset makes both checks fail
+  (`x 38..1134`).
+
+#### Redesign (owner-specified, 2026-10-16)
+- **Order, top to bottom:** category → title (max 3 lines) → QR → logo + name → date.
+- **Typography, largest first** (the old card had a 62px title dominating a 40px
+  brand name): **name 64 · title 40 · category 30 · date 26**.
+- **Truncation:** a title that does not fit three lines is cut on a **word boundary**
+  with three dots, not silently clipped. `fitHeadline()` binary-searches (~6 renders)
+  against the real rendered pixel height, because Bengali word widths are far too
+  uneven for a character-count guess.
+- ⚠️ **The ellipsis is `...`, not `…`.** The vendored subset kept only **2 of 112**
+  general-punctuation glyphs, so `…` (U+2026) and the em-dash `—` (U+2014) are
+  **absent** — drawing either produces a missing-glyph box, i.e. the very bug above.
+- **Background:** owner asked for the photo at 10–20% visibility — an 80% black
+  overlay — so white text reads on any cover.
+- **Logo and name both come from `site-settings`**, resolved in a new shared
+  `brandFor()` (depth 1, media base prepended), so renaming the site or replacing
+  the logo in the CMS updates the card with **no code change**. The stored logo is
+  an **SVG**; verified sharp rasterises it (100% opaque at 256×256), and a failure
+  degrades to name-only rather than throwing.
+- **Verified:** stack order asserted by ink position, QR between title and name,
+  title capped at 3 lines, all margins clear, and six edge cases (no category / no
+  date / no logo / no photo / nothing optional / one unbreakable word) all inside
+  the 64px margin.
+- 🟡 **Remaining:** the CMS is not redeployed, so live cards still show the old
+  layout. Needs the FTPS path (`deploy-cms.mjs`). Also open: `fetch-fonts.mjs`
+  should emit TTF so the font install stops being a manual step.
 
 ### T-02 — Fix the article-template CLS (the one red CI step)
 - **Status:** ✅ **CLOSED 2026-10-16 — resolved, evidence below.** The metric

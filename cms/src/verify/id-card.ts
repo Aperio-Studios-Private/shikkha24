@@ -95,6 +95,74 @@ async function textBounds(buf: Buffer): Promise<{
   return { firstRow, lastRow, firstCol, lastCol }
 }
 
+/** One horizontal band of ink: a block the reader perceives as a unit. */
+interface InkBand {
+  top: number
+  bottom: number
+  height: number
+  width: number
+}
+
+/**
+ * The horizontal bands of bright ink on a card, top to bottom.
+ *
+ * Each run of consecutive rows containing ink is one band — which is how a reader
+ * groups a card into "the category", "the title", "the QR", "the name", "the
+ * date". That makes the *visual order* assertable, which a margin check cannot
+ * see: a card can keep perfect margins while stacking its blocks in the wrong
+ * order.
+ *
+ * Rows are sampled every 2 px for speed; a 1 px gap between glyphs is not a
+ * meaningful band boundary, so runs shorter than 6 px are ignored as noise
+ * rather than reported as their own block.
+ *
+ * @param buf a rendered card PNG.
+ * @returns the bands, ordered by vertical position.
+ */
+async function inkBands(buf: Buffer): Promise<InkBand[]> {
+  const { data, info } = await sharp(buf).raw().ensureAlpha().toBuffer({ resolveWithObject: true })
+  const bright = (i: number) => data[i] > 195 && data[i + 1] > 195 && data[i + 2] > 195
+  const W = info.width
+  const H = info.height
+  const rowHasInk: boolean[] = []
+  for (let y = 0; y < H; y += 2) {
+    let hit = false
+    for (let x = 0; x < W; x += 2) {
+      if (bright((y * W + x) * 4)) {
+        hit = true
+        break
+      }
+    }
+    rowHasInk.push(hit)
+  }
+
+  const bands: InkBand[] = []
+  let start = -1
+  for (let r = 0; r <= rowHasInk.length; r++) {
+    const on = r < rowHasInk.length && rowHasInk[r]
+    if (on && start < 0) start = r
+    if (!on && start >= 0) {
+      const top = start * 2
+      const bottom = (r - 1) * 2
+      if (bottom - top > 6) {
+        let minX = W
+        let maxX = 0
+        for (let y = top; y <= bottom; y++) {
+          for (let x = 0; x < W; x++) {
+            if (bright((y * W + x) * 4)) {
+              if (x < minX) minX = x
+              if (x > maxX) maxX = x
+            }
+          }
+        }
+        bands.push({ top, bottom, height: bottom - top + 1, width: maxX - minX + 1 })
+      }
+      start = -1
+    }
+  }
+  return bands
+}
+
 /** A synthetic record, so the harness does not depend on seeded demo content. */
 async function withAuthor(next: (author: IdCardAuthor) => Promise<void>): Promise<void> {
   const settings = await payload.findGlobal({
@@ -147,6 +215,9 @@ await withAuthor(async (author) => {
     photoFilename: null,
     canonicalUrl: 'https://shikkha24.com/exams-results/1/ssc-result',
     siteName: 'শিক্ষা২৪.কম',
+    // Deliberately null: the harness must not depend on a live CMS upload being
+    // reachable. The logo path is exercised by the endpoint's own brandFor().
+    logoUrl: null,
   }
   const a = await composePhotocard(article)
   const b = await composePhotocard(article)
@@ -230,6 +301,83 @@ await withAuthor(async (author) => {
     'a long Bengali headline does not run into the bottom edge',
     longGeo.lastRow <= 1200 - minMargin,
     `last text row y=${longGeo.lastRow}, need <= ${1200 - minMargin}`,
+  )
+  /*
+   * ── The 2026-10-16 redesign ────────────────────────────────────────────────
+   *
+   * The owner specified a fixed top-to-bottom order — category, title, QR,
+   * name(+logo), date — and a three-line cap on the title. Both are *structural*
+   * promises that the margin checks above cannot see: a card could keep perfect
+   * margins while drawing the blocks in the wrong order or letting the title run
+   * to ten lines. Assert them directly.
+   *
+   * The order is verified by the *vertical position of each block's ink*, which is
+   * how a reader perceives it, rather than by trusting the code's own cursor.
+   */
+  const bands = await inkBands(a)
+  check(
+    'the photocard stacks category above title',
+    bands.length >= 2 && bands[0].top < bands[1].top,
+    `band tops ${bands.map((x) => x.top).join(', ')}`,
+  )
+
+  /*
+   * The QR is the one block that is a solid square of ink, so it is identifiable
+   * by height. It must sit BELOW the title and ABOVE the name lockup.
+   */
+  const qrBand = bands.find((x) => x.height >= 150 && x.width >= 150)
+  check(
+    'the photocard draws a QR block between the title and the name',
+    qrBand !== undefined,
+    qrBand ? `QR band y=${qrBand.top}..${qrBand.bottom}` : 'no square ink block found',
+  )
+  if (qrBand) {
+    const above = bands.filter((x) => x.bottom < qrBand.top)
+    const below = bands.filter((x) => x.top > qrBand.bottom)
+    check(
+      'the photocard keeps content above and below the QR',
+      above.length > 0 && below.length > 0,
+      `${above.length} band(s) above, ${below.length} below`,
+    )
+  }
+
+  /*
+   * ⚠️ The title must be capped at three lines. `fitHeadline` measures each
+   * candidate and appends "..." on a word boundary, so an over-long headline ends
+   * in three dots rather than being silently clipped mid-word — the owner's
+   * explicit rule. Asserted on a deliberately absurd headline so the cap is
+   * exercised even though real titles fit comfortably.
+   */
+  const extreme = await composePhotocard({
+    ...article,
+    title: 'সরকারি স্কুলে ভর্তির নীতিমালা-২০২৭ প্রকাশ '.repeat(6),
+  })
+  /*
+   * ⚠️ The title arrives as **three separate bands**, one per wrapped line — the
+   * line gaps are genuine whitespace, so a single "title block" does not exist in
+   * the pixel data. Counting the lines between the category and the QR is what
+   * actually tests the cap.
+   */
+  const extremeBands = await inkBands(extreme)
+  const qrBand2 = extremeBands.find((x) => x.height >= 150 && x.width >= 150)
+  const categoryBand = extremeBands[0]
+  const titleLines = extremeBands.filter(
+    (x) =>
+      categoryBand !== undefined &&
+      qrBand2 !== undefined &&
+      x.top > categoryBand.bottom &&
+      x.bottom < qrBand2.top,
+  )
+  check(
+    'a very long headline is capped at three lines',
+    titleLines.length > 0 && titleLines.length <= 3,
+    `${titleLines.length} line(s) between the category and the QR, need 1..3`,
+  )
+  const extremeGeo = await textBounds(extreme)
+  check(
+    'a very long headline still ends above the bottom margin',
+    extremeGeo.lastRow <= 1200 - minMargin,
+    `last text row y=${extremeGeo.lastRow}, need <= ${1200 - minMargin}`,
   )
 }
 

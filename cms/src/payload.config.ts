@@ -506,16 +506,40 @@ export default buildConfig({
    * ⚠️ `sharp` is deliberately NOT configured. Do not add it back without
    * reading this.
    *
-   * The DianaHost account **cannot create a thread or fork a process** from the
-   * Node runtime. Measured 2026-10-11: every media upload ends with
+   * ## CORRECTED 2026-10-16 — the reason below was wrong
+   *
+   * This comment used to claim the account "cannot create a thread or fork a
+   * process" and that "sharp cannot be loaded **at all** on this host". **That is
+   * false, and the evidence is live:** `GET /api/idcard/:id.png` and
+   * `GET /api/photocard/:id.png` are pure libvips routes and both return **200**
+   * on this host today. The 2026-10-11 `fork: retry: Resource temporarily
+   * unavailable` was real, but its cause was **CloudLinux NPROC exhaustion, not a
+   * hard floor on threads**:
+   *
+   *   - NPROC limit was **100**, and DNS/ticket #0590191 shows it was fully used.
+   *   - Two `next-server` instances were running, each at **~40–60 threads**,
+   *     because Next.js spawns one worker thread **per CPU core** (4 here).
+   *   - Web requests still worked because already-running processes need no fork.
+   *
+   * DianaHost raised NPROC to **200**; the owner set `TOKIO_WORKER_THREADS=2` and
+   * `UV_THREADPOOL_SIZE=4`. **The comment's own restore condition — "when
+   * DianaHost raises the CloudLinux limit" — has therefore been met.**
+   *
+   * The decision to leave `sharp` unset is still in force for now: re-enabling it
+   * regenerates every derivative and is a deploy-time change, deliberately left to
+   * a separate task rather than smuggled into a card-layout fix. But nobody should
+   * reason from "the host cannot run sharp" any more, because it can.
+   *
+   * ## Original note (kept for history — its premise is withdrawn)
+   *
+   * Measured 2026-10-11: media uploads ended with
    *
    *   node: fork: retry: Resource temporarily unavailable
    *   Error: Server is not running. { code: 'ERR_SERVER_NOT_RUNNING' }
    *
-   * and the browser sees `POST /api/media → 503`. libvips needs a worker per
-   * core (4 here) and a fontconfig thread at init, so sharp cannot be loaded at
-   * all on this host. `sharp.concurrency(1)` was tried and did not help, because
-   * the floor is not zero.
+   * and the browser saw `POST /api/media → 503`. `sharp.concurrency(1)` was tried
+   * and did not help — consistent with the NPROC explanation above, since the
+   * limit is on process/thread *count*, not on any single library's concurrency.
    *
    * Read from Payload's own source rather than guessed:
    *   - `uploads/generateFileData.js:127` — sharp runs only when
@@ -533,9 +557,10 @@ export default buildConfig({
    * — so pages render correctly, but serve full-size images. `Media.ts` carries
    * a `maxFileSize` to bound that.
    *
-   * **Restore it** when DianaHost raises the CloudLinux limit: add `sharp` back
-   * here and return `Media.ts`'s `formatOptions`, `resizeOptions` and
-   * `imageSizes`. See `.sps/tasks.md` T-07.
+   * **Restore it** by adding `sharp` back here and returning `Media.ts`'s
+   * `formatOptions`, `resizeOptions` and `imageSizes` — now that the NPROC limit
+   * is 200 this is a question of when, not whether. See `.sps/tasks.md` T-07 and
+   * T-30.
    */
   plugins: [],
 })

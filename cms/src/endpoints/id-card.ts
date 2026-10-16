@@ -11,6 +11,51 @@ import {
 } from '../lib/id-card'
 
 /**
+ * The brand identity printed on a card, read from `site-settings`.
+ *
+ * ## Why the logo is resolved here rather than in the renderer
+ *
+ * The owner's requirement is that renaming the site or replacing the logo in the
+ * CMS changes the card with **no code change**. `site-settings` stores both, but
+ * the logo is an upload *relation*: reading it needs `depth: 1` (or the field comes
+ * back as a bare id) and its `url` is Payload-relative (`/api/media/file/x.svg`),
+ * so it needs the media base prepended before sharp can fetch it.
+ *
+ * Both handlers used to call `findGlobal` separately with `depth: 0`, which is how
+ * a card would have silently lost its logo. Resolving once, here, keeps them in
+ * step.
+ *
+ * ⚠️ `overrideAccess: true` — `site-settings` is a public-read global and this is
+ * an anonymously reachable route, so the brand fields are safe to read. Nothing
+ * from `contact`, `social` or the analytics keys is touched.
+ *
+ * @param req the Payload request, for the local API.
+ * @returns the site name (never empty) and the logo's absolute URL, or `null`.
+ */
+async function brandFor(
+  req: PayloadRequest,
+): Promise<{ siteName: string; logoUrl: string | null }> {
+  const settings = await req.payload.findGlobal({
+    slug: 'site-settings',
+    // Depth 1 populates the `logo` upload relation; depth 0 returns only its id.
+    depth: 1,
+    overrideAccess: true,
+  })
+  const siteName = (settings.siteName as string | undefined) || 'শিক্ষা২৪.কম'
+
+  const logo = settings.logo
+  const rawUrl =
+    typeof logo === 'object' && logo !== null ? (logo.url as string | undefined) : undefined
+  if (!rawUrl) return { siteName, logoUrl: null }
+
+  // `logo.url` is `/api/media/file/<name>`; an absolute URL is passed through in
+  // case a future upload adapter stores one. Matches `frontend/…/Logo.astro` so the
+  // card and the storefront cannot disagree about where the logo lives.
+  const mediaBase = process.env.PUBLIC_MEDIA_BASE_URL || process.env.PUBLIC_CMS_ORIGIN || ''
+  return { siteName, logoUrl: /^https?:\/\//.test(rawUrl) ? rawUrl : `${mediaBase}${rawUrl}` }
+}
+
+/**
  * On-demand card images — S14.
  *
  * `GET /api/idcard/:reporterId.png`     — the reporter ID card (public read)
@@ -93,12 +138,7 @@ const idCardEndpoint: Endpoint = {
       return json({ error: 'কার্ড তৈরির ফন্ট পাওয়া যায়নি।' }, 503)
     }
 
-    const settings = await req.payload.findGlobal({
-      slug: 'site-settings',
-      depth: 0,
-      overrideAccess: true,
-    })
-    const siteName = (settings.siteName as string | undefined) || 'শিক্ষা২৪.কম'
+    const { siteName } = await brandFor(req)
 
     const photoFilename =
       typeof author.photo === 'object' && author.photo !== null
@@ -177,12 +217,7 @@ const photocardEndpoint: Endpoint = {
       return json({ error: 'কার্ড তৈরির ফন্ট পাওয়া যায়নি।' }, 503)
     }
 
-    const settings = await req.payload.findGlobal({
-      slug: 'site-settings',
-      depth: 0,
-      overrideAccess: true,
-    })
-    const siteName = (settings.siteName as string | undefined) || 'শিক্ষা২৪.কম'
+    const { siteName, logoUrl } = await brandFor(req)
 
     const category =
       typeof article.category === 'object' && article.category !== null
@@ -215,6 +250,7 @@ const photocardEndpoint: Endpoint = {
       photoFilename: photoFilename ?? null,
       canonicalUrl: canonical,
       siteName,
+      logoUrl,
     }
 
     const png_ = await composePhotocard(card)
