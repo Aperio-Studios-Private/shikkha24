@@ -439,11 +439,47 @@ not know about it.
     edit the FAQs through the CMS**, because the collection is not on the deployed
     build. The page is correct and complete for readers; only the editing control is
     absent. That falls under the existing **O-5 / O-7 deploy** items, not a new one.
-- **REMAINING:** feature matrix walk (nav, home modules, article page, listing,
-  exam-results, scholarship, deadline, prayer widget, live TV, /verify, ad slots,
-  404, CMS admin flows end-to-end, publish watcher) with happy-path + edge cases;
-  dependency freshness (`pnpm outdated` + advisories); dead-code purge;
-  per-feature owner manual checks.
+- **✅ FEATURE WALK COMPLETE 2026-10-16** (happy-path + edge cases, live where live
+  is meaningful). Results:
+  - **Nav — 9/9 links resolve.** All eight `/category/*` targets return 200 with the
+    correct Bengali `<title>` and exactly one `<h1>`.
+  - **17/17 pages return 200 with exactly one `<h1>` and a `<nav>`:** `/`, `/404.html`,
+    `/bookmarks/`, `/contact/`, `/citizen/`, `/login/`, `/search/`,
+    `/verify/SHK-R-2026-0001/`, `/gallery/`, `/video/`, `/reporters/`, `/fact-check/`,
+    `/live-tv/`, `/deadlines/`, `/exams/`, `/results/`, `/scholarships/`.
+  - **Ad slots — 4 present, each labelled `বিজ্ঞান`/`বিজ্ঞাপন`** (honest placeholder
+    labelling). ⚠️ **But the creatives were advertising fabricated guarantees — see
+    the fix below.**
+  - **Prayer widget — all six times render** (ফজর, যোহর, আসর, মাগরিব, এশা + sunrise).
+    ⚠️ Times are JS-rendered, so the wrong-Asr bug (O-11) is **not** visible in
+    static HTML — which is exactly why it survived this long.
+  - **CMS admin flows — `/admin` 200, `/admin/login` 200**, and
+    `/api/pages|articles|categories|globals/site-settings` all 200.
+  - **Public reads verified unbroken:** articles 6, polls 1, scholarships/quizzes/
+    live-blogs/ad-units 0. The empty ones are the known O-8 gap, not a regression.
+  - ⚠️ **Confirmed the `Pages` draft-leak blast radius is zero in production** —
+    `/api/pages?draft=true` returns `totalDocs: 0`. The live CMS is undeployed
+    (O-10), so the fix is not yet live, but there is nothing to leak today.
+  - **Dependency freshness:** `pnpm audit` exits 0 — 8 advisories (4 moderate, 4 high),
+    **all 4 high are documented upstream-unpatched tolerations** ("Patched versions:
+    None", so no version exists to move to and overrides cannot help). Policy is
+    recorded in `pnpm-workspace.yaml`.
+- **✅ FIXED — ad placeholders were advertising unowned guarantees** (commit
+  `d38e2dd`). `DemoAd` rendered real-sounding offers at true placement size inside a
+  dashed `বিজ্ঞাপন` box; one promised **"ব্যান্ড ৭+ গ্যারান্টি"** (a guaranteed IELTS
+  band). Two problems, neither visible from source alone: (1) **a reader could not
+  tell it was a placeholder** — the only markers were the CSS class `demo-ad` and an
+  `aria-label`, both invisible on screen; (2) **it contradicted the site's own
+  purpose** — `/fact-check` publishes verdicts on misleading claims, explicitly
+  including fabricated scholarship and result-season notices, so carrying an unowned
+  guarantee meant the site doing the thing it publishes against. Creatives are now
+  generic (`বিজ্ঞাপন স্থান` + format), with a **reader-visible `নমুনা বিজ্ঞাপন` badge**.
+  Verified in the build: guarantee gone, badge on all 15 ad-carrying pages. Caught my
+  own false alarm — a first check matched the tag slug `demo-admission`, which merely
+  shares a prefix.
+- **REMAINING:** per-feature owner manual checks (O-2 CLOSED; the rest are in
+  `.sps/owner-assistance.md`), and any new feature the owner requests. Dead-code purge
+  is done; dependency freshness is green.
 - **Scope:** walk every shipped feature in a planned matrix (nav, home modules,
   article page, category/listing, exam-results, scholarship, deadline, prayer widget,
   live TV, /verify, ad slots, 404, CMS admin flows end-to-end, publish watcher):
