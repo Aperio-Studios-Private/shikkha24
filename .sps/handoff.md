@@ -1,5 +1,59 @@
 # SPS Handoff
 
+## 2026-10-16 (later) — photocard fix, T-22 edge cases, T-24 diagnosis, verifier honesty
+
+**Shipped this span (all pushed to `main`):**
+- `bfb3d4a` **photocard text had no breathing space** — root cause was *silent
+  clipping*: `textLayer` hard-coded `height: size * 3`, and sharp clips rather than
+  wraps, so the 92-char Bengali headline needed ~620 px but got 186 px and rendered
+  127 px tall. Footer ended **1 px** from the bottom edge. `textLayer` now takes an
+  optional `maxHeight` (omitted → canvas sizes to the wrapped text) plus a new
+  `layerHeight()` so callers stack by measured height. Card now: top 78, bottom 65,
+  sides 66/66 (was top 70, bottom **1**). The ID card passes its old `size * 3`
+  explicitly, so its geometry is untouched.
+- `af7fb73`, `6b13f03` **three empty `defer-layout` wrappers** removed, and every
+  category section now defers (the first was needlessly undeferred). perf unchanged.
+- `2d3526f` **deps:** `yaml` 2.8.1→2.9.1, `smol-toml` 1.8.0→1.9.1, biome
+  2.5.13→2.5.15 — the first two sat exactly at their advisory-flagged versions.
+  `pnpm outdated` now empty; audit 15→14.
+- `eddaf5d` **`verify:sync` reported empty collections as failures.**
+
+**Verified, not assumed:**
+- **T-22 edge cases:** broken media (the live T-25 condition) degrades correctly —
+  `/`, `/latest/`, a category, `/scholarships` and the article template each carry
+  only 2 `<img>`, both the site icon (200), and **zero `<img>` to CMS media**.
+  Empty collections are guarded. Search is fine: raw unencoded Bengali in a URL
+  returns 400, which is **correct HTTP** — browsers percent-encode and that path
+  returns 200.
+- **T-22 dead code: nothing to remove.** `verify-s8`/`verify-ads-s7` are
+  *deliberately manual* (documented), not dead; deleting them would destroy an audit
+  trail.
+- **T-24 — the LCP element is identified and it is not deferrable.** It is
+  `article.group … h2.font-headline`, a text headline at `top=285` in the 823 px
+  viewport, byte 25,103 (35 %) — the lead block just under the header. That is why
+  category deferral never moved LCP (it was never going to).
+  `render-blocking-resources` reports **"Est savings of 0 ms"**. Font path is already
+  optimal (`swap` + `size-adjust` + all three metric overrides + both preloads).
+  Compressed CSS is only **7.8 KB Brotli ≈ 49 ms**, so the CSS avenue is closed for
+  good: **all resources finish by 344 ms yet FCP is 1.9 s — a ~1,550 ms CPU render
+  delay** (Style & Layout 1,710 ms of a 623-element page at ×4 throttle).
+- **T-24 — rejected glyph-subsetting on purpose.** 89 pages use only 81 of the 128
+  Bengali codepoints, so a used-glyph subset would cut ~a third of the 700 face
+  (87,820 B ≈ 477 ms). **Rejected:** an editor writing an unused codepoint would get
+  the fallback face until the font was rebuilt — a live-content outage traded for
+  bytes on a daily news site. The full-block subset is deliberate policy.
+
+**Verifier suite: 32/32 green** (was 31/1 with a false failure).
+
+**Still blocked:** GitHub Actions budget — every push since `bfa91b3` fails at job
+level with *"The job was not started because an Actions budget is preventing further
+use."* Re-confirmed this round with `gh run view`. **So none of the above is live**;
+the storefront fixes (photocard is CMS-side too) await a deploy.
+
+**Owner list is now O-1 … O-8** — O-8 is new: `scholarships`, `result-links`,
+`circulars`, `deadlines` are genuinely empty in the CMS (`totalDocs = 0`), so those
+sections render blank. Code is correct; content is missing.
+
 ## Documentation index — where to look
 
 | Question | Document |
