@@ -683,13 +683,25 @@ not know about it.
   visuals the owner could not find in (or delete from) the media gallery were
   `frontend/src/assets/categories/*.jpg` — repo assets, not CMS media; the demo
   plates in the media library were uploads of those same visuals.
-- **⚠️ OWNER ASSISTANCE NEEDED (covers):** REST multipart upload is broken on the
-  live host — its proxy drops non-file form fields, so `alt` never arrives
-  (proven 2026-10-16 with curl AND Node; file-only reaches validation, alt-only
-  reports "No files were uploaded"). Upload pack is ready for pure clicking:
-  `editorial/assets-batch-1/upload-ready/` (6 covers renamed per article + README
-  with the exact Bengali alt text and `চিত্র: AI` credit). After the owner uploads,
-  I PATCH `featuredImage` onto ids 23–28. Unlocks automatically at P4 (Render).
+- **✅ COVERS DONE — this blocker is CLOSED, and the earlier root cause was WRONG.**
+  The covers are **uploaded (media ids 10–15)** with the correct Bengali alt text and
+  `চিত্র: AI` credit, and **`featuredImage` is already linked on all six articles**
+  (23→10, 24→11, 25→12, 26→13, 27→14, 28→15). Verified against the live CMS API.
+  ⚠️ **The recorded cause ("the host proxy drops non-file multipart fields") was a
+  misdiagnosis.** The proxy is not at fault: **Payload does not accept text fields as
+  separate multipart parts — they must travel inside a `_payload` JSON part.** With
+  `-F "alt=…"` the file uploads fine and only the text is lost, which returns
+  `400 Alt text is required` and looks exactly like a proxy stripping fields. Correct
+  form (returns 201): `-F "file=@x.jpg" -F '_payload={"alt":"…","credit":"চিত্র: AI"};type=application/json'`.
+  Field order and Bengali text were both tested and are not factors.
+  **Verified end-to-end in a local build:** the article now emits `<picture>` blocks
+  with AVIF + WebP at 412w/800w and the real Bengali alt, and the CMS serves the file
+  **200**. So the whole cover pipeline works — **the covers are absent from the live
+  site purely because the frontend has not deployed since they were attached (O-7).**
+  ⚠️ **Lesson: "the upload is broken" was recorded as a host fault when it was an
+  API-contract misunderstanding.** A 400 that names the field made the *field* look
+  missing; the field was fine, the *envelope* was wrong. Recording the wrong cause
+  sent the owner a manual-clicking workaround for something that needed one curl flag.
 - After publish: watcher carries them live automatically (T-19); GSC picks up via
   sitemap.
 
