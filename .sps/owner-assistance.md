@@ -8,6 +8,44 @@
 
 ---
 
+## 🔴 URGENT — CI and deploys are stopped: GitHub Actions budget exhausted
+
+**Found 2026-10-16 00:33.** Every push since `bfa91b3` (00:07) fails at the job level
+with:
+
+> **"The job was not started because an Actions budget is preventing further use."**
+
+This is **not a code problem** — GitHub is refusing to start jobs because the
+account's Actions minutes/spending limit is exhausted. Runs die in ~3 seconds with
+"Verify in 2s" and no logs.
+
+**What is live and what is stuck:**
+
+| commit | what | live? |
+|---|---|---|
+| `bfa91b3` (00:07) | accessibility + heading-order fixes | ✅ **LIVE** (`--color-ink-subtle:#707070` is serving) |
+| `b711eb3` (00:18) | CMS admin button affordance (T-26) | ❌ not deployed |
+| `53d92d7` (00:28) | nodemailer security fix | ❌ not deployed (storefront unaffected) |
+| `0d69a1a` (00:31) | **CSS performance optimization** (render blocking → 0) | ❌ not deployed |
+| docs commits | task/handoff records | ❌ (harmless — repo only) |
+
+Verified against production: the live stylesheet hash is still the pre-optimisation
+build, so the performance gain is **committed but not serving**.
+
+**What I need from you (either):**
+1. **GitHub → Settings → Billing and plans → Actions** — raise or reset the included
+   minutes / spending limit for the `SHAHID8142` account, **or**
+2. Tell me to wait until the monthly allowance resets, and I will re-run the stuck
+   workflows then (`gh run rerun` on the latest commit rebuilds and deploys).
+
+**Nothing is lost** — every change is committed and pushed. The moment Actions works
+again, one re-run deploys the CSS optimisation and the CMS work.
+
+⚠️ Public repos get unlimited free Actions minutes; this repo is **private**, so
+minutes are billed. If the budget cannot be raised, the durable fix is either making
+the repo public or moving the build to a host that does not meter CI — a decision
+for you, not something I should assume.
+
 ## 🔴 Blocking — the site cannot show images until these are done
 
 ### O-1. CMS media files are missing from disk (T-25)
