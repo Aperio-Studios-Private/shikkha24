@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, isSuperAdminOrEditorInChief } from '../access/roles'
+import { isSuperAdminOrEditorInChief, publishedOrEditor } from '../access/roles'
 
 /**
  * Pages — standalone pages, restored by the audit as a required collection.
@@ -27,7 +27,28 @@ export const Pages: CollectionConfig = {
     description: 'স্থায়ী পাতা — পরিচিতি, সম্পাদকীয় নীতি, গোপনীয়তা ও শর্তাবলি।',
   },
   access: {
-    read: anyone,
+    /*
+     * ⚠️ **Was `anyone`, which leaked unpublished drafts — fixed 2026-10-16 (T-20).**
+     *
+     * `drafts: true` below is what made this a leak rather than a curiosity.
+     * `anyone` is `() => true`, and Payload combines the access result with the
+     * query as `combineQueries(where, accessResult)`; `hasWhereAccessResult(true)`
+     * is false, so **nothing** is ANDed in. Payload then routes `?draft=true`
+     * through `queryDrafts`, which reads the versions table — so an anonymous
+     * `GET /api/pages?draft=true` returned the latest *unpublished* revision of
+     * every page, including a half-written privacy policy or a staged correction.
+     *
+     * This was the only drafts-enabled collection left on `anyone`. `Articles` uses
+     * `publishedOrEditor` and `ResultLinks` was fixed for the same shape with the
+     * note that "the publish filter existed but was applied only by the consumer,
+     * which means the CMS was the thing leaking". `Pages` had no consumer filter
+     * and no verify gate, which is why it survived.
+     *
+     * `publishedOrEditor` keeps the published pages public — `/about`,
+     * `/privacy-policy` and the footer links are unaffected — and returns
+     * `{ _status: { equals: 'published' } }` to everyone else.
+     */
+    read: publishedOrEditor,
     create: isSuperAdminOrEditorInChief,
     update: isSuperAdminOrEditorInChief,
     delete: isSuperAdminOrEditorInChief,

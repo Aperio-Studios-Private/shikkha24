@@ -327,8 +327,14 @@ jobs:
         env:
           PAYLOAD_SECRET: ci-placeholder-not-a-real-secret
           DATABASE_URI: file:./data/ci.db
+        # ⚠️ `result-links` and `public-read` were added 2026-10-16 (T-20).
+        # `verify:result-links` EXISTED but was never in this loop — the gate for
+        # the original ResultLinks leak was written and then never enforced, which
+        # is how the same shape survived in six more collections. `public-read`
+        # now covers those six. Both are hermetic (they read config, write
+        # nothing), so they belong in this loop rather than the with-CMS step.
         run: |
-          for h in access media newsletter engagement push oauth rebuild rebuild-notice reporter id-card reactions social; do
+          for h in access media newsletter engagement push oauth rebuild rebuild-notice reporter id-card reactions social result-links public-read; do
             echo "── verify:$h ──"
             pnpm --filter @shikkha24/cms verify:$h
           done

@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, isEditorial, isSuperAdminOrEditorInChief } from '../access/roles'
+import { activeOrEditor, isEditorial, isSuperAdminOrEditorInChief } from '../access/roles'
 import { pollVoteEndpoint } from '../endpoints/poll-vote'
 
 /**
@@ -29,7 +29,15 @@ export const Polls: CollectionConfig = {
     description: 'পাঠক জরিপ — ভর্তি নীতি বা পরীক্ষা সংক্রান্ত মতামত।',
   },
   access: {
-    read: anyone,
+    /*
+     * ⚠️ Was `anyone`, which served deactivated rows to anonymous API callers
+     * — fixed 2026-10-16 (T-20). `isActive` defaults to true and an editor turns
+     * it OFF to withdraw a row, so the CMS was returning withdrawn content and
+     * every consumer had to remember to filter. Same shape as the `ResultLinks`
+     * fix. Editors keep an unfiltered view so the admin list can show a row in
+     * order to switch it back on.
+     */
+    read: activeOrEditor,
     create: isEditorial,
     update: isEditorial,
     delete: isSuperAdminOrEditorInChief,

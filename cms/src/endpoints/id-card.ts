@@ -110,7 +110,24 @@ const idCardEndpoint: Endpoint = {
       designation: (author.designation as string | null) ?? null,
       reporterId: (author.reporterId as string | null) ?? null,
       pressCardNo: (author.pressCardNo as string | null) ?? null,
-      bloodGroup: (author.bloodGroup as string | null) ?? null,
+      /*
+       * ⚠️ `bloodGroup` is deliberately NOT passed — it was, until 2026-10-16 (T-20),
+       * and `lib/id-card.ts` drew it as a 'রক্তের গ্রুপ' row.
+       *
+       * `Authors.bloodGroup` is `read: editorialField`, and its own comment calls it
+       * "medical data with no public consumer". This endpoint fetches the author with
+       * `overrideAccess: true`, which bypasses exactly that field rule, and the route
+       * is anonymously reachable — the project's own harness at
+       * `verify/endpoints.ts:377` fetches it with no cookies and asserts 200. The
+       * URL key is the sequential `SHK-R-YYYY-NNNN`, so the whole set was walkable.
+       *
+       * The docstring above lists what a card publishes — name, designation, ID,
+       * press card number, validity, beat — and never included blood group, so the
+       * code was contradicting its own stated intent rather than extending it.
+       * Print it on a physical card if the newsroom wants that; do not serve it from
+       * a public HTTP route. The renderer already skips a null row.
+       */
+      bloodGroup: null,
       validUntil: (author.validUntil as string | null) ?? null,
       beat: (author.beat as string[] | null) ?? null,
       photoFilename: photoFilename ?? null,

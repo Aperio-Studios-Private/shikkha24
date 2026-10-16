@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, isEditorial, isSuperAdminOrEditorInChief } from '../access/roles'
+import { activeOrEditor, isEditorial, isSuperAdminOrEditorInChief } from '../access/roles'
 
 /**
  * Scholarships — backs N1, the scholarship tracker.
@@ -26,7 +26,15 @@ export const Scholarships: CollectionConfig = {
     description: 'বৃত্তির তালিকা — সময়সীমা অনুযায়ী সাজানো।',
   },
   access: {
-    read: anyone,
+    /*
+     * ⚠️ Was `anyone`, which served deactivated rows to anonymous API callers
+     * — fixed 2026-10-16 (T-20). `isActive` defaults to true and an editor turns
+     * it OFF to withdraw a row, so the CMS was returning withdrawn content and
+     * every consumer had to remember to filter. Same shape as the `ResultLinks`
+     * fix. Editors keep an unfiltered view so the admin list can show a row in
+     * order to switch it back on.
+     */
+    read: activeOrEditor,
     create: isEditorial,
     update: isEditorial,
     delete: isSuperAdminOrEditorInChief,

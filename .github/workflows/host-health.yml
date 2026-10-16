@@ -113,21 +113,48 @@ jobs:
           CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
           CPANEL_USER: ${{ secrets.CPANEL_USER }}
           CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
+          # ⚠️ Dispatch inputs are passed as ENVIRONMENT VARIABLES, never
+          # interpolated into the script text.
+          #
+          # `${{ inputs.* }}` is substituted by GitHub *before* the shell parses
+          # the step, and nothing escapes it. Every one of these inputs is a
+          # free-text `string`, so a value containing a single quote closed the
+          # quoting and bash executed the remainder. Proven, not theorised — this
+          # is what a `cat` input of  x'; id; touch /tmp/PWNED; echo '  produced:
+          #
+          #   IFS=',' read -ra files <<< 'x'; id; touch /tmp/PWNED; echo ''
+          #
+          # and `id` ran. The step holds CPANEL_TOKEN and the job token, so that
+          # was arbitrary command execution with the cPanel credential, reachable
+          # by anyone able to dispatch the workflow.
+          #
+          # Reached through `env:` the values arrive as environment data, and bash
+          # expands "$IN_CAT" *after* parsing — so a quote inside the value is a
+          # literal character and cannot begin a new command. Every expansion below
+          # is double-quoted as well, so the values are never word-split or
+          # glob-expanded either.
+          IN_PROBES: ${{ inputs.probes }}
+          IN_DELAY: ${{ inputs.delay }}
+          IN_NAMES: ${{ inputs.names }}
+          IN_CAT: ${{ inputs.cat }}
+          IN_CAT_DIR: ${{ inputs.cat-dir }}
+          IN_TAIL: ${{ inputs.tail }}
+          IN_DIR: ${{ inputs.dir }}
         run: |
           # `--dir` may be repeated to inspect several paths in one run. Listing
           # is read-only, so this doubles as a way to check host setup — whether a
           # script was really uploaded, whether a folder exists — without anyone
           # navigating cPanel File Manager to look.
-          args=(--probes '${{ inputs.probes }}' --delay '${{ inputs.delay }}')
-          if [ '${{ inputs.names }}' = 'true' ]; then args+=(--names); fi
-          if [ -n '${{ inputs.cat }}' ]; then
-            IFS=',' read -ra files <<< '${{ inputs.cat }}'
+          args=(--probes "$IN_PROBES" --delay "$IN_DELAY")
+          if [ "$IN_NAMES" = 'true' ]; then args+=(--names); fi
+          if [ -n "$IN_CAT" ]; then
+            IFS=',' read -ra files <<< "$IN_CAT"
             for f in "${files[@]}"; do args+=(--cat "$f"); done
-            args+=(--cat-dir '${{ inputs.cat-dir }}')
-            if [ '${{ inputs.tail }}' = 'true' ]; then args+=(--tail 2500); fi
+            args+=(--cat-dir "$IN_CAT_DIR")
+            if [ "$IN_TAIL" = 'true' ]; then args+=(--tail 2500); fi
           fi
-          if [ -n '${{ inputs.dir }}' ]; then
-            IFS=',' read -ra dirs <<< '${{ inputs.dir }}'
+          if [ -n "$IN_DIR" ]; then
+            IFS=',' read -ra dirs <<< "$IN_DIR"
             for d in "${dirs[@]}"; do args+=(--dir "$d"); done
           fi
           node scripts/check-host-fork.mjs "${args[@]}"

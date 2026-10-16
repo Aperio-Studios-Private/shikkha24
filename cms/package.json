@@ -26,6 +26,7 @@
     "seed:universities": "cross-env NODE_OPTIONS=--no-deprecation payload run src/seed/universities-run.ts",
     "verify:media": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/media.ts",
     "verify:result-links": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/result-links.ts",
+    "verify:public-read": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/public-read-filters.ts",
     "verify:access": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/access.ts",
     "verify:endpoints": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/endpoints.ts",
     "verify:newsletter": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/newsletter.ts",

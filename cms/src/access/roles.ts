@@ -151,6 +151,35 @@ export const publishedOrEditor: Access = ({ req }) => {
 /** Anyone, including anonymous readers. For genuinely public reference data. */
 export const anyone: Access = () => true
 
+/**
+ * Public read of ACTIVE documents; editors additionally see deactivated rows.
+ *
+ * `isActive` is a suppression toggle that defaults to on, so an editor turns it
+ * *off* to withdraw a row. Returning `anyone` therefore served withdrawn rows to
+ * anonymous API callers, and the site only *looked* correct because every
+ * consumer filtered:
+ *
+ *     'where[isActive][equals]': 'true'   // education.ts, interactive.ts, ads.ts
+ *
+ * ⚠️ **A filter that only the consumer applies is not a filter — the CMS is the
+ * thing leaking.** This is the same shape `ResultLinks` was fixed for, and the
+ * same reasoning as `publishedOrEditor` above: return a `Where` clause so the
+ * database filters, rather than handing back everything and relying on every
+ * present and future caller to remember.
+ *
+ * ⚠️ Called out in T-20 (2026-10-16) for `Scholarships`, `LiveBlogs`, `Polls`,
+ * `Quizzes` and `AdUnits`, none of which had a verify gate. `AdUnits` matters
+ * most commercially: it was serving campaign start/end dates for campaigns that
+ * had not launched.
+ *
+ * Editors keep an unfiltered view, because the admin list must show a row in
+ * order to switch it back on.
+ */
+export const activeOrEditor: Access = ({ req }) => {
+  if (isEditorialUser(req.user)) return true
+  return { isActive: { equals: true } }
+}
+
 /** Nobody except via override — used for collections written by server code. */
 export const noOne: Access = () => false
 

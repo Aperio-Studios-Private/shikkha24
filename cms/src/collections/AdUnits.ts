@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyone, canManageAds, isSuperAdminOrEditorInChief } from '../access/roles'
+import { activeOrEditor, canManageAds, isSuperAdminOrEditorInChief } from '../access/roles'
 
 /**
  * Where an ad may be placed.
@@ -82,7 +82,15 @@ export const AdUnits: CollectionConfig = {
       'বিজ্ঞাপনের অবস্থান ও ক্যাম্পেইন। CLS শূন্য রাখতে নির্দিষ্ট অবস্থান ব্যবহার করুন — নতুন অবস্থান যোগ করার আগে ফ্রন্টএন্ডে সেই স্লট থাকতে হবে।',
   },
   access: {
-    read: anyone,
+    /*
+     * ⚠️ Was `anyone`, which served deactivated rows to anonymous API callers
+     * — fixed 2026-10-16 (T-20). `isActive` defaults to true and an editor turns
+     * it OFF to withdraw a row, so the CMS was returning withdrawn content and
+     * every consumer had to remember to filter. Same shape as the `ResultLinks`
+     * fix. Editors keep an unfiltered view so the admin list can show a row in
+     * order to switch it back on.
+     */
+    read: activeOrEditor,
     create: canManageAds,
     update: canManageAds,
     delete: isSuperAdminOrEditorInChief,
