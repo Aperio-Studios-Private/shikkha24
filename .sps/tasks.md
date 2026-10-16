@@ -379,6 +379,34 @@ not know about it.
     `social` 11, `newsletter` 11, `origins` 12.
   - ⚠️ **Not yet effective in production** — it needs the CMS deploy (same O-5 /
     Actions-budget blocker).
+- **FIXED (commit `ef37cd4`) — `X-Powered-By: Next.js, Payload` was advertised.**
+  Verified live with `curl -I`; Next.js sends it by default and nothing disabled it.
+  It names the exact framework and CMS to any anonymous prober, letting scanning
+  start from known advisories instead of probing blind. `poweredByHeader: false`
+  in `cms/next.config.ts`. Pure version advertising, nothing depends on it.
+- **Header matrix — both surfaces are strong, and the CMS set is complete:**
+
+  | Header | storefront | CMS |
+  |---|---|---|
+  | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload` | same |
+  | `X-Content-Type-Options` | `nosniff` | `nosniff` |
+  | `X-Frame-Options` | `DENY` | `DENY` |
+  | `Referrer-Policy` | `strict-origin-when-cross-origin` | same |
+  | `Permissions-Policy` | geolocation/camera/microphone/payment all `()` | same |
+  | `Content-Security-Policy` | present, per-route, ad hosts allowed only where needed | present, `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'` |
+
+  `cross-origin-opener-policy` is absent on both — checked against the project's own
+  documented matrix and the Worker source (`worker/headers.ts` sets exactly these 6),
+  so it is **not a gap against our spec**, just a hardening option for T-20 proper.
+- **Login brute-force protection WORKS.** Five wrong passwords in a row → the sixth
+  responds **429** with `অনেকবার চেষ্টা করা হয়েছে…`; still locked out after 20 s.
+  **No user enumeration:** a non-existent address returns the same generic
+  "email or password provided is incorrect" as a real one.
+- **JWT handling is correct:** HS256 (no `alg: none` weakness), **2-hour** lifetime
+  (`iat`→`exp`), proper `collection: users` claim. 2 hours is appropriately short for
+  an admin session.
+- **`/admin` returns 200** as expected for a login page; the API root returns the
+  admin HTML shell. No version string leaked in the bodies once `X-Powered-By` goes.
 - **Still T-20's job, not done here:** auth/session hardening, the dependency
   advisory set, the header matrix, secrets rotation, and rate-limit durability. This
   was opportunistic probing while I had credentials, not the audit.
