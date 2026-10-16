@@ -1042,7 +1042,19 @@ not know about it.
 </details>
 
 ### T-14 — 🔴 The storefront cannot be updated automatically on this host
-- **Status:** `open — owner action required for every publish` · proven 2026-10-12
+- **Status:** ✅ **CLOSED 2026-10-16 — superseded by the Cloudflare migration, not by
+  a cPanel fix.** The diagnosis below stands and was correct: on DianaHost there is
+  **no API extraction mechanism**, so an archive can never be expanded automatically.
+  Rather than keep asking the owner to extract `frontend-<run>.zip` by hand for every
+  publish, the storefront was moved to **Cloudflare Workers** (T-18 P1/P6), which
+  deploys the built assets directly and needs no extraction step at all.
+  **Verified live 2026-10-16:** `https://shikkha24.com/` answers with
+  `server: cloudflare` + `cf-ray`, i.e. Workers is the publisher, and the served
+  stylesheet hash matches the `bfa91b3` deploy — so publishing is automatic and
+  current. The cPanel path is rollback-only.
+  **This entry remains the record of why the migration was necessary.** The DianaHost
+  limitation still applies to the CMS, which continues to deploy by hand.
+- **Originally:** `open — owner action required for every publish` · proven 2026-10-12
 - **Measured, not inferred.** The site had not been rebuilt since **2026-10-04**. Every
   deploy since reported success. Three independent causes, all now understood:
   1. **Extraction silently no-ops.** `Fileman::fileop op=extract` returns a success
