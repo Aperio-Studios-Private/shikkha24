@@ -383,6 +383,41 @@ not know about it.
 - **DoD:** CI Lighthouse gate green (all four categories ≥95) on the whole template
   list, with the pre-fix numbers recorded in `.sps/handoff.md` as the counter-proof.
 
+### T-28 — Photocard text had no breathing space at the edges (owner reported 2026-10-16)
+- **Status:** 🟡 `code complete, verified, not yet live` — commit `bfb3d4a`. Needs the
+  CMS deployed on DianaHost to take effect (the Cloudflare workflow ships only the
+  storefront), same as T-26.
+- **Owner's report:** *"the text of the photocard is too top and too bottom placed,
+  no breathing space for text — top side text and bottom of the text are not clearly
+  visible."* Reproduced and measured, not assumed.
+- **Root cause — silent clipping.** `textLayer` hard-coded `height: opts.size * 3`.
+  sharp **clips** to that box rather than wrapping, so the 92-character Bengali
+  headline (needs ~620 px at size 62) was cut to **127 px** and lost most of its
+  lines. The footer was pinned at fixed offsets (`H-90`, `H-82`, `H-QR-130`) that the
+  clipped headline ran underneath. Measured on the live card via ink bounds:
+  **bottom text ended at y=1198 of 1200 — 1 px of clearance.**
+- **Fix:** `textLayer` takes an optional `maxHeight`; omitted, sharp sizes the canvas
+  to the wrapped text, and a new `layerHeight()` lets callers **stack by measured
+  height** instead of guessing offsets. The photocard is rebuilt on one `MARGIN`
+  (64 px) per edge, a `GAP` (40 px) above the footer, the QR anchoring the footer
+  block, and the headline given the exact remaining budget and bottom-aligned.
+  The ID card passes its old implicit `size * 3` explicitly, so its geometry is
+  unchanged.
+- **Verified (real article-23 content, 1200×1200, ink bounds):**
+  | | top | bottom | left/right |
+  |---|---|---|---|
+  | before | 70 | **1** ❌ | — |
+  | after | **78** | **65** ✓ | 66 / 66 ✓ |
+  A long-headline case is now asserted too.
+- **Why it shipped unnoticed — the harness was too weak.** `verify:id-card` asserted
+  size, ink and byte-identity, **all of which a card with text running off the canvas
+  satisfies perfectly**. It now asserts the text bounding box and clear margins
+  directly. Same family as the earlier verifier defects (T-22): the check existed,
+  but it could not see the defect.
+- **Note:** the one remaining FAIL in that harness (`SHK-R-2026-0003` QR target) is
+  **pre-existing and unrelated** — it needs a frontend rebuild with that reporter
+  seeded. Proven by re-running the harness against the unmodified code.
+
 ### T-25 — CMS media files are gone from disk: every image 500s (owner reported 2026-10-16)
 - **Status:** 🔴 `open` — root cause found, fix needs the owner (no SSH/cPanel Terminal).
 - **Owner's report:** all 12 supplied images display
