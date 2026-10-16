@@ -598,6 +598,61 @@ not know about it.
     scripts", which would have meant a broken CSP. That pattern matched
     `<script type="application/ld+json">` blocks. Classifying by `type` shows all 112
     are JSON-LD. **Counting by pattern is not counting by meaning.**
+- **ROOT CAUSE FOUND 2026-10-16 — and it is a consequence of T-23, not a new defect.**
+  Attaching the covers changed the homepage LCP element from a text headline to a
+  **remote cover image**, so T-24's remaining gap now has a concrete, measurable cause.
+  - **Re-measured honestly.** My previously recorded homepage figure of 94 does not
+    reproduce. With a clean Node static server (the earlier `python3 -m http.server`
+    was **single-threaded and slow**, and I found a **stale server from an earlier
+    session still listening on 8899** — both distorting results) the homepage is
+    **perf 89–90, FCP 2.1 s, LCP 3.4 s, TBT 0 ms, CLS 0.000**, stable across 3 runs.
+    **LCP 3.4 s with TBT 0 ms means the main thread is idle — this is a resource
+    problem, which is a different class of fix from the CSS/CPU work done so far.**
+  - **What the homepage actually downloads for covers — 6 files, 971 KB total:**
+
+    | cover | served now | viewport is 412 px |
+    |---|---|---|
+    | 01-admission-policy-2027.jpg | 157,116 B | 1376 px wide |
+    | 02-45th-bcs-appointment-notice.jpg | 112,265 B | 1376 px wide |
+    | 03-madrasah-scholarship-exam-centres-2026.jpg | 217,624 B | 1376 px wide |
+    | 04-nu-masters-admission-2024-25.jpg | 242,755 B | 1376 px wide |
+    | 05-hsc-result-2026-possible-date.jpg | 151,641 B | 1376 px wide |
+    | 06-ju-admission-exam-2026-27.jpg | 89,653 B | 1376 px wide |
+    | **total** | **971,054 B** | |
+
+    Lighthouse agrees independently: `modern-image-formats` **score 0, "Est savings
+    of 360 KiB"** and `uses-responsive-images` **score 0, "Est savings of 525 KiB"**.
+  - **Why there are no variants:** `media.sizes` is **`[]`** on every cover. The host
+    **cannot create a thread or fork**, so **sharp cannot load at all** (T-07,
+    documented in `payload.config.ts:506`) — therefore no `imageSizes`, no
+    `formatOptions`. `frontend/src/lib/media.ts` builds the `srcset` correctly from
+    `media.sizes`, but with zero variants `buildSrcset` returns `undefined` and only
+    the **full-size original** is ever served. **The storefront code is right; the
+    upload is what lacks variants.**
+  - **This violates the project's own documented rule** —
+    `docs/image-optimization.md` §1: *"AVIF first, WebP second"*, *"No JPEG ships"*,
+    and *"[n]ever ship a source wider than the largest declared width"*. The covers
+    are 1376 px sources served into a 412 px slot: the exact mistake that rule names.
+  - **Measured fix, with quality checked objectively (not eyeballed):** converting a
+    cover to the sizes actually rendered:
+
+    | variant | size | PSNR vs original |
+    |---|---|---|
+    | JPEG 1376 px (today) | 217.6 KB | — |
+    | WebP q82 @412 px | 20.2 KB | 30.51 dB |
+    | **AVIF q50 @412 px** | **14.5 KB** | **33.18 dB** |
+    | AVIF q60 @412 px | 11.1 KB | 31.29 dB |
+    | AVIF q70 @412 px | 10.6 KB | 30.99 dB |
+
+    **AVIF q50 beats WebP q82 on both axes — 28% smaller *and* +2.7 dB** — which is
+    the project doc's claim confirmed on our own content. >30 dB is near-lossless for
+    photographic material. Six covers would go **971 KB → ~64 KB (−93%)**.
+  - **`cwebp` and `avifenc` are both available locally**, and `image/webp` +
+    `image/avif` are already in the CMS's `ALLOWED_MIME_TYPES`, so this needs no new
+    dependency and no host change.
+  - ⚠️ **Not yet implemented.** The conversion must happen **before upload**, because
+    the host can never generate variants. Doing this properly means a repeatable
+    script (so future batches get it automatically), not six ad-hoc conversions.
 - **SCORECARD 2026-10-16 after the inline-ceiling work (median of 3, mobile
   simulate, local):**
 
