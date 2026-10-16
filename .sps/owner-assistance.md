@@ -32,6 +32,29 @@ account's Actions minutes/spending limit is exhausted. Runs die in ~3 seconds wi
 Verified against production: the live stylesheet hash is still the pre-optimisation
 build, so the performance gain is **committed but not serving**.
 
+**I verified the work is shippable without CI** (2026-10-16): I can reproduce every
+gate the deploy workflow runs, and all four pass locally on the current tree —
+`verify:build-output` (6/6 published articles reached the build), `verify:links`
+("All internal links resolve"), `verify:search-init` ("behaves correctly"),
+`verify:cloudflare` ("OK — 83 checks, every section + its negative control").
+`wrangler deploy --dry-run` from `frontend/` also succeeds (279 files, correct
+ASSETS binding), and wrangler on this machine is already authenticated to the
+`shaha24` account. So a local deploy is technically possible.
+
+⚠️ **Two gate traps worth knowing** (both cost me time; neither is a real defect):
+1. `verify:build-output` **must** be run with `CMS_URL` set. Without it the check
+   falls to the `THIN_BUILD_MIN_ARTICLE_PAGES` floor of 10 and reports a false
+   failure ("6 article page(s), floor 10"), because that floor was chosen while the
+   six demo articles still existed and we have since deleted them. With `CMS_URL`
+   set it uses the self-calibrating tier and correctly passes: *"6 article page(s)
+   built, CMS reports 6 published."*
+2. Pagefind runs as a **post-build** step, so `npx astro build` alone makes
+   `verify:build-output` report a missing Pagefind index. Use `pnpm run build:frontend`.
+
+**I have not deployed**, because doing so would bypass the CI gate the project treats
+as authoritative, and the workflow deliberately warns that such a deploy "is NOT
+covered by CI". That is your call, not mine.
+
 **What I need from you (either):**
 1. **GitHub → Settings → Billing and plans → Actions** — raise or reset the included
    minutes / spending limit for the `SHAHID8142` account, **or**
