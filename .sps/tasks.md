@@ -1172,6 +1172,12 @@ not know about it.
 
 ---
 
+## Owner assistance — running list
+
+Anything that needs the owner's hands, account, or a decision is collected in
+**`.sps/owner-assistance.md`** — check it before reporting a task blocked, and add
+to it rather than stopping work.
+
 ## Hard constraints — do not re-litigate
 
 - **No cPanel Terminal or SSH.** Disabled by DianaHost; ports 22/2222/222/2200/2022
