@@ -1,5 +1,56 @@
 # SPS Handoff
 
+## 2026-10-16 (round 12) — T-22 feature walk complete; an ad slot was advertising a guarantee
+
+**Feature walk, all green:** nav **9/9** links resolve (all eight `/category/*` with
+correct Bengali titles and one `<h1>`); **17/17** pages 200 with exactly one `<h1>` and
+a `<nav>`; CMS `/admin` + `/admin/login` 200 and every public API 200; public reads
+unbroken (articles 6, polls 1, the rest the known O-8 empties).
+
+**`pnpm audit` exits 0** — 8 advisories, 4 moderate + 4 high, and **all four high are
+documented upstream-unpatched tolerations** ("Patched versions: None"). No version
+exists to move to and overrides cannot help. Policy recorded in `pnpm-workspace.yaml`.
+
+### The real find: an ad placeholder promising a guaranteed exam band
+
+`DemoAd` rendered real-sounding commercial offers at true placement size inside a
+dashed `বিজ্ঞাপন` box. One said **"আইইএলটিএস কোর্স / ব্যান্ড ৭+ গ্যারান্টি"** — a
+guaranteed IELTS band.
+
+Two things made this worth fixing rather than shrugging at:
+
+1. **A reader could not tell it was a placeholder.** The only demo markers were the
+   CSS class name `demo-ad` and an `aria-label`. Both are invisible on screen. Read off
+   the built page a reader sees a bordered advertisement carrying a specific
+   performance promise.
+2. **It contradicted the site's own purpose.** `/fact-check` exists to publish verdicts
+   on misleading claims — the handoff itself records that it addresses "fake result
+   links and fabricated scholarship notices" during result season. Carrying an unowned
+   guarantee in an ad slot means the site doing the thing it publishes against.
+   shikkha24 sells no courses and cannot promise a third party's exam result.
+
+Fixed in `d38e2dd`: creatives are generic (`বিজ্ঞাপন স্থান` + format name, kept
+realistic in length so size approval still works) and a **reader-visible
+`নমুনা বিজ্ঞাপন` badge** sits top-left, clear of the format label bottom-right. The
+component docstring claimed the placeholders were "obvious" — that was not true on
+screen, so it now records why the badge has to stay.
+
+**Verified in the build:** guarantee gone, IELTS copy gone, badge present on every slot
+across all 15 ad-carrying pages.
+
+⚠️ **A false alarm I caught in my own verification:** my first coverage check reported
+one page missing the badge — `frontend/dist/tag/demo-admission/index.html`. That is the
+tag slug `demo-admission`, which merely *shares a prefix* with `demo-ad`. The corrected
+check counts `data-demo-ad` attributes. **Substring matching over built output invents
+findings; match the attribute.**
+
+### Also confirmed: the Pages draft leak has zero blast radius today
+
+`/api/pages?draft=true` returns `totalDocs: 0` against the live CMS. The high-severity
+leak is real in the code and fixed in `7ab0b0b`, but there is nothing to leak while the
+collection is empty. The live CMS is still undeployed (O-10), so none of the audit
+fixes are live yet.
+
 ## 2026-10-16 (round 11) — T-20 security audit COMPLETE: 5 findings, all fixed
 
 Full audit at ref `8f3326d` under the installed `security-audit-skill`, profile
