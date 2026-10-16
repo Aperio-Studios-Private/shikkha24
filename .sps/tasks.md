@@ -1161,8 +1161,72 @@ not know about it.
   upgrade the repo to Node 26 deliberately (would need a CI matrix change too).
 
 ### T-20 — Full security audit with the Cloudflare `security-audit` skill (owner requested 2026-10-15)
-- **Status:** `queued` — deliberately NOT started: T-19 arming (owner PAT) and the
-  T-15 publish test come first, per the owner.
+- **Status:** ✅ **COMPLETE 2026-10-16.** Full audit run at ref `8f3326d` under the
+  installed `security-audit-skill` (profile: standard). **5 confirmed findings, all
+  fixed** — 2 high, 3 medium, 0 critical. 4 hunter waves across the CMS endpoints,
+  the Worker + publish watcher, the CI/secret surface and CMS access control.
+  Artifacts: `~/security-audit-skill/NewsPortal/run-1/` (`REPORT.md`, `findings.json`,
+  `NEEDS-VALIDATION.md`, `architecture.md`).
+  - ⚠️ **The skill forbids probing deployed endpoints, and that rule was load-bearing
+    here, not ceremonial.** Probing the publish watcher would have spent a GitHub
+    Actions build per request — from a budget that is already exhausted. An audit that
+    ignored the rule would have turned itself into an outage.
+  - **HIGH — command injection in `host-health.yml`.** Every dispatch input was
+    interpolated into the `run:` script inside single quotes. GitHub substitutes those
+    expressions **before bash parses the step**, with no escaping, so a quote in any
+    free-text input closed the quoting and the rest executed. **Reproduced:** a `cat`
+    value of `x'; id; touch /tmp/PWNED; echo '` ran `id` in a step holding
+    `CPANEL_TOKEN`. Fixed in `7ab0b0b` by routing inputs through `env:`.
+    ⚠️ **How close this came to being missed:** the array-literal contexts in the same
+    file are NOT exploitable — `;` is a syntax error inside `(...)` — so the first two
+    payloads silently did nothing. Only testing the `[ ... ]` and `<<<` guard contexts,
+    which are plain commands, showed execution. **One more test and it looked clean.**
+  - **HIGH — `Pages` drafts readable anonymously.** `read: anyone` is `() => true`;
+    Payload ANDs the access result via `combineQueries(where, result)` and
+    `hasWhereAccessResult(true)` is **false**, so nothing was filtered and `?draft=true`
+    reached `queryDrafts` — returning the latest **unpublished** revision of every page.
+    Settled by reading Payload's own `dist`, not inferred. Blast radius today is zero
+    (**0 pages**). `Articles` already used `publishedOrEditor`; `Pages` was the last
+    drafts-enabled collection on `anyone` and the only one with no gate.
+  - **MEDIUM — unauthenticated `POST /run-tick`** on a public `workers.dev` hostname
+    (`bdccf53`). The code called it "safe… idempotent (the digest is stored only on
+    success)" — but that *is* the flaw: the digest is written only after a 2xx, so while
+    dispatch is failing the stored digest stays null and **every** anonymous call
+    reaches the GitHub API. The justification held only in the happy path.
+  - **MEDIUM — reporter blood group on a public PNG.** `Authors.bloodGroup` is
+    `read: editorialField` and documented as "medical data with no public consumer",
+    yet `/api/idcard/:reporterId.png` fetched with `overrideAccess: true` and drew a
+    রক্তের গ্রুপ row — anonymously, over a **sequential, enumerable** id. The endpoint's
+    own docstring lists the fields a card publishes and never included blood group.
+  - **MEDIUM — five collections filtered `isActive` only in the frontend**
+    (`Scholarships`, `LiveBlogs`, `Polls`, `Quizzes`, `AdUnits`). Withdrawing a row hid
+    it from the site while the API kept serving it. `AdUnits` was the commercially
+    sensitive one: unlaunched campaign dates.
+  - ⚠️ **THE SYSTEMIC FINDING — and the one worth remembering.** Finding 5 is a *repeat*
+    of `ResultLinks`, and the reason it repeated is more interesting than the bug:
+    **`verify:result-links` existed but was never in the CI loop.** The gate written to
+    prevent that exact pattern was itself never enforced, so the pattern returned five
+    more times unnoticed. Both it and a new `verify:public-read` now run in CI.
+    **Lesson: a gate that is not wired into CI is documentation, not a gate.**
+  - **Proven by negative control, not assertion:** reverting `Pages` to `anyone` makes
+    `verify:public-read` FAIL with the exact symptom; restoring returns OK.
+  - **Examined and found sound** (recorded because a clean result is evidence too): no
+    `pull_request_target`/`workflow_run` anywhere; no `github.event.*` script injection;
+    secrets never on argv or echoed; least-privilege tokens throughout; no SSRF; no
+    hand-built SQL; Worker path traversal structurally impossible; the `dompurify`
+    override verified fully applied (the `3.4.8` directory is an orphaned store
+    leftover with nothing linking to it). The CMS auth surface — the highest-value
+    target — produced **zero** new findings across a dedicated hunter pass.
+  - **Left open and honestly labelled** (never probed, never asserted) in
+    `NEEDS-VALIDATION.md`: Passenger worker count vs the in-process rate limiter;
+    whether a fresh CI run still traces `cms/.env` into the published standalone bundle;
+    whether the physical press card is *meant* to carry the blood group (an owner call,
+    not a code one).
+  - **Gates:** 89-page build, `build-output` / `links` / `search-init` / `cloudflare` /
+    `workflows` / `prayer-times` pass; `verify:access`, `result-links` and
+    `public-read` pass; tsc clean.
+- **Original status note (superseded):** `queued` — deliberately NOT started: T-19
+  arming (owner PAT) and the T-15 publish test came first, per the owner.
 - **Skill installed this session:** cloudflare/security-audit-skill @ c1c8a8c
   (~/.claude/skills/security-audit-skill, registers as `security-audit`).
 - **Scope when run:** the full checkout — CMS (Payload admin surface, auth, seed
