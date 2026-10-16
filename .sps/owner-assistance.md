@@ -6,6 +6,31 @@
 >
 > Last updated: **2026-10-16 (evening)**
 
+## Index — read this first
+
+**One thing blocks almost everything else: `O-7`, the GitHub Actions budget.** Every
+fix below except O-3 and O-6 is written, verified and sitting in git — it cannot reach
+the server until CI can run again. Restoring the budget delivers all of them at once.
+
+| # | What | Needs from you | Status |
+|---|---|---|---|
+| **O-7** | GitHub Actions budget exhausted | Restore billing / raise the spending limit | 🔴 blocks 20 fixes |
+| **O-11** | Live site shows Asr **51 min early** | nothing — ships with O-7 | 🔴 user-visible bug |
+| **O-1** | 6 CMS media files missing from disk | Check `upload.staticDir` on the host | 🔴 images |
+| **O-4** | CSP-blocked Cloudflare beacon | Turn off Web Analytics in the CF dashboard | 🟡 2 min |
+| **O-8** | Four CMS collections are empty | Seed them or tell me to | 🟡 your call |
+| **O-9** | IndexNow + Bing Webmaster | Import the key, click verify | 🟡 5 min |
+| **O-3** | Rotate the CMS password | Do it yourself, I never see it | 🟡 security |
+| **O-6** | Request indexing in Search Console | Paste 6 URLs | 🟡 SEO |
+| **O-5** | CMS deploy for the button work | nothing — ships with O-7 | ⏳ waiting |
+| **O-10** | Three CMS security fixes | nothing — ships with O-7 | ⏳ waiting |
+| **O-2** | ✅ **CLOSED** — covers uploaded | nothing | done |
+
+> ⚠️ **A note on numbering.** These IDs are stable and referenced from `.sps/tasks.md`
+> and `.sps/handoff.md`, so a gap or an out-of-order number means items were added over
+> time — not that anything is missing. The list below is grouped by what it needs from
+> you; the index above is the reading order.
+
 ---
 
 ## 🔴 URGENT — CI and deploys are stopped: GitHub Actions budget exhausted
