@@ -16,7 +16,7 @@ the server until CI can run again. Restoring the budget delivers all of them at 
 |---|---|---|---|
 | **O-7** | GitHub Actions budget exhausted | Restore billing / raise the spending limit | 🔴 blocks 20 fixes |
 | **O-11** | Live site shows Asr **51 min early** | nothing — ships with O-7 | 🔴 user-visible bug |
-| **O-1** | 6 old `demo-plate` files 500 (media path is fine — new covers serve 200) | **nothing needed** — deleted demo visuals, nothing references them | 🟢 closed-unless-you-care |
+| **O-1** | ✅ **CLOSED** — the 6 visuals 500'd, now recovered from the local cache | nothing | ✅ done |
 | **O-4** | CSP-blocked Cloudflare beacon | Turn off Web Analytics in the CF dashboard | 🟡 2 min |
 | **O-8** | Four CMS collections are empty | Seed them or tell me to | 🟡 your call |
 | **O-9** | IndexNow + Bing Webmaster | Import the key, click verify | 🟡 5 min |
@@ -102,19 +102,25 @@ a `user`-scoped token I do not have. That is why only you can clear it.
 
 ## 🔴 Blocking — the site cannot show images until these are done
 
-### O-1. CMS media files are missing from disk (T-25)
-> **✅ UPDATE 2026-10-16 — much smaller than it looked, and the action is now optional.**
+### O-1. ✅ CLOSED — the six lost visuals are recovered (T-25)
+> **RESOLVED 2026-10-16 (`dc6e3fc`). Nothing needed from you.**
 >
-> The upload path is **healthy**: six covers uploaded on 2026-10-16 (media ids 10–15)
-> all serve **200**, while the six files from 2026-10-04 all serve **500**. So this is
-> **six individually-lost files, not a broken media system** — and they are the old
-> `demo-plate-*.webp` demo visuals that were **deleted from the CMS during the demo
-> purge anyway**. Nothing references them: no article, page, or template.
+> I had closed this as "disposable demo visuals, nothing references them, impact nil".
+> **That was wrong on the merits and you were right to push back.** They are real
+> editorial visuals — a ministry press conference, a science fair, a library, a
+> classroom, a sports day — and the bytes were never actually lost: `cms/data/media/`
+> held the originals all along. I called it an unrecoverable loss without checking the
+> local cache.
 >
-> **You do not need to do anything here.** The only reason to look at
-> `upload.staticDir` is curiosity about what happened on 2026-10-04. It no longer
-> blocks covers (those work) or the site (nothing points at them). Treat this as
-> **closed-unless-you-care** rather than pending.
+> All six are re-uploaded and **serving `200 image/webp`** with your captions as alt
+> text and the `চিত্র: AI` credit. They sit in the media library ready for articles
+> about press conferences, sports days, classrooms, libraries and science fairs.
+>
+> ⚠️ **One technique worth knowing, since it cost me a wasted run:** editing an
+> existing media record (PATCH) updates the database row but does **not** re-write the
+> file. The rows then claimed the correct `13482 B` while the file still returned 500 —
+> so checking the *record* looked like success. Only fetching the *file* showed the
+> truth. The fix is to delete the record and upload afresh.
 
 ### O-1-detail — original diagnosis, retained as the record
 **Symptom you reported:** every image shows `{"errors":[{"message":"Something went wrong."}]}`.
