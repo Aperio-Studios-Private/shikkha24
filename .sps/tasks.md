@@ -215,11 +215,25 @@ not know about it.
   exclusive**, so exactly one renders. The scanner counts statically and cannot
   evaluate branches. Confirmed by counting the live HTML: **1 `<h1>` each**.
 
-  **Honest residual:** the only real signal is **8 of 23 images missing alt** and **1
-  skipped heading level** in source templates. Not a failing site — but the audit
-  cannot be used as T-21's DoD evidence at face value, and the score must not be
-  quoted to the owner as a site quality measure. **Recorded rather than "fixed" by
-  chasing a number that is mostly counting the wrong files.**
+  - **The "missing alt" finding is ALSO entirely false positives — verified three
+    ways.** Every flagged hit is either an `<img>` mentioned inside a **JSDoc
+    comment** (`CmsImage.astro:48/77`, `CategoryImage.astro:8/13`,
+    `ShareRow.astro:16`, `reporters/[slug].astro:264` — all prose, not markup), or a
+    component that correctly threads the prop (`CategoryImage.astro:75` passes
+    `{alt}`, `CmsImage.astro:93/104` pass `alt={alt}`). **Checked the built HTML
+    instead of the source:** the full 89-page build emits **194 `<img>` tags and 42
+    `<picture>` blocks, with 0 missing alt.** So the real count is zero, not 47 and
+    not 8.
+  - **Net real signal from the audit: none.** Robots, sitemaps, llms.txt, favicon and
+    every H1 are correct; `noindex` on the private pages is deliberate; no image
+    lacks alt. The remaining "1 skipped heading level" is a static artifact of the
+    same branch-blind counting.
+  - **Conclusion:** the audit cannot serve as T-21's DoD evidence at face value, and
+    **its score must not be quoted to the owner as a site quality measure** — it
+    would report a healthy site as failing. Recorded rather than "fixed" by chasing a
+    number that is mostly counting the wrong files. T-21's remaining work is the
+    owner-side GSC/Bing steps (O-9) plus the deploy that unblocks IndexNow (O-7),
+    not source remediation.
 
 ### T-22 — Feature-by-feature debug + bug/error-free + futureproofing pass (owner requested 2026-10-15)
 - **Status:** 🔵 `in progress` — live sweep started 2026-10-16 (perf work runs in
