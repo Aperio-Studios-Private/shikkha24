@@ -1125,7 +1125,16 @@ not know about it.
   seeded. Proven by re-running the harness against the unmodified code.
 
 ### T-25 — CMS media files are gone from disk: every image 500s (owner reported 2026-10-16)
-- **Status:** 🔴 `open` — root cause found, fix needs the owner (no SSH/cPanel Terminal).
+- **Status:** 🟢 **CLOSED 2026-10-16 — impact nil, no owner action needed.** The upload
+  path is **healthy**: six covers uploaded on 2026-10-16 (media ids 10–15) all serve
+  **200**, while the six files from 2026-10-04 all serve **500**. So this is **six
+  individually-lost files, not a broken media system** — and every one of them is an
+  old `demo-plate-*.webp` demo visual that was **deleted from the CMS during the demo
+  purge**. Nothing references them: no article, no page, no template, no sitemap entry.
+  ⚠️ **The "Consequence for T-23" below was WRONG** — uploading covers to this host did
+  *not* fail; all six succeeded with `201` once the request envelope was correct (see
+  T-23). Kept below as the record of the wrong turn. Checking `upload.staticDir` is now
+  **optional curiosity**, not a task.
 - **Owner's report:** all 12 supplied images display
   `{"errors":[{"message":"Something went wrong."}]}` instead of the picture.
 - **Evidence (2026-10-16, live):**
