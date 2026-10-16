@@ -449,6 +449,33 @@ not know about it.
     scripts", which would have meant a broken CSP. That pattern matched
     `<script type="application/ld+json">` blocks. Classifying by `type` shows all 112
     are JSON-LD. **Counting by pattern is not counting by meaning.**
+- **SCORECARD 2026-10-16 after the inline-ceiling work (median of 3, mobile
+  simulate, local):**
+
+  | template | perf | FCP | LCP | CLS | a11y | bp | seo |
+  |---|---|---|---|---|---|---|---|
+  | `/` | 94 | 2.10 s | 2.85 s | 0.000 | 100 | 96* | 100 |
+  | `/latest/` | 96 | 1.65 s | 2.55 s | 0.000 | 100 | 100 | 100 |
+  | article | 93 | 2.10 s | 3.00 s | 0.000 | 100 | 100 | 100 |
+
+  \* best-practices 96 locally is the CSP-blocked Cloudflare beacon (O-4) plus
+  connection resets to unreachable third parties from a local static server; it is
+  **100** when those resolve. Confirmed by re-measuring: the pre-upgrade build scores
+  the same 96 in the same conditions.
+  **Target is ≥95 on all four categories.** Two of three templates meet a11y/bp/seo
+  at 100; performance is 93–96 and **`/` at 94 is the remaining gap.**
+- **DECLINED 2026-10-16 — `font-display: optional` on the headline face.**
+  Every template's LCP element is a **bold Bengali headline**, so the 700 face is the
+  shared binding constraint (see the font-subsetting decision above). `optional`
+  would let text paint in the fallback immediately instead of swapping, which is a
+  genuine LCP lever — but **Lighthouse's own `font-display` audit already scores
+  1.0**, so there is no measured gain to buy, and the cost is real: a first visit
+  could render headlines in the fallback face for the whole page life, which for a
+  Bengali news site means the wrong typeface for the brand and possibly broken
+  conjunct shaping. **Rejected on the evidence — no measurable win, a real visual
+  risk.** The stylesheet situation is now optimal: **1 external sheet on every page**
+  (plus Pagefind's own `pagefind-ui.css` on `/search/`, which is correct to keep
+  separate).
 - **REMAINING — performance ≥95:** measured 93 (`/`), 96 (`/latest/`), 91 (article);
   LCP 2.55–3.16s vs the 1.5s target. `render-blocking-insight` scores 0.5/0.
 - **Counter-proved:** inlining all CSS (`inlineStylesheets: 'always'`, 49 KB inline)
