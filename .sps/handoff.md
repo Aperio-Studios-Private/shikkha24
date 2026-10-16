@@ -1294,3 +1294,87 @@ chmod +x "$DEST/sps/scripts/"*.sh "$DEST/sps-cms/scripts/"*.sh
   on DianaHost to be visible.
 - **T-27 local build flakiness** — ~20 % (4/5 passed) on Node 26; CI pins 24 and is
   unaffected. Always check for 89 pages, not 52.
+
+## 2026-10-16 — T-24 critical-path CSS: independent measurement + negative results
+
+Independent reproduction of the T-24 CSS work by a second agent, on the same
+machine, same method (Lighthouse 12.x mobile, 412×823 DPR 1.75, simulated 4G,
+median of 3, served from `frontend/dist`). Values agree with the entries above;
+what follows is the part not recorded elsewhere.
+
+### What the mechanism actually is (cited, not remembered)
+Astro 7.3.2 has **no critical-CSS extractor**. Checked directly:
+- `build.inlineStylesheets` is a Zod enum of `always | auto | never`
+  (`astro/dist/core/config/schemas/base.js:65`) — there is no "critical" mode.
+- No `beasties` / `critical` / `penthouse` package is present in the dependency
+  tree, and nothing in `astro/dist/` references critical-CSS extraction.
+- The `experimental` object (`base.js:275-288`) has only `clientPrerender`,
+  `contentIntellisense`, `chromeDevtoolsWorkspace`, `incrementalBuild`,
+  `svgOptimizer`, `collectionStorage` — no CSS flag.
+
+So the *supported* lever is Vite's `assetsInlineLimit`, typed
+`number | ((filePath: string, content: Buffer) => boolean | undefined)`
+(`vite@8.3.0/dist/node/index.d.ts:2844`), consumed by Astro's `shouldInlineAsset`
+(`astro/dist/core/build/plugins/util.js:6`). A predicate is what makes the
+"inline the small sheets, keep the shared one cacheable" trade expressible.
+
+### The non-obvious bug this exposed
+`inlineStylesheets: 'auto'` with a **numeric** `assetsInlineLimit: 0` means
+`byteLength < 0` — i.e. `auto` inlined **nothing**. The earlier S8 CSP fix
+(`0` = never inline a script) had silently disabled stylesheet inlining too.
+That is why 2.2 KB of per-page CSS was still two render-blocking round trips.
+
+### Negative results — do not repeat these
+- **`theme-init.js` cannot be made non-blocking.** Its header comment is
+  load-bearing and still correct: it restores `.dark` and `font-size` from
+  localStorage, and `public/.htaccess` is `script-src 'self'` with no
+  `'unsafe-inline'`, so it must stay an external *parser-blocking* script. Making
+  it `async`/`defer` would trade its 302 ms for a guaranteed flash of the wrong
+  theme and text scale — a real UX regression, not an optimisation. **Left alone
+  deliberately.** (It is also only 2,620 B; the cost is the round trip, not size.)
+- **Inlining the small per-page sheets is not worth it on the article template.**
+  `/admission/23/...` still render-blocks on `_slug_.An3qVwcP.css` — 7,897 B,
+  i.e. *above* the 4 KB ceiling — for 452 ms. Raising the ceiling past ~8 KB to
+  catch it would also start inlining sheets large enough that the per-page byte
+  cost exceeds the round trip it saves. Left external.
+- **Do not go looking for dead Tailwind rules.** `Layout.css` is 47,360 B and
+  contains ~589 rules / 445 distinct utility selectors (`sm:` 31, `lg:` 15,
+  `hover:` 17, `dark:` 52, `xl:` 0). That distribution matches real usage across
+  89 pages; the irreducible part is preflight + the `@theme` token block
+  (`:root` alone is 2,939 B, preflight ~1,580 B). There is no "Tailwind is
+  emitting for markup no page uses" win here.
+- **The 1,052 ms is mostly CPU, not bytes.** On the simulated-4G profile
+  (1,474 kbps down, 150 ms RTT) 47 KB costs only ~405 ms of transfer. The rest of
+  the wasted time is parse + style-layout at `cpuSlowdownMultiplier: 4`. This
+  matches the sibling agent's `styleLayout` finding: shrinking the sheet has
+  sharply limited headroom, which is why the honest number after this change is
+  a ~150 ms LCP improvement, **not** the 1.0 s the 1,052 ms figure suggests.
+
+### Measurements (median of 3, this agent's own runs)
+| template | | perf | FCP | LCP | CLS | bytes | render-blocking |
+|---|---|---|---|---|---|---|---|
+| `/` | before | 93 | 2105 | 3005 | 0.0000 | 307 KB | 0.0 |
+| `/` | after | **94** | 2105 | **2856** | 0.0000 | 305 KB | 0.0 |
+| `/latest/` | before | 96 | 1655 | 2555 | 0.0000 | 265 KB | 0.0 |
+| `/latest/` | after | 96 | 1654 | 2554 | 0.0000 | 265 KB | 0.0 |
+| article | before | 90 | 2255 | 3305 | 0.0000 | 324 KB | 0.0 |
+| article | after | **91** | 2254 | **3154** | 0.0000 | 323 KB | 0.0 |
+
+Reproduced across two independent after-runs (LCP 2854 / 2856 on `/`), so the
+delta is real and not run-to-run noise. **FCP is unchanged** (2105 → 2105); the
+gain is entirely in the **FCP→LCP gap, 900 → 750 ms** — the card headline paints
+sooner once styles arrive. a11y 100 and CLS 0.0000 held on all six cells.
+
+Render-blocking after the change: `Layout.css` (1,052 ms) + `theme-init.js`
+(302 ms) on `/`; the `index`/`AdSlot` 302 ms entries are gone. The
+`render-blocking-insight` *score* stays 0 because it is binary on "is anything
+blocking", and `Layout.css` legitimately still is.
+
+### Verdict
+Change **left in the tree** (committed as `0d69a1a`, `frontend/astro.config.mjs`
+only). It is a correct, measurable, low-risk win with no regression on any gate —
+but it is **not sufficient for LCP < 1.5 s**. LCP is now bounded by TTFB plus the
+`Layout.css` round trip and its ×4-slowdown style/layout cost, not by CSS
+round-trip count. Reaching 1.5 s needs either a smaller *parsed* stylesheet
+(splitting the token/preflight layer from page utilities) or a smaller
+`styleLayout` cost — both are larger architecture work than this task's scope.
