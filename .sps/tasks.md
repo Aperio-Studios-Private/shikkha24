@@ -389,6 +389,31 @@ not know about it.
   be used to open a bug or to close one.** Use medians of ≥3, keep CI as the gate,
   and treat any live number that disagrees with a local build by >5 points as
   network noise until reproduced with the network held constant.
+- **DIAGNOSED 2026-10-16 — FCP is CPU-bound render delay, not network. This closes
+  the CSS avenue for good.** Measured on live production:
+  - HTML document **finishes at 223 ms**; **every subresource finishes by ~344 ms**
+    (CSS, fonts, all scripts). Yet **FCP is 1.9 s** — a **~1,550 ms gap with nothing
+    left to download.**
+  - Compressed, the big stylesheet is only **7,761 B Brotli / 9,028 B gzip** =
+    **~49 ms** of transfer at the 4G profile's 1474 kbps. Adding it inline to every
+    page to save 49 ms is why the `always` experiment lost.
+  - `mainthread-work-breakdown` after the content-visibility fix: **Style & Layout
+    1,710 ms** of ~1,980 ms total, with one 850 ms long task. Everything else is
+    noise (Parse HTML & CSS 16 ms, Script Evaluation 45 ms).
+  **Conclusion: the remaining FCP/LCP cost is the browser styling and laying out a
+  623-element, 15-deep page at ×4 CPU slowdown.** No byte reduction can fix that;
+  the levers are DOM/CSS complexity and render deferral, which is what
+  `content-visibility` already addresses for below-fold content. 7 of 9 homepage
+  sections were deferred, but only **4 carry content** (see the empty-wrapper fix);
+  the rest of the page is above-the-fold hero, the filter bar, and a `lg:sticky`
+  sidebar that must NOT be deferred (deferral would break sticky positioning).
+- **FIXED 2026-10-16 (commit `af7fb73`) — three empty `defer-layout` wrappers.**
+  `perCategory` can hold an empty array, and `CategorySection` already renders
+  nothing then, but my unconditional wrapper emitted
+  `<div class="defer-layout"></div>` three times per homepage — dead markup that also
+  made the deferral read as 7 sections instead of 4. Empty categories now render
+  nothing. Verified 3 → 0 empty wrappers; perf unchanged (94 / FCP 2.10s / LCP 2.85s
+  / CLS 0.000), so it is a cleanup, not a performance change.
 - **REMAINING — the honest picture:** render blocking is fixed, but LCP is still
   2.55–3.15s. LCP breakdown says **TTFB 451 ms (15 %) + render delay 2,552 ms
   (85 %)**, and the LCP element is a Bengali **card headline** — so the cost is
