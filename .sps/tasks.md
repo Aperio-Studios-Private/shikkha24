@@ -320,6 +320,22 @@ not know about it.
   handles hostile input safely; they do **not** substitute for the real security
   audit (auth boundaries, `verify:access` covers the permission matrix at 398
   checks, dependency advisories, header matrix). T-20 remains last and unstarted.
+- **DONE 2026-10-16 — publish watcher (T-19) verified WORKING end-to-end, live.**
+  `GET https://shikkha24-publish-watcher.abdullahalmamunmay.workers.dev/health` →
+  `{"ok":true,"hasToken":true,"lastDigest":"67acb1ba3271","polling":8}`, and
+  `POST /run-tick` → `{"action":"unchanged"}`. So the 5-minute cron has a stored
+  digest, the `GITHUB_TOKEN` secret is present, and the change-gate correctly
+  reports "nothing changed" rather than re-dispatching. Last deploy 2026-10-15
+  21:12. **The CMS→rebuild path is therefore proven, not merely configured** — this
+  is the mechanism that publishes a new article, and it was worth confirming rather
+  than assuming.
+  ⚠️ **A false alarm I caught before reporting it.** `wrangler kv key list
+  --namespace-id 9f6c94…` returned **`[]`**, which reads as "the worker has never
+  stored state" — i.e. "publishing is silently broken". It is not: the binding
+  resolves correctly at runtime and `/health` reports the stored digest. The CLI
+  listing was querying the wrong namespace context. **The health endpoint is the
+  authoritative check; the KV CLI is not.** Recorded so the next agent does not
+  raise this as a defect.
 - **REMAINING:** feature matrix walk (nav, home modules, article page, listing,
   exam-results, scholarship, deadline, prayer widget, live TV, /verify, ad slots,
   404, CMS admin flows end-to-end, publish watcher) with happy-path + edge cases;
