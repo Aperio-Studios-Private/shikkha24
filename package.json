@@ -2,7 +2,7 @@
   "name": "shikkha24",
   "version": "0.0.0",
   "private": true,
-  "description": "Shikkha24 (\u09b6\u09bf\u0995\u09cd\u09b7\u09be\u09e8\u09ea) \u2014 Bengali-first education news portal. Monorepo: Astro static frontend + Payload CMS 3.",
+  "description": "Shikkha24 (শিক্ষা২৪) — Bengali-first education news portal. Monorepo: Astro static frontend + Payload CMS 3.",
   "license": "UNLICENSED",
   "packageManager": "pnpm@11.22.0",
   "engines": {
@@ -59,10 +59,10 @@
     "verify:workflows": "node scripts/verify-workflows.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.13",
+    "@biomejs/biome": "2.5.15",
     "@lhci/cli": "0.15.1",
     "linkedom": "0.18.13",
-    "smol-toml": "1.8.0",
-    "yaml": "2.8.1"
+    "smol-toml": "1.9.1",
+    "yaml": "2.9.1"
   }
 }
