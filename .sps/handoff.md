@@ -1,5 +1,58 @@
 # SPS Handoff
 
+## 2026-10-16 (round 10) — T-24 TARGET MET: all templates ≥95
+
+| template | before | after |
+|---|---|---|
+| `/` | 89–90 | **97** |
+| `/latest/` | 96 | **98** |
+| article | 93 | **97–98** |
+
+a11y **100**, SEO **100** on all three. Gate raised 0.9 → 0.95 in `lighthouserc.json`.
+
+**The fix was one component.** `CmsImage.astro` wraps Astro `<Picture>` for remote CMS
+sources and emits AVIF + WebP at 412w/800w. It replaced a plain `<img>` whose
+`srcset` was always `undefined`, because `media.sizes` is empty on every document this
+CMS has produced — the host cannot fork a thread, so sharp cannot load and no variants
+are generated (T-07). Result: six covers went from **971 KB of 1376 px JPEG into a
+412 px viewport** to **AVIF 412w at 3.8 KB** against an 89,653 B original.
+`uses-responsive-images` and `modern-image-formats` both went **0 → 1**.
+
+⚠️ **The most important thing this round is that two of my own numbers were fake.**
+
+1. **My recorded homepage score of 94 was not reproducible** — the real figure under
+   the harness then in use was 89–90.
+2. **That 89–90 was also wrong.** My test server served **no compression**, which
+   invented a `uses-text-compression` failure and depressed every score. The live site
+   serves **Brotli** (78,625 → 12,164 B). With Brotli in the harness the *same build*
+   scored **97, not 91**.
+
+I had also left a **stale server from an earlier session holding port 8899**, and
+`python3 -m http.server` is single-threaded. Three separate instrumentation faults, all
+of which I initially read as facts about the site.
+
+**Carry this forward: the local static server is part of the measuring instrument.**
+A harness that does not compress, or that is still running from a previous session,
+measures a website that does not exist — and it will do so consistently, which makes
+the wrong number look trustworthy. Before believing a local Lighthouse score, check
+that the harness compresses the way production does and that no stale server is
+answering.
+
+**Also tested and rejected:** inlining all CSS reaches the same 97 but with worse FCP
+(1.2 s vs 1.1 s) because the sheet stops being cached across pages. **The 8 KB ceiling
+stays.** The gain was the images, not the CSS.
+
+**Also fixed:** the third gated URL was a **404**
+(`/education-news/20/demo-madrasa-new-syllabus/`), so CI had been asserting against a
+missing page. Replaced with `/admission/23/admission-policy-2027/`.
+
+⚠️ **Variance is real:** `/` scores **93 cold, 97 warm**. LHCI takes the median of 3,
+so the gate passes — recorded rather than smoothed away.
+
+**Remaining on T-24:** `best-practices` is **96 locally, 100 live**; the local gap is
+the harness being unable to reach third parties. The one genuine item is **O-4**, the
+CSP-blocked Cloudflare beacon.
+
 ## 2026-10-16 (round 8) — T-23 COMPLETE, and a wrong diagnosis of my own corrected
 
 **T-23 is done.** All 6 covers are uploaded (media ids 10–15) and attached to articles
