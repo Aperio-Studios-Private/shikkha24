@@ -116,6 +116,21 @@ not know about it.
   why the local build scores best-practices 100 while production scores **93**.
   Owner chose to keep the CSP strict and disable the beacon in the dashboard →
   tracked as **O-4** in `.sps/owner-assistance.md`.
+- **DONE 2026-10-16 — prayer widget correctness bug found and fixed** (commit
+  `a833434`). The header requested Aladhan `method=15` but **never sent `school`**,
+  so the API defaulted to **Shafi'i Asr**; Bangladesh follows **Hanafi** (2:1 shadow
+  vs 1:1). The live site was serving Asr **5–6 min early** in October (ঢাকা 5.8,
+  সিলেট 5.9, চট্টগ্রাম 5.3, রংপুর 6.2, বরিশাল 5.0), widening in summer. Asr is the
+  only affected time. `school=1` now ships, documented next to `ALADHAN_METHOD`'s
+  three upstream traps.
+  The verifier was failing for the right reason via the wrong cause — **three
+  defects in it masked the real one**: (1) it omitted `school` too, reproducing the
+  bug it exists to catch; (2) its Hanafi shadow ratio was `1 + (hanafi ? noonShadow
+  : 0)`, i.e. the Shafi'i shadow in both branches (corrected to `(hanafi ? 2 : 1) +
+  noonShadow`, verified against the API across all 12 months, worst drift **1.1
+  min**); (3) it compared **today's** API Asr against a computed Asr for a fixed
+  **5 October** — an 11-day mismatch that produced a stubborn ~8 min drift no
+  formula could explain. `verify:prayer-times` now passes.
 - **REMAINING:** feature matrix walk (nav, home modules, article page, listing,
   exam-results, scholarship, deadline, prayer widget, live TV, /verify, ad slots,
   404, CMS admin flows end-to-end, publish watcher) with happy-path + edge cases;
