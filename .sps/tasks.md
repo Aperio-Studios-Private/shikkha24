@@ -435,6 +435,23 @@ not know about it.
   the first screen at ×4 CPU throttling. Every byte-level and deferral lever is now
   measured and closed; further gains need a smaller first-screen DOM or a lighter
   font payload, not more CSS/network tuning.**
+- **DECIDED 2026-10-16 — do NOT subset the fonts to currently-used glyphs.**
+  The 700 face is **87,820 B ≈ 477 ms** of transfer at the 4G profile and is
+  genuinely required before the LCP headline paints (the LCP `<h2>` is
+  `font-headline font-bold`), which is the dominant remaining LCP cost. It is
+  tempting to subset harder: the 89 built pages use only **81 distinct Bengali
+  codepoints** of the **128** in the Bengali block, so a used-glyph subset would cut
+  roughly a third.
+  **Rejected deliberately.** `scripts/fetch-fonts.mjs` subsets to the whole
+  `U+0980-09FF` block plus Latin for exactly this reason — an editor writing a word
+  containing an unused codepoint would get the fallback face (wrong metrics, possible
+  tofu) until the font was rebuilt. On a CMS-driven daily news site that is a
+  **live-content outage traded for ~37 % of one file**; the full-block subset is the
+  correct engineering choice and stays. Total font payload is 154 KB against the
+  documented 200 KB budget, already noted as "dropping more would silently break
+  conjuncts".
+  **So the LCP lever is exhausted at the byte level by deliberate policy.** Raising
+  LCP further now requires reducing first-screen DOM/CSS cost, not payload.
 - **REMAINING — the honest picture:** render blocking is fixed, but LCP is still
   2.55–3.15s. LCP breakdown says **TTFB 451 ms (15 %) + render delay 2,552 ms
   (85 %)**, and the LCP element is a Bengali **card headline** — so the cost is
