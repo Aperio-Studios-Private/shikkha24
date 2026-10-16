@@ -4,7 +4,7 @@
 > the items that need the owner's hands, account, or a decision. Maintained by the
 > agent each session; newest first within each section.
 >
-> Last updated: **2026-10-16 (evening)**
+> Last updated: **2026-10-16 (late)**
 
 ## Index — read this first
 
@@ -24,6 +24,7 @@ the server until CI can run again. Restoring the budget delivers all of them at 
 | **O-6** | Request indexing in Search Console | Paste 6 URLs | 🟡 SEO |
 | **O-5** | CMS deploy for the button work | nothing — ships with O-7 | ⏳ waiting |
 | **O-10** | Three CMS security fixes | nothing — ships with O-7 | ⏳ waiting |
+| **O-12** | Two audit leftovers need one server fact each | `PassengerMaxInstances`, and set `TICK_SECRET` | 🟡 5 min |
 | **O-2** | ✅ **CLOSED** — covers uploaded | nothing | done |
 
 > ⚠️ **A note on numbering.** These IDs are stable and referenced from `.sps/tasks.md`
