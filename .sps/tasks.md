@@ -216,6 +216,24 @@ not know about it.
   | `/latest/` | 96 → 96 | 2.55s | 0 → **0** |
   | article | 91 → 91 | 3.16 → 3.15s | 0 → **0** |
   Payload 307 KB vs the 1,229 KB budget; CLS 0.000; a11y/SEO/BP 100.
+- **DIAGNOSED 2026-10-16 — the real remaining bottleneck is Style & Layout, not
+  network.** From the optimised build's own audits:
+  - `mainthread-work-breakdown` 2.5 s, of which **`styleLayout` = 2,454 ms (98 %)**;
+    script evaluation is only 18 ms and there is a single **1,223 ms long task**.
+  - Both Bengali fonts load in **3 ms** (preloaded) — the "font-gated paint"
+    hypothesis is **disproved**. Server responds in 2 ms. Third-party blocking: 0 ms.
+  - Page has **622 DOM elements, 15 levels deep**; `Layout.css` carries **157
+    `.dark` selectors**, each generated as `:where(.dark, .dark *)` by
+    `@custom-variant dark`, i.e. a **descendant match re-tested against every
+    element's ancestor chain**.
+- **ATTEMPTED AND REVERTED (do not repeat):** rewriting the dark variant to be
+  root-scoped. Both forms tried — `(&:where(.dark) &)` and `(&:where(.dark, .dark *)
+  &)` — compiled to **self-descendant selectors**
+  (`.dark\:x:where(.dark) .dark\:x`), which require a *nested duplicate* element and
+  would silently break dark mode on most nodes. Caught by reading the built CSS, not
+  by trusting the build exit code; reverted both times. **The correct fix needs
+  proper research into Tailwind 4's `@custom-variant` semantics before another
+  attempt** — do not guess at this syntax again.
 - **REMAINING — the honest picture:** render blocking is fixed, but LCP is still
   2.55–3.15s. LCP breakdown says **TTFB 451 ms (15 %) + render delay 2,552 ms
   (85 %)**, and the LCP element is a Bengali **card headline** — so the cost is
