@@ -322,7 +322,29 @@ the kind of production-only difference worth catching).
 
 Nothing in the repo references the beacon; it is added at Cloudflare's edge.
 
-**Owner decision (2026-10-16): keep the CSP strict** — do not widen `script-src`.
+**✅ SHARPENED EVIDENCE 2026-10-16 — measured, not inferred.** Lighthouse against the
+live domain names the beacon in **two** failing audits:
+
+| audit | result | what it says |
+|---|---|---|
+| `errors-in-console` | **fail** | `Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/…' violates the following Content Security Policy directive` |
+| `inspector-issues` | **fail** | issue type **"Content security policy"**, `subItems` pointing at the same beacon URL |
+
+So this is not a theoretical mismatch: **the analytics never loads (no data is being
+collected at all) while still logging a CSP error on every single page view.** Keeping
+it enabled gives the worst of both — zero measurement and console noise — and it is
+what holds production best-practices at **93 instead of 100** (locally, with no
+Cloudflare in front, the same build scores 100 for the CSP itself).
+
+⚠️ **Note the measurement trap:** `/latest/` scored **perf 97** live but `/` scored
+**85**, and a repeat local run gave 97. That spread is run-to-run network variance on a
+hosted target, not a build difference — treat any single live Lighthouse run as
+indicative, never as a gate. The local numbers (97/98/97) are the reproducible ones
+because the harness is fixed.
+
+**Owner decision (2026-10-16, unchanged): keep the CSP strict** — do not widen
+`script-src`. That is the right call; the action is to switch the beacon off in the
+Cloudflare dashboard, not to loosen the policy. **Still outstanding.**
 So the fix is to stop Cloudflare injecting it:
 
 1. Cloudflare dashboard → **your account → the `shikkha24.com` zone**
