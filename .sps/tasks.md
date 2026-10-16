@@ -87,6 +87,25 @@ not know about it.
   `news:language bn` + CMS publication name + 48h filter (second spec-valid file in the
   vertical per the research); llms.txt curated+live (the source-audit "missing" flags were
   tree-path noise; live probes settle them).
+- **DONE 2026-10-16 (commit `6753473`) — NewsArticle `image` was missing on every
+  article.** The schema set `image` from `photo?.src` alone, so an article without a
+  featured photo emitted **no `image` property at all** — and Google News requires
+  `image` for `NewsArticle`. Since the CMS media files are unreadable on the host
+  (T-25), that was **all 6 articles**: the structured data was unusable for Google
+  News while the page-level `og:image` was correct and working (`…/api/photocard/23.png`
+  → 200, 80,860 B). Fixed by having the schema read the same `socialImage` chain as
+  `og:image`. Verified on a deploy-equivalent build — all 6 now emit
+  `https://cms.shikkha24.com/api/photocard/NN.png`.
+  Mechanism worth remembering: `getPublicCmsOrigin()` returns `CMS_URL` **only when
+  it is localhost**, so a real host needs `PUBLIC_CMS_ORIGIN`, which the deploy
+  supplies (and which production confirms is right, since `og:image` already
+  resolves to that URL).
+- **VERIFIED LIVE 2026-10-16 — article SEO surface is otherwise complete:** Bengali
+  `<title>`, 179-char meta description, canonical, `og:title/description/image/url/type`,
+  `twitter:card`, and full `NewsArticle` JSON-LD with `headline`, `datePublished`,
+  `dateModified`, `author` (Person + slug URL), `publisher` with `logo`,
+  `articleSection`, `inLanguage: bn-BD`, `isAccessibleForFree`, `mainEntityOfPage`,
+  `speakable`.
 - **Part A — technical SEO action pass:** titles/meta/OG/Twitter (Bengali), canonicals,
   robots.txt + sitemap.xml correctness on the Workers serving path, JSON-LD per page
   type (NewsArticle for articles, ItemList for listings, Organization on home…),
