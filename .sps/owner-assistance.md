@@ -123,6 +123,26 @@ After you upload, tell me and I will `PATCH` `featuredImage` onto articles 23–
 
 ---
 
+### O-8. Four CMS collections are empty — sections of the site are blank
+Not urgent, and **not a bug** — the code is correct, there is simply no content yet.
+Found while fixing a verifier that was reporting the empty state as a failure
+(commit `eddaf5d`). The live CMS returns `totalDocs = 0` for:
+
+| Collection | What readers see now |
+|---|---|
+| `scholarships` | scholarship listings have nothing to show |
+| `result-links` | exam-results quick links are empty |
+| `circulars` | circular listings are empty |
+| `deadlines` | the deadline tracker is empty |
+
+Everything else is populated and in sync: **articles 6/6, categories 8/8,
+study-abroad 8/8, institutions 6/6**.
+
+**What I need from you:** nothing technical — just tell me whether you want me to
+seed these from public sources (the way the earlier sections were seeded), or whether
+you would rather add them yourself in the CMS. The pages, schemas and verifiers are
+already in place, so either way is quick. I have not invented any entries.
+
 ### O-7. Nothing — FYI: two live SEO/UX fixes are committed but not deployed
 Not an action for you beyond O-1's Actions budget. For completeness, these are
 **committed, gate-verified, and waiting on a deploy**:
