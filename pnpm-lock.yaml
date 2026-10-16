@@ -6,7 +6,7 @@ settings:
 
 overrides:
   undici@7.29.0: 7.29.1
-  nodemailer@9.1.1: 10.0.6
+  nodemailer@9.1.1: 10.0.16
   devalue@5.9.2: 5.9.4
   source-map-js@1.2.1: 1.2.2
   tmp@0.0.33: 0.2.7
@@ -3919,8 +3919,8 @@ packages:
   node-mock-http@1.0.5:
     resolution: {integrity: sha512-KQyt/wLjG3TAc7DOUhpqWzgd4ERxR80JOlTK5VE5R1S12IaPVN5qkj4klBce9HPG1Njuup4Sb5bljaT34lIyjw==}
 
-  nodemailer@10.0.6:
-    resolution: {integrity: sha512-2u7OHvEQVVGvPo9Yhw/eN3xMO2Gnj2U2fGDP0BDpnRwJR//65AfGRQDiJqxix28gFRBvMqi2USA13x6RrfWuGg==}
+  nodemailer@10.0.16:
+    resolution: {integrity: sha512-VL9xKErxN+el77o8eBOuYKUPMyEx7F9hfnDCuiUKJRp9v3wnWMOudYgP/SWbwSHy8rUL4cylobuXtki1LpQS7A==}
     engines: {node: '>=20.0.0'}
 
   normalize-path@3.0.0:
@@ -6402,7 +6402,7 @@ snapshots:
 
   '@payloadcms/email-nodemailer@3.90.2(payload@3.90.2(graphql@16.14.2)(supports-color@10.2.2)(typescript@7.0.2))':
     dependencies:
-      nodemailer: 10.0.6
+      nodemailer: 10.0.16
       payload: 3.90.2(graphql@16.14.2)(supports-color@10.2.2)(typescript@7.0.2)
 
   '@payloadcms/graphql@3.90.2(graphql@16.14.2)(payload@3.90.2(graphql@16.14.2)(supports-color@10.2.2)(typescript@7.0.2))(typescript@7.0.2)':
@@ -8862,7 +8862,7 @@ snapshots:
 
   node-mock-http@1.0.5: {}
 
-  nodemailer@10.0.6: {}
+  nodemailer@10.0.16: {}
 
   normalize-path@3.0.0: {}
 
