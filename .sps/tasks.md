@@ -429,6 +429,42 @@ not know about it.
 - **Still T-20's job, not done here:** auth/session hardening, the dependency
   advisory set, the header matrix, secrets rotation, and rate-limit durability. This
   was opportunistic probing while I had credentials, not the audit.
+### ✅ T-23 COMPLETE 2026-10-16 — all 6 covers uploaded and attached (was wrongly believed blocked)
+- **The blocker was a misdiagnosis, and I was the one who got it wrong.** Both the
+  upload README and my own earlier probes concluded "the host proxy strips multipart
+  text fields". **The proxy was never at fault.** Payload does not accept text fields
+  as separate multipart parts — they must be sent inside a **`_payload` JSON part**.
+  My probes used `-F "alt=…"`, which is simply the wrong request shape.
+  - **Working form (returns 201):**
+    ```bash
+    curl -X POST "$CMS/api/media" -H "Authorization: JWT $TOKEN" \
+      -F "file=@cover.jpg;type=image/jpeg" \
+      -F '_payload={"alt":"…","credit":"চিত্র: AI"};type=application/json'
+    ```
+  - **Ruled out as causes, by testing each:** field order (file-first vs alt-first),
+    Bengali vs ASCII values, part `Content-Type`, browser-realistic
+    `Origin`/`Referer`. **None mattered** — only the part's *shape* did.
+  - **Corrected** `editorial/assets-batch-1/upload-ready/README.md`, which carried the
+    wrong conclusion, so the next agent does not repeat it.
+- **Uploaded (media ids 10–15)** with the exact Bengali alt text and `চিত্র: AI`
+  credit from the pack's table. All six **serve 200** on
+  `/api/media/file/<name>.jpg` at their expected sizes (89 KB – 242 KB).
+- **Attached to the articles:** 23→10, 24→11, 25→12, 26→13, 27→14, 28→15, each
+  matching the README's post mapping. **All 6 articles previously had
+  `featuredImage = null`.**
+- **Verified end-to-end, not just in the API:**
+  - Public (unauthenticated) API returns the cover with its Bengali `alt` and credit.
+  - A **89-page rebuild** puts each cover on **6–7 pages** (article + category + feed
+    listings) — 5 refs on the article page covering `src`, `srcset`, `og:image`.
+  - Rendered `<img>` carries the **Bengali `alt`**; `og:image` is the absolute
+    `https://cms.shikkha24.com/api/media/file/…` URL.
+  - Gates: build-output, links, search-init, cloudflare all pass; biome clean.
+- **Lesson recorded:** "the file uploaded but the field was empty" pointed at the
+  *request shape*, not the transport. I had blamed the proxy because it was the
+  third-party component in the path — a plausible story is not evidence.
+- **T-25 remains open and is unrelated:** the 6 October-4 `demo-plate-*.webp` files
+  are still missing from disk (500). Nothing references them, so the impact is nil.
+
 ### T-25 RE-PROBED 2026-10-16 — the host's multipart proxy is the exact blocker, now proven end-to-end
 - **The 6 October-4 media still 500** (`demo-plate-7…12.webp`) — T-25 unchanged.
 - **T-23 cannot be finished over the API, and this is now proven rather than
