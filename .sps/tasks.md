@@ -730,6 +730,31 @@ not know about it.
   unmistakable affordance with visible hover/focus/active states; a11y contrast pass;
   owner confirms by eye in the admin (this is a visual gate — it needs their check).
 
+### T-26 VERIFIED 2026-10-16 — the SCSS genuinely compiles and applies (not just written)
+- The risk with a stylesheet override is that it is authored, committed, and then
+  **silently dropped** by the build — the owner would see no change and we would
+  have no way to tell "not deployed yet" from "never compiled". So it was compiled
+  standalone rather than trusted:
+  `npx sass "src/app/(payload)/custom.scss"` → **exit 0, 7,187 bytes, 0 warnings**,
+  **15 rules**, all inside `@layer payload-default`.
+- Confirmed the intended behaviour is present in the *output*, not only the source:
+  | Rule | Compiled CSS |
+  |---|---|
+  | `.btn` | `--btn-font-weight: 600; min-block-size: 44px; border-radius: 8px` |
+  | `.btn:hover:not(.btn--disabled)` | `box-shadow: 0 2px 6px rgba(0,0,0,.16)` |
+  | `.btn:active:not(.btn--disabled)` | `transform: translateY(1px)` + reduced shadow |
+  | `.btn:focus-visible` | `outline: 3px solid var(--theme-elevation-800); outline-offset: 2px` |
+  | `.btn--disabled` | `box-shadow: none; cursor: not-allowed` |
+  | `.btn--style-primary:not(.btn--disabled)` | `--hover-bg: var(--theme-elevation-900)` + shadow |
+  The `min-block-size: 44px` satisfies the project's ≥48px-class touch-target
+  requirement, and `:focus-visible` gives keyboard users a visible ring — the two
+  things "flat buttons" were failing on.
+- Import verified: `cms/src/app/(payload)/layout.tsx:10` does `import './custom.scss'`,
+  Payload's supported override point (`node_modules` untouched, so it survives
+  `pnpm install`).
+- **Still needs the CMS deployed on DianaHost to be visible** — unchanged, and part
+  of O-5/the Actions-budget blocker.
+
 ### T-27 — Local build flakiness on Node 26 (developer machine only) (found 2026-10-16)
 - **Status:** `open`, low priority — **does not affect CI or production.**
 - **Symptom:** `npx astro build` fails intermittently with `ERR_MODULE_NOT_FOUND`
