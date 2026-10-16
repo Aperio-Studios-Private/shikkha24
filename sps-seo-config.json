@@ -1,0 +1,32 @@
+{
+  "projectType": "News / Publication",
+  "primaryGoal": "Increase organic traffic",
+  "domain": "https://shikkha24.com",
+  "primaryKeywords": [
+    "শিক্ষা সংবাদ", "ভর্তি তথ্য", "পরীক্ষার রুটিন", "ফলাফল প্রকাশ",
+    "বৃত্তি", "এইচএসসি", "এসএসসি", "সরকারি চাকরি", "শিক্ষা ক্যালেন্ডার"
+  ],
+  "geo": "Specific country: Bangladesh (bn-BD)",
+  "audience": "Students / learners, and their parents",
+  "contentStyle": "Balanced (medium depth), Bengali-first",
+  "existingContent": "Yes — minimal (<5 pages), 6 real articles as of 2026-10-16",
+  "competitors": [
+    "https://www.educationbd.org",
+    "https://banbeis.gov.bd",
+    "https://www.tecnobd.com",
+    "https://bdresults24.com"
+  ],
+  "contentGap": "Yes — quick 3-5 ideas",
+  "indexable": "Yes — fully indexable",
+  "aiSearch": "Yes — enable AI citation (llms.txt shipped)",
+  "coreWebVitals": "Critical",
+  "schemaTypes": [
+    "Organization", "WebSite", "NewsArticle", "FAQPage",
+    "BreadcrumbList", "LiveBlogPosting"
+  ],
+  "faqSchema": "Yes — CMS-editable FAQ collection feeding /faq",
+  "metaDescriptions": "Yes — generated from page content",
+  "openGraph": "Yes",
+  "prioritise": ["All of the above"],
+  "_note": "Answers derived from the owner's own decisions recorded in .sps/tasks.md under T-21, not invented. The owner chose: goal = organic traffic + Bengali keyword rankings; competitors identified by the agent; demo content deleted and real articles from 2026-10-16; FAQ must be CMS-editable; covers must be people-free and non-photoreal. Created 2026-10-16 so the deterministic audit can run without re-asking questions the owner has already answered."
+}
