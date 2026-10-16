@@ -2104,6 +2104,32 @@ not know about it.
   layout. Needs the FTPS path (`deploy-cms.mjs`). Also open: `fetch-fonts.mjs`
   should emit TTF so the font install stops being a manual step.
 
+#### Deploying the redesign — blocked on a Linux build (2026-10-16 incident)
+- A manual deploy attempt shipped a **macOS-built** standalone bundle to
+  DianaHost. Result: an incomplete `payload` package (Next standalone tracing
+  omits the package root — hollow even in a clean extraction), Mac-only sharp
+  binaries, and ZIP-extraction-leftover version drift (next / @payloadcms/next
+  resolving 3.89.0/16.3.6 against 3.90.2/16.4.0 code). The 2026-10-11 CI bundle
+  has the same hollow-payload shape: **builds rely on the cPanel venv at
+  runtime** — today payload 3.89.0, next 16.3.6.
+- The outage was prolonged by **two zombie `next-server` processes** whose cwd
+  followed a directory rename; cPanel "Restart" did not kill them, so every
+  check still 500'd from stale chunks. Fix: kill PIDs whose `/proc/PID/cwd`
+  is inside the renamed dir, then let Passenger respawn. **Record this for any
+  future directory swap.**
+- While fixing this, **all five pending DB migrations were applied** on the
+  host (20261005, 20261010, 20261011×2, 20261015 — 6/6 with `faqs` present).
+  DB schema is now **3.90.2 with a 3.89.0 runtime** — additive and tolerated,
+  and it pre-migrates for the next deploy.
+- Site restored to the Oct-11 bundle: admin/articles/photocard all 200; live
+  card = old design **with photo** (sd 32.74, 1,031,858 B, verified after
+  restoring `cms/data/media` — 56 files — which the directory swap had left
+  behind). The redesign is still only in git (c7e1c9c..6669b58).
+- To ship it: Linux build only — GitHub Actions once budget is unblocked
+  (transfer vs public is the owner's open decision) or an on-host build
+  (Node 24, 48 GB RAM, 2 TB disk — viable; needs source + a secrets-free
+  build). Do **not** repeat the macOS-bundle-by-hand path.
+
 ### T-02 — Fix the article-template CLS (the one red CI step)
 - **Status:** ✅ **CLOSED 2026-10-16 — resolved, evidence below.** The metric
   overrides it asked for are implemented (`size-adjust: 99.2%` plus

@@ -1,5 +1,63 @@
 # SPS Handoff
 
+## 2026-10-16 (later) — CMS outage and restore; the macOS-bundle path is dead; zombie workers
+
+**Outcome: the CMS was down ~5 h (every route 500) and is now restored to the
+2026-10-11 CI bundle. Live card = old design, WITH photo (sd 32.74, 1,031,858 B —
+verified remotely after restore). The photocard redesign (c7e1c9c..6669b58) is
+committed and safe in git but NOT live.**
+
+Root causes, in the order they actually mattered:
+
+1. **The macOS-built bundle is unusable on Linux.** Understood only after
+   extracting it into a clean dir: `payload@3.90.2` was a hollow package —
+   24 files, all under `dist/`, no `package.json`/`bin.js` — because Next
+   standalone tracing does not include the package root a CLI needs. sharp
+   carried `@img/sharp-darwin-arm64` only. The 2026-10-11 CI bundle has the
+   SAME hollow-payload shape, so this is a property of `output: standalone`
+   + pnpm, not of building off-CI: the bundle was never self-sufficient, it
+   always relied on the cPanel venv (payload 3.89.0, next 16.3.6).
+2. `unzip -o` over an existing pnpm symlink farm skips entries with
+   `Is a directory` — the running tree ended up with next 16.3.6 real dirs
+   shadowing 16.4.0 (top level, `.pnpm/node_modules/next` fallback, AND
+   `cms/node_modules/next`), `@payloadcms/next` on 3.89.0, and sharp missing.
+3. **Zombie workers masked every fix.** Two `next-server` processes kept
+   running with `cwd` inside the *renamed* directory
+   (`~/shikkha24-cms.broken-*/cms`). Linux keeps a process's directory inode
+   across renames, and cPanel "Restart" did not kill them — so every status
+   check kept returning 500 from stale chunks (`1y2j_next_dist…`, a file that
+   did not exist in any candidate bundle). **Fix:** kill PIDs whose
+   `/proc/PID/cwd` points at the renamed dir, then let Passenger respawn.
+   ⚠️ Any future directory swap MUST be followed by this check.
+4. **Five DB migrations were pending (pre-existing, since 10-11).** Ran them
+   on the host with the venv 3.89.0 CLI — migrations are literal SQL, so the
+   CLI version mismatch is harmless (I over-warned otherwise; corrected).
+   *Note:* `payload migrate` reads `./src/migrations` from its **cwd** — the
+   deploy bundle carries them at `cms/src/migrations`; they had to be copied
+   up one level to run. **The DB is now on the 3.90.2 schema while the runtime
+   stays 3.89.0** — deliberate and safe: schema is additive (faqs table,
+   dropped unused media columns), old code tolerates it, and it pre-migrates
+   for the eventual 3.90.2 deploy.
+5. **Media lives at `cms/data/media`** (cwd-relative `MEDIA_UPLOAD_DIR`).
+   The restore copied only root `data/` (the DB) back, so the card rendered
+   flat charcoal (sd 0.00) until the media dir was copied back from the
+   broken tree. The variance check added in 6669b58 is what detected this
+   remotely.
+
+Current host state: Oct-11 bundle at `~/shikkha24-cms` (payload 3.89.0 /
+next 16.3.6 = the venv versions, so coherent); venv-fallback links repaired;
+media 56 files restored; `.env` restored. `~/shikkha24-cms.broken-1792132158`
+is a holding copy — keep a few days, then delete. ~300 MB of stale
+`cms-deploy-*.zip` still in the app root (move to `~/cms-archive-backup/`).
+
+`scripts/assemble-cms-bundle.mjs` (committed with this) reproduces CI's
+bundle-assembly assertions locally — but **the macOS manual deploy path should
+be treated as dead**. Shipping the redesign requires a Linux build: GitHub
+Actions (blocked by budget — owner weighing transfer vs public), or an
+on-host build (viable: Node 24, 48 GB RAM, 2 TB disk; needs current source on
+the host + a secrets-free build).
+
+
 ## 2026-10-16 (round 15) — two parked tasks resolved, and a guard that was guarding nothing
 
 The five named tasks were already closed, so this round went at the older parked items.
