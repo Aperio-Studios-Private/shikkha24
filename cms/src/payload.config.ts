@@ -217,6 +217,32 @@ export default buildConfig({
     },
   },
 
+  /**
+   * The CMS's own public origin.
+   *
+   * ⚠️ **Why this must be set rather than inferred.** Without it Payload derives
+   * absolute URLs from the incoming socket, which behind DianaHost's proxy is the
+   * app's internal bind address. Probing the live site showed it echoing exactly
+   * that back to anonymous callers:
+   *
+   *   GET /api/payload-migrations
+   *   → {"message":"Cannot GET https://0.0.0.0:3000/api/payload-migrations"}
+   *
+   * That is a real, if minor, information disclosure — it tells an attacker the
+   * internal port and that the app trusts a forwarded host. It also makes every
+   * absolute URL Payload builds depend on whatever `Host` header arrives, which is
+   * the precondition for host-header poisoning.
+   *
+   * Setting it pins both. Verified it changes nothing else: media `url` fields are
+   * relative paths (`/api/media/file/…`) and our own absolute URLs already come
+   * from `PUBLIC_SITE_URL` (`lib/id-card.ts`), so the storefront read path is
+   * unaffected.
+   *
+   * `CMS_URL` is the name already used elsewhere in this project for the CMS's own
+   * origin; the literal is the same production value the frontend falls back to.
+   */
+  serverURL: (process.env.CMS_URL || 'https://cms.shikkha24.com').replace(/\/$/, ''),
+
   // Reader-facing calls come from the static site on a different origin.
   cors: ALLOWED_ORIGINS,
   csrf: ALLOWED_ORIGINS,
