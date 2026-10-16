@@ -1993,7 +1993,7 @@ not know about it.
   newly added Payload field is reliably migrated, and the failure mode is silent.
 
 ### T-07 — ✅ Image upload works; compression moved to the browser
-- **Status:** `resolved 2026-10-11` — sharp path abandoned (owner decision); uploads
+- **Status:** ✅ `resolved 2026-10-11` — sharp path abandoned (owner decision); uploads
   confirmed working on the host ("Media successfully created"), compression now done
   client-side.
 - **Owner decision.** Rule 7 rules out Vercel/Cloudflare and any paid host. The owner
@@ -2103,7 +2103,7 @@ not know about it.
   before wiring it.
 
 ### T-13 — ✅ External audit verified claim-by-claim (2026-10-12)
-- **Status:** `done` — report at `docs/audit-verification-2026-10-11.md`
+- **Status:** ✅ `done` — report at `docs/audit-verification-2026-10-11.md`
 - ~50 claims from `~/Desktop/NewsPortal-Fix-Guide.md` were each verified against the code with
   file:line evidence. Roughly two-thirds hold. **The guide must not be worked top-to-bottom.**
 - **Seven of its fixes would break things** (see the report table). Worst is C-02: restricting the
@@ -2219,7 +2219,7 @@ not know about it.
   dependency audit — is fixed, that is the only way to ship.
 
 ### T-08 — CSP console warnings in the admin: investigated, not a content bug
-- **Status:** `investigated 2026-10-11` · our own images are **not** blocked · low priority
+- **Status:** ✅ `investigated 2026-10-11` · closed as **not a bug** — our own images are **not** blocked · low priority
 - **Measured from the live headers, not assumed:**
   - Frontend `https://shikkha24.com/*` → `img-src 'self' data: https://cms.shikkha24.com`
     (+ ad domains on pages that serve ads). **CMS media is explicitly allow-listed.**
@@ -2241,7 +2241,7 @@ not know about it.
   alternative fix is to stop loading it rather than widen `img-src`.
 
 ### T-10 — ✅ Payload 3.90.2 upgrade: DONE 2026-10-15 — CI green, seed passes, chain live
-- **Status:** `done` — CI run `38769941213` conclusion **success** on commit `13b9194`
+- **Status:** ✅ `done` — CI run `38769941213` conclusion **success** on commit `13b9194`
   (first fully green `main` since 2026-10-12); `AUTO_DEPLOY=live` set the same day
   and a `rebuild` dispatch (the exact event the CMS publish webhook sends) deployed
   **live** with the CI gate passing and no skip flag — watch exit 0, probe "Live and
