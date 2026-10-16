@@ -123,6 +123,37 @@ After you upload, tell me and I will `PATCH` `featuredImage` onto articles 23–
 
 ---
 
+### O-9. Bing Webmaster Tools + turning on IndexNow (5 minutes, after the deploy)
+Two small things, both blocked behind O-7's Actions budget because the key file has
+to be live first.
+
+**Step 1 — verify Bing Webmaster Tools (once).**
+1. Go to <https://www.bing.com/webmasters> and sign in with the same Google account
+   you used for Search Console.
+2. Choose **"Import from Google Search Console"** — Bing copies your verified sites,
+   sitemaps and settings. Accept the permissions it asks for.
+3. It should show `shikkha24.com` as verified. If it does not, tell me and I will
+   produce the exact DNS TXT record for you to paste, the same way we did GSC.
+
+**Step 2 — turn on instant indexing (once the storefront has deployed).**
+The key file is committed at `frontend/public/91fbd16cdf07709ad236e60bed652c13.txt`. Check it is live:
+open <https://shikkha24.com/91fbd16cdf07709ad236e60bed652c13.txt> — it must show exactly this one line:
+```
+91fbd16cdf07709ad236e60bed652c13
+```
+If it shows a 404, the storefront has not deployed yet (O-7); tell me and I will
+re-check. Once it shows the key, run:
+```
+pnpm indexnow
+```
+That submits all 63 URLs from the sitemap to Bing, Yandex, Seznam and Naver in one
+call. It prints `OK HTTP 200` (or `202`) on success, and a plain-English reason on
+failure. You can preview without sending anything using `pnpm indexnow -- --dry-run`.
+
+**Why this is worth doing:** without it, Bing finds new articles on its own schedule
+— often days. With it, a story is re-crawled within minutes, which is the difference
+between a breaking story being current and being stale. It is free and needs no card.
+
 ### O-8. Four CMS collections are empty — sections of the site are blank
 Not urgent, and **not a bug** — the code is correct, there is simply no content yet.
 Found while fixing a verifier that was reporting the empty state as a failure
