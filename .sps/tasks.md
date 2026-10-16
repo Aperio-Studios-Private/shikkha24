@@ -278,6 +278,22 @@ not know about it.
   adds a round trip. Dark-mode rules are only **4,813 B** of the 47 KB, so stripping
   them would break dark mode for a ~10% byte cut that the ×4-slowdown math says is
   worth ~100 ms at best. **There is no cheap CSS win left.**
+- **DONE 2026-10-16 (commit `8e7d7b9`) — the styleLayout bottleneck is gone.**
+  `content-visibility: auto` (+ `contain-intrinsic-size: auto 24rem`, which is
+  mandatory or the skipped subtrees collapse and CLS goes red) on the homepage
+  category sections past the first. Measured, median of 3, mobile:
+  | metric | before | after |
+  |---|---|---|
+  | `styleLayout` | 2,454 ms | **227 ms** (−91%) |
+  | longest task | 1,223 ms | **174 ms** (−86%) |
+  | TBT | passing | 0 ms |
+  | CLS | 0.000 | **0.000** |
+  | perf / LCP | 94 / 2.85s | **unchanged** |
+  ⚠️ **The negative half is the useful half:** LCP did *not* move, which proves the
+  styleLayout cost was running **after** the LCP paint. With TBT now 0 ms and the
+  long task gone, **the binding constraint is FCP (2.1s)** — LCP is only 0.8s behind
+  it, and the LCP element is a text headline, so LCP ≈ "when text can paint at all".
+  That is a round-trip/CSS problem, not a main-thread one.
 - **REMAINING — the honest picture:** render blocking is fixed, but LCP is still
   2.55–3.15s. LCP breakdown says **TTFB 451 ms (15 %) + render delay 2,552 ms
   (85 %)**, and the LCP element is a Bengali **card headline** — so the cost is
