@@ -302,6 +302,17 @@ not know about it.
   production serves `content-encoding: br` for both HTML and CSS, verified with
   `curl -I`. Do not "fix" compression: there is nothing wrong with it, and woff2
   needs none.
+- **⚠️ METHODOLOGY 2026-10-16 — remote runs from this laptop are NOT trustworthy for
+  fine-grained scores; CI stays authoritative.** Measuring the live site from here
+  gave `/latest/` **80 and 87 on two consecutive runs** (local build of the same CSS:
+  **96**), while `/` was a stable 94. In the slow run TBT was **0 ms**, third-party
+  blocking **0 ms**, and `render-blocking-insight` was the only red — i.e. the entire
+  difference was **FCP (2.9s)**, network timing on the path from this machine to
+  Cloudflare. The page itself is small (38 KB Brotli-decoded, 384 elements). So:
+  **a single remote run can be off by 10+ points of performance score and must not
+  be used to open a bug or to close one.** Use medians of ≥3, keep CI as the gate,
+  and treat any live number that disagrees with a local build by >5 points as
+  network noise until reproduced with the network held constant.
 - **REMAINING — the honest picture:** render blocking is fixed, but LCP is still
   2.55–3.15s. LCP breakdown says **TTFB 451 ms (15 %) + render delay 2,552 ms
   (85 %)**, and the LCP element is a Bengali **card headline** — so the cost is
