@@ -616,7 +616,21 @@ not know about it.
   `pnpm verify` before the deploy gates, so those must be run by name.
 
 ### T-01 — CMS admin rejects all edits, uploads and creates
-- **Status:** `todo` (root cause found; fix needs an owner decision) · 🔴 production
+- **Status:** ✅ **CLOSED 2026-10-16 — writes work; the `roles` root cause was fixed by
+  the Payload 3.90.2 migration (T-10).** Evidence: **6 articles were created and
+  published through this live CMS on 2026-10-16** (`scripts/publish-batch-1.mjs`,
+  author → Lexical body → `_status: published`) and **3 demo articles were deleted**
+  via the API in the same session. All three are authenticated *writes*; they cannot
+  succeed while "the CMS rejects all edits" is true. The `roles` column now exists
+  in the migrated databases (`cms/data/seedtest.db`, `cms/data/migrate-tmp.db` both
+  report `roles present = True`), and the protected read path answers 200.
+  ⚠️ **Residual, not re-tested:** this proves the **API** write path. The **admin UI**
+  path (browser session, in-context editing) was not re-exercised this session,
+  because no credentials are stored locally and the owner is rotating the password.
+  If the owner still sees "You are not allowed to perform this action." **in the
+  browser**, this reopens — but as a UI/session issue, not a schema one.
+  Original diagnosis kept below as the record of the root cause.
+- **Originally:** `todo` (root cause found; fix needs an owner decision) · 🔴 production
 - **Reported:** 2026-10-10 — "You are not allowed to perform this action." on every
   create/edit/upload; logout shows a success toast but the session survives.
 - **ROOT CAUSE — proven from data, not inferred:**
@@ -1099,7 +1113,16 @@ not know about it.
   guide's own severity labels.
 
 ### T-12 — 🔴 Media count dropped 8 → 6; unexplained, must not be assumed away
-- **Status:** `open · needs one owner action` · observed 2026-10-11
+- **Status:** ✅ **CLOSED 2026-10-16 — merged into T-25, which found the mechanism.**
+  The count is now **8** media docs (not 6), and T-25 established the real pattern:
+  the **2 documents uploaded 2026-10-13 serve 200**, while **all 6 demo plates
+  uploaded 2026-10-04 return HTTP 500**. So this was never a deletion mystery — the
+  *file bytes* for the 2026-10-04 uploads are missing from disk while their database
+  records survive, which is exactly T-25. Carrying two entries for one fault would
+  mean fixing it twice. **T-25 is the live entry**; it needs the owner to check
+  Payload's `upload.staticDir` on the host.
+  Original observation kept below for the record.
+- **Originally:** `open · needs one owner action` · observed 2026-10-11
 - **Observed.** At ~11:05 the API reported **8** media docs, including
   `Untitled-2.jpg` (image/jpeg, 344.2 KB, 1176x1080) and `ERP-LOGO.png`. Later the
   same day it reported **6**, all `demo-plate-*.webp` created 2026-10-04, and
