@@ -676,8 +676,14 @@ not know about it.
 - **Demo purge completed by me via API** (owner's UI bulk delete missed them):
   `demo-hsc-result-2026` (id 1), `demo-teacher-recruitment-2026` (id 22) deleted
   HTTP 200; `demo-madrasa-new-syllabus` (id 20) is gone from the CMS entirely.
-  CMS now holds exactly the six real articles. The only remaining "demo" strings on
-  the site are the intentional `DemoAd` ad placeholders (replaced by AdSense at S7).
+  CMS now holds exactly the six real articles.
+- **✅ The `DemoAd` placeholders were reworked 2026-10-16 (`d38e2dd`) — they no longer
+  advertise anything.** This entry previously called them "the only remaining demo
+  strings… intentional", which understated them: one creative promised
+  **"ব্যান্ড ৭+ গ্যারান্টি"** (a guaranteed IELTS band) and a reader had no on-screen
+  way to tell it was a placeholder. Creatives are now generic
+  (`বিজ্ঞাপন স্থান` + format) behind a visible **`নমুনা বিজ্ঞাপন`** badge. Replaced by
+  AdSense at S7 regardless.
 - **Imageless rule shipped (owner 2026-10-16):** the category-archetype fallback was
   removed from `ArticleCard`, the homepage rail and the article hero. The template
   visuals the owner could not find in (or delete from) the media gallery were
