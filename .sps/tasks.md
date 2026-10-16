@@ -183,6 +183,26 @@ not know about it.
   *something* is wrong, not evidence of *what*; read the check before trusting it.
   Also note `timeout` is not on macOS (use `gtimeout`) — it silently made two
   results meaningless before I noticed.
+- **DONE 2026-10-16 — edge cases: broken media, empty collections, search.**
+  - **Broken media (the live condition under T-25): the site degrades correctly.**
+    Verified on `/`, `/latest/`, `/category/admission`, `/scholarships` and the
+    article template: each page carries only **2 `<img>` tags, both the site icon**
+    (which returns 200), and **zero `<img>` pointing at CMS media**. So the imageless
+    rule works — an article without a cover renders text-only instead of emitting an
+    `<img>` at a URL that 500s. `og:image` still resolves correctly: the article gets
+    its photocard, listings get `/og-default.png`. **This is the strongest evidence
+    yet that T-25 is content-only: readers see a complete, working site, just
+    without article photos.**
+  - **Empty collections are guarded:** `LatestFeed` and `CategorySection` both wrap
+    their markup in `items.length > 0 &&` / `articles.length > 0 &&`, so an empty
+    feed renders no container rather than an empty shell.
+  - **Search:** `/search` with no query → 200; `?q=` empty → 200;
+    `?q=test` (ASCII) → 200; `?q=ভর্তি` **percent-encoded as a browser sends it**
+    → 200 with the Pagefind UI present. ⚠️ **A raw, unencoded Bengali query string
+    returns 400 — that is correct HTTP, not a bug.** Raw non-ASCII bytes in a request
+    target are invalid, browsers always percent-encode, and `curl --get
+    --data-urlencode` reproduces the browser path and gets 200. Recorded so nobody
+    "fixes" this later.
 - **REMAINING:** feature matrix walk (nav, home modules, article page, listing,
   exam-results, scholarship, deadline, prayer widget, live TV, /verify, ad slots,
   404, CMS admin flows end-to-end, publish watcher) with happy-path + edge cases;
