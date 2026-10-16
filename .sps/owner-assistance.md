@@ -8,13 +8,21 @@
 
 ## Index — read this first
 
-**One thing blocks almost everything else: `O-7`, the GitHub Actions budget.** Every
-fix below except O-3 and O-6 is written, verified and sitting in git — it cannot reach
-the server until CI can run again. Restoring the budget delivers all of them at once.
+**✅ 2026-10-16 — the frontend no longer waits on `O-7`.** The owner has no budget to
+restore Actions, so the site was deployed **manually** instead: build on the Mac, then
+`wrangler deploy` to Cloudflare Workers. **Live and verified** — article covers now render,
+the Asr correction is in the bundle, and the IndexNow key returns 200. The procedure and
+the account-ID trap are written up in **`docs/manual-deploy.md`**.
+
+`O-7` now blocks **only the CMS deploy** (which runs `payload migrate` and must stay gated
+on CI). Everything frontend-side can ship by hand, today, for free.
+
+⚠️ **Changing CMS content never spends Actions minutes** unless `DEPLOY_WEBHOOK_URL` is
+set in the CMS server environment. See the same document.
 
 | # | What | Needs from you | Status |
 |---|---|---|---|
-| **O-7** | GitHub Actions budget exhausted | Restore billing / raise the spending limit | 🔴 blocks 20 fixes |
+| **O-7** | GitHub Actions budget exhausted | **frontend now ships manually — see `docs/manual-deploy.md`**; only the CMS deploy still needs it | 🟡 downgraded |
 | **O-11** | Live site shows Asr **51 min early** | nothing — ships with O-7 | 🔴 user-visible bug |
 | **O-1** | ✅ **CLOSED** — the 6 visuals 500'd, now recovered from the local cache | nothing | ✅ done |
 | **O-4** | CSP-blocked Cloudflare beacon | Turn off Web Analytics in the CF dashboard | 🟡 2 min |
