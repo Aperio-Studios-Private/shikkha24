@@ -46,6 +46,7 @@ import type { CmsArticle } from '../lib/cms'
 import { resolveCmsImage } from '../lib/media'
 import { articleUrl } from '../lib/url'
 import { formatBnBd } from '../lib/bangla-date'
+import CmsImage from './CmsImage.astro'
 import SponsoredLabel from './SponsoredLabel.astro'
 
 interface Props {
@@ -80,11 +81,16 @@ const {
 /**
  * The article's own photo, resolved from the CMS.
  *
- * `resolveCmsImage` supplies a real `srcset` from the WebP variants Payload
- * generated, plus the **true** width/height — which is what keeps the reserved
- * box honest. Hard-coding 1376×768 for every remote image reserves the wrong
- * box for any other aspect ratio, and a wrong box either letterboxes or shifts
- * layout.
+ * `resolveCmsImage` supplies the **true** width/height — which is what keeps the
+ * reserved box honest. Hard-coding 1376×768 for every remote image reserves the
+ * wrong box for any other aspect ratio, and a wrong box either letterboxes or
+ * shifts layout.
+ *
+ * ⚠️ **Its `srcset` is always `undefined` in practice.** It is built from
+ * `media.sizes`, and that is empty on every document this CMS has produced — the
+ * host cannot fork a thread, so sharp cannot load there and no variants are
+ * generated (T-07). `CmsImage` therefore re-encodes the remote source through
+ * Astro instead of relying on a variant list that will never arrive.
  */
 const photo = resolveCmsImage(article.featuredImage, article.title)
 
@@ -157,19 +163,17 @@ const imageSizes = sizes ?? (isStacked ? '(min-width: 1024px) 800px, 100vw' : '9
           ]}
         >
           {(
-            <img
+            <CmsImage
               src={photo.src}
-              srcset={photo.srcset}
-              sizes={imageSizes}
-              alt={photo.alt}
               width={photo.width}
               height={photo.height}
+              alt={photo.alt}
+              sizes={imageSizes}
               // Only the masthead hero is reliably above the fold. A section
               // lead is lazy: there are eight of them down one page, and making
               // them all eager would fight the LCP the hero is trying to win.
               loading={isLead ? 'eager' : 'lazy'}
               fetchpriority={isLead ? 'high' : 'auto'}
-              decoding="async"
               class="h-full w-full object-cover"
             />
           )}

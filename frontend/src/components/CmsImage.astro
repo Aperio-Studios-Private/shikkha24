@@ -1,0 +1,112 @@
+---
+/**
+ * A CMS image, optimized.
+ *
+ * ## The problem this solves
+ *
+ * `resolveCmsImage` (`src/lib/media.ts`) returns a `srcset` built from
+ * `media.sizes`. That is the right shape — but **`media.sizes` is empty on every
+ * document this CMS has ever produced.** The host cannot fork a thread, so `sharp`
+ * cannot load there and `Media.ts` configures no `imageSizes` (T-07,
+ * `payload.config.ts:506`). With zero variants `buildSrcset` returns `undefined`
+ * and the browser is handed one full-size file whatever the slot width.
+ *
+ * Measured on the 2026-10-16 batch: six covers, **971 KB**, each a 1376 px source
+ * rendered into a **412 px** mobile viewport. Lighthouse reported it independently
+ * — `modern-image-formats` **0** (360 KiB saveable), `uses-responsive-images` **0**
+ * (525 KiB) — and it broke this project's own `docs/image-optimization.md` rule
+ * about never shipping a source wider than the largest width anything displays.
+ *
+ * ## Why Astro optimizes it, and why that is not a regression
+ *
+ * `src/lib/media.ts` rejected Astro's remote-image pipeline because "the CMS
+ * already generates WebP variants". That reasoning was sound; **the fact
+ * underneath it was not** — the CMS generates none at all. `astro.config.mjs`
+ * therefore allows `cms.shikkha24.com` through `image.domains`, and this component
+ * uses it.
+ *
+ * Verified rather than assumed: `<Picture>` emits AVIF **and** WebP at 412w/800w
+ * for a CMS source, and its output matches `scripts/optimize-images.mjs` to within
+ * rounding — AVIF 412w **3.8 KB**, 800w **9.0 KB**, against an 89,653 B original.
+ * Astro caches remote images, so each is encoded once per build rather than on
+ * every publish; with six covers today the added build time is ~5 s.
+ *
+ * ## What it does *not* do
+ *
+ * - **No local images.** `src/assets` images already go through
+ *   `CategoryImage.astro` and Astro's pipeline. Only remote CMS URLs belong here.
+ * - **No guessed dimensions.** Astro refuses a remote image without `width` and
+ *   `height` (`MissingImageDimension`); a missing dimension would reserve the
+ *   wrong box and turn a CLS gate into a CLS failure, so the caller must supply
+ *   real ones — Payload records them through its pure-JS probe.
+ * - **No `sizes` default that lies.** Pass the real slot widths; a wrong `sizes`
+ *   makes the browser fetch the wrong variant and silently undoes the saving.
+ */
+import { Picture } from 'astro:assets'
+
+interface Props {
+  /** Absolute CMS media URL. Relative or local paths fall back to a plain `<img>`. */
+  src: string
+  width: number
+  height: number
+  alt: string
+  /** Real rendered widths, mirroring the CSS. Defaults to the card's 412/800. */
+  widths?: number[]
+  /** Passed straight to the `sizes` attribute. */
+  sizes?: string
+  class?: string
+  loading?: 'eager' | 'lazy'
+  fetchpriority?: 'high' | 'low' | 'auto'
+}
+
+const {
+  src,
+  width,
+  height,
+  alt,
+  widths = [412, 800],
+  sizes,
+  class: className,
+  loading = 'lazy',
+  fetchpriority = 'auto',
+} = Astro.props
+
+/**
+ * Only an absolute http(s) URL that is not our own origin needs Astro's remote
+ * pipeline. Anything else (a `/api/media/file/...` path in local development, a
+ * data URI, an SVG) is left to a plain `<img>` so a dev build without a reachable
+ * CMS still renders instead of failing the whole page.
+ */
+const isRemoteCmsImage = /^https?:\/\//i.test(src)
+---
+
+{
+  isRemoteCmsImage ? (
+    <Picture
+      src={src}
+      width={width}
+      height={height}
+      widths={widths}
+      sizes={sizes}
+      formats={['avif', 'webp']}
+      fallbackFormat="webp"
+      alt={alt}
+      class={className}
+      loading={loading}
+      fetchpriority={fetchpriority}
+      decoding="async"
+    />
+  ) : (
+    <img
+      src={src}
+      width={width}
+      height={height}
+      alt={alt}
+      sizes={sizes}
+      class={className}
+      loading={loading}
+      fetchpriority={fetchpriority}
+      decoding="async"
+    />
+  )
+}

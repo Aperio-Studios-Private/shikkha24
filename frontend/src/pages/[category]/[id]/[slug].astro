@@ -39,6 +39,7 @@ import PhotoStory from '../../../components/PhotoStory.astro'
 import MediaEmbed from '../../../components/MediaEmbed.astro'
 import { countParagraphs, lexicalToHtml, lexicalToPlainText, splitHtmlAtParagraph } from '../../../lib/richtext'
 import { mediaUrl, resolveCmsImage } from '../../../lib/media'
+import CmsImage from '../../../components/CmsImage.astro'
 import { getPublicCmsOrigin } from '../../../lib/interactive'
 import { getApprovedComments } from '../../../lib/engagement'
 import { articleUrl } from '../../../lib/url'
@@ -426,16 +427,14 @@ const imageGalleryLd =
           photo && (
             <div class="mt-5 aspect-16/9 w-full overflow-hidden rounded-lg bg-surface-raised dark:bg-dark-raised">
               {(
-                <img
+                <CmsImage
                   src={photo.src}
-                  srcset={photo.srcset}
-                  sizes="(min-width: 1024px) 800px, 100vw"
-                  alt={photo.alt}
                   width={photo.width}
                   height={photo.height}
+                  alt={photo.alt}
+                  sizes="(min-width: 1024px) 800px, 100vw"
                   loading="eager"
                   fetchpriority="high"
-                  decoding="async"
                   class="h-full w-full object-cover"
                 />)}
             </div>
