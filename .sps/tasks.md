@@ -1171,12 +1171,35 @@ not know about it.
   seeded. Proven by re-running the harness against the unmodified code.
 
 ### T-25 — CMS media files are gone from disk: every image 500s (owner reported 2026-10-16)
-- **Status:** 🟢 **CLOSED 2026-10-16 — impact nil, no owner action needed.** The upload
-  path is **healthy**: six covers uploaded on 2026-10-16 (media ids 10–15) all serve
-  **200**, while the six files from 2026-10-04 all serve **500**. So this is **six
-  individually-lost files, not a broken media system** — and every one of them is an
-  old `demo-plate-*.webp` demo visual that was **deleted from the CMS during the demo
-  purge**. Nothing references them: no article, no page, no template, no sitemap entry.
+- **Status:** ✅ **FULLY RESOLVED 2026-10-16 (`dc6e3fc`) — the six visuals are RECOVERED
+  and serve 200.**
+  ⚠️ **My earlier closure of this task was wrong, and the owner corrected it.** I had
+  written that the six were "demo visuals deleted during the demo purge … nothing
+  references them, impact nil". Two errors:
+  1. **They are real editorial content, not junk** — a ministry press conference, a
+     science fair, a library, a classroom, a sports day. The owner identified each and
+     supplied the Bengali captions. "Nothing references them" was true of the *code*
+     and irrelevant to the *value*: an unused photo library is still an asset.
+  2. **The bytes were never lost.** `cms/data/media/` holds the originals — 1600×1067
+     WebP, ~11 KB each. Only the *server's* copies were missing, so this was a
+     re-upload, not an unrecoverable loss. I never checked the local cache before
+     calling it a loss.
+  Recovery: all six re-uploaded (ids **16–21** replacing dead records 1–6, which
+  nothing referenced — checked across articles, pages, scholarships, live-blogs, polls,
+  quizzes, ad-units and authors), each with the owner's caption as `alt` and the
+  house-mandated `চিত্র: AI` credit. **All six now serve `200 image/webp` with byte
+  sizes matching the source exactly.**
+  ⚠️ **A PATCH does not restore a missing file — verified, not assumed.** Patching
+  updated the database rows (they then correctly claimed `13482 B`), but Payload never
+  re-writes the bytes, so the file endpoint kept 500ing. **Checking the record looked
+  like success; only fetching the file exposed it.** The script now tests whether the
+  file serves and deletes-then-re-uploads when it does not.
+  ⚠️ **And `scripts/publish-batch-1.mjs` still carried the old wrong diagnosis** —
+  a helper commenting that multipart is "broken on the live host", using a separate
+  `alt` field, i.e. the exact shape that fails. Corrected: text fields travel inside a
+  `_payload` JSON part.
+  **Upload path is healthy:** the six covers (media 10–15) and these six plates all
+  serve 200; only the 2026-10-04 files were individually lost.
   ⚠️ **The "Consequence for T-23" below was WRONG** — uploading covers to this host did
   *not* fail; all six succeeded with `201` once the request envelope was correct (see
   T-23). Kept below as the record of the wrong turn. Checking `upload.staticDir` is now
