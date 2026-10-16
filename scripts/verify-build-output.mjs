@@ -93,8 +93,20 @@ const rootFiles = [
 ]
 for (const f of rootFiles) {
   const present = existsSync(join(DIST, f))
-  // _redirects is optional (the article redirect stubs cover it), so note only.
-  check(`root file present: ${f}`, present || f === '_redirects', present ? '' : 'MISSING')
+  // `_redirects` is optional — the per-article redirect stubs cover those paths —
+  // so its check is a note, not a gate.
+  //
+  // ⚠️ The detail string used to be plain `'MISSING'` on the passing branch too, so
+  // this line read `PASS  root file present: _redirects — MISSING`. Technically true
+  // (the file is absent) and thoroughly misleading: in a log of PASS lines it looks
+  // like a failure, and it sent a reader chasing a file that is not meant to exist.
+  // The message now states what the assertion actually means.
+  const optional = f === '_redirects'
+  check(
+    `root file present: ${f}`,
+    present || optional,
+    present ? '' : optional ? 'absent — optional; the redirect stubs cover these paths' : 'MISSING',
+  )
 }
 
 // ── 3. URL architecture ──────────────────────────────────────────────────────
