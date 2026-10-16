@@ -1,5 +1,40 @@
 # SPS Handoff
 
+## 2026-10-16 (round 8) — T-23 COMPLETE, and a wrong diagnosis of my own corrected
+
+**T-23 is done.** All 6 covers are uploaded (media ids 10–15) and attached to articles
+23–28, each with its Bengali alt text and `চিত্র: AI` credit. Verified past the API:
+the public unauthenticated API returns them, a fresh **89-page build** places each on
+**6–7 pages**, the rendered `<img>` carries the Bengali `alt`, and `og:image` points at
+the absolute media URL. All six serve **200**.
+
+**The important part is that the blocker was not real.** Both the upload README and my
+own probes had concluded "the host proxy strips multipart text fields". **The proxy was
+never at fault.** Payload does not accept text fields as separate multipart parts —
+they must be sent inside a **`_payload` JSON part**:
+
+```bash
+curl -X POST "$CMS/api/media" -H "Authorization: JWT $TOKEN" \
+  -F "file=@cover.jpg;type=image/jpeg" \
+  -F '_payload={"alt":"…","credit":"চিত্র: AI"};type=application/json'   # -> 201
+```
+
+**Ruled out by testing, not reasoning:** field order (file-first vs alt-first), Bengali
+vs ASCII values, the part's `Content-Type`, and browser-realistic `Origin`/`Referer`.
+Only the *shape* of the request mattered. I had blamed the proxy because it was the
+third-party component in the path — **a plausible story is not evidence.** The README
+is corrected so the next agent does not inherit the error.
+
+⚠️ **Carry this forward:** when a file uploads but a field arrives empty, suspect the
+**request shape** before the transport. And a diagnosis that names a component you do
+not control deserves more scrutiny than one that names your own code, not less.
+
+**T-25 is unrelated and still open:** the 6 October-4 `demo-plate-*.webp` files are
+absent from disk (500). Nothing in the build or on the live site references them, so
+the reader-facing impact is nil — but the files themselves need the host.
+
+**Owner list: O-2 closed. O-1 (T-25) still needs the host.** Now O-1, O-3 … O-10.
+
 ## 2026-10-16 (rounds 6–7) — T-25 proven exactly, and three security fixes
 
 **T-25/T-23 — the blocker is now proven, not assumed.** Using the admin credentials in
