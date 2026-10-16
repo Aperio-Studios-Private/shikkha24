@@ -270,6 +270,51 @@ async function layerSize(layer: Buffer): Promise<{ width: number; height: number
 }
 
 /**
+ * The vertical extent of a layer's **visible ink**, as `{ top, height }`.
+ *
+ * ## Why layer height is not enough
+ *
+ * Pango renders text into a full line box — ascent plus descent plus line gap — so
+ * a 96px name produces a ~115px layer whose glyphs occupy only ~99px. Compositing
+ * by layer height therefore leaves visibly uneven gaps: measured on the first
+ * balanced photocard, the four inter-block gaps came out **139, 125, 130, 136px**
+ * even though the layout used one identical value for all of them. The 14px spread
+ * was pure line-box padding.
+ *
+ * Measuring the ink lets each block be placed by what the reader actually sees, so
+ * "equal spacing" is equal on the rendered card rather than equal in the code.
+ *
+ * Layers with no ink (a transparent logo that failed to load) fall back to the
+ * full layer box, so a blank input cannot collapse the layout to zero height.
+ *
+ * @param layer a rendered PNG layer with an alpha channel.
+ * @returns the first and last rows containing non-transparent pixels.
+ */
+async function inkExtent(layer: Buffer): Promise<{ top: number; height: number }> {
+  const { data, info } = await sharp(layer)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+  let first = -1
+  let last = -1
+  for (let y = 0; y < info.height; y++) {
+    let hit = false
+    for (let x = 0; x < info.width; x++) {
+      if (data[(y * info.width + x) * 4 + 3] > 12) {
+        hit = true
+        break
+      }
+    }
+    if (hit) {
+      if (first < 0) first = y
+      last = y
+    }
+  }
+  if (first < 0) return { top: 0, height: info.height }
+  return { top: first, height: last - first + 1 }
+}
+
+/**
  * The `left` that centres a layer inside the safe area.
  *
  * ## Why this exists
@@ -647,25 +692,44 @@ export async function composePhotocard(article: PhotocardArticle): Promise<Buffe
   //
   // | rank | element  | size |
   // |------|----------|------|
-  // | 1    | name     | 64   |
+  // | 1    | name     | 96   |
   // | 2    | title    | 40   |
   // | 3    | category | 30   |
   // | 4    | date     | 26   |
+  //
+  // The name was raised from 64 to **96** at the owner's request, to make the
+  // brand carry real weight at the top of the hierarchy. Verified it still fits:
+  // at 96px the name renders 449px wide, and the name+logo lockup totals 581px
+  // against 1072px of usable width, so there is no risk of wrapping.
   //
   // Bengali needs more leading than Latin: conjuncts stack below the baseline and
   // কারচিহ্ন rises above it, so a 1.2 line box clips both. 1.55 is the house
   // minimum from `.sps/plan.md` (Bengali typography ≥17px / line-height ≥1.65 in
   // body copy); here a slightly tighter 1.5 is used because the card is a poster,
   // not running text, and three title lines are the hard budget.
-  const SIZE_NAME = 64
+  const SIZE_NAME = 96
   const SIZE_TITLE = 40
   const SIZE_CATEGORY = 30
   const SIZE_DATE = 26
   const TITLE_LINE = Math.round(SIZE_TITLE * 1.5)
 
   const TITLE_MAX_LINES = 3
-  /** Clear air between the stacked blocks. */
-  const BLOCK_GAP = 34
+  /**
+   * The **minimum** air between stacked blocks.
+   *
+   * The owner's first look at the redesign was that everything was "very tight on
+   * top" with the elements bunched against the upper edge. Measured: content came
+   * to 596px in a 1200px canvas — **50% of the card was empty**, all 526px of it at
+   * the bottom, while the top got only 78px. A fixed 34px gap cannot fix that; the
+   * gaps have to *absorb* the leftover height.
+   *
+   * So this is a floor, not the final value. See the distribution step below, which
+   * grows every gap until the stack fills the card and the slack is even at both
+   * ends.
+   */
+  const MIN_BLOCK_GAP = 34
+  /** The floor for the outer top/bottom padding, matching the side `MARGIN`. */
+  const MIN_V_PAD = 64
 
   // ── Background: the cover photo, heavily blacked out ───────────────────────
   //
@@ -694,7 +758,7 @@ export async function composePhotocard(article: PhotocardArticle): Promise<Buffe
   }
 
   /*
-   * ── The stack, top to bottom ───────────────────────────────────────────────
+   * ── Pass 1: render every block and measure it ──────────────────────────────
    *
    *   category chip
    *   article title (max 3 lines, else "...")
@@ -702,12 +766,25 @@ export async function composePhotocard(article: PhotocardArticle): Promise<Buffe
    *   [logo] শিক্ষা২৪.কম
    *   date
    *
-   * Laid out as a measured vertical flow rather than fixed offsets: each block
-   * reports its real height and the cursor advances by that amount. The previous
-   * card positioned elements at hard-coded coordinates and its footer elements
-   * physically overlapped — see the git history for the arithmetic.
+   * The blocks are built and measured FIRST, and positioned in a second pass. That
+   * separation is what makes balanced spacing possible: until every height is
+   * known, there is no way to know how much slack exists to distribute. The
+   * previous version positioned each block as it built it, so the cursor reached
+   * the bottom long before the canvas did and the remainder pooled at the bottom.
    */
-  let cursor = MARGIN
+  interface Block {
+    layers: Array<{ input: Buffer; left: number; top: number }>
+    /**
+     * The block's **visible** height, which is what gap spacing is measured
+     * against. Deliberately not the tallest layer's box: a text layer carries
+     * line-box padding that the reader cannot see, and using it would make equal
+     * gaps look unequal. See `inkExtent`.
+     */
+    inkHeight: number
+  }
+  const blocks: Block[] = []
+  /** Blocks are positioned relative to their own top; `top: 0` is filled in later. */
+  const rel = (input: Buffer, left: number, top: number) => ({ input, left, top })
 
   // ── 1. Category chip ───────────────────────────────────────────────────────
   // Centred, and sized to its own label plus padding so a short category is not a
@@ -724,13 +801,14 @@ export async function composePhotocard(article: PhotocardArticle): Promise<Buffe
     const chipTextSize = await layerSize(chipText)
     const chipW = chipTextSize.width + CHIP_PAD_X * 2
     const chipLeft = MARGIN + Math.max(0, Math.round((W - MARGIN * 2 - chipW) / 2))
-    layers.push({ input: await rectLayer(chipW, chipH, BRAND_RED), left: chipLeft, top: cursor })
-    layers.push({
-      input: chipText,
-      left: chipLeft + CHIP_PAD_X,
-      top: cursor + Math.round((chipH - chipTextSize.height) / 2),
+    blocks.push({
+      layers: [
+        rel(await rectLayer(chipW, chipH, BRAND_RED), chipLeft, 0),
+        rel(chipText, chipLeft + CHIP_PAD_X, Math.round((chipH - chipTextSize.height) / 2)),
+      ],
+      // The chip is a solid rect, so its box *is* its ink.
+      inkHeight: chipH,
     })
-    cursor += chipH + BLOCK_GAP
   }
 
   // ── 2. Title, capped at three lines ────────────────────────────────────────
@@ -762,18 +840,25 @@ export async function composePhotocard(article: PhotocardArticle): Promise<Buffe
     maxHeight: TITLE_LINE * TITLE_MAX_LINES,
   })
   const titleSize = await layerSize(title)
-  layers.push({
-    input: title,
-    left: MARGIN + Math.max(0, Math.round((titleWidth - titleSize.width) / 2)),
-    top: cursor,
+  // `-titleInk.top` cancels the line-box padding above the first line, so the gap
+  // above the title is measured from the glyphs the reader actually sees.
+  const titleInk = await inkExtent(title)
+  blocks.push({
+    layers: [
+      rel(
+        title,
+        MARGIN + Math.max(0, Math.round((titleWidth - titleSize.width) / 2)),
+        -titleInk.top,
+      ),
+    ],
+    inkHeight: titleInk.height,
   })
-  cursor += titleSize.height + BLOCK_GAP
 
   // ── 3. QR code, centred ────────────────────────────────────────────────────
   const QR = 200
   const qr = await qrLayer(article.canonicalUrl, QR)
-  layers.push({ input: qr, left: Math.round((W - QR) / 2), top: cursor })
-  cursor += QR + BLOCK_GAP
+  // The QR is a solid square, so its box *is* its ink.
+  blocks.push({ layers: [rel(qr, Math.round((W - QR) / 2), 0)], inkHeight: QR })
 
   // ── 4. Logo + name lockup, centred as one unit ─────────────────────────────
   //
@@ -791,25 +876,33 @@ export async function composePhotocard(article: PhotocardArticle): Promise<Buffe
     weight: 700,
   })
   const nameSize = await layerSize(nameLayer)
+  const nameInk = await inkExtent(nameLayer)
   const logo = article.logoUrl ? await logoLayer(article.logoUrl, LOGO) : null
+  const logoInk = logo ? await inkExtent(logo) : { top: 0, height: 0 }
 
   const lockupW = nameSize.width + (logo ? LOGO + LOGO_GAP : 0)
   const lockupLeft = MARGIN + Math.max(0, Math.round((W - MARGIN * 2 - lockupW) / 2))
-  const lockupH = Math.max(nameSize.height, logo ? LOGO : 0)
-  const lockupTop = cursor + Math.round((lockupH - nameSize.height) / 2)
-  if (logo) {
-    layers.push({
-      input: logo,
-      left: lockupLeft,
-      top: cursor + Math.round((lockupH - LOGO) / 2),
-    })
-  }
-  layers.push({
-    input: nameLayer,
-    left: lockupLeft + (logo ? LOGO + LOGO_GAP : 0),
-    top: lockupTop,
+
+  /*
+   * The lockup's ink height is the TALLER of the two *visible* extents, not of
+   * their boxes. Both are then positioned so their own ink is vertically centred
+   * inside that band — otherwise the name's line-box padding would push the logo
+   * off-centre and the pair would read as misaligned.
+   */
+  const lockupInk = Math.max(nameInk.height, logo ? logoInk.height : 0)
+  blocks.push({
+    layers: [
+      ...(logo
+        ? [rel(logo, lockupLeft, Math.round((lockupInk - logoInk.height) / 2) - logoInk.top)]
+        : []),
+      rel(
+        nameLayer,
+        lockupLeft + (logo ? LOGO + LOGO_GAP : 0),
+        Math.round((lockupInk - nameInk.height) / 2) - nameInk.top,
+      ),
+    ],
+    inkHeight: lockupInk,
   })
-  cursor += lockupH + Math.round(BLOCK_GAP * 0.7)
 
   // ── 5. Date ────────────────────────────────────────────────────────────────
   if (article.publishedAt) {
@@ -819,22 +912,57 @@ export async function composePhotocard(article: PhotocardArticle): Promise<Buffe
       color: '#BBBBBB',
       width: W - MARGIN * 2,
     })
-    layers.push({
-      input: dateLayer,
-      left: await centreLeft(dateLayer, W, MARGIN),
-      top: cursor,
+    // `-ink.top` cancels the line-box padding above the first glyph, so the gap
+    // measured on the card is the gap between visible text.
+    const dateInk = await inkExtent(dateLayer)
+    blocks.push({
+      layers: [rel(dateLayer, await centreLeft(dateLayer, W, MARGIN), -dateInk.top)],
+      inkHeight: dateInk.height,
     })
-    cursor += (await layerHeight(dateLayer)) + MARGIN
   }
 
-  // The stack must fit inside the card. Everything above is measured, so this is
-  // a real assertion rather than a guess — if a future font or a longer category
-  // pushes the flow past the bottom edge, say so instead of drawing off-canvas.
-  if (cursor > H) {
-    console.warn(
-      `photocard: content is ${cursor - H}px taller than the ${H}px canvas — ` +
-        `the card will be clipped. Check the title cap and block gaps.`,
-    )
+  /*
+   * ── Pass 2: distribute the free space and centre the stack ─────────────────
+   *
+   * The owner's requirement is even spacing on all four sides. Horizontally that
+   * is `MARGIN`; vertically it is whatever is left over.
+   *
+   * ⚠️ **A text layer is taller than its ink.** Pango allocates a full line box —
+   * ascent plus descent plus line gap — so a 96px name reports a layer height of
+   * 115px while the glyphs themselves occupy 99px. Positioning by *layer* height
+   * therefore produces gaps that look uneven even though the arithmetic is equal:
+   * measured on the first balanced attempt, the four visual gaps came out
+   * **139, 125, 130, 136px** — a 14px spread from line-box padding alone.
+   *
+   * So the stack is computed from the **ink heights**, with each text layer offset
+   * inside its own band so its glyphs sit centred. What the reader sees as the gap
+   * is then equal by construction, whatever the font's metrics happen to be.
+   */
+  const contentH = blocks.reduce((sum, b) => sum + b.inkHeight, 0)
+  const gaps = Math.max(0, blocks.length - 1)
+
+  /*
+   * `H - 2 * MIN_V_PAD` is the space available once the outer padding floor is
+   * honoured. Dividing the remainder across the gaps keeps every gap identical,
+   * and the `%` remainder is re-added to the padding below rather than being lost
+   * to rounding — otherwise the stack drifts up the canvas.
+   */
+  const perGap = gaps > 0 ? Math.min(Math.floor((H - MIN_V_PAD * 2 - contentH) / gaps), 90) : 0
+  const blockGap = MIN_BLOCK_GAP + perGap
+  const stackH = contentH + blockGap * gaps
+  /*
+   * Centred: the leftover after the stack is split evenly top and bottom. This is
+   * the number that makes top and bottom padding match, and it is why the first
+   * attempt — which floored the division — sat 12px high.
+   */
+  const vPad = Math.max(MIN_V_PAD, Math.round((H - stackH) / 2))
+
+  let cursor = vPad
+  for (const block of blocks) {
+    for (const layer of block.layers) {
+      layers.push({ ...layer, top: cursor + layer.top })
+    }
+    cursor += block.inkHeight + blockGap
   }
 
   return sharp({ create: { width: W, height: H, channels: 4, background: CHARCOAL } })

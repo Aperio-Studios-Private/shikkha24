@@ -163,6 +163,54 @@ async function inkBands(buf: Buffer): Promise<InkBand[]> {
   return bands
 }
 
+/**
+ * The clear space above the first and below the last piece of card content.
+ *
+ * ## Why this is not a brightness test
+ *
+ * `textBounds` above asks "is this pixel bright?", which is right for finding text
+ * on a darkened photo. It is **wrong for the category chip**: the chip is a solid
+ * `BRAND_RED` rect, so its own top edge is dark and the first *bright* row is the
+ * label sitting inside it. Measuring the chip's padding that way under-reports the
+ * top gap by the chip's internal padding, which made a correctly centred card look
+ * 13px off-centre and sent a debugging session chasing a layout bug that did not
+ * exist.
+ *
+ * So content is detected as **anything that is not the darkened background**:
+ * either bright (text, QR, the white plate) or strongly saturated (the red chip).
+ * The photo is dimmed to ~18% brightness and skewed dark, so it fails both tests.
+ *
+ * @param buf a rendered card PNG.
+ * @returns the top and bottom clear space in pixels.
+ */
+async function verticalSpread(buf: Buffer): Promise<{ top: number; bottom: number }> {
+  const { data, info } = await sharp(buf).raw().ensureAlpha().toBuffer({ resolveWithObject: true })
+  const H = info.height
+  const W = info.width
+  const isContent = (i: number) => {
+    const r = data[i]
+    const g = data[i + 1]
+    const b = data[i + 2]
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    const mx = Math.max(r, g, b)
+    const sat = mx === 0 ? 0 : (mx - Math.min(r, g, b)) / mx
+    return lum > 150 || (sat > 0.45 && lum > 40)
+  }
+  let first = -1
+  let last = -1
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (isContent((y * W + x) * 4)) {
+        if (first < 0) first = y
+        last = y
+        break
+      }
+    }
+  }
+  if (first < 0) return { top: 0, bottom: 0 }
+  return { top: first, bottom: H - 1 - last }
+}
+
 /** A synthetic record, so the harness does not depend on seeded demo content. */
 async function withAuthor(next: (author: IdCardAuthor) => Promise<void>): Promise<void> {
   const settings = await payload.findGlobal({
@@ -368,6 +416,38 @@ await withAuthor(async (author) => {
       x.top > categoryBand.bottom &&
       x.bottom < qrBand2.top,
   )
+  /*
+   * ── The 2026-10-16 spacing pass ────────────────────────────────────────────
+   *
+   * The owner's first look at the redesign was that everything was "very tight on
+   * top" and bunched against the upper edge. Measured: content came to 596px in a
+   * 1200px canvas — **50% of the card was empty**, all 526px of it pooled at the
+   * bottom, while the top got 78px. The card now measures **83%** full with even
+   * air on every side.
+   *
+   * Two properties matter and neither is visible to the margin checks above, which
+   * only look at where ink *ends*. These look at how the space is *distributed*:
+   * the composition is vertically centred, and the gaps between blocks are equal.
+   *
+   * ⚠️ **"Ink" here means anything that is not the darkened photo** — a colour-aware
+   * test, not a brightness one. The category chip is a solid red rect: a plain
+   * `luminance > threshold` check misses it entirely and reads the first bright
+   * pixel as the chip's *label*, which sits ~9px inside the chip. That mistake made
+   * a correctly centred card measure as 13px off-centre and sent the investigation
+   * after a layout bug that did not exist.
+   */
+  const spread = await verticalSpread(a)
+  check(
+    'the photocard content is vertically centred',
+    Math.abs(spread.top - spread.bottom) <= 6,
+    `top padding ${spread.top}px vs bottom ${spread.bottom}px, need within 6px`,
+  )
+  check(
+    'the photocard fills the canvas rather than pooling at the bottom',
+    spread.top + spread.bottom < 1200 * 0.35,
+    `total vertical padding ${spread.top + spread.bottom}px of 1200, need < 420px`,
+  )
+
   check(
     'a very long headline is capped at three lines',
     titleLines.length > 0 && titleLines.length <= 3,

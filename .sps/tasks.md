@@ -2046,6 +2046,36 @@ not know about it.
   title capped at 3 lines, all margins clear, and six edge cases (no category / no
   date / no logo / no photo / nothing optional / one unbreakable word) all inside
   the 64px margin.
+#### Spacing pass (owner feedback, same day)
+- **Owner:** *"the design now looks very tight on top, all elements placed on top
+  side… increase the spacing between items and use more space from bottom and
+  centre the all elements."* Correct on every point.
+- **Measured before:** content came to **596px of 1200 — 50% of the card empty**,
+  all 526px of it pooled at the bottom while the top got 78px. A fixed gap cannot
+  fix that; the gaps have to *absorb* the leftover height.
+- **Fix — two passes instead of one.** Every block is rendered and measured first,
+  then positioned second. Until all heights are known there is no way to know how
+  much slack exists to distribute; the previous version positioned each block as it
+  built it, so the cursor reached the bottom long before the canvas did.
+  - gaps grow equally from a 34px floor, capped at 90px extra, and any remainder is
+    split evenly top and bottom
+  - **after:** top padding **70px**, bottom **71px**, content **83% of the canvas**
+- **Name enlarged 64 → 96px** (owner request), which scales the logo to 110px from
+  the same constant. Verified it fits: the name renders 449px wide and the
+  name+logo lockup totals 581px of 1072px available, so there is no wrap risk.
+- ⚠️ **A measurement mistake cost real time here, and it is worth recording.** A
+  brightness-only "is this pixel ink?" test **cannot see the category chip** — the
+  chip is a solid `BRAND_RED` rect, so its own top edge is dark and the first
+  *bright* row is the label inside it. That under-reported the top gap by the
+  chip's internal padding and made a **correctly centred card measure as 13px
+  off-centre**, sending the investigation after a layout bug that did not exist.
+  The gate's helper now detects content as *anything not the darkened background*:
+  bright **or** strongly saturated. Verified: predicts 112/112, measures 92/93.
+- **Gate: counter-proved.** Two new assertions (vertically centred; canvas filled).
+  Restoring the old top-anchored, fixed-gap layout makes them fail exactly as the
+  owner described — **top 64px vs bottom 437px**, 501px of padding. Restored, they
+  pass at 70/71. A check never seen to fail is not evidence.
+
 - 🟡 **Remaining:** the CMS is not redeployed, so live cards still show the old
   layout. Needs the FTPS path (`deploy-cms.mjs`). Also open: `fetch-fonts.mjs`
   should emit TTF so the font install stops being a manual step.
