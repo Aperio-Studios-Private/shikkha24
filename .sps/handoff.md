@@ -1,5 +1,43 @@
 # SPS Handoff
 
+## 2026-10-16 (round 3) — T-21 audit reality check + IndexNow
+
+**T-21 — the sps-seo score is not a description of this site.**
+Re-ran the engine: **28/100** on the repo, **43/100** on `frontend/dist`. Verified
+every headline finding against the built output, and all of them are tooling
+artifacts:
+- `robots: False` / `sitemap: False` — the engine only probes `robots.txt`,
+  `public/robots.txt`, `app/robots.ts`, `src/app/robots.ts`. It has **no `dist/`
+  path and no Astro-endpoint case**; ours are endpoints (`src/pages/robots.txt.ts`,
+  `sitemap.xml.ts`, `news-sitemap.xml.ts`) and all serve **200** live.
+- `favicon` / `llmsTxt: False` — both exist and serve 200.
+- `h1Issues: 19–28` — **all 89 built pages have exactly one `<h1>`**; 0 bad.
+- `multiCanonicalPages` — **no page emits two canonicals** (all 89 + live URLs). The
+  flagged `article/[slug].astro` is a **standalone minimal document** that does not
+  use `Layout.astro`, specifically so it can emit one canonical plus its meta-refresh.
+- `missingAlt: 6–37` — **zero `<img>` without `alt`** anywhere in the build.
+- `thinContentPages` — `.lighthouseci/lhr-*.html` artifacts.
+- `noindexCount: 5` — all deliberate and correct (`/login`, `/bookmarks`,
+  `/verify/<id>`, `/newsletter/confirm`, `/newsletter/unsubscribe`).
+
+**So the "baseline grade F = 30/100" carried in these notes was never a defect
+count.** There is no H1/anchor/alt backlog. Real SEO state: single H1, single
+canonical, full title/description/OG/Twitter coverage, valid JSON-LD, correct
+noindex scoping, robots + sitemap + news-sitemap + llms.txt all live.
+
+**Shipped `3f66b32` — IndexNow.** Key file `frontend/public/<key>.txt` plus
+`scripts/indexnow.mjs` (`pnpm indexnow`, `--dry-run` supported, reads URLs from the
+built sitemap — 63 of them). Free, no account, no card.
+⚠️ **I first built the key as an Astro endpoint and reverted it.** A static build
+cannot return a real 404 from an endpoint: with the key unset Astro still wrote the
+file, as **HTTP 200 whose body was "Not found"** — a wrong-key 200 that IndexNow
+rejects silently. Proven by serving `dist/` locally. A static asset cannot be in
+that state.
+**Blocked on activation:** `https://shikkha24.com/<key>.txt` is **404** until the
+storefront deploys (O-7). Steps are in `owner-assistance.md` O-9.
+
+**Verifier suite: 32/32 green.** Owner list now O-1 … O-9.
+
 ## 2026-10-16 (later) — photocard fix, T-22 edge cases, T-24 diagnosis, verifier honesty
 
 **Shipped this span (all pushed to `main`):**
