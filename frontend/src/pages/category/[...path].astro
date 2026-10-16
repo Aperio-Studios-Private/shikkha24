@@ -174,7 +174,14 @@ const jsonLd = {
       <AdSlot position="categoryLeaderboard" width={728} height={90} />
     </div>
 
-    <ArticleGrid articles={result.docs} />
+    {/* ArticleGrid pins its cards to <h3> so they nest under a section heading,
+        but this page rendered only an <h1>, so the outline ran h1 -> h3 and
+        failed `heading-order` (WCAG 1.3.1). An sr-only h2 supplies the level with
+        no visual change. Same fix as /latest. */}
+    <section aria-labelledby="category-feed-heading">
+      <h2 id="category-feed-heading" class="sr-only">{category?.nameBn ?? 'সংবাদ তালিকা'}</h2>
+      <ArticleGrid articles={result.docs} />
+    </section>
 
     <Pagination page={result.page} totalPages={result.totalPages} basePath={basePath} />
   </div>

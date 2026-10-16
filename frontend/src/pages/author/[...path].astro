@@ -185,7 +185,12 @@ const jsonLd = {
       </div>
     </header>
 
-    <ArticleGrid articles={result.docs} emptyMessage="এই লেখকের এখনো কোনো প্রতিবেদন নেই।" />
+    {/* Same heading-order fix as /latest and /category: the grid's cards are
+        <h3>s, so the page needs an <h2> between the <h1> and them. */}
+    <section aria-labelledby="author-feed-heading">
+      <h2 id="author-feed-heading" class="sr-only">লেখকের প্রতিবেদন তালিকা</h2>
+      <ArticleGrid articles={result.docs} emptyMessage="এই লেখকের এখনো কোনো প্রতিবেদন নেই।" />
+    </section>
 
     <Pagination page={result.page} totalPages={result.totalPages} basePath={basePath} />
   </div>
