@@ -5,7 +5,7 @@
       "url": [
         "http://localhost/",
         "http://localhost/latest/",
-        "http://localhost/education-news/20/demo-madrasa-new-syllabus/"
+        "http://localhost/admission/23/admission-policy-2027/"
       ],
       "numberOfRuns": 3,
       "settings": {
@@ -17,16 +17,46 @@
           "deviceScaleFactor": 1.75
         },
         "throttlingMethod": "simulate",
-        "onlyCategories": ["performance", "accessibility", "seo", "best-practices"]
+        "onlyCategories": [
+          "performance",
+          "accessibility",
+          "seo",
+          "best-practices"
+        ]
       }
     },
     "assert": {
       "assertions": {
-        "categories:performance": ["error", { "minScore": 0.9 }],
-        "categories:accessibility": ["error", { "minScore": 0.9 }],
-        "categories:seo": ["error", { "minScore": 0.9 }],
-        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.03 }],
-        "total-byte-weight": ["error", { "maxNumericValue": 1258291 }]
+        "categories:performance": [
+          "error",
+          {
+            "minScore": 0.95
+          }
+        ],
+        "categories:accessibility": [
+          "error",
+          {
+            "minScore": 0.95
+          }
+        ],
+        "categories:seo": [
+          "error",
+          {
+            "minScore": 0.95
+          }
+        ],
+        "cumulative-layout-shift": [
+          "error",
+          {
+            "maxNumericValue": 0.03
+          }
+        ],
+        "total-byte-weight": [
+          "error",
+          {
+            "maxNumericValue": 1258291
+          }
+        ]
       }
     },
     "upload": {
