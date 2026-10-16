@@ -202,9 +202,26 @@ not know about it.
   LCP 2.55–3.16s vs the 1.5s target. `render-blocking-insight` scores 0.5/0.
 - **Counter-proved:** inlining all CSS (`inlineStylesheets: 'always'`, 49 KB inline)
   made it **worse** — perf 98 → 97, FCP 1.21 → 1.38s, LCP 2.33 → 2.41s. Reverted;
-  the bytes cost more than the blocking round-trip they save. The remaining lever is
-  the render delay itself (defer/trim CSS, `theme-init.js` on the critical path,
-  and the LCP element is a card headline, not an image).
+  the bytes cost more than the blocking round-trip they save.
+- **DONE 2026-10-16 (commit `0d69a1a`) — render blocking eliminated by a targeted
+  inline:** Astro 7 has no critical-CSS extractor, so `assetsInlineLimit` is now a
+  predicate that inlines **only `.css` under 4 KB** (1,893 bytes inlined; the 47 KB
+  shared `Layout.css` stays external and cacheable). The `.css`-only guard is
+  load-bearing — `public/.htaccess` is `script-src 'self'`, so inlining a `<script>`
+  breaks every control (the S8 trap); verified the build emits **0** executable
+  inline scripts.
+  | template | perf | LCP | render-blocking |
+  |---|---|---|---|
+  | `/` | 93 → **94** | 3.00 → **2.85s** | 0.5 → **0** |
+  | `/latest/` | 96 → 96 | 2.55s | 0 → **0** |
+  | article | 91 → 91 | 3.16 → 3.15s | 0 → **0** |
+  Payload 307 KB vs the 1,229 KB budget; CLS 0.000; a11y/SEO/BP 100.
+- **REMAINING — the honest picture:** render blocking is fixed, but LCP is still
+  2.55–3.15s. LCP breakdown says **TTFB 451 ms (15 %) + render delay 2,552 ms
+  (85 %)**, and the LCP element is a Bengali **card headline** — so the cost is
+  font-gated text paint plus host latency, not round trips. The 4 KB threshold is
+  also CI-specific and should be re-derived if the CI runner's throttling changes.
+  Both `/` (94) and the article (91) are still short of the ≥95 bar.
 - **Owner's bar (confirmed 2026-10-16):** **all four Lighthouse categories ≥95**
   (performance, accessibility, best practices, SEO) on **mobile**, on **every**
   measured template — in CI (CI is the only authoritative measurement per the
