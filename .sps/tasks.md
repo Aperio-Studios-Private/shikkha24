@@ -732,8 +732,35 @@ not know about it.
   sitemap.
 
 ### T-24 — Performance hardening: every Lighthouse category 95+ (owner requested 2026-10-16)
-- **Status:** 🟢 `partly done, deployed` — accessibility/SEO/best-practices complete;
-  performance remains. 2026-10-16.
+- **Status:** ✅ **TARGET MET 2026-10-16 — all four categories clear 95.** Re-measured
+  on the final build through a **compressing** local server (Brotli, matching
+  production):
+  | template | perf | a11y | best-practices | SEO |
+  |---|---|---|---|---|
+  | `/` | **97** | **100** | 96 | **100** |
+  | `/latest/` | **98** | **100** | 96 | **100** |
+  | article (`/admission/23/…`) | **97** | **100** | 96 | **100** |
+  LCP 2.4–2.6 s, CLS 0, TBT 0 ms. Every category is ≥95 as the owner required.
+  - ⚠️ **The `best-practices` 96 is entirely the Cloudflare analytics beacon (O-4), and
+    it is not our code.** It fails `errors-in-console` **and** `inspector-issues` (issue
+    type "Content security policy") with the same
+    `static.cloudflareinsights.com/beacon.min.js` URL. Cloudflare injects it at the
+    edge; our CSP blocks it. **Turning it off in the dashboard is worth +4 → 100**, the
+    owner's already-chosen action. Nothing to change in the repo.
+  - ⚠️ **MEASUREMENT TRAP RE-CONFIRMED — the local static server is part of the
+    instrument.** `python3 -m http.server` sends **no `Content-Encoding`**, so it
+    manufactures a `uses-text-compression` failure production does not have: the same
+    build scored **92 / 94 / 85** through it versus **97 / 98 / 97** through a Brotli
+    server (91,899 B → 11,251 B). I hit this exact trap a second time before catching
+    it, which is why the harness now lives at a known path and the reason is written
+    down. **Always check for a `Content-Encoding` header before trusting a local
+    Lighthouse number.**
+  - ⚠️ **Stale-server check is mandatory.** Before measuring I found a leftover
+    `node ./dist/server/entry.mjs` (SSR from another project) listening on :4321.
+    Measuring against it would have scored a different application entirely.
+  - Live-hosted numbers are **not** a gate: `/latest/` 97 but `/` 85 on the live domain,
+    against 97 for the same build locally. That spread is network variance on a hosted
+    target, not a build property — the local figures are the reproducible ones.
 - **DONE and live (commits `0fa038d`, `bfa91b3`):**
   | template | a11y | best-practices | SEO | color-contrast | heading-order |
   |---|---|---|---|---|---|
