@@ -2076,6 +2076,30 @@ not know about it.
   owner described — **top 64px vs bottom 437px**, 501px of padding. Restored, they
   pass at 70/71. A check never seen to fail is not evidence.
 
+#### The flat-grey sample (owner caught it, 2026-10-16)
+- **Owner:** *"i see only a only dark gray background no image shown at all."*
+  **Correct.** The sample card had **no photograph** — every corner was exactly
+  `rgb(31,31,31)`, standard deviation **0.0**, i.e. the charcoal fallback plate.
+- **Cause: the sample, not the card.** `mediaFilePath()` resolves against
+  `cms/data/media/`, which is **gitignored** — the cover photo existed only on the
+  server, so a local render fell through to the flat fallback. The live card was
+  never affected: measured on `cms.shikkha24.com/api/photocard/23.png`, the
+  background varies with sd **32.7** and real colour (`rgb(83,33,8)`). Confirmed by
+  copying the photo into `cms/data/media/`: the render went 79 KB → 674 KB and
+  sd 0.0 → 12.0.
+- ⚠️ **How the mistake survived review — the useful part.** A card with no photo
+  still passes *every* check: correct size, plenty of ink, byte-identical across
+  runs, perfect margins. And the wrong conclusion was reached by comparing **mean
+  luminance** (card 31.0 vs the 18%-dimmed photo's 33.3, read as "match") — a mean
+  cannot distinguish a photograph from a flat colour. The distinguishing property
+  is **variance**. A new check asserts `sd > 1`; the threshold is 1 rather than a
+  "looks photographic" number because the cases are categorical: a flat fill is
+  **exactly 0**, and any real image retains some variation (`demo-plate-1.jpg`
+  measures 2.21, the real cover 11.99 — both photographs).
+- **Counter-proved:** rendering with `photoFilename: null` fails it at `sd=0.00`.
+- **Honest limitation:** media is gitignored, so the check **skips** (with a printed
+  note) when no image is present locally, rather than failing or faking a pass.
+
 - 🟡 **Remaining:** the CMS is not redeployed, so live cards still show the old
   layout. Needs the FTPS path (`deploy-cms.mjs`). Also open: `fetch-fonts.mjs`
   should emit TTF so the font install stops being a manual step.

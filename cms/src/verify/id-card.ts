@@ -39,6 +39,7 @@ import {
   composePhotocard,
   type IdCardAuthor,
   isFontAvailable,
+  mediaFilePath,
   type PhotocardArticle,
   siteOrigin,
   verifyUrlFor,
@@ -161,6 +162,38 @@ async function inkBands(buf: Buffer): Promise<InkBand[]> {
     }
   }
   return bands
+}
+
+/**
+ * How much the card's background varies, sampling only the left edge strip.
+ *
+ * The strip is chosen to be clear of every text block (text starts at x=66), so
+ * what is measured is the backdrop alone.
+ *
+ * A **flat** background — the charcoal fallback used when the cover photo cannot
+ * be found — has a standard deviation of exactly `0`. A photograph, even dimmed to
+ * 18% brightness behind an 80% black overlay, still varies by several units. That
+ * distinction is the whole point: mean luminance cannot tell the two apart, which
+ * is how a photoless card passed review.
+ *
+ * @param buf a rendered card PNG.
+ * @returns the mean and standard deviation of the backdrop's luminance.
+ */
+async function backgroundVariance(buf: Buffer): Promise<{ mean: number; sd: number }> {
+  const { data, info } = await sharp(buf).raw().ensureAlpha().toBuffer({ resolveWithObject: true })
+  const W = info.width
+  const H = info.height
+  const vals: number[] = []
+  for (let y = 0; y < H; y += 9) {
+    for (let x = 6; x < 50 && x < W; x += 9) {
+      const i = (y * W + x) * 4
+      vals.push(0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2])
+    }
+  }
+  if (!vals.length) return { mean: 0, sd: 0 }
+  const mean = vals.reduce((a, b) => a + b, 0) / vals.length
+  const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length)
+  return { mean, sd }
 }
 
 /**
@@ -437,6 +470,54 @@ await withAuthor(async (author) => {
    * after a layout bug that did not exist.
    */
   const spread = await verticalSpread(a)
+  /*
+   * ⚠️ **A card can render "successfully" with no photograph at all.**
+   *
+   * When `mediaFilePath()` cannot find the file it returns `null` and the layout
+   * falls back to a flat charcoal plate — and every other check here still passes,
+   * because the card is the right size, has plenty of ink, is byte-identical across
+   * runs, and keeps perfect margins. That is exactly what happened while preparing
+   * a sample: the image was missing from this machine's `data/media/`, the sample
+   * came out flat grey, and the flatness was only noticed because the owner
+   * reported seeing "only a dark gray background".
+   *
+   * The distinguishing property is **variance**, not brightness. A flat fill has a
+   * standard deviation of 0; a photo dimmed to 18% still varies. Checking the mean
+   * against a photo's mean passes for both — which is the mistake that let the
+   * flat card through.
+   */
+  /*
+   * Only meaningful with a real cover photo, and `cms/data/media` is gitignored —
+   * so this **skips** rather than fails when the image is absent. Skipping is the
+   * honest outcome: a missing file is an environment fact, not a card defect, and
+   * asserting either way would be a claim the harness cannot support. The failure
+   * mode it guards against was found by rendering a sample by hand, which is
+   * exactly when this check has a photo to work with.
+   */
+  const samplePhoto = mediaFilePath('demo-plate-1.jpg')
+  if (samplePhoto) {
+    const withPhoto = await composePhotocard({ ...article, photoFilename: 'demo-plate-1.jpg' })
+    const bg = await backgroundVariance(withPhoto)
+    /*
+     * The threshold is **1**, not a "looks photographic" number, because the two
+     * cases are categorically different rather than a matter of degree: a flat
+     * charcoal fill has an sd of **exactly 0**, and *any* real image dimmed to 18%
+     * retains some variation. Deliberately low-contrast fixtures are expected —
+     * `demo-plate-1.jpg` measures sd 2.21 here against the real cover's 11.99, and
+     * both are photographs. Picking a higher bound would fail honest images, which
+     * is worse than the narrow check it would buy.
+     */
+    check(
+      'the photocard background is an image, not a flat fallback fill',
+      bg.sd > 1,
+      `background sd=${bg.sd.toFixed(2)} (mean ${bg.mean.toFixed(1)}); a flat fill is exactly 0`,
+    )
+  } else {
+    console.log(
+      'note  no cover photo in cms/data/media — skipping the "background is a photograph" check',
+    )
+  }
+
   check(
     'the photocard content is vertically centred',
     Math.abs(spread.top - spread.bottom) <= 6,
