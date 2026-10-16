@@ -58,7 +58,8 @@
     "verify:site-name": "node scripts/verify-site-name.mjs",
     "verify:sqlite-wal": "node scripts/verify-sqlite-wal.mjs",
     "verify:sync": "node scripts/verify-cms-sync.mjs",
-    "verify:workflows": "node scripts/verify-workflows.mjs"
+    "verify:workflows": "node scripts/verify-workflows.mjs",
+    "serve:dist": "node scripts/serve-dist.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
