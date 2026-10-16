@@ -159,6 +159,29 @@ not know about it.
   **Practical consequence: there is no H1/anchor-text/alt backlog to work through.**
   The real open SEO items are the ones already tracked — the owner-side GSC/Bing
   steps below, and the low-priority meta-refresh-vs-301 note above.
+- **BUILT 2026-10-16 (commit `3f66b32`) — IndexNow instant submission, the one
+  automatic indexing channel available at zero cost.** Bing and Yandex accept a
+  single unauthenticated POST and re-crawl within minutes; it needs no account and
+  no payment card, so it fits rule 7. Two halves shipped:
+  - **Key file** `frontend/public/91fbd16cdf07709ad236e60bed652c13.txt` (33 B, tracked). ⚠️ **This was
+    first written as an Astro endpoint and then deliberately reverted.** A static
+    build cannot return a real 404 from an endpoint, so with the key unset Astro
+    still wrote the file — as **HTTP 200 with the body "Not found"** (verified by
+    serving `dist/` locally). That is a wrong-key 200 which IndexNow rejects with no
+    visible cause, i.e. exactly the silent-failure class this project keeps hitting.
+    A **static asset** has no such state: it exists and matches, or it 404s.
+  - **`scripts/indexnow.mjs`** (`pnpm indexnow`) — discovers the key from the
+    committed file so the file and the ping can never disagree, takes URLs from the
+    built `sitemap.xml`, supports `--dry-run`, and treats anything outside
+    {200, 202} as a failure with the 403 (key file missing/mismatched), 422 (URLs
+    not on the key's host) and 429 (rate limited) meanings printed.
+  - **Verified:** key file builds and serves 200 from a local static server;
+    89-page build; build-output 48/48; `verify:cloudflare` 83/83; links resolve;
+    biome clean; `--dry-run` reports **63 URLs** and sends nothing.
+  - **⛔ NOT ACTIVATED — blocked on the same Actions budget.** The live key URL
+    `https://shikkha24.com/91fbd16cdf07709ad236e60bed652c13.txt` returns **404** because the storefront has not
+    deployed since the budget ran out. The ping cannot succeed until it returns 200.
+    Once deployed, `pnpm indexnow` submits all 63 URLs (see O-9).
 - **Part B — search-engine registration, guided click-by-click for the owner:**
   Google Search Console (domain property; I produce the exact TXT record, owner
   pastes it in the Cloudflare DNS screen), sitemap submission, key-page indexing
