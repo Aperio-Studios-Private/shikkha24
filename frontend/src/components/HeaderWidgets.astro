@@ -158,6 +158,23 @@ const { showWeather = true, showPrayer = true } = Astro.props
    */
   const ALADHAN_METHOD = 15
 
+  /**
+   * Asr school: **1 = Hanafi**, the school Bangladesh follows.
+   *
+   * ⚠️ **Aladhan silently defaults to Shafi'i Asr when this is omitted — and it
+   * accepts the parameter while ignoring it in `meta`, so the mistake is
+   * invisible from the response.** Omitting it made every Asr time on the site
+   * **5–6 minutes early** (measured across all five header cities in October:
+   * ঢাকা 5.8, সিলেট 5.9, চট্টগ্রাম 5.3, রংপুর 6.2, বরিশাল 5.0). Shafi'i Asr uses a
+   * 1:1 shadow ratio against Hanafi's 2:1, so the gap widens further in summer.
+   *
+   * Asr is the **only** time this affects — Fajr/Isha follow `method` alone.
+   * `scripts/verify-prayer-times.mjs` computes Hanafi Asr independently from NOAA
+   * solar position and asserts the API agrees within 2 minutes, which is what
+   * caught this; without `school` it fails on all five cities.
+   */
+  const ALADHAN_SCHOOL = 1
+
   const toBn = (v: string | number) =>
     String(v).replace(/\d/g, (d) => '০১২৩৪৫৬৭৮৯'[Number(d)]!)
 
@@ -196,7 +213,8 @@ const { showWeather = true, showPrayer = true } = Astro.props
     try {
       const url =
         `https://api.aladhan.com/v1/timings/${ddmmyyyy(date)}` +
-        `?latitude=${lat}&longitude=${lon}&method=${ALADHAN_METHOD}`
+        `?latitude=${lat}&longitude=${lon}&method=${ALADHAN_METHOD}` +
+        `&school=${ALADHAN_SCHOOL}`
       const response = await fetch(url, { signal: AbortSignal.timeout(5000) })
       if (!response.ok) return null
       const body = await response.json()

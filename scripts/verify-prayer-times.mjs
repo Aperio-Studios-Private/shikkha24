@@ -115,7 +115,16 @@ function asrMinutes(lat, lon, date, hanafi) {
   // Required altitude for the target shadow ratio. Note tan(alt) = 1/shadow,
   // and the altitude must go through sin() before the hour-angle solve — using
   // 1/shadow directly as a sine inflates the result badly.
-  const targetShadow = 1 + (hanafi ? noonShadow : 0)
+  //
+  // ⚠️ The ratio is the *multiplier on the object's own shadow*, and it must be
+  // 2 for Hanafi and 1 for Shafi'i: Hanafi Asr is when an object's shadow is
+  // twice its height **plus** the noon shadow, Shafi'i when it is once its
+  // height plus the noon shadow. This read `1 + (hanafi ? noonShadow : 0)`,
+  // which is the Shafi'i shadow in *both* branches — so the Hanafi expectation
+  // was ~45 min early and the check failed on every city. Verified against the
+  // API: with the corrected ratio, 21 Dec (Dhaka) matches Aladhan's
+  // `school=1` Hanafi value exactly at 15:40.
+  const targetShadow = (hanafi ? 2 : 1) + noonShadow
   const sinAlt = Math.sin(Math.atan(1 / targetShadow))
 
   const cosH = (sinAlt - Math.sin(phi) * Math.sin(decl)) / (Math.cos(phi) * Math.cos(decl))
@@ -134,13 +143,24 @@ function dayOfYear(date) {
   )
 }
 
+/**
+ * The Asr school: 1 = Hanafi, which Bangladesh follows and which the storefront
+ * must request. **This file originally omitted it, so the check reproduced the
+ * very bug it exists to catch** — it asked for the same Shafi'i default the
+ * component did and then compared that against a Hanafi expectation, failing on
+ * all five cities. The drift it reported was real; the request was not.
+ *
+ * Keep in step with `ALADHAN_SCHOOL` in `HeaderWidgets.astro`.
+ */
+const SCHOOL_HANAFI = 1
+
 /** One Aladhan timings response. */
 function fetchTimings(date, lat, lon, method) {
   const dd = String(date.getUTCDate()).padStart(2, '0')
   const mm = String(date.getUTCMonth() + 1).padStart(2, '0')
   const url =
     `https://api.aladhan.com/v1/timings/${dd}-${mm}-${date.getUTCFullYear()}` +
-    `?latitude=${lat}&longitude=${lon}&method=${method}`
+    `?latitude=${lat}&longitude=${lon}&method=${method}&school=${SCHOOL_HANAFI}`
   const raw = execFileSync('curl', ['-s', '--max-time', '15', url], {
     encoding: 'utf8',
     maxBuffer: 8 * 1024 * 1024,
@@ -186,18 +206,18 @@ for (const city of CITIES) {
   // 2. Asr must match an independent Hanafi computation. meta.school cannot be
   //    trusted here: it reports STANDARD while serving Hanafi.
   for (const [label, date] of seasons) {
+    // ⚠️ Both sides must use the SAME date. This compared `data.timings.Asr` —
+    // fetched for **today** at the top of the loop — against an independently
+    // computed Asr for **5 October**, so the "October" check was really an
+    // 11-day mismatch once today drifted past the 5th. It showed up as a
+    // stubborn ~8 min drift that no formula could explain. Every season now
+    // fetches the date it is going to compute.
     let apiAsr
-    if (label === 'October') {
-      apiAsr = toMinutes(data.timings.Asr)
-    } else {
-      try {
-        apiAsr = toMinutes(
-          fetchTimings(date, city.lat, city.lon, EXPECTED_METHOD_INDEX).timings.Asr,
-        )
-      } catch {
-        notes.push(`${city.name}: December lookup failed, Asr not cross-checked`)
-        continue
-      }
+    try {
+      apiAsr = toMinutes(fetchTimings(date, city.lat, city.lon, EXPECTED_METHOD_INDEX).timings.Asr)
+    } catch {
+      notes.push(`${city.name}: ${label} lookup failed, Asr not cross-checked`)
+      continue
     }
     const computed = asrMinutes(city.lat, city.lon, date, true)
     if (apiAsr === null || computed === null) {
