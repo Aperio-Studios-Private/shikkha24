@@ -1,5 +1,72 @@
 # SPS Handoff
 
+## 2026-10-16 (round 11) — T-20 security audit COMPLETE: 5 findings, all fixed
+
+Full audit at ref `8f3326d` under the installed `security-audit-skill`, profile
+`standard`. **2 high, 3 medium, 0 critical** — all fixed and gate-covered.
+Artifacts: `~/security-audit-skill/NewsPortal/run-1/`.
+
+| # | Sev | Finding | Fix |
+|---|---|---|---|
+| 1 | **high** | Command injection in `host-health.yml` | `7ab0b0b` |
+| 2 | **high** | `Pages` drafts readable anonymously | `7ab0b0b` |
+| 3 | medium | Unauthenticated `POST /run-tick` could spend Actions builds | `bdccf53` |
+| 4 | medium | Reporter blood group served on a public PNG | `7ab0b0b` |
+| 5 | medium | Five collections filtered `isActive` only in the frontend | `7ab0b0b` |
+
+### The systemic finding is the one to carry forward
+
+Finding 5 is a **repeat of `ResultLinks`** — and the reason it repeated matters more
+than the bug: **`verify:result-links` existed but was never in the CI loop.** The gate
+written to prevent that exact pattern was itself never enforced, so the pattern came
+back in five more collections, unnoticed, with every other gate green.
+
+**A gate that is not wired into CI is documentation, not a gate.** If you add a
+verifier, add it to the loop at `ci.yml:337` in the same commit — that list is now 14
+long (`result-links` and the new `public-read` both joined it).
+
+### Two things I nearly got wrong, recorded because the method is the lesson
+
+**The injection was almost missed by my own testing.** The array-literal contexts in
+`host-health.yml` are *not* exploitable — `;` is a syntax error inside `(...)` — so my
+first two payloads silently did nothing and the file looked clean. Only testing the
+`[ ... ]` and `<<<` guard contexts, which are plain commands rather than array
+elements, showed `id` executing. **A negative result from one context says nothing
+about another context in the same file.**
+
+**A hunter's "medium, low confidence" resolved to nothing once checked.** The
+`dompurify` concern (two versions in `.pnpm`) dissolved on inspection: the lockfile
+resolves `3.4.17` everywhere and the `3.4.8` directory is an orphaned store leftover
+with nothing linking to it. Their other two — the `host-health` read surface and the
+untested `deploy-cloudflare` mode logic — were correctly hedged and correctly not
+inflated.
+
+### What the audit found sound (so the next pass does not re-spend effort)
+
+No `pull_request_target`/`workflow_run` anywhere; no `github.event.*` script injection
+(every remaining input expression is in an `env:` mapping); secrets never on argv or
+echoed; least-privilege tokens throughout; no SSRF; no hand-built SQL; Worker path
+traversal structurally impossible; `dompurify` override fully applied.
+
+**The CMS auth surface produced ZERO new findings** across a dedicated hunter pass — it
+is genuinely hardened, and much of it is hardened *because* prior audits closed the
+exact bugs a hunter would otherwise report (the XFF leftmost bug, the reader-id
+collision, the newsletter double-opt-in bypass, host-header reset poisoning).
+
+### Left open honestly, never asserted
+
+`NEEDS-VALIDATION.md` carries: Passenger worker count vs the in-process rate limiter;
+whether the physical press card is *meant* to carry the blood group (an owner call —
+the code comments disagree with each other); and GitHub's exact error-body wording.
+**N2 was resolved during the audit** — the sanitizer runs at `ci.yml:624` and the
+artifact upload is a later separate step at `:640`, so the bundle does not carry the
+secret. Checking the order settled it; assuming either way would not have.
+
+⚠️ **The skill's "do not probe deployed endpoints" rule was load-bearing, not
+ceremonial.** Probing the publish watcher would have spent a GitHub Actions build per
+request, from a budget that is already exhausted. An audit that ignored the rule would
+have turned itself into an outage.
+
 ## 2026-10-16 (round 10) — T-24 TARGET MET: all templates ≥95
 
 | template | before | after |
