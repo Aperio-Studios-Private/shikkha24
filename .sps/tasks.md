@@ -2142,7 +2142,24 @@ not know about it.
   `?limit=50&depth=0` and sort client-side.
 
 ### T-11 — 🔴 deploy.yml can publish a build that CI rejected
-- **Status:** `in progress` · started 2026-10-11
+- **Status:** ✅ **CONTROL BUILT, DEPLOYED AND OBSERVED WORKING 2026-10-16.** The metric
+  below is met: a push whose CI fails produces zero archive uploads to the host, seen
+  live on run 38138306945 (CI `failure` for `5b441e3` → gate refused → **0** build or
+  upload steps). `scripts/verify-workflows.mjs` also enforces the gate's ordering, and
+  that enforcement was **repaired today — see M32 below, it was not working.**
+- ⚠️ **M32 — the check that guards the gate was blind, and only a negative control
+  found it (fixed `e8be2a0`).** The ordering check's pattern listed the underlying
+  *tools* (`next build`, `astro build`, `payload migrate`) but `deploy.yml` invokes
+  none of them literally — it runs `pnpm run build:frontend`, `pnpm run build:cms` and
+  `node scripts/deploy-cms.mjs`. So the check **matched nothing and passed anyway**.
+  A step doing `pnpm run build:frontend` placed directly above the gate went
+  **unflagged**, i.e. the guard reported success on the exact violation it exists to
+  catch — the same silent-failure shape as M29 that its own comment cites as its
+  reason for existing. Fixed by naming the scripts (`\bbuild\b`, `\bbuild:`) rather
+  than their binaries; verified against four previously-slipping payloads, all now
+  caught, clean tree still green. **No workflow file changed.**
+  **Lesson: a guard nobody has tried to defeat is not known to work.** Reading this
+  check would never have revealed it — the regex looks entirely reasonable.
 - **Measured, not inferred.** `grep -n 'workflow_run|needs:.*ci' .github/workflows/deploy.yml`
   returns nothing. Deploy triggers on `push`/`workflow_dispatch` and never waits on
   CI. **Two builds reached the host today carrying code that did not do what it claimed.**
