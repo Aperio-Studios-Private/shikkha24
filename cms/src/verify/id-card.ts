@@ -176,7 +176,15 @@ await withAuthor(async (author) => {
    * the edge" guard, not a pixel-perfect layout assertion.
    */
   const geo = await textBounds(a)
-  const minMargin = Math.round(1200 * 0.03) // 36 px at 1200
+  /*
+   * ⚠️ **This bound used to be `1200 * 0.03` = 36 px, and that is why a real
+   * overflow shipped.** The layout declares `MARGIN = 64`, but 36 is lenient
+   * enough that text touching the edge passes: the live card measured a **61 px**
+   * left gap and a **60 px** right gap — visibly cramped, and comfortably inside a
+   * 36 px threshold. A gate must assert the margin the layout *promises*, not a
+   * generous fraction of it, or it certifies exactly the defect it exists to catch.
+   */
+  const minMargin = 64
   check(
     'the photocard keeps clear space at the top edge',
     geo.firstRow >= minMargin,
@@ -191,6 +199,22 @@ await withAuthor(async (author) => {
     'the photocard left/right margins are clear',
     geo.firstCol >= minMargin && geo.lastCol <= 1200 - minMargin,
     `x ${geo.firstCol}..${geo.lastCol}, need ${minMargin}..${1200 - minMargin}`,
+  )
+
+  /*
+   * ⚠️ **Symmetry, which nothing checked before.** The card used to place its
+   * elements at hard-coded offsets — the wordmark 600 px from the left, the date
+   * 520 px ending at `W - MARGIN`, the QR overlapping both. Text could therefore sit
+   * *inside* a 64 px margin and still be visibly off-centre or overlapping, which is
+   * the "text goes outside the card" the owner reported. Equal side gaps are the
+   * property that actually fails when an offset is guessed rather than measured.
+   */
+  const leftGap = geo.firstCol
+  const rightGap = 1200 - 1 - geo.lastCol
+  check(
+    'the photocard text is centred (left and right gaps match)',
+    Math.abs(leftGap - rightGap) <= 12,
+    `left gap ${leftGap}px vs right gap ${rightGap}px, need within 12px`,
   )
 
   // A headline that overflows its budget is clipped at a known boundary, so the

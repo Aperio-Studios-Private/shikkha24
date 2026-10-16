@@ -114,17 +114,68 @@ function escapeMarkup(value: string): string {
  * returned `height`: it is the PNG's real height, so the next element can be
  * placed below it rather than at a guessed fixed offset.
  */
+/**
+ * Resolve the font file for a weight, falling back to the other weight.
+ *
+ * ⚠️ **This is the whole reason Bengali renders at all, and it used to be silent
+ * when it failed.** The previous line was:
+ *
+ * ```ts
+ * fontfile: existsSync(file) ? file : fontPath(),
+ * ```
+ *
+ * When nothing was found `fontPath()` returns `''`, so this passed
+ * **`fontfile: ''`** — and sharp rejects an empty string with
+ * *"Expected string for text.fontfile but received of type string"*. Depending on
+ * the caller that surfaces as a 500 or as a caught-and-ignored failure. Worse, the
+ * `fontPath()` fallback pointed at the **400** file even when the **700** weight
+ * was requested, so a bold headline silently rendered in regular.
+ *
+ * Now the 400 weight is a genuine fallback for a missing 700, and `null` means
+ * "no Bengali font anywhere" — which `textLayer` turns into an explicit throw
+ * rather than a card full of missing-glyph boxes.
+ *
+ * 🔍 **Why a missing font produces `09 09 09` / `B8 B0 95 BE B0 BF`, not an
+ * error.** With no Bengali face available, Pango/fontconfig falls back to a
+ * Latin-only system font, which has no Bengali glyphs. It draws each character as
+ * its **glyph index** in a box instead of failing. The reader sees exactly the
+ * hexadecimal-looking sequences the owner reported. **A font problem here never
+ * announces itself — it renders rubbish and returns HTTP 200.**
+ *
+ * @param weight the requested weight; anything but 700 resolves to 400.
+ * @returns an absolute path, or `null` when no Bengali font exists on disk.
+ */
+function fontFileFor(weight?: number): string | null {
+  const preferred = weight === 700 ? 'solaimanlipi-700.woff2' : 'solaimanlipi-400.woff2'
+  const fallback = 'solaimanlipi-400.woff2'
+  const dir = path.dirname(fontPath())
+  if (!fontPath()) return null
+  for (const name of new Set([preferred, fallback])) {
+    const candidate = path.resolve(dir, name)
+    if (existsSync(candidate)) return candidate
+  }
+  return null
+}
+
 async function textLayer(
   value: string,
   opts: { size: number; color: string; width: number; weight?: number; maxHeight?: number },
 ): Promise<Buffer> {
-  const family = opts.weight === 700 ? 'solaimanlipi-700.woff2' : 'solaimanlipi-400.woff2'
-  const file = path.resolve(path.dirname(fontPath()), family)
+  const file = fontFileFor(opts.weight)
+  if (!file) {
+    // Fail loudly. The alternative is a photocard that renders glyph indices and
+    // still returns 200, which is far harder to notice than an error.
+    throw new Error(
+      `No Bengali font found for the photocard renderer. Looked for ${FONT_FILE} ` +
+        `under ${['fonts', path.join('..', 'assets', 'fonts', 'vendor')].join(' and ')}. ` +
+        `The deploy must copy the vendored font into place before the card is rendered.`,
+    )
+  }
   const markup = `<span foreground="${opts.color}">${escapeMarkup(value)}</span>`
   return sharp({
     text: {
       text: markup,
-      fontfile: existsSync(file) ? file : fontPath(),
+      fontfile: file,
       font: `SolaimanLipi ${opts.size}`,
       width: opts.width,
       // `undefined` lets sharp size the canvas to the wrapped text, which is what
@@ -142,6 +193,49 @@ async function textLayer(
 async function layerHeight(layer: Buffer): Promise<number> {
   const { info } = await sharp(layer).toBuffer({ resolveWithObject: true })
   return info.height
+}
+
+/** The real pixel size of a rendered layer, for centring and collision checks. */
+async function layerSize(layer: Buffer): Promise<{ width: number; height: number }> {
+  const { info } = await sharp(layer).toBuffer({ resolveWithObject: true })
+  return { width: info.width, height: info.height }
+}
+
+/**
+ * The `left` that centres a layer inside the safe area.
+ *
+ * ## Why this exists
+ *
+ * Every card element used to be positioned at a **hard-coded** offset — the
+ * headline and wordmark at `left: MARGIN`, the date at `W - 520 - MARGIN`, the QR
+ * at `W - QR - MARGIN`. Those numbers only work if each layer happens to be
+ * *exactly* the width the layout assumed, and sharp sizes a text layer to its
+ * real rendered width. A headline one pixel wider than its budget, or a 600px
+ * wordmark next to a 520px date on the same line, pushed text under the QR or off
+ * the canvas — with no error, because compositing happily draws outside the frame.
+ *
+ * Measured on the live card before this helper existed: both text blocks sat at
+ * a **61px** left gap against a declared 64px margin, and the footer's right gap
+ * was **60px** — the text was touching the edges.
+ *
+ * Centring by **measured** width removes the assumption entirely: an element can
+ * never be positioned past its own extent, whatever the font, size or string.
+ *
+ * ⚠️ **Pango has no usable `align` attribute here** — `<span align="center">` is
+ * rejected as invalid markup by sharp, so the offset has to be computed by hand
+ * rather than delegated to the text engine.
+ *
+ * @param layer the rendered layer, measured for its true width.
+ * @param canvasWidth the full card width.
+ * @param margin clear space to keep on each side.
+ * @returns the `left` offset, never less than `margin`.
+ */
+async function centreLeft(layer: Buffer, canvasWidth: number, margin: number): Promise<number> {
+  const { width } = await layerSize(layer)
+  const available = canvasWidth - margin * 2
+  // `Math.max(margin, …)` keeps the floor even if a layer somehow exceeds the
+  // safe area, so an over-wide element cannot be pushed off the left edge.
+  return margin + Math.max(0, Math.round((available - width) / 2))
 }
 
 /** A solid rectangle, for header bands and chips. */
@@ -432,52 +526,86 @@ export async function composePhotocard(article: PhotocardArticle): Promise<Buffe
 
   // ── Footer block, measured first so the headline knows its budget ──────────
   //
-  // The QR is the tallest footer element, so it anchors the block: the footer
-  // starts at the QR top and the wordmark/date baseline-align with its lower half.
+  // ⚠️ **The footer used to place THREE elements on one line at hard-coded
+  // offsets, and they collided.** The wordmark was 600px wide starting at
+  // `MARGIN`, so it ended at 664; the date was placed at `W - 520 - MARGIN` = 616,
+  // so it *began 48px before the wordmark ended* and ran to 1136 — straight
+  // through the QR, which starts at 966. Two elements drawing over each other is
+  // exactly the "text goes outside the card" the owner reported.
+  //
+  // The QR now owns a reserved column on the right, and the wordmark + date share
+  // a single centred column in the space that is genuinely left over. Nothing is
+  // positioned by a guessed width any more.
   const QR = 170
   const footerTop = H - MARGIN - QR
+  /** Space the QR reserves, plus a gap, so text can never reach into it. */
+  const QR_COLUMN = QR + GAP
+
   const wordmark = await textLayer(article.siteName, {
     size: 40,
     color: WHITE,
-    width: 600,
+    width: W - MARGIN * 2 - QR_COLUMN,
     weight: 700,
   })
-  const wordmarkH = await layerHeight(wordmark)
-  const wordmarkTop = footerTop + QR - wordmarkH
+  const wordmarkSize = await layerSize(wordmark)
 
-  let dateTop = wordmarkTop
   let dateLayer: Buffer | null = null
   if (article.publishedAt) {
     const date = formatBnBd(article.publishedAt, { day: 'numeric', month: 'long', year: 'numeric' })
-    dateLayer = await textLayer(date, { size: 32, color: '#CCCCCC', width: 520 })
-    dateTop = footerTop + QR - (await layerHeight(dateLayer))
+    dateLayer = await textLayer(date, {
+      size: 32,
+      color: '#CCCCCC',
+      width: W - MARGIN * 2 - QR_COLUMN,
+    })
   }
 
-  layers.push({ input: wordmark, left: MARGIN, top: wordmarkTop })
-  if (dateLayer) layers.push({ input: dateLayer, left: W - 520 - MARGIN, top: dateTop })
+  // QR occupies the reserved right column, top-aligned with the footer band.
+  const qr = await qrLayer(article.canonicalUrl, QR)
+  layers.push({ input: qr, left: W - MARGIN - QR, top: footerTop })
+
+  // Wordmark and date stack, centred within the text column to the QR's left.
+  const textColumn = W - MARGIN * 2 - QR_COLUMN
+  const dateSize = dateLayer ? await layerSize(dateLayer) : { width: 0, height: 0 }
+  const stackH = wordmarkSize.height + (dateLayer ? GAP / 2 + dateSize.height : 0)
+  const stackTop = footerTop + Math.max(0, Math.round((QR - stackH) / 2))
+
   layers.push({
-    input: await qrLayer(article.canonicalUrl, QR),
-    left: W - QR - MARGIN,
-    top: footerTop,
+    input: wordmark,
+    left: MARGIN + Math.max(0, Math.round((textColumn - wordmarkSize.width) / 2)),
+    top: stackTop,
   })
+  if (dateLayer) {
+    layers.push({
+      input: dateLayer,
+      left: MARGIN + Math.max(0, Math.round((textColumn - dateSize.width) / 2)),
+      top: stackTop + wordmarkSize.height + GAP / 2,
+    })
+  }
 
   // ── Category chip ──────────────────────────────────────────────────────────
+  //
+  // The chip used to be a fixed 700px bar at `left: MARGIN` regardless of how long
+  // its label was, so a short category left a wide empty slab and a long one had no
+  // breathing room. It is now sized to its own measured label plus padding, and
+  // centred.
   const chipH = 56
+  const CHIP_PAD_X = 34
   let cursor = MARGIN
   if (article.categoryName) {
     const chipText = await textLayer(article.categoryName, {
       size: 30,
       color: WHITE,
-      width: 700,
+      width: W - MARGIN * 2,
       weight: 700,
     })
-    layers.push({ input: await rectLayer(700, chipH, BRAND_RED), left: MARGIN, top: cursor })
-    // Centre the label in the chip rather than guessing a fixed offset.
-    const chipTextH = await layerHeight(chipText)
+    const chipTextSize = await layerSize(chipText)
+    const chipW = chipTextSize.width + CHIP_PAD_X * 2
+    const chipLeft = MARGIN + Math.max(0, Math.round((W - MARGIN * 2 - chipW) / 2))
+    layers.push({ input: await rectLayer(chipW, chipH, BRAND_RED), left: chipLeft, top: cursor })
     layers.push({
       input: chipText,
-      left: MARGIN + 18,
-      top: cursor + Math.round((chipH - chipTextH) / 2),
+      left: chipLeft + CHIP_PAD_X,
+      top: cursor + Math.round((chipH - chipTextSize.height) / 2),
     })
     cursor += chipH + 34
   }
@@ -497,10 +625,11 @@ export async function composePhotocard(article: PhotocardArticle): Promise<Buffe
   })
   const headlineH = await layerHeight(headline)
   // Bottom-align short headlines against the gap so the block reads as one unit
-  // instead of leaving a hole above the footer.
+  // instead of leaving a hole above the footer, and centre the block so its
+  // measured width always sits inside the margin.
   layers.push({
     input: headline,
-    left: MARGIN,
+    left: await centreLeft(headline, W, MARGIN),
     top: cursor + Math.max(0, headlineBudget - headlineH),
   })
 
