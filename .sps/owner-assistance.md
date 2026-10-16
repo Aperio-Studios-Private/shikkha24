@@ -120,6 +120,130 @@ All six covers are now in the CMS (media ids **10–15**), attached to their art
 `চিত্র: AI` credit. All six serve 200 and appear across 6–7 pages in a fresh build,
 including `og:image` for social sharing. **T-23 is complete.**
 
+### O-10. Three CMS security hardening fixes are waiting on the same deploy
+No action beyond O-7's Actions budget / O-5's CMS deploy — recorded so they are not
+forgotten, because they are the kind of thing that is easy to lose track of.
+
+Found while doing T-20 groundwork (I had CMS admin credentials in `cms/.env.local`,
+so I could probe the live CMS properly rather than only from outside):
+
+| Fix | What it stops | Commit |
+|---|---|---|
+| Pin `serverURL` in the Payload config | The live CMS answered `GET /api/payload-migrations` with `Cannot GET https://0.0.0.0:3000/...` — it was leaking its **internal port** to anonymous callers, and building absolute URLs from whatever `Host` header arrived (the precondition for host-header poisoning) | `f535bac` |
+| `poweredByHeader: false` | `X-Powered-By: Next.js, Payload` was advertising your exact framework and CMS versions to anyone who asked, which tells an attacker which known exploits to try | `ef37cd4` |
+| Override `dompurify` 3.4.8 → 3.4.17 | Cleared 3 security advisories (13 → 8 total). Monaco pins that exact version, so no normal update could ever fix it | `0ce0ab5` |
+
+**What I checked and found sound** (no action needed):
+- Security headers on both the CMS and the site are strong — HSTS with preload,
+  `nosniff`, `X-Frame-Options: DENY`, `frame-ancestors 'none'`, a tight
+  Permissions-Policy, and a CSP with `object-src 'none'` / `base-uri 'self'`.
+- **Login brute-force protection works**: 5 wrong passwords locks the endpoint
+  (429) and it stayed locked when I re-checked.
+- **No user enumeration** — a non-existent email gives the same generic error as a
+  real one, so attackers cannot discover which accounts exist.
+- Admin sessions expire after **2 hours**, and the JWT uses HS256 properly.
+- `/api/users` and `/api/payload-preferences` both correctly return **403** to the
+  public.
+- The 4 remaining "ignored" high advisories have **no fix published upstream** — I
+  checked each one, so none is a stale suppression hiding a real problem.
+
+### O-9. Bing Webmaster Tools + turning on IndexNow (5 minutes, after the deploy)
+Two small things, both blocked behind O-7's Actions budget because the key file has
+to be live first.
+
+**Step 1 — verify Bing Webmaster Tools (once).**
+1. Go to <https://www.bing.com/webmasters> and sign in with the same Google account
+   you used for Search Console.
+2. Choose **"Import from Google Search Console"** — Bing copies your verified sites,
+   sitemaps and settings. Accept the permissions it asks for.
+3. It should show `shikkha24.com` as verified. If it does not, tell me and I will
+   produce the exact DNS TXT record for you to paste, the same way we did GSC.
+
+**Step 2 — turn on instant indexing (once the storefront has deployed).**
+The key file is committed at `frontend/public/91fbd16cdf07709ad236e60bed652c13.txt`. Check it is live:
+open <https://shikkha24.com/91fbd16cdf07709ad236e60bed652c13.txt> — it must show exactly this one line:
+```
+91fbd16cdf07709ad236e60bed652c13
+```
+If it shows a 404, the storefront has not deployed yet (O-7); tell me and I will
+re-check. Once it shows the key, run:
+```
+pnpm indexnow
+```
+That submits all 63 URLs from the sitemap to Bing, Yandex, Seznam and Naver in one
+call. It prints `OK HTTP 200` (or `202`) on success, and a plain-English reason on
+failure. You can preview without sending anything using `pnpm indexnow -- --dry-run`.
+
+**Why this is worth doing:** without it, Bing finds new articles on its own schedule
+— often days. With it, a story is re-crawled within minutes, which is the difference
+between a breaking story being current and being stale. It is free and needs no card.
+
+### O-8. Four CMS collections are empty — sections of the site are blank
+Not urgent, and **not a bug** — the code is correct, there is simply no content yet.
+Found while fixing a verifier that was reporting the empty state as a failure
+(commit `eddaf5d`). The live CMS returns `totalDocs = 0` for:
+
+| Collection | What readers see now |
+|---|---|
+| `scholarships` | scholarship listings have nothing to show |
+| `result-links` | exam-results quick links are empty |
+| `circulars` | circular listings are empty |
+| `deadlines` | the deadline tracker is empty |
+
+Everything else is populated and in sync: **articles 6/6, categories 8/8,
+study-abroad 8/8, institutions 6/6**.
+
+**What I need from you:** nothing technical — just tell me whether you want me to
+seed these from public sources (the way the earlier sections were seeded), or whether
+you would rather add them yourself in the CMS. The pages, schemas and verifiers are
+already in place, so either way is quick. I have not invented any entries.
+
+### O-7. Nothing — FYI: two live SEO/UX fixes are committed but not deployed
+Not an action for you beyond O-1's Actions budget. For completeness, these are
+**committed, gate-verified, and waiting on a deploy**:
+- **Prayer Asr was 5–6 minutes early** — the widget never sent `school=1`, so
+  Aladhan defaulted to Shafi'i while Bangladesh follows Hanafi. Fixed; verified the
+  request now returns `meta.school = HANAFI` (Dhaka 20 Oct: 15:52, was 15:02).
+- **Every article's `NewsArticle` schema was missing `image`**, which Google News
+  requires. Fixed to reuse the same working photocard URL as `og:image`; verified on
+  a deploy-equivalent build that all 6 articles now emit
+  `https://cms.shikkha24.com/api/photocard/NN.png` (that endpoint returns 200).
+- Plus the T-24 performance work (render blocking eliminated; `styleLayout`
+  2,454 ms → 227 ms).
+
+All three ship with the same re-run once Actions works, or with a local
+`wrangler deploy` if you approve that (see the URGENT section).
+
+## 🟡 Decisions / small actions
+
+### ⚠️ O-11. The live site shows the wrong Asr time (fix is ready, needs the deploy)
+**A live correctness bug on a religious feature, not a cosmetic one.**
+
+Bangladesh follows the **Hanafi** Asr (2:1 shadow). Our code asks Aladhan for Hanafi,
+but **production still runs the bundle from before that fix** — the live JavaScript
+builds `…&method=${b}` and stops, sending no `&school=` at all, so Aladhan falls back
+to **Shafi'i**.
+
+Measured for Dhaka today:
+
+| | Asr |
+|---|---|
+| **Live now** (Shafi'i, the wrong default) | **15:04** |
+| **Correct** (Hanafi) | **15:55** |
+
+**Asr is displayed 51 minutes early.** The gap is widest in autumn and narrows in
+summer; Asr is the only affected time.
+
+- **The fix is committed** (`a833434`) and verified — it has simply never reached the
+  server, the same **Actions budget** blocker as O-7.
+- **Why nothing caught it:** every check in `verify:prayer-times` read either the
+  source constant or the live API, and **neither can see a stale deploy**. I added a
+  built-artifact check that reads the emitted JavaScript, and **proved it works by
+  negative control** — stripping `school=` from the bundle makes it fail with exactly
+  the production symptom.
+- **Nothing for you to do beyond the deploy.** Recorded because a wrong prayer time is
+  the kind of thing a reader notices and quietly stops trusting the site over.
+
 ### O-3. Rotate the CMS password
 You said you would rotate it after the publishing task. **The publishing task is
 done** (6 articles live). The credentials you pasted are in this chat's history and
