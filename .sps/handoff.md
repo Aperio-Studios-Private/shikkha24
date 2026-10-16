@@ -1,5 +1,67 @@
 # SPS Handoff
 
+## 2026-10-16 (round 15) — two parked tasks resolved, and a guard that was guarding nothing
+
+The five named tasks were already closed, so this round went at the older parked items.
+Two turned out not to be what their entries said.
+
+### T-11 CLOSED — the automation-gate works; but the check guarding it did not (M32)
+
+T-11's control is **built, deployed and observed working**: run 38138306945 had CI fail
+for `5b441e3`, the gate refused, and the job reached **0** build/upload steps. It is the
+first step in `deploy.yml`, above `pnpm install`, with a dispatch-only `skip-ci-gate`.
+
+But the check that enforces its *ordering* — `verify-workflows.mjs` — **was blind, and
+only a negative control found it.** Its pattern listed the underlying tools:
+
+```
+/next build|astro build|deploy-cms|deploy-frontend|payload migrate|migrate:create/
+```
+
+`deploy.yml` invokes **none of those literally**. It runs `pnpm run build:frontend`,
+`pnpm run build:cms` and `node scripts/deploy-cms.mjs`. So the check matched nothing and
+passed anyway. A step doing `pnpm run build:frontend` placed directly above the gate went
+**unflagged** — the guard reported success on the exact violation it exists to catch.
+
+That is M29's shape again, which is what the check's own comment cites as its reason for
+existing. Fixed in `e8be2a0` by naming the scripts (`\bbuild\b`, `\bbuild:`), verified
+against four previously-slipping payloads, all now caught, clean tree still green.
+
+⚠️ **A guard nobody has tried to defeat is not known to work.** Reading that regex, it
+looks entirely reasonable — a list of every build tool in the stack. The only reason we
+know it was useless is that a deliberate attempt to slip past it succeeded.
+
+### T-06 CLOSED — hypothesis tested and DISPROVEN
+
+The entry claimed the migration gate passes when a field is missing from both the
+snapshot and the database, and carried a 🔴 systemic marker. **Ran the stated metric
+instead of reasoning about it**: added a throwaway `text` field to `Pages`. The gate
+**went red** with the intended message naming the generated migration.
+
+The hypothesis was wrong about the mechanism: the gate diffs the config against the
+newest committed **`.json` snapshot**, and the snapshot is taken *before* generating, so
+the comparison never consults the database. "Missing from both" cannot make it pass.
+
+Also verified the failing run leaves **no stray migration files**, and that `roles` has
+its own migration (`20261010_120000_users_roles.ts`) — so the original motivating case is
+closed too. **No code change was needed.**
+
+### T-17, T-18, T-27 — checked, correctly parked
+
+- **T-17**: the claim holds. `cms/src/lib/rebuild-trigger.ts:84` is `if (!WEBHOOK_URL) return`,
+  so it is genuinely inert, and it tells the admin so in Bengali (line 131). Gates
+  `verify:rebuild` + `verify:rebuild-notice` pass. Owner-side: confirm `tar` on the host
+  and install the cron.
+- **T-18**: awaits owner answers by design — recorded, not started.
+- **T-27**: accurate and correctly low-priority. The root cause is this machine's
+  **Node v26.10.0** against a pinned **24**; CI and both deploy workflows all call
+  `pnpm run build:frontend`, never bare `npx astro build`, so production is unaffected.
+  Our build succeeded 3× this session at 89 pages each.
+
+**All 13 gates green:** build-output, links, search-init, cloudflare, workflows,
+prayer-times, apache, cms-bundle, access, result-links, public-read, rebuild,
+rebuild-notice.
+
 ## 2026-10-16 (round 14) — T-24 confirmed met, and the measuring instrument is now in the repo
 
 **T-24 target met.** Final build through a Brotli-compressing server: **perf 97 / 98 /
