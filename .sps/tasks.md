@@ -418,6 +418,37 @@ not know about it.
   Verified live in production CSS: `--color-ink-subtle:#707070`,
   `--color-brand-red-on-tint:#c4161e`, `--color-brand-red-on-tint-dark:#f87171`,
   share buttons `#075e54`/`#166fe5`. CI + Deploy both green.
+- **IMPROVED 2026-10-16 (commit `3850f87`) — article template 91 → 93.**
+  The article was the weakest template at *perf 91 / FCP 2.25 s / LCP 3.15 s* while
+  `styleLayout` was only **239 ms**, so the cost was not main-thread CSS work.
+  Decomposing the network gave the reason: it loaded **two render-blocking
+  stylesheets** where the homepage loads one — the shared 47 KB `Layout` sheet plus a
+  per-page `_slug_` sheet of **7,897 B**, which sat just over the 4 KB inline ceiling
+  and so stayed a round trip (**7 pages** were affected).
+  - **Fix:** ceiling 4 KB → **8 KB**. The `_slug_` sheet inlines; the shared sheet
+    stays external and cached, still under the ~14 KB round-trip break-even.
+  - **Measured (median of 3, mobile simulate):**
+
+    | template | before | after |
+    |---|---|---|
+    | article | 91 · FCP 2.25 s · LCP 3.15 s | **93 · FCP 2.10 s · LCP 3.00 s** |
+    | `/` | 94 | **94** (unchanged) |
+    | `/latest/` | 96 | **96** (unchanged) |
+    | pages with 2 stylesheets | 7 | **1** |
+
+  - **CSP risk checked rather than assumed:** the predicate still rejects every
+    non-`.css` asset, and all **112 inline `<script>` blocks** in the build are
+    `application/ld+json` — **data, not code** — so `script-src 'self'` with no
+    `unsafe-inline` is untouched. (`style-src` already permits inline.)
+  - **Article LCP element identified:** `h1.font-headline.font-bold` — the *same*
+    Bengali 700-weight font dependency as the homepage, at top 175. Nothing
+    article-specific. The slow third-party calls (`open-meteo` 1,150 ms, `aladhan`
+    1,084 ms) measure **0 ms blocking time** in `third-party-summary` (score 1.0), so
+    they do not gate the paint.
+  - ⚠️ **A regex false alarm I caught:** an initial scan reported "104 large inline
+    scripts", which would have meant a broken CSP. That pattern matched
+    `<script type="application/ld+json">` blocks. Classifying by `type` shows all 112
+    are JSON-LD. **Counting by pattern is not counting by meaning.**
 - **REMAINING — performance ≥95:** measured 93 (`/`), 96 (`/latest/`), 91 (article);
   LCP 2.55–3.16s vs the 1.5s target. `render-blocking-insight` scores 0.5/0.
 - **Counter-proved:** inlining all CSS (`inlineStylesheets: 'always'`, 49 KB inline)
