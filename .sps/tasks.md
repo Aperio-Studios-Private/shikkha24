@@ -641,7 +641,12 @@ not know about it.
   variant all fail identically; the cause is upstream of the application.
 
 ### T-23 — Editorial content seeding, batch 1 (owner requested 2026-10-16)
-- **Status:** 🔴 `in flight` — fact sweep running; articles land as paste-ready drafts.
+- **Status:** ✅ **COMPLETE 2026-10-16.** All six real articles published to the CMS
+  (ids 23–28) and live on the site with covers attached (media ids 10–15, correct
+  Bengali alt text and `চিত্র: AI` credit). Demo articles purged. Covers verified
+  end-to-end in a local build (AVIF + WebP at 412w/800w, real alt, CMS file serves
+  200) — they are absent from the live site **only** because the frontend has not
+  deployed since (O-7). No owner action outstanding.
 - **The owner's ask, adjusted for ethics/safety (agreed framing):** original Bengali
   reporting on REAL public education facts (dates/fees/notices/routines from competitor
   news sitemaps + official/board sources), each citing its source — **no paraphrase
