@@ -263,6 +263,21 @@ not know about it.
   by trusting the build exit code; reverted both times. **The correct fix needs
   proper research into Tailwind 4's `@custom-variant` semantics before another
   attempt** — do not guess at this syntax again.
+- **INVESTIGATED 2026-10-16 — a CSS split has no headroom left.** Measured the
+  composition of `Layout.css` (47,360 B) by layer:
+  | layer | bytes | share |
+  |---|---|---|
+  | `properties` | 1,250 | 3% |
+  | `theme` (tokens) | 2,941 | 6% |
+  | `base` (preflight) | 4,318 | 9% |
+  | `components` | 1,106 | 2% |
+  | **`utilities`** | **33,933** | **72%** |
+  The obvious idea — ship `theme`+`base` first and defer the utilities — dies on
+  **`unused-css-rules` scoring 1.0**: Lighthouse finds no material unused CSS, so the
+  utilities layer is essentially all in use and splitting it removes no bytes, only
+  adds a round trip. Dark-mode rules are only **4,813 B** of the 47 KB, so stripping
+  them would break dark mode for a ~10% byte cut that the ×4-slowdown math says is
+  worth ~100 ms at best. **There is no cheap CSS win left.**
 - **REMAINING — the honest picture:** render blocking is fixed, but LCP is still
   2.55–3.15s. LCP breakdown says **TTFB 451 ms (15 %) + render delay 2,552 ms
   (85 %)**, and the LCP element is a Bengali **card headline** — so the cost is
