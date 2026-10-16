@@ -298,6 +298,28 @@ not know about it.
     is 0 on both. **The apparent regression was my own incomplete baseline.** This
     is the second time this session that a missing baseline nearly produced a false
     finding; always re-measure the old version before blaming the new one.
+- **DONE 2026-10-16 — interactive endpoints behave correctly and fail safely.**
+  Live probes against `cms.shikkha24.com` (all read-only or deliberately-invalid
+  input; nothing was written):
+  - **Read endpoints:** `/api/push/key` → `{"enabled":false,"publicKey":null}`,
+    `/api/oauth/providers` → `{"providers":[]}`, `/api/newsletter/status` →
+    `{"enabled":false,…}`. All **200** with honest feature-gate reporting — a
+    disabled feature says so instead of erroring.
+  - **Validation (400 + Bengali message, no crash):** empty body and a malformed
+    address both give `সঠিক ইমেইল ঠিকানা লিখুন।`; empty `/api/citizen/submit` names
+    every required field.
+  - **Abuse handling:** malformed JSON → **400**; an injection-shaped string
+    (`';DROP TABLE--`) → **400**; oversized bodies were **rate-limited to 429**
+    (`অনেকবার চেষ্টা করা হয়েছে…`) rather than crashing.
+  - **⚠️ No information disclosure:** grepped every error response for stack traces
+    and filesystem paths (`at Object`, `/home/`, `/var/www`, `stack`) — **none**.
+  - **Rate limiting is live and works** — my own probe burst tripped it, which is
+    correct behaviour and also means further probing from one IP is pointless until
+    it resets.
+  ⚠️ **Note for T-20:** these were *black-box* probes only. They show the surface
+  handles hostile input safely; they do **not** substitute for the real security
+  audit (auth boundaries, `verify:access` covers the permission matrix at 398
+  checks, dependency advisories, header matrix). T-20 remains last and unstarted.
 - **REMAINING:** feature matrix walk (nav, home modules, article page, listing,
   exam-results, scholarship, deadline, prayer widget, live TV, /verify, ad slots,
   404, CMS admin flows end-to-end, publish watcher) with happy-path + edge cases;
