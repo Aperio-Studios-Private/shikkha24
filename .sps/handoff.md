@@ -1,5 +1,48 @@
 # SPS Handoff
 
+## 2026-10-16 (round 14) — T-24 confirmed met, and the measuring instrument is now in the repo
+
+**T-24 target met.** Final build through a Brotli-compressing server: **perf 97 / 98 /
+97**, **accessibility 100**, **SEO 100**, best-practices 96 — LCP 2.4–2.6 s, CLS 0,
+TBT 0 ms. All four categories clear the owner's 95+ bar.
+
+### I made the same measurement mistake twice — so the instrument is now committed
+
+`python3 -m http.server` sends **no `Content-Encoding`**, so Lighthouse invents a
+`uses-text-compression` failure production does not have (the live site serves Brotli):
+
+| server | `/` | `/latest/` | article |
+|---|---|---|---|
+| `python3 -m http.server` | 92 | 94 | 85 |
+| **Brotli** | **97** | **98** | **97** |
+
+Identical build. I first hit this on T-24, wrote the lesson down, and then hit it again
+— which is the tell that a written lesson was not enough. **`scripts/serve-dist.mjs` +
+`pnpm run serve:dist` now do it correctly**, resolving `frontend/dist` from the script's
+own location so it cannot be misrun from the wrong cwd (which failed in a way that
+looked like a port conflict).
+
+⚠️ **Before trusting any local Lighthouse number:** confirm
+`curl -sI -H 'Accept-Encoding: br' http://127.0.0.1:8901/ | grep -i content-encoding`
+prints `br`, and confirm nothing else is listening. During T-24 I found a leftover
+`node ./dist/server/entry.mjs` — an **SSR server from a different project** — on :4321.
+Measuring against it would have scored another application.
+
+### best-practices 96 is the Cloudflare beacon, not us
+
+It fails `errors-in-console` **and** `inspector-issues` (issue type "Content security
+policy"), both naming `static.cloudflareinsights.com/beacon.min.js`. Cloudflare injects
+it at the edge; our CSP blocks it. So the analytics **collects nothing while logging a
+CSP error on every page view** — and it costs 4 points. Disabling it in the dashboard is
+worth **+4 → 100** and needs no repo change. This is O-4; the owner has already chosen
+to keep the CSP strict, which is right — switch the beacon off, do not loosen the policy.
+
+### Live-hosted Lighthouse is not a gate
+
+`/latest/` scored **97** live while `/` scored **85**, against 97 for the same build
+locally. That spread is network variance on a hosted target, not a build property. Use
+local numbers for gates; treat a single live run as indicative only.
+
 ## 2026-10-16 (round 13) — T-23 and T-25 closed; two recorded root causes were wrong
 
 ### T-23 COMPLETE — the covers were never blocked
