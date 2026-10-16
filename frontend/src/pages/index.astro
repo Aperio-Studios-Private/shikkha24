@@ -271,11 +271,18 @@ const siteJsonLd = {
              the homepage is 622 nodes deep and Lighthouse attributes 2,454 ms of
              the 2,500 ms main thread to styleLayout. See global.css. */}
       <div class="col-span-4 sm:col-span-8 lg:col-span-8">
-        {perCategory.map(({ category, articles }, i) => (
-          <div class={i === 0 ? undefined : 'defer-layout'}>
-            <CategorySection category={category} articles={articles} />
-          </div>
-        ))}
+        {perCategory.map(({ category, articles }, i) =>
+          // ⚠️ Skip empty categories entirely. `CategorySection` already renders
+          // nothing when it has no articles, but wrapping it unconditionally
+          // emitted `<div class="defer-layout"></div>` — three empty, pointless
+          // wrappers on the live homepage. Harmless to the layout, but it is dead
+          // markup in the document and it made the deferral count misleading.
+          articles.length === 0 ? null : (
+            <div class={i === 0 ? undefined : 'defer-layout'}>
+              <CategorySection category={category} articles={articles} />
+            </div>
+          ),
+        )}
 
         {/* 10 — Latest: two columns, scrollable, so the feed does not
                  grow the page without limit. */}
