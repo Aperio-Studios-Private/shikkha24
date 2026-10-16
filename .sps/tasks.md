@@ -294,6 +294,14 @@ not know about it.
   long task gone, **the binding constraint is FCP (2.1s)** — LCP is only 0.8s behind
   it, and the LCP element is a text headline, so LCP ≈ "when text can paint at all".
   That is a round-trip/CSS problem, not a main-thread one.
+- **MEASURED LIVE 2026-10-16 (the authoritative number; Brotli on, Cloudflare):**
+  `/` → perf **94**, FCP **1.81s**, LCP **2.73s**, TBT **0ms**, CLS **0.000**,
+  `uses-text-compression` **1**. ⚠️ **Local `python3 -m http.server` does not
+  compress, so local FCP/LCP read ~0.15-0.3s worse than production** (local FCP 2.10
+  vs live 1.81) and `uses-text-compression` fails locally for that reason alone —
+  production serves `content-encoding: br` for both HTML and CSS, verified with
+  `curl -I`. Do not "fix" compression: there is nothing wrong with it, and woff2
+  needs none.
 - **REMAINING — the honest picture:** render blocking is fixed, but LCP is still
   2.55–3.15s. LCP breakdown says **TTFB 451 ms (15 %) + render delay 2,552 ms
   (85 %)**, and the LCP element is a Bengali **card headline** — so the cost is
