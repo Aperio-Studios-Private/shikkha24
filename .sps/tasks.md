@@ -106,6 +106,25 @@ not know about it.
   `dateModified`, `author` (Person + slug URL), `publisher` with `logo`,
   `articleSection`, `inLanguage: bn-BD`, `isAccessibleForFree`, `mainEntityOfPage`,
   `speakable`.
+- **AUDITED 2026-10-16 — legacy redirect stubs are meta-refresh (HTTP 200), and
+  that is acceptable as-is.** 13 stubs exist: `/about-us`, `/a/<id>` (6),
+  `/article/<slug>` (6). All answer **200** with `<meta http-equiv="refresh"
+  content="0; url=…">` rather than a 301/302, because the Cloudflare Worker handles
+  headers and not redirects (`frontend/worker/headers.ts` documents the design).
+  **Assessed as low harm, deliberately not changed:** every stub also emits a
+  **correct `rel="canonical"`** to the real URL (verified on `/a/23`), and **none of
+  them appear in `sitemap.xml`** (0 matches), so crawlers are not pointed at them and
+  the canonical consolidates them. A real 301 would be marginally cleaner for link
+  equity; it is not worth a behavioural change to the publish path on that evidence.
+  Recorded so the next agent does not re-discover and over-react to it.
+- **FIXED 2026-10-16 — a verifier that read as a failure while passing.**
+  `verify:build-output` printed `PASS  root file present: _redirects — MISSING`:
+  the assertion is intentionally always-true for `_redirects` (optional; the stubs
+  cover those paths) but the detail string was unconditional, so a healthy run looked
+  broken. Same family as the `lhci` assertion trap in
+  `docs/performance-budget.md` §8.5 — **a check whose output cannot be trusted is a
+  check nobody reads.** Message now states what the assertion means; semantics
+  unchanged.
 - **Part A — technical SEO action pass:** titles/meta/OG/Twitter (Bengali), canonicals,
   robots.txt + sitemap.xml correctness on the Workers serving path, JSON-LD per page
   type (NewsArticle for articles, ItemList for listings, Organization on home…),
