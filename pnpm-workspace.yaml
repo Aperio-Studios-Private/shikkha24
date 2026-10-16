@@ -90,6 +90,20 @@ overrides:
   'tmp@0.0.33': 0.2.7
   'tmp@0.1.0': 0.2.7
   'basic-ftp@5.3.1': 6.2.3
+  # Added 2026-10-16 (T-20 security pass). `dompurify@3.4.8` is exactly the version
+  # `monaco-editor@0.56.0` pins — a hard pin, not a range — so a normal update can
+  # never reach the fix and the advisory would sit there indefinitely. An override is
+  # the only route, which is the same situation as the entries above.
+  #   Advisory: GHSA-6688-9rhm-gjv2 (and GHSA-c2j3-45gr-mqc4), both low severity,
+  #             "pure HTML reparse executes attacker markup". Patched in >=3.4.16.
+  #   Licence:  MPL-2.0 OR Apache-2.0 (unchanged by the bump).
+  #   Path:     cms -> @payloadcms/ui -> @monaco-editor/react -> monaco-editor ->
+  #             dompurify. Monaco is the CMS's code editor — admin-only, and it
+  #             sanitises text an editor pastes into their own session. It is not on
+  #             any reader-facing path and the storefront never loads it.
+  #   Scoped to the exact vulnerable version so it stops applying by itself when
+  #   monaco-editor moves on.
+  'dompurify@3.4.8': 3.4.17
 # ── pnpm audit ────────────────────────────────────────────────────────────────
 # ⚠️ pnpm 11.22 deprecates `auditConfig` in favour of THIS `audit` block; when
 # both are present the old one is ignored with a warning (T-10, 2026-10-15).
