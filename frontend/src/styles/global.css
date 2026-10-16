@@ -309,4 +309,30 @@
     white-space: nowrap;
     border-width: 0;
   }
+
+  /*
+   * Let the browser skip layout and paint for content that is still well below
+   * the fold (T-24).
+   *
+   * Why this is the right lever here: Lighthouse measures `styleLayout` at
+   * **2,454 ms of a 2,500 ms main-thread total** on the homepage, with a single
+   * 1,223 ms long task — and the page is 622 elements deep with 15 levels of
+   * nesting. The cost is the browser styling every one of those nodes before it
+   * can paint the headline that is Largest Contentful Paint. `content-visibility:
+   * auto` lets it style only what is near the viewport and defer the rest.
+   *
+   * ⚠️ `contain-intrinsic-size` is **not optional**. Without a placeholder size
+   * the skipped subtree collapses to 0 px, the scrollbar jumps, and CLS — currently
+   * a clean 0.000 — goes red. `auto 24rem` remembers the last real size once the
+   * section has been seen, and falls back to 24rem (roughly one card row plus its
+   * heading) for one that never has.
+   *
+   * Applied only to sections that sit below the first screenful, never to the hero
+   * or the filter bar: deferring anything the reader can already see would delay
+   * exactly the paint we are trying to bring forward.
+   */
+  .defer-layout {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 24rem;
+  }
 }

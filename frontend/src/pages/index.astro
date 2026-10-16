@@ -266,10 +266,15 @@ const siteJsonLd = {
 
   <div class="container-page">
     <div class="grid-12">
-      {/* 8 — Category sections, stacked vertically, each with a few stories. */}
+      {/* 8 — Category sections, stacked vertically, each with a few stories.
+             `defer-layout` skips layout/paint for the ones still below the fold —
+             the homepage is 622 nodes deep and Lighthouse attributes 2,454 ms of
+             the 2,500 ms main thread to styleLayout. See global.css. */}
       <div class="col-span-4 sm:col-span-8 lg:col-span-8">
-        {perCategory.map(({ category, articles }) => (
-          <CategorySection category={category} articles={articles} />
+        {perCategory.map(({ category, articles }, i) => (
+          <div class={i === 0 ? undefined : 'defer-layout'}>
+            <CategorySection category={category} articles={articles} />
+          </div>
         ))}
 
         {/* 10 — Latest: two columns, scrollable, so the feed does not
