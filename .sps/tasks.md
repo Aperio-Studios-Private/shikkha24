@@ -272,6 +272,32 @@ not know about it.
   Live titles run to **94 characters**; `ArticleCard` applies `line-clamp` in **7
   places** with a documented rationale ("a card's height never changes after paint"),
   which is also why CLS measures 0.000. No action needed.
+- **DONE 2026-10-16 (commit `9ca7403`) — the entire Dependabot backlog, verified
+  instead of merged blind.** Seven PRs (#17, #19, #21, #23, #24, #26, #28) were
+  sitting **MERGEABLE with no executed checks** because the Actions budget is
+  exhausted. ⚠️ **That combination is dangerous, not convenient:** a green merge
+  button with no CI invites a one-click merge that silently bypasses the gate this
+  project treats as authoritative. Each bump was applied locally and validated, and
+  all seven PRs are now **closed as superseded** (open PRs: 0).
+  - `astro` **7.3.2 → 7.3.8**, `dotenv` **16.4.7 → 18.0.7**, `@types/node`
+    **22.20.2 → 22.20.5**, `@biomejs/biome` **2.5.13 → 2.5.15**.
+  - **`dotenv` was the one requiring care** — a **two-major** jump whose PR could
+    not prove itself. It is a direct CMS dependency that **nothing in our own source
+    imports** (Payload uses it internally), so it was validated by booting the real
+    thing: the Payload config loads with **0 module errors** and the CMS verifiers
+    pass — `verify:access` **398 checks**, `origins` 12, `social` 11, `newsletter`
+    11, `id-card` 17. (The one `id-card` FAIL is the known pre-existing
+    `SHK-R-2026-0003` QR-target issue confirmed unrelated earlier.)
+  - **Evidence:** 89-page build, `verify:build-output` / `links` / `search-init` /
+    `cloudflare` all pass, full suite **32/32**, biome 0 errors, both packages tsc
+    clean.
+  - ⚠️ **A false regression caught by re-measuring.** Best-practices read **96**
+    after the astro bump against **100** before, which looked like a real
+    regression. Re-ran the *previous* version: it **also scores 96** — the earlier
+    100 came from runs that never measured that category, and `errors-in-console`
+    is 0 on both. **The apparent regression was my own incomplete baseline.** This
+    is the second time this session that a missing baseline nearly produced a false
+    finding; always re-measure the old version before blaming the new one.
 - **REMAINING:** feature matrix walk (nav, home modules, article page, listing,
   exam-results, scholarship, deadline, prayer widget, live TV, /verify, ad slots,
   404, CMS admin flows end-to-end, publish watcher) with happy-path + edge cases;
