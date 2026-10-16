@@ -123,6 +123,22 @@ After you upload, tell me and I will `PATCH` `featuredImage` onto articles 23–
 
 ---
 
+### O-7. Nothing — FYI: two live SEO/UX fixes are committed but not deployed
+Not an action for you beyond O-1's Actions budget. For completeness, these are
+**committed, gate-verified, and waiting on a deploy**:
+- **Prayer Asr was 5–6 minutes early** — the widget never sent `school=1`, so
+  Aladhan defaulted to Shafi'i while Bangladesh follows Hanafi. Fixed; verified the
+  request now returns `meta.school = HANAFI` (Dhaka 20 Oct: 15:52, was 15:02).
+- **Every article's `NewsArticle` schema was missing `image`**, which Google News
+  requires. Fixed to reuse the same working photocard URL as `og:image`; verified on
+  a deploy-equivalent build that all 6 articles now emit
+  `https://cms.shikkha24.com/api/photocard/NN.png` (that endpoint returns 200).
+- Plus the T-24 performance work (render blocking eliminated; `styleLayout`
+  2,454 ms → 227 ms).
+
+All three ship with the same re-run once Actions works, or with a local
+`wrangler deploy` if you approve that (see the URGENT section).
+
 ## 🟡 Decisions / small actions
 
 ### O-3. Rotate the CMS password
