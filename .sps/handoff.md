@@ -1,5 +1,57 @@
 # SPS Handoff
 
+## 2026-10-16 (rounds 6–7) — T-25 proven exactly, and three security fixes
+
+**T-25/T-23 — the blocker is now proven, not assumed.** Using the admin credentials in
+`cms/.env.local` (login 200, JWT issued) I tested every upload route. The pattern is
+unambiguous:
+- JSON base64 → `400 No files were uploaded` (Payload needs multipart)
+- multipart without `alt` → `400 Alt text is required` — **the file transferred
+  fine; only the text part vanished**
+- `-F alt=`, `--form-string alt=`, `alt` in the query string → all `400` the same
+- **two or more multipart text fields → `500 Something went wrong`** (the proxy fails
+  outright)
+- A rejected upload leaves **nothing** behind (media stayed at 8 docs)
+
+So the host proxy strips multipart text parts, `alt` is `required: true`
+(`Media.ts:121`), and **no application code can fix it**. The covers must go in via
+the **CMS admin UI** (owner O-2). Do not re-probe this.
+
+**Also confirmed T-25's true blast radius:** 0 of 6 articles have a `featuredImage`,
+and **zero references to `demo-plate*` exist anywhere** — not in the build, not on
+`/`, `/latest/` or `/gallery/`. The broken media are orphaned demo placeholders.
+
+**Three security fixes (all need the CMS deploy):**
+- `f535bac` **`serverURL` pinned.** Live CMS answered `GET /api/payload-migrations`
+  with `Cannot GET https://0.0.0.0:3000/...` — leaking its **internal bind address**
+  to anonymous callers, and deriving absolute URLs from the incoming `Host` header
+  (host-header poisoning precondition). Now from `CMS_URL` with a production
+  fallback. Nothing else moves: media `url`s are relative and our absolute URLs
+  already come from `PUBLIC_SITE_URL`.
+- `ef37cd4` **`poweredByHeader: false`.** `X-Powered-By: Next.js, Payload` was
+  naming the exact stack to any prober.
+- `0ce0ab5` **`dompurify` 3.4.8 → 3.4.17** via override. It is the exact version
+  `monaco-editor` pins, so no update could ever fix it. **Audit 13 → 8.** Also
+  re-queried all four ignore-list advisories upstream: every one still
+  `patched=[None]`, so no exemption is stale.
+
+**Probed and found sound:** headers on both surfaces (HSTS+preload, nosniff,
+`X-Frame-Options: DENY`, `frame-ancestors 'none'`, tight Permissions-Policy, CSP with
+`object-src 'none'`); **login lockout works** (5 bad passwords → 429, still locked
+after 20 s); **no user enumeration**; JWT HS256 with a 2-hour lifetime; `/api/users`
+and `/api/payload-preferences` → 403 to the public.
+
+**T-26 SCSS verified to actually compile** — `npx sass` exit 0, 15 rules in
+`@layer payload-default`, with the 44px min-block-size, hover/active shadows and
+`:focus-visible` ring all present in the *output*, so the owner will see them once the
+CMS deploys. (Guards against the "authored but silently dropped" failure.)
+
+**T-24:** article **91 → 93** (8 KB inline ceiling; `/` 94 and `/latest/` 96
+unchanged); declined `font-display: optional` because Lighthouse already scores
+`font-display` 1.0, so the visual risk buys nothing measured.
+
+**Owner list is now O-1 … O-10.** Verifier suite 32/32.
+
 ## 2026-10-16 (round 3) — T-21 audit reality check + IndexNow
 
 **T-21 — the sps-seo score is not a description of this site.**
