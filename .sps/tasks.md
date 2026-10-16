@@ -336,6 +336,42 @@ not know about it.
   listing was querying the wrong namespace context. **The health endpoint is the
   authoritative check; the KV CLI is not.** Recorded so the next agent does not
   raise this as a defect.
+- **DONE 2026-10-16 — feature walk against the LIVE site, and it found a live bug.**
+  Every page checked returns **200 with the correct Bengali `<h1>`**: `/`, `/latest/`,
+  `/exams/`, `/results/`, `/scholarships/`, `/deadlines/`, `/live-tv/`, `/cgpa/`,
+  `/gpa/`. Calculators carry real interactive controls (`/cgpa/` 3 inputs + 1 select +
+  1 form; `/gpa/` 1 input + 1 select + 1 form), so they are wired, not decorative.
+  Feature gates report honestly (`push` `enabled:false`, `oauth` `providers:[]`,
+  `newsletter` `enabled:false`) rather than erroring.
+  - **Not a bug — the breaking ticker.** I first read its absence as a stale deploy
+    because the local build has a `ticker` reference and production has none. The
+    local hit is the **inert CSS**; the markup renders only when something is flagged
+    breaking, and the CMS has **0 breaking articles**. Correct behaviour.
+  - ⚠️ **REAL BUG FOUND — the live site serves the pre-fix prayer bundle.** The live
+    `HeaderWidgets` JS builds `…&method=${b}` and **stops, sending no `&school=`**, so
+    Aladhan applies its **Shafi'i** default while Bangladesh follows **Hanafi**:
+
+    | | Asr for Dhaka today |
+    |---|---|
+    | **live now** (Shafi'i) | **15:04** |
+    | **correct** (Hanafi) | **15:55** |
+
+    **Asr is shown 51 minutes early.** The fix is committed (`a833434`) and verified;
+    it has simply never been deployed. Tracked as **O-11**.
+  - ⚠️ **Why `verify:prayer-times` passed the whole time:** every assertion in it read
+    the **source constant** or the **live API**, and **neither can see a stale
+    deploy**. Fixed in `e186989` with a built-artifact check that reads the emitted
+    JavaScript, **proven by negative control** — stripping `school=` from the bundle
+    makes it FAIL with exactly the production symptom, restoring it returns OK. It
+    skips with a note (never silently) when `frontend/dist` is absent.
+  - ⚠️ **And I found a mistake of my own that had been hiding four owner items.** My
+    "close O-2" edit sliced `.sps/owner-assistance.md` from the O-2 heading to the O-3
+    heading, **deleting O-7, O-8, O-9 and O-10** that sat between them. The commit
+    message said only "close O-2", so the loss was invisible — the list had silently
+    dropped the **Actions-budget blocker that everything else depends on**. Recovered
+    verbatim from `6035d8e` and verified. **Lesson: a slice-replace between two
+    headings deletes whatever sits between them; check the whole file after an edit
+    that removes a section, and let the commit message name what was removed.**
 - **REMAINING:** feature matrix walk (nav, home modules, article page, listing,
   exam-results, scholarship, deadline, prayer widget, live TV, /verify, ad slots,
   404, CMS admin flows end-to-end, publish watcher) with happy-path + edge cases;
