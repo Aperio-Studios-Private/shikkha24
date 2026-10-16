@@ -203,6 +203,24 @@ not know about it.
     target are invalid, browsers always percent-encode, and `curl --get
     --data-urlencode` reproduces the browser path and gets 200. Recorded so nobody
     "fixes" this later.
+- **DONE 2026-10-16 — dependency freshness:** `pnpm outdated` is now **empty**.
+  Bumped `yaml` 2.8.1 → 2.9.1, `smol-toml` 1.8.0 → 1.9.1, `@biomejs/biome`
+  2.5.13 → 2.5.15 (commit `2d3526f`). The first two were sitting exactly at the
+  versions their advisories flag — `yaml` needs ≥2.8.3, `smol-toml` needs ≥1.8.1 —
+  so the findings recurred in every audit despite fixes being published. Audit went
+  **15 → 14**, moderate **8 → 7**; smol-toml cleared. All dev/build-time only.
+- **DONE 2026-10-16 — dead-code check: nothing to remove.** Every `verify-*` script
+  is referenced by `package.json`, CI or the docs, with two apparent exceptions that
+  are real: `verify-s8.mjs` and `verify-ads-s7.mjs` are **deliberately manual** (they
+  need a browser/network context the local runner cannot give, documented in
+  `docs/qa-deploy-status-2026-10-02.md` §"stay manual, deliberately"). `verify-s8` is
+  also cited in `docs/audit-verification-2026-10-11.md` as the check that *failed to
+  detect* a quiz-grading break — which is why it is documented rather than deleted.
+  **Deleting either would destroy an audit trail, not clean up dead weight.**
+- **DONE 2026-10-16 — long-title robustness verified by design, not accident.**
+  Live titles run to **94 characters**; `ArticleCard` applies `line-clamp` in **7
+  places** with a documented rationale ("a card's height never changes after paint"),
+  which is also why CLS measures 0.000. No action needed.
 - **REMAINING:** feature matrix walk (nav, home modules, article page, listing,
   exam-results, scholarship, deadline, prayer widget, live TV, /verify, ad slots,
   404, CMS admin flows end-to-end, publish watcher) with happy-path + edge cases;
