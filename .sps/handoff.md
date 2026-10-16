@@ -1378,3 +1378,48 @@ but it is **not sufficient for LCP < 1.5 s**. LCP is now bounded by TTFB plus th
 round-trip count. Reaching 1.5 s needs either a smaller *parsed* stylesheet
 (splitting the token/preflight layer from page utilities) or a smaller
 `styleLayout` cost — both are larger architecture work than this task's scope.
+
+## 2026-10-16 (late) — T-22 verifier sweep found a live correctness bug: prayer Asr
+
+### The bug (fixed, committed `a833434`)
+The header prayer widget requested Aladhan `method=15` and **never sent `school`**,
+so the API silently defaulted to **Shafi'i Asr**. Bangladesh follows **Hanafi** —
+2:1 shadow ratio against 1:1. The live site was therefore showing Asr:
+
+| city | October drift (early) |
+|---|---|
+| ঢাকা | 5.8 min |
+| সিলেট | 5.9 min |
+| চট্টগ্রাম | 5.3 min |
+| রংপুর | 6.2 min |
+| বরিশাল | 5.0 min |
+
+Asr is the **only** time `school` affects (Fajr/Isha follow `method`). `school=1`
+now ships, and `ALADHAN_SCHOOL` documents the trap beside `ALADHAN_METHOD`'s three.
+Confirmed end-to-end: the request now returns `meta.school = HANAFI`, Asr 15:52
+instead of 15:02 for Dhaka on 20 Oct.
+
+### Why nobody noticed: the verifier was wrong in three ways
+`verify:prayer-times` was failing — for the right reason, via the wrong cause.
+1. **It omitted `school` too**, so it reproduced the exact bug it exists to catch.
+2. **Its Hanafi shadow ratio was `1 + (hanafi ? noonShadow : 0)`** — the Shafi'i
+   shadow in *both* branches. Correct is `(hanafi ? 2 : 1) + noonShadow`. Verified
+   against the API across all 12 months: worst drift **1.1 min** after the fix.
+3. **It compared two different dates** — today's API Asr (fetched at the top of the
+   loop) against a computed Asr for a fixed **5 October**. An 11-day mismatch that
+   produced a stubborn ~8 min drift no formula could explain.
+
+⚠️ **The generalisable lesson: a failing check proves *something* is wrong, not
+*what* is wrong.** Two of those three defects were in the check itself. Read it
+before trusting it — and when a fix doesn't move the number, suspect the harness
+before re-deriving the physics.
+
+### Verifier suite status
+**29/29 green** (every `verify:*` that runs locally; `lighthouse` stays CI-only).
+Coverage includes CSP/inline-script invariants, container nesting, favicon
+consistency, calculator ID wiring, Pagefind hooks, internal links, Apache↔Worker
+header parity, deploy inputs/mode, CMS bundle sanitisation, SQLite WAL, importmap
+and migration drift, reporter pages, bookmarks, client-IP, origins, endpoints.
+
+Minor trap: `timeout` does not exist on macOS (it is `gtimeout`), and its absence
+silently made two suite results meaningless until I re-ran them.
