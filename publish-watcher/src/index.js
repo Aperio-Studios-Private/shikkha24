@@ -18,6 +18,10 @@
  *   and retries — a publish is never lost or double-dispatched.
  * - The polled endpoints are the public REST API, which returns only
  *   published documents — draft saves cannot trigger a rebuild.
+ * - `POST /run-tick` requires the `X-Tick-Secret` header matching the
+ *   `TICK_SECRET` Worker secret, and is closed (404) when that secret is unset.
+ *   It was open until 2026-10-16; see `isAuthorizedTick` for why the original
+ *   "safe unauthenticated" reasoning did not hold.
  * - ONE default export holding both handlers: module Workers resolve mixed
  *   named/default exports to the default object alone, which silently breaks
  *   the cron handler (observed live: "Handler does not export a scheduled()").
@@ -100,11 +104,73 @@ async function runTick(env) {
     console.error(
       `dispatch failed with HTTP ${res.status} — digest not stored, will retry: ${detail}`,
     )
-    return { action: 'failed', reason: `HTTP ${res.status}: ${detail}` }
+    // ⚠️ The status only, NOT `detail`. GitHub's error body quotes the request
+    // path, so returning it would disclose the private repo name (`GITHUB_REPO`
+    // in wrangler.toml) to whoever can read this response. The full text still
+    // reaches the operator through the log line above, which is where it is
+    // actually useful — a caller does not need it to act on.
+    return { action: 'failed', reason: `HTTP ${res.status}` }
   }
   await kv.put('digest', digest)
   console.log(`rebuild dispatched — ${digest.slice(0, 12)} (was ${String(last).slice(0, 12)})`)
   return { action: 'dispatched' }
+}
+
+/**
+ * Constant-time string compare, so the secret cannot be recovered a byte at a
+ * time by timing repeated guesses. Length is allowed to short-circuit: the
+ * length of a fixed-size secret is not the secret.
+ *
+ * @param {string} a
+ * @param {string} b
+ * @returns {boolean}
+ */
+function secretEquals(a, b) {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
+}
+
+/**
+ * Authorises `POST /run-tick`.
+ *
+ * ## Why this route needs a secret at all
+ *
+ * It was previously open, on the reasoning that it is "safe unauthenticated…
+ * idempotent (the digest is stored only on success)". That reasoning holds only
+ * while the GitHub dispatch SUCCEEDS — and the digest is written only after a 2xx
+ * (see `runTick`). While dispatch is failing, for any reason, the stored digest
+ * stays null, so the `last === digest` guard never matches and **every** call
+ * reaches the GitHub API. An anonymous caller could therefore spend a full
+ * Actions build per request, against a budget that is already exhausted, and
+ * make unlimited CMS requests besides. The guard was absent exactly when it was
+ * needed.
+ *
+ * ## Why a header secret rather than removing the route
+ *
+ * The route exists so the operator can force a tick without waiting up to five
+ * minutes for the cron. Removing it would take away a real operational tool; a
+ * secret keeps it and closes the abuse path.
+ *
+ * ## Fails closed
+ *
+ * With no `TICK_SECRET` configured, the route is unreachable rather than open.
+ * That is deliberate: a missing secret must not silently restore the old
+ * behaviour. Set it with `wrangler secret put TICK_SECRET` (or the dashboard) —
+ * the same mechanism `GITHUB_TOKEN` already uses, and `keep_vars = true` in
+ * `wrangler.toml` keeps dashboard secrets across redeploys.
+ *
+ * @param {Request} request
+ * @param {{ TICK_SECRET?: string }} env
+ * @returns {Promise<boolean>}
+ */
+async function isAuthorizedTick(request, env) {
+  if (!env.TICK_SECRET) {
+    console.error('run-tick refused: TICK_SECRET is not set (route is closed until it is)')
+    return false
+  }
+  return secretEquals(request.headers.get('X-Tick-Secret') ?? '', env.TICK_SECRET)
 }
 
 /**
@@ -128,7 +194,7 @@ export default {
    *
    * @param {Request} request
    * @param {{ PUBLISH_WATCHER: KvNamespace, GITHUB_TOKEN?: string,
-   *          CMS_ORIGIN: string }} env
+   *          TICK_SECRET?: string, CMS_ORIGIN: string }} env
    */
   async fetch(request, env) {
     const url = new URL(request.url)
@@ -143,9 +209,10 @@ export default {
     }
     if (url.pathname === '/run-tick' && request.method === 'POST') {
       // Ops: run the same digest-change-gated tick on demand (no cron wait).
-      // Safe unauthenticated: it can only publish ALREADY-public content and
-      // is idempotent (the digest is stored only on success — repeat calls
-      // return "unchanged" until the CMS actually changes).
+      if (!(await isAuthorizedTick(request, env))) {
+        // 404, not 401: an unauthorised caller should not learn the route exists.
+        return new Response('Not found', { status: 404 })
+      }
       return Response.json(await runTick(env))
     }
     return new Response('Not found', { status: 404 })
