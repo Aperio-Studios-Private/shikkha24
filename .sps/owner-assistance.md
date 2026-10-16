@@ -123,6 +123,33 @@ After you upload, tell me and I will `PATCH` `featuredImage` onto articles 23–
 
 ---
 
+### O-10. Three CMS security hardening fixes are waiting on the same deploy
+No action beyond O-7's Actions budget / O-5's CMS deploy — recorded so they are not
+forgotten, because they are the kind of thing that is easy to lose track of.
+
+Found while doing T-20 groundwork (I had CMS admin credentials in `cms/.env.local`,
+so I could probe the live CMS properly rather than only from outside):
+
+| Fix | What it stops | Commit |
+|---|---|---|
+| Pin `serverURL` in the Payload config | The live CMS answered `GET /api/payload-migrations` with `Cannot GET https://0.0.0.0:3000/...` — it was leaking its **internal port** to anonymous callers, and building absolute URLs from whatever `Host` header arrived (the precondition for host-header poisoning) | `f535bac` |
+| `poweredByHeader: false` | `X-Powered-By: Next.js, Payload` was advertising your exact framework and CMS versions to anyone who asked, which tells an attacker which known exploits to try | `ef37cd4` |
+| Override `dompurify` 3.4.8 → 3.4.17 | Cleared 3 security advisories (13 → 8 total). Monaco pins that exact version, so no normal update could ever fix it | `0ce0ab5` |
+
+**What I checked and found sound** (no action needed):
+- Security headers on both the CMS and the site are strong — HSTS with preload,
+  `nosniff`, `X-Frame-Options: DENY`, `frame-ancestors 'none'`, a tight
+  Permissions-Policy, and a CSP with `object-src 'none'` / `base-uri 'self'`.
+- **Login brute-force protection works**: 5 wrong passwords locks the endpoint
+  (429) and it stayed locked when I re-checked.
+- **No user enumeration** — a non-existent email gives the same generic error as a
+  real one, so attackers cannot discover which accounts exist.
+- Admin sessions expire after **2 hours**, and the JWT uses HS256 properly.
+- `/api/users` and `/api/payload-preferences` both correctly return **403** to the
+  public.
+- The 4 remaining "ignored" high advisories have **no fix published upstream** — I
+  checked each one, so none is a stale suppression hiding a real problem.
+
 ### O-9. Bing Webmaster Tools + turning on IndexNow (5 minutes, after the deploy)
 Two small things, both blocked behind O-7's Actions budget because the key file has
 to be live first.
