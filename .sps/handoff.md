@@ -1245,3 +1245,52 @@ chmod +x "$DEST/sps/scripts/"*.sh "$DEST/sps-cms/scripts/"*.sh
   for the admission-policy story was verified via dainikshiksha's writ report instead.
 - Discarded data-telemetry facts: dainikshiksha's sitemap `news:title` fields are in
   English (their site's own translation), Bengali article text is the ground truth.
+
+## 2026-10-16 (evening) — T-24 accessibility/a11y shipped live; T-25/T-26/T-27 opened
+
+### Shipped and verified live (CI + Deploy both green)
+- **Accessibility/SEO/best-practices are now 100** on `/`, `/latest/`, the article
+  template, `/category/*` and `/author/*` (they were a11y 95-97, BP 96).
+  - `--color-ink-subtle` #8a8a8a → **#707070** (3.45:1 → 4.95:1 on white, 4.62:1 on
+    the raised surface, which is the real worst case).
+  - New `--color-brand-red-on-tint` **#c4161e** — brand red on its own 10% tint
+    measured 4.27-4.41:1 (FAIL). Lightening the tint cannot fix it (even /7 = 4.49),
+    so the text darkened; 12 badge/notice sites converted. `--color-brand-red` is
+    unchanged, so the brand is untouched everywhere else.
+  - New `--color-brand-red-on-tint-dark` **#f87171** — the dark-mode badge was
+    #da1c25 on `bg-brand-red/20` = 2.73-3.23:1, a bad failure **Lighthouse cannot
+    see** because it only runs light mode. Found by hand-computing ratios.
+  - Share buttons: white on WhatsApp #25d366 = 1.98:1, on Facebook #1877f2 =
+    4.23:1 → **#075e54** (WhatsApp's own dark teal, 7.67:1) and **#166fe5** (4.73:1).
+    Owner approved the deeper shades.
+  - `DemoAd` teal-600 (3.42:1 on the raised surface) → teal-700 (5.11:1).
+  - `heading-order` fixed on `/latest`, `/category/*`, `/author/*`: each grid is
+    wrapped in a labelled `<section>` with an `sr-only` `<h2>`, so the outline is
+    h1 → h2 → h3 instead of h1 → h3. Pixel-identical.
+- Verified in the **live** production CSS: `--color-ink-subtle:#707070`,
+  `--color-brand-red-on-tint:#c4161e`, `--color-brand-red-on-tint-dark:#f87171`.
+- Live route sweep: all 13 routes 200 (`/`, `/latest`, `/faq`, `/contact`,
+  `/about-us`, `/category/*`, `/author/*`, an article, both sitemaps, robots,
+  llms.txt, rss). No regressions.
+- Live SEO: sitemap 63 URLs incl. all 6 real articles; news sitemap 6; `/faq`
+  emits FAQPage; robots declares both sitemaps.
+
+### Counter-proved (do not repeat)
+- `build.inlineStylesheets: 'always'` (49 KB inline) made performance **worse**:
+  perf 98 → 97, FCP 1.21 → 1.38 s, LCP 2.33 → 2.41 s. Reverted.
+- `/admission/23/...` needs a **trailing slash** on a static server; without it the
+  static server 404s and a whole measurement run is lost.
+
+### Still open
+- **T-24 performance**: measured 93 (`/`), 96 (`/latest/`), 91 (article); LCP
+  2.55-3.16 s. LCP = TTFB 451 ms (15%) + **render delay 2,552 ms (85 %)**;
+  `Layout.css` is 47.5 KB costing ~1,052 ms of blocking. `docs/performance-budget.md`
+  §8.3 already prescribes the fix (cut critical-path CSS, inline only the smallest
+  above-the-fold set) and says it needs its own section — delegated, in flight.
+- **T-25 CMS media files are missing from disk** — every image 500s. Sharpened
+  evidence in `.sps/tasks.md`. Needs the owner (no SSH/Terminal on DianaHost).
+- **T-26 CMS admin affordance** — code complete + verified in the built admin CSS,
+  but the CMS is not deployed by the Cloudflare workflow, so it needs a CMS deploy
+  on DianaHost to be visible.
+- **T-27 local build flakiness** — ~20 % (4/5 passed) on Node 26; CI pins 24 and is
+  unaffected. Always check for 89 pages, not 52.
