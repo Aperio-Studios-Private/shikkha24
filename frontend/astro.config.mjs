@@ -18,6 +18,38 @@ export default defineConfig({
   site: process.env.PUBLIC_SITE_URL || 'https://shikkha24.com',
   output: 'static',
   trailingSlash: 'never',
+  /**
+   * Remote images from the CMS.
+   *
+   * ⚠️ **This reverses a decision recorded in `frontend/src/lib/media.ts`.** That
+   * comment says the CMS "already generates WebP variants (thumbnail 400, card 768,
+   * hero 1600)", so the frontend should use those rather than re-encode remote
+   * images at build time — to avoid re-encoding thousands of images on every CI
+   * build.
+   *
+   * **The premise is false.** The host cannot fork a thread, so `sharp` cannot load
+   * there and `Media.ts` configures no `imageSizes` (T-07, `payload.config.ts:506`).
+   * `media.sizes` is therefore `[]` on **every** document that has ever existed —
+   * verified across all 10. `buildSrcset` returns `undefined` with zero variants, so
+   * the browser is handed one full-size JPEG whatever the slot width.
+   *
+   * Measured cost of the alternative: the covers were **971 KB of 1376 px JPEG**
+   * rendered into a **412 px** viewport. Lighthouse agreed from outside —
+   * `modern-image-formats` 0 (360 KiB saveable), `uses-responsive-images` 0
+   * (525 KiB saveable) — and it breaks this project's own
+   * `docs/image-optimization.md` rule "never ship a source wider than the largest
+   * declared width".
+   *
+   * The scale worry is also not real yet: **6** articles have covers today, and
+   * Astro caches remote images, so a build re-encodes each one once rather than on
+   * every publish. Revisit if the archive reaches the hundreds.
+   */
+  image: {
+    // `domains` is the narrower, more explicit form and forbids wildcards. The CMS
+    // origin is the only external image source this site has.
+    domains: ['cms.shikkha24.com'],
+  },
+
   build: {
     // Small stylesheets inline; larger ones stay external so they can be cached.
     inlineStylesheets: 'auto',
