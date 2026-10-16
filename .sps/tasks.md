@@ -897,7 +897,16 @@ not know about it.
 > a task with no metric is how M24 happened.
 
 ### T-02 — Fix the article-template CLS (the one red CI step)
-- **Status:** `todo` · **Blocks:** CI green, and T-05
+- **Status:** ✅ **CLOSED 2026-10-16 — resolved, evidence below.** The metric
+  overrides it asked for are implemented (`size-adjust: 99.2%` plus
+  ascent/descent/line-gap overrides in `frontend/src/styles/global.css`, with the
+  x-height ratio against GitHub's Liberation Sans-derived `sans-serif` documented
+  inline), **and** a second, different CLS cause was found and fixed on
+  2026-10-16: the article-top ad box moved 626 px because `ArticleAudio` was
+  revealed by a deferred module — moved to a classic parse-blocking script.
+  Measured CLS is now **0.000** on all three measured templates (was 0.036).
+  CI is green. Original text follows, kept as history.
+- **Originally:** `todo` · **Blocks:** CI green, and T-05
 - **Hypothesis:** `font-display: swap` with a generic system-font fallback and
   **no metric overrides** reflows Bengali text on load. `grep -c size-adjust
   fonts.css` → **0**. Additionally only weight 400 was preloaded while the
@@ -917,7 +926,12 @@ not know about it.
   representative. A local green here is the trap M24 describes.
 
 ### T-03 — Preload the 700 weight
-- **Status:** `todo`
+- **Status:** ✅ **CLOSED 2026-10-16 — implemented.** `frontend/src/layouts/Layout.astro`
+  lines 170-171 preload **both** weights:
+  `<link rel="preload" href="/fonts/solaimanlipi-400.woff2" …>` and
+  `…/solaimanlipi-700.woff2`. (Measured later: the fonts themselves arrive in
+  ~3 ms, so this was never the LCP bottleneck — see T-24.)
+- **Originally:** `todo`
 - **Hypothesis:** the article H1 is `font-bold` and 700 is not preloaded, so the
   largest text on the page swaps last.
 - **Asset:** `frontend/src/layouts/Layout.astro` — the one `<link rel=preload>`.
@@ -927,7 +941,12 @@ not know about it.
   154 KB together against a 200 KB budget.
 
 ### T-04 — Deploy the frontend once CI is green
-- **Status:** `blocked` by T-02 and T-03
+- **Status:** ✅ **CLOSED 2026-10-16 — superseded.** This predates the Cloudflare
+  migration. The storefront now deploys automatically: `deploy-cloudflare.yml`
+  waits on CI (`scripts/wait-for-ci.mjs`) and runs `wrangler deploy` from
+  `frontend/`. Its blockers T-02 and T-03 are both closed. Current deploys are
+  gated only by the GitHub Actions budget (see `.sps/owner-assistance.md`).
+- **Originally:** `blocked` by T-02 and T-03
 - **Metric:** `shikkha24.com` serves the new build; Lighthouse gate green.
 - Nothing frontend-side is pending today: `git log ff195bb..HEAD -- frontend/`
   is empty. **Do not deploy to "catch up" — there is nothing to catch up to.**
