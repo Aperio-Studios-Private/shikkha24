@@ -1,5 +1,49 @@
 # SPS Handoff
 
+## 2026-10-16 (round 13) — T-23 and T-25 closed; two recorded root causes were wrong
+
+### T-23 COMPLETE — the covers were never blocked
+
+The six articles (ids 23–28) are live with covers **already attached** (media ids
+10–15), correct Bengali alt text, and the `চিত্র: AI` credit. Verified against the live
+CMS API: `featuredImage` is linked on all six (23→10 … 28→15), the news sitemap carries
+exactly **6 URLs**, and all six appear on `/latest/`.
+
+⚠️ **My recorded cause for the cover blocker was WRONG, and it cost the owner a manual
+workaround.** I had written that "the host proxy drops non-file multipart fields". The
+proxy was never at fault: **Payload does not accept text fields as separate multipart
+parts — they must travel inside a `_payload` JSON part.** With `-F "alt=…"` the file
+uploads fine and only the text is lost, which returns `400 Alt text is required` and
+looks exactly like a proxy stripping fields. One flag, not a host fault.
+
+**Verified end-to-end in a local build:** the article emits `<picture>` with AVIF + WebP
+at 412w/800w and the real Bengali alt, and the CMS serves the file **200**. So the whole
+cover pipeline works — the covers are absent from the live site **purely because the
+frontend has not deployed since they were attached (O-7)**.
+
+**Lesson: an API-contract misunderstanding was filed as a host fault.** A 400 that names
+a field makes the *field* look missing; the field was fine, the *envelope* was wrong.
+Check the request shape before blaming infrastructure.
+
+### T-25 CLOSED — impact nil, and its consequence for T-23 was also wrong
+
+Six covers uploaded 2026-10-16 all serve **200**; the six files from 2026-10-04 all
+serve **500**. So this is **six individually-lost files, not a broken media system** —
+and all six are `demo-plate-*.webp` demo visuals **already deleted during the demo
+purge**, with nothing referencing them (no article, page, template or sitemap entry).
+The entry claimed uploading covers here "would fail identically"; it did not. Checking
+`upload.staticDir` is now optional curiosity, not a task.
+
+**Both of these were cases where the diagnosis was recorded confidently and was
+wrong.** The symptoms were real; the attributed cause was not. Worth remembering when
+reading an older entry in this file: the evidence table is usually sound, the
+conclusion drawn from it sometimes is not.
+
+### O-1 shrinks to closed-unless-you-care
+
+Same evidence, so it no longer blocks covers (those work) or the site (nothing points at
+the lost files).
+
 ## 2026-10-16 (round 12) — T-22 feature walk complete; an ad slot was advertising a guarantee
 
 **Feature walk, all green:** nav **9/9** links resolve (all eight `/category/*` with
