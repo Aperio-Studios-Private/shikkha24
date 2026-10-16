@@ -1958,7 +1958,24 @@ not know about it.
   is empty. **Do not deploy to "catch up" — there is nothing to catch up to.**
 
 ### T-06 — Close the migration-gate blind spot (🔴 systemic)
-- **Status:** `todo` · **Why it matters more than T-01's symptom**
+- **Status:** ✅ **CLOSED 2026-10-16 — hypothesis TESTED AND DISPROVEN; the gate works.**
+  Ran the stated metric directly rather than reasoning about it: added a throwaway
+  field (`t06ThrowawayProbe`, a `text`) to `Pages`, then ran the gate.
+  **It went red**, with the intended message —
+  `::error::the schema in payload.config.ts has changed with no migration committed`,
+  naming the generated files — and the tree still typechecks, lints and builds, so the
+  gate is the only thing standing between that change and a `no such table` on the host.
+  Restored, and it passes again.
+  **Why the hypothesis was wrong:** the gate diffs the config against the newest
+  committed **`.json` snapshot**, and the snapshot is taken *before* generating. The
+  comparison therefore never consults the database, so "missing from both the snapshot
+  and the DB" cannot make it pass — the snapshot half alone is sufficient to fail.
+  ⚠️ **Also verified the gate cleans up after itself:** the failing run left **no**
+  stray migration files in `cms/src/migrations/`. A gate that failed *and* littered
+  generated files would be worse than no gate.
+  **`roles` is migrated too:** `cms/src/migrations/20261010_120000_users_roles.ts`
+  exists (7 migration files total), so the original motivating case is closed as well.
+  No code change was needed — this was a hypothesis that had never been run.
 - **Hypothesis:** `scripts/verify-payload-migrations.sh` asks
   `migrate:create` whether anything changed. The generator diffs against the
   newest committed snapshot, and when a field is missing from **both** the
