@@ -67,7 +67,11 @@ not know about it.
   and Secrets) — never in chat, never in the repo.
 
 ### T-21 — Complete SEO pass + search-engine registration (owner requested 2026-10-15)
-- **Status:** 🟢 **ALL BUILD WORK DONE 2026-10-16 — remaining items are owner-side only.**
+- **Status:** ✅ **ALL AGENT WORK COMPLETE 2026-10-16. Zero build work remains.** Every
+  remaining item is owner-side (O-7 deploy, O-9 GSC/Bing) and nothing can be advanced
+  without the owner. Verified: the IndexNow key file is present in **both**
+  `frontend/public/` and `frontend/dist/`, and `pnpm run indexnow -- --dry-run` reports
+  **63 URLs** and sends nothing — ready to fire the moment the key is public.
   Every technical SEO asset is live and verified: `robots.txt` 200 (with 2 `Sitemap:`
   directives), `sitemap.xml` **63 URLs**, `news-sitemap.xml` **6 URLs**, `llms.txt` 200,
   `favicon.ico` 200. The audit engine's F grade was checked and is mostly an artefact
