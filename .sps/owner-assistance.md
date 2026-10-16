@@ -16,7 +16,7 @@ the server until CI can run again. Restoring the budget delivers all of them at 
 |---|---|---|---|
 | **O-7** | GitHub Actions budget exhausted | Restore billing / raise the spending limit | 🔴 blocks 20 fixes |
 | **O-11** | Live site shows Asr **51 min early** | nothing — ships with O-7 | 🔴 user-visible bug |
-| **O-1** | 6 CMS media files missing from disk | Check `upload.staticDir` on the host | 🔴 images |
+| **O-1** | 6 old `demo-plate` files 500 (media path is fine — new covers serve 200) | **nothing needed** — deleted demo visuals, nothing references them | 🟢 closed-unless-you-care |
 | **O-4** | CSP-blocked Cloudflare beacon | Turn off Web Analytics in the CF dashboard | 🟡 2 min |
 | **O-8** | Four CMS collections are empty | Seed them or tell me to | 🟡 your call |
 | **O-9** | IndexNow + Bing Webmaster | Import the key, click verify | 🟡 5 min |
@@ -102,6 +102,20 @@ a `user`-scoped token I do not have. That is why only you can clear it.
 ## 🔴 Blocking — the site cannot show images until these are done
 
 ### O-1. CMS media files are missing from disk (T-25)
+> **✅ UPDATE 2026-10-16 — much smaller than it looked, and the action is now optional.**
+>
+> The upload path is **healthy**: six covers uploaded on 2026-10-16 (media ids 10–15)
+> all serve **200**, while the six files from 2026-10-04 all serve **500**. So this is
+> **six individually-lost files, not a broken media system** — and they are the old
+> `demo-plate-*.webp` demo visuals that were **deleted from the CMS during the demo
+> purge anyway**. Nothing references them: no article, page, or template.
+>
+> **You do not need to do anything here.** The only reason to look at
+> `upload.staticDir` is curiosity about what happened on 2026-10-04. It no longer
+> blocks covers (those work) or the site (nothing points at them). Treat this as
+> **closed-unless-you-care** rather than pending.
+
+### O-1-detail — original diagnosis, retained as the record
 **Symptom you reported:** every image shows `{"errors":[{"message":"Something went wrong."}]}`.
 
 **What I proved (2026-10-16, all 8 media records probed live):**
