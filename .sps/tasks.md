@@ -131,6 +131,34 @@ not know about it.
   404/redirect hygiene, internal linking, Core Web Vitals re-measured on
   **https://shikkha24.com** in production (mobile + desktop). Everything the audit
   finds gets fixed and re-verified.
+- **RE-AUDITED 2026-10-16 — the sps-seo engine scores our architecture blind, and
+  every headline finding is a tooling artifact. Do not act on its raw score.**
+  Ran `~/.agents/skills/sps-seo/scripts/audit.mjs` twice: **28/100 (F)** against the
+  repo and **43/100 (F)** against `frontend/dist`. Both are wrong for this project,
+  and I verified each claim against the built output rather than trusting the number:
+
+  | Engine says | Reality (verified) |
+  |---|---|
+  | `robots: False`, `sitemap: False` | **Both live and 200.** The engine only looks for `robots.txt`, `public/robots.txt`, `app/robots.ts`, `src/app/robots.ts` — it has **no `dist/` path and no Astro-endpoint case**, and ours are Astro endpoints (`src/pages/robots.txt.ts`, `sitemap.xml.ts`, `news-sitemap.xml.ts`). |
+  | `favicon: False`, `llmsTxt: False` | **Both present** (`frontend/public/favicon.ico` 655 B, `llms.txt` 3,070 B; both serve 200 live). False negatives from the source-only scan. |
+  | `h1Issues: 19–28` | **All 89 built pages have exactly one `<h1>`** — 0 non-conforming. |
+  | `multiCanonicalPages: article/[slug].astro` | **No page emits two canonicals** (checked all 89 built pages + live URLs). That stub is a **standalone minimal document** that does not use `Layout.astro`, precisely so it can emit one canonical plus its meta-refresh. The engine saw source-level co-occurrence that never manifests. |
+  | `missingAlt: 6–37` | **Zero `<img>` without `alt`** in the entire build. One image variant exists site-wide (`icon-maskable.svg`, 152 uses) and is always `alt=""` — correct, since it sits beside the wordmark text. |
+  | `thinContentPages: 3` | **`.lighthouseci/lhr-*.html` reports** — build artifacts, not site content. |
+  | `noindexCount: 5` | **All 5 are deliberate and correct:** `/login`, `/bookmarks`, `/verify/<reporterId>`, `/newsletter/confirm`, `/newsletter/unsubscribe`. Verified the public pages (`/`, `/latest/`, `/contact`) are indexable. |
+
+  **What this changes:** the previous "baseline grade F = 30/100" recorded in this
+  task is **not a description of the site** — it is a description of the engine's
+  blind spots, and it was carried in these notes as if it were a real defect count.
+  The genuine on-page SEO facts are: single H1 per page, single canonical per page,
+  complete title/description/OG/Twitter coverage, valid JSON-LD (NewsArticle on
+  articles, FAQPage on `/faq`, CollectionPage + BreadcrumbList on listings,
+  Organization + WebSite on `/`), correct noindex scoping, `robots.txt` +
+  `sitemap.xml` + `news-sitemap.xml` + `llms.txt` all live, and **one** plus the
+  product/vertical audits.
+  **Practical consequence: there is no H1/anchor-text/alt backlog to work through.**
+  The real open SEO items are the ones already tracked — the owner-side GSC/Bing
+  steps below, and the low-priority meta-refresh-vs-301 note above.
 - **Part B — search-engine registration, guided click-by-click for the owner:**
   Google Search Console (domain property; I produce the exact TXT record, owner
   pastes it in the Cloudflare DNS screen), sitemap submission, key-page indexing
