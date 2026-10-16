@@ -65,12 +65,36 @@ done** (6 articles live). The credentials you pasted are in this chat's history 
 in `cms/.env.local` (git-ignored, never committed, redacted from logs) — rotation is
 the correct finish.
 
-### O-4. Deploy the CMS so the admin button work appears (T-26)
+### O-4. Turn off Cloudflare Web Analytics in the dashboard
+**Why:** Cloudflare auto-injects its analytics beacon
+(`static.cloudflareinsights.com/beacon.min.js`) into every production response.
+Our own CSP (`script-src 'self' …`) blocks it, so **every page logs a CSP violation**
+and production best-practices measures **93 instead of 100** (Lighthouse on the
+local build shows 100, because Cloudflare is not in front of it — this is exactly
+the kind of production-only difference worth catching).
+
+Nothing in the repo references the beacon; it is added at Cloudflare's edge.
+
+**Owner decision (2026-10-16): keep the CSP strict** — do not widen `script-src`.
+So the fix is to stop Cloudflare injecting it:
+
+1. Cloudflare dashboard → **your account → the `shikkha24.com` zone**
+2. **Analytics & Logs → Web Analytics**
+3. If a site entry exists for `shikkha24.com`, **disable/delete it**
+   (the beacon is only injected while a Web Analytics site is enabled)
+4. Tell me when done — I will re-measure production and confirm
+   best-practices returns to 100 and the console error disappears.
+
+**Do not** add `cloudflareinsights.com` to the CSP: that was the alternative and it
+was rejected (it adds a third-party script plus an egress of reader IPs, against
+rule 7's self-hosted preference).
+
+### O-5. Deploy the CMS so the admin button work appears (T-26)
 The new admin styling is committed and verified in the built admin CSS, but the
 Cloudflare workflow deploys **only the storefront**. The CMS runs on DianaHost, so
 it needs its own deploy for the improved buttons to show up in your admin.
 
-### O-5. Request indexing in Google Search Console
+### O-6. Request indexing in Google Search Console
 For the 6 new article URLs and `/faq` — the sitemaps already list them, but an
 explicit request speeds up first crawl.
 

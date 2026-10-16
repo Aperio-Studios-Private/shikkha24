@@ -102,7 +102,25 @@ not know about it.
   key URLs submitted; performance + a11y budgets re-measured green on the live domain.
 
 ### T-22 — Feature-by-feature debug + bug/error-free + futureproofing pass (owner requested 2026-10-15)
-- **Status:** `queued` — directly after T-21, before T-20.
+- **Status:** 🔵 `in progress` — live sweep started 2026-10-16 (perf work runs in
+  parallel under T-24).
+- **DONE 2026-10-16 — route sweep:** all **69** public routes (63 from `sitemap.xml`
+  plus `/404`, `/bookmarks`, `/cgpa`, `/citizen`, `/contact`, `/live-tv`, `/login`,
+  `/search`, `/verify/<reporterId>`) return **200** on the live site. Two earlier
+  "404s" were my own wrong URL forms, not bugs: bare `/verify` correctly 404s
+  (the route is `/verify/<reporterId>`, verified content 200 + H1 "পরিচয়পত্র যাচাই"),
+  and reporter profiles are addressed by slug, not id.
+- **DONE 2026-10-16 — console sweep:** production logs exactly **one** error per
+  page, on every template: Cloudflare's injected Web Analytics beacon is blocked by
+  our own CSP. Nothing in the repo references it (it is added at the edge), which is
+  why the local build scores best-practices 100 while production scores **93**.
+  Owner chose to keep the CSP strict and disable the beacon in the dashboard →
+  tracked as **O-4** in `.sps/owner-assistance.md`.
+- **REMAINING:** feature matrix walk (nav, home modules, article page, listing,
+  exam-results, scholarship, deadline, prayer widget, live TV, /verify, ad slots,
+  404, CMS admin flows end-to-end, publish watcher) with happy-path + edge cases;
+  dependency freshness (`pnpm outdated` + advisories); dead-code purge;
+  per-feature owner manual checks.
 - **Scope:** walk every shipped feature in a planned matrix (nav, home modules,
   article page, category/listing, exam-results, scholarship, deadline, prayer widget,
   live TV, /verify, ad slots, 404, CMS admin flows end-to-end, publish watcher):
