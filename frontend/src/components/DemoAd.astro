@@ -16,6 +16,13 @@
  * are placeholders. Real AdSense units replace them at S7 without touching the
  * layout, because the slot already reserves the exact dimensions.
  *
+ * ⚠️ **"Obvious they are placeholders" was not true on screen until 2026-10-16.**
+ * The creatives carried real-sounding offers (one promised a guaranteed IELTS
+ * band) inside a bordered box with a `বিজ্ঞাপন` label, so to a reader they were
+ * indistinguishable from sold advertising. The creatives are now generic and a
+ * visible `নমুনা বিজ্ঞাপন` badge states it outright. Keep both: the badge is the
+ * guarantee, the copy is just realistic for size approval.
+ *
  * ## Motion
  *
  * Rotation pauses on hover and stops entirely under `prefers-reduced-motion` —
@@ -39,12 +46,33 @@ const FORMAT_LABELS: Record<Props['format'], string> = {
   infeed: 'ইন-ফিড নেটিভ',
 }
 
-/** Sample creatives. Plain CSS, so they cost nothing to render. */
+/**
+ * Sample creatives. Plain CSS, so they cost nothing to render.
+ *
+ * ## Why the copy is generic
+ *
+ * These deliberately advertise nothing. The earlier creatives read as real
+ * commercial offers — one carried "ব্যান্ড ৭+ গ্যারান্টি" (a guaranteed IELTS
+ * band), which is a specific performance promise. Rendered on a live page at real
+ * size inside a dashed "বিজ্ঞাপন" box, a reader cannot tell that from a paid ad
+ * for a service shikkha24 does not sell, and a guarantee is not something this
+ * site can make on a third party's behalf.
+ *
+ * That also contradicted the site's own purpose: `/fact-check` exists to publish
+ * verdicts on misleading claims — explicitly including fabricated scholarship and
+ * result notices — so carrying an unowned guarantee in an ad slot would have the
+ * site doing the thing it publishes against.
+ *
+ * The subject matter is kept to the site's own topical areas so the format and
+ * text length are still realistic for approval. The visible `নমুনা বিজ্ঞাপন`
+ * badge below is what identifies them as samples; these strings are not load
+ * bearing for that.
+ */
 const CREATIVES = [
-  { title: 'বিদেশে উচ্চশিক্ষা', body: 'স্কলারশিপ গাইড ২০২৭', tone: 'red' },
-  { title: 'এইচএসসি ভর্তি প্রস্তুতি', body: 'অনলাইন ব্যাচ — ফ্রি ক্লাস', tone: 'teal' },
-  { title: 'আইইএলটিএস কোর্স', body: 'ব্যান্ড ৭+ গ্যারান্টি', tone: 'indigo' },
-  { title: 'বৃত্তির খোঁজ', body: '৫০০+ বৃত্তি এক জায়গায়', tone: 'amber' },
+  { title: 'বিজ্ঞাপন স্থান', body: 'লিডারবোর্ড ফরম্যাট', tone: 'red' },
+  { title: 'বিজ্ঞাপন স্থান', body: 'ইন-ফিড নেটিভ ফরম্যাট', tone: 'teal' },
+  { title: 'বিজ্ঞাপন স্থান', body: 'মিডিয়াম রেকট্যাঙ্গেল', tone: 'indigo' },
+  { title: 'বিজ্ঞাপন স্থান', body: 'স্কাইস্ক্র্যাপার ফরম্যাট', tone: 'amber' },
 ]
 ---
 
@@ -89,6 +117,21 @@ const CREATIVES = [
     class="absolute bottom-1 right-1.5 text-[10px] uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted"
   >
     {FORMAT_LABELS[format]}
+  </span>
+
+  {/*
+    A reader-visible marker that this is a sample, not a sold placement.
+
+    `বিজ্ঞাপন` alone was not enough: a bordered box containing copy at real size
+    reads as a paid ad. `demo-ad` in the class list and the aria-label are both
+    invisible on screen, so a sighted reader had no way to tell. This badge is the
+    honest signal, and it is deliberately in the top-left so it does not collide
+    with the format label in the bottom-right.
+  */}
+  <span
+    class="absolute left-1.5 top-1 rounded bg-surface-sunken px-1.5 py-0.5 text-[10px] font-medium text-ink-muted dark:bg-dark-sunken dark:text-dark-ink-muted"
+  >
+    নমুনা বিজ্ঞাপন
   </span>
 </div>
 
