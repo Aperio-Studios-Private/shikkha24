@@ -352,6 +352,36 @@ not know about it.
 - **DoD:** per-feature checklist with evidence on https://shikkha24.com; zero
   build/lint/type errors; budgets green; handoff records the feature matrix file path.
 
+### T-25 RE-PROBED 2026-10-16 — the host's multipart proxy is the exact blocker, now proven end-to-end
+- **The 6 October-4 media still 500** (`demo-plate-7…12.webp`) — T-25 unchanged.
+- **T-23 cannot be finished over the API, and this is now proven rather than
+  assumed.** The blockers were tested one at a time, with a valid admin JWT obtained
+  from `cms/.env.local` (login returns 200):
+  | Attempt | Result | Reading |
+  |---|---|---|
+  | `POST /api/media` unauthenticated | **403** "not allowed" | auth is correctly enforced |
+  | JSON with base64 `data` | **400** "No files were uploaded" | Payload requires multipart, not JSON |
+  | multipart, no `alt` | **400** `Alt text is required` | the **file transferred fine** — only the text field was lost |
+  | multipart, `-F "alt=…"` | **400** same | `alt` never arrives |
+  | `--form-string "alt=…"` | **400** same | not a shell-quoting artefact |
+  | `-F "alt[en]=…" -F "_payload=…"` (2+ text fields) | **500** "Something went wrong" | the proxy **fails outright** on multiple text parts |
+  | `alt` in the **query string** | **400** same | ignored |
+  - **A rejected upload leaves nothing behind:** media stayed at **8 docs** and no
+    orphaned file appeared, so Payload rolled the transaction back correctly. Clean.
+  - **Conclusion:** the file always uploads; the *only* thing that never survives is
+    the multipart text part. `alt` is `required: true` in
+    `cms/src/collections/Media.ts:121` — correctly so, it is an accessibility field —
+    so every upload is rejected by validation. **Nothing in the application can fix
+    this; it is the host's proxy**, exactly as
+    `editorial/assets-batch-1/upload-ready/README.md` already recorded.
+  - **Therefore T-23 stays blocked** and the covers must go in through the **CMS
+    admin UI** (a browser POST is not mangled the same way, since the admin form
+    uploads the fields as Payload's own client builds them). That is owner action
+    **O-2**; the upload table with exact Bengali alt text is in the README above it.
+    After that I can PATCH `featuredImage` onto articles 23–28 by API, as planned.
+- **Do not re-probe this.** Four distinct multipart shapes and a query-string
+  variant all fail identically; the cause is upstream of the application.
+
 ### T-23 — Editorial content seeding, batch 1 (owner requested 2026-10-16)
 - **Status:** 🔴 `in flight` — fact sweep running; articles land as paste-ready drafts.
 - **The owner's ask, adjusted for ethics/safety (agreed framing):** original Bengali
