@@ -372,6 +372,28 @@ not know about it.
     verbatim from `6035d8e` and verified. **Lesson: a slice-replace between two
     headings deletes whatever sits between them; check the whole file after an edit
     that removes a section, and let the commit message name what was removed.**
+- **DONE 2026-10-16 — CMS admin / API surface walked end-to-end (the last
+  un-walked part of the matrix).** Authenticated with the admin JWT and enumerated
+  **every** collection:
+  - **31 collections respond correctly** with honest counts — `articles` 6,
+    `categories` 8, `authors` 1, `media` 14 (8 original + the 6 covers from T-23),
+    `institutions` 6, `study-abroad-guides` 8, `districts` 64, `levels` 5, and 22
+    that are legitimately empty (already tracked as **O-8**).
+  - ✅ **Two apparent failures investigated and cleared — neither is a bug.**
+    1. `/api/reporters` → **404 "Route not found"**. There is **no `reporters`
+       collection and never was**: reporters are `authors` records filtered by
+       `verificationStatus`, which is why `getVerifiedReporters()` queries
+       `/api/authors` (`lib/cms.ts:857`). **My probe invented a collection name.**
+    2. `/api/faqs` → **404 on the deployed CMS**, and it is the **only** collection
+       missing — all 12 others return 200. This is **documented and expected**:
+       `lib/cms.ts:1345` states *"The live `/api/faqs` endpoint answers 404 until the
+       P4 CMS deploy"*, and `getFaqs()` falls back to `FAQ_SEED`, which is the
+       approved launch content rather than a placeholder. Verified the effect is
+       benign: **`/faq` is live, 200, with FAQPage schema and 8 Question entities.**
+  - ⚠️ **The one real consequence, worth stating plainly:** the owner **cannot yet
+    edit the FAQs through the CMS**, because the collection is not on the deployed
+    build. The page is correct and complete for readers; only the editing control is
+    absent. That falls under the existing **O-5 / O-7 deploy** items, not a new one.
 - **REMAINING:** feature matrix walk (nav, home modules, article page, listing,
   exam-results, scholarship, deadline, prayer widget, live TV, /verify, ad slots,
   404, CMS admin flows end-to-end, publish watcher) with happy-path + edge cases;
