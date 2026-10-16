@@ -557,7 +557,8 @@ editor clicks Publish in the CMS
 `deploy.yml` keeps its cPanel machinery for **manual rollback only**
 (`workflow_dispatch`, `mode=live target=static`) — its automatic
 `repository_dispatch` trigger was removed on 2026-10-15 so one publish builds
-the frontend exactly once.
+the frontend exactly once. The trigger that FEEDS the dispatch lives outside
+both workflows: `publish-watcher/` replaces the dead cPanel webhook — §10.6.
 
 ### 10.2 Configuration — Workers static assets, not Workers Sites
 
