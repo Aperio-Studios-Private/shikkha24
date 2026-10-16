@@ -62,6 +62,39 @@ async function ink(buf: Buffer): Promise<number> {
   return nonWhite
 }
 
+/**
+ * The bounding box of drawn text, so a check can assert *clear margins* rather
+ * than only that the canvas has the right size.
+ *
+ * Bright pixels are used because every card draws its text in white or a light
+ * grey over a darkened photo or charcoal plate — this deliberately measures the
+ * text, not the background. Rows and columns are sampled every 2 px: the goal is
+ * to detect text touching an edge, and a 2 px step cannot miss a glyph.
+ */
+async function textBounds(buf: Buffer): Promise<{
+  firstRow: number
+  lastRow: number
+  firstCol: number
+  lastCol: number
+}> {
+  const { data, info } = await sharp(buf).raw().ensureAlpha().toBuffer({ resolveWithObject: true })
+  const bright = (i: number) => data[i] > 195 && data[i + 1] > 195 && data[i + 2] > 195
+  let firstRow = info.height
+  let lastRow = -1
+  let firstCol = info.width
+  let lastCol = -1
+  for (let y = 0; y < info.height; y += 2) {
+    for (let x = 0; x < info.width; x += 2) {
+      if (!bright((y * info.width + x) * 4)) continue
+      if (y < firstRow) firstRow = y
+      if (y > lastRow) lastRow = y
+      if (x < firstCol) firstCol = x
+      if (x > lastCol) lastCol = x
+    }
+  }
+  return { firstRow, lastRow, firstCol, lastCol }
+}
+
 /** A synthetic record, so the harness does not depend on seeded demo content. */
 async function withAuthor(next: (author: IdCardAuthor) => Promise<void>): Promise<void> {
   const settings = await payload.findGlobal({
@@ -127,6 +160,53 @@ await withAuthor(async (author) => {
   )
 
   check('the photocard is not a blank plate', (await ink(a)) > 50_000)
+
+  /*
+   * ⚠️ Geometry, not just dimensions — this is the check whose absence let a real
+   * defect ship. The card measured 1200×1200 and had plenty of ink, so every
+   * assertion above passed while a 92-character Bengali headline was silently
+   * **clipped** by `textLayer`'s old `height: size * 3` (186 px for a headline
+   * needing ~620 px). The reader saw a truncated headline and footer text jammed
+   * against the bottom edge with no breathing room.
+   *
+   * A card can be the right size, full of ink, byte-identical across runs, and
+   * still be unreadable. So assert the *clear margins* directly: find the first
+   * and last rows containing bright (text) pixels and require real space at both
+   * edges. The ratio bound is deliberately generous — this is a "no text touching
+   * the edge" guard, not a pixel-perfect layout assertion.
+   */
+  const geo = await textBounds(a)
+  const minMargin = Math.round(1200 * 0.03) // 36 px at 1200
+  check(
+    'the photocard keeps clear space at the top edge',
+    geo.firstRow >= minMargin,
+    `first text row y=${geo.firstRow}, need >= ${minMargin}`,
+  )
+  check(
+    'the photocard keeps clear space at the bottom edge',
+    geo.lastRow <= 1200 - minMargin,
+    `last text row y=${geo.lastRow}, need <= ${1200 - minMargin}`,
+  )
+  check(
+    'the photocard left/right margins are clear',
+    geo.firstCol >= minMargin && geo.lastCol <= 1200 - minMargin,
+    `x ${geo.firstCol}..${geo.lastCol}, need ${minMargin}..${1200 - minMargin}`,
+  )
+
+  // A headline that overflows its budget is clipped at a known boundary, so the
+  // card must never be *silently* truncated: with the layout fixed, the whole
+  // title has to fit. Re-render with a long real-world headline and require that
+  // the headline block ends above the footer.
+  const longTitle = await composePhotocard({
+    ...article,
+    title: 'সরকারি স্কুলে ভর্তির নীতিমালা-২০২৭ প্রকাশ — ক্যাচমেন্ট ৪০%, কোটা ১৪%, বাকিটা পরীক্ষা-লটারিতে',
+  })
+  const longGeo = await textBounds(longTitle)
+  check(
+    'a long Bengali headline does not run into the bottom edge',
+    longGeo.lastRow <= 1200 - minMargin,
+    `last text row y=${longGeo.lastRow}, need <= ${1200 - minMargin}`,
+  )
 }
 
 // ── The QR resolves somewhere real ──────────────────────────────────────────

@@ -100,10 +100,23 @@ function escapeMarkup(value: string): string {
   return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 }
 
-/** Coloured, wrapped text rendered to a transparent PNG ready for compositing. */
+/**
+ * Coloured, wrapped text rendered to a transparent PNG ready for compositing.
+ *
+ * ⚠️ **`maxHeight` is a real budget, not a formality.** This used to hard-code
+ * `height: opts.size * 3` — a tall headline was then silently *clipped* to fit
+ * instead of wrapping, with no error. On the photocard that cut a 92-character
+ * Bengali headline (which needs ~620 px at size 62) down to **127 px**, so the
+ * reader saw a truncated headline and the footer text appeared jammed against the
+ * bottom edge with no breathing space.
+ *
+ * Callers that lay text above other content should pass `maxHeight` and read the
+ * returned `height`: it is the PNG's real height, so the next element can be
+ * placed below it rather than at a guessed fixed offset.
+ */
 async function textLayer(
   value: string,
-  opts: { size: number; color: string; width: number; weight?: number },
+  opts: { size: number; color: string; width: number; weight?: number; maxHeight?: number },
 ): Promise<Buffer> {
   const family = opts.weight === 700 ? 'solaimanlipi-700.woff2' : 'solaimanlipi-400.woff2'
   const file = path.resolve(path.dirname(fontPath()), family)
@@ -114,13 +127,21 @@ async function textLayer(
       fontfile: existsSync(file) ? file : fontPath(),
       font: `SolaimanLipi ${opts.size}`,
       width: opts.width,
-      height: opts.size * 3,
+      // `undefined` lets sharp size the canvas to the wrapped text, which is what
+      // the callers that position by measured height want.
+      height: opts.maxHeight,
       rgba: true,
       wrap: 'word',
     },
   })
     .png()
     .toBuffer()
+}
+
+/** The real pixel height of a rendered text layer, for collision-free stacking. */
+async function layerHeight(layer: Buffer): Promise<number> {
+  const { info } = await sharp(layer).toBuffer({ resolveWithObject: true })
+  return info.height
 }
 
 /** A solid rectangle, for header bands and chips. */
@@ -226,6 +247,9 @@ export async function composeIdCard(author: IdCardAuthor): Promise<Buffer> {
       color: WHITE,
       width: W - 120,
       weight: 700,
+      // Sits in the 150 px brand header at top 42 — cap it so a long site name
+      // cannot spill past the band and onto the photo below.
+      maxHeight: 150 - 42 - 16,
     }),
     left: 60,
     top: 42,
@@ -278,6 +302,9 @@ export async function composeIdCard(author: IdCardAuthor): Promise<Buffer> {
       color: CHARCOAL,
       width: W - 120,
       weight: 700,
+      // The ID card lays text out at fixed offsets, so keep the old 3-line box
+      // exactly (`size * 3`) rather than letting this float to content height.
+      maxHeight: 64 * 3,
     }),
     left: 60,
     top: y,
@@ -286,7 +313,12 @@ export async function composeIdCard(author: IdCardAuthor): Promise<Buffer> {
 
   if (author.designation) {
     layers.push({
-      input: await textLayer(author.designation, { size: 40, color: '#555555', width: W - 120 }),
+      input: await textLayer(author.designation, {
+        size: 40,
+        color: '#555555',
+        width: W - 120,
+        maxHeight: 40 * 3,
+      }),
       left: 60,
       top: y,
     })
@@ -310,12 +342,17 @@ export async function composeIdCard(author: IdCardAuthor): Promise<Buffer> {
   for (const [label, value] of rows) {
     if (!value) continue
     layers.push({
-      input: await textLayer(label, { size: 30, color: '#777777', width: 340 }),
+      input: await textLayer(label, { size: 30, color: '#777777', width: 340, maxHeight: 30 * 3 }),
       left: 60,
       top: y,
     })
     layers.push({
-      input: await textLayer(value, { size: 34, color: CHARCOAL, width: W - 420 }),
+      input: await textLayer(value, {
+        size: 34,
+        color: CHARCOAL,
+        width: W - 420,
+        maxHeight: 34 * 3,
+      }),
       left: 420,
       top: y - 4,
     })
@@ -331,7 +368,12 @@ export async function composeIdCard(author: IdCardAuthor): Promise<Buffer> {
     top: qrY,
   })
   layers.push({
-    input: await textLayer('QR স্ক্যান করে যাচাই করুন', { size: 30, color: '#555555', width: W - 120 }),
+    input: await textLayer('QR স্ক্যান করে যাচাই করুন', {
+      size: 30,
+      color: '#555555',
+      width: W - 120,
+      maxHeight: 30 * 3,
+    }),
     left: 60,
     top: qrY + QR + 24,
   })
@@ -360,6 +402,15 @@ export async function composePhotocard(article: PhotocardArticle): Promise<Buffe
     )
   }
 
+  // ── Layout constants ───────────────────────────────────────────────────────
+  //
+  // Every edge keeps `MARGIN` of clear space. The old layout hard-coded the
+  // headline at `top: 150` and the footer at `H - 90`, so a headline taller than
+  // the gap between them simply ran underneath the footer and off the canvas —
+  // visible as text touching the bottom edge with no breathing room.
+  const MARGIN = 64
+  const GAP = 40 // clear space between the headline block and the footer
+
   const layers: Array<{ input: Buffer; left: number; top: number }> = []
 
   // Background: the featured image, cover-cropped and darkened so white text
@@ -379,7 +430,40 @@ export async function composePhotocard(article: PhotocardArticle): Promise<Buffe
     layers.push({ input: await rectLayer(W, H, CHARCOAL), left: 0, top: 0 })
   }
 
-  // Category chip.
+  // ── Footer block, measured first so the headline knows its budget ──────────
+  //
+  // The QR is the tallest footer element, so it anchors the block: the footer
+  // starts at the QR top and the wordmark/date baseline-align with its lower half.
+  const QR = 170
+  const footerTop = H - MARGIN - QR
+  const wordmark = await textLayer(article.siteName, {
+    size: 40,
+    color: WHITE,
+    width: 600,
+    weight: 700,
+  })
+  const wordmarkH = await layerHeight(wordmark)
+  const wordmarkTop = footerTop + QR - wordmarkH
+
+  let dateTop = wordmarkTop
+  let dateLayer: Buffer | null = null
+  if (article.publishedAt) {
+    const date = formatBnBd(article.publishedAt, { day: 'numeric', month: 'long', year: 'numeric' })
+    dateLayer = await textLayer(date, { size: 32, color: '#CCCCCC', width: 520 })
+    dateTop = footerTop + QR - (await layerHeight(dateLayer))
+  }
+
+  layers.push({ input: wordmark, left: MARGIN, top: wordmarkTop })
+  if (dateLayer) layers.push({ input: dateLayer, left: W - 520 - MARGIN, top: dateTop })
+  layers.push({
+    input: await qrLayer(article.canonicalUrl, QR),
+    left: W - QR - MARGIN,
+    top: footerTop,
+  })
+
+  // ── Category chip ──────────────────────────────────────────────────────────
+  const chipH = 56
+  let cursor = MARGIN
   if (article.categoryName) {
     const chipText = await textLayer(article.categoryName, {
       size: 30,
@@ -387,39 +471,37 @@ export async function composePhotocard(article: PhotocardArticle): Promise<Buffe
       width: 700,
       weight: 700,
     })
-    const chipW = 700
-    layers.push({ input: await rectLayer(chipW, 56, BRAND_RED), left: 60, top: 60 })
-    layers.push({ input: chipText, left: 78, top: 70 })
-  }
-
-  // Headline — the largest element, wrapped and clamped.
-  layers.push({
-    input: await textLayer(article.title, { size: 62, color: WHITE, width: W - 120, weight: 700 }),
-    left: 60,
-    top: 150,
-  })
-
-  // Footer: wordmark left, date right.
-  layers.push({
-    input: await textLayer(article.siteName, { size: 40, color: WHITE, width: 600, weight: 700 }),
-    left: 60,
-    top: H - 90,
-  })
-  if (article.publishedAt) {
-    const date = formatBnBd(article.publishedAt, { day: 'numeric', month: 'long', year: 'numeric' })
+    layers.push({ input: await rectLayer(700, chipH, BRAND_RED), left: MARGIN, top: cursor })
+    // Centre the label in the chip rather than guessing a fixed offset.
+    const chipTextH = await layerHeight(chipText)
     layers.push({
-      input: await textLayer(date, { size: 32, color: '#CCCCCC', width: 500 }),
-      left: W - 560,
-      top: H - 82,
+      input: chipText,
+      left: MARGIN + 18,
+      top: cursor + Math.round((chipH - chipTextH) / 2),
     })
+    cursor += chipH + 34
   }
 
-  // QR → the article's canonical URL.
-  const QR = 170
+  // ── Headline ───────────────────────────────────────────────────────────────
+  //
+  // The budget is everything between the chip and the footer, less `GAP`. Passed
+  // as `maxHeight` so sharp wraps within it; a headline that still overflows is
+  // clipped at a *known* boundary above the footer instead of running under it.
+  const headlineBudget = footerTop - GAP - cursor
+  const headline = await textLayer(article.title, {
+    size: 62,
+    color: WHITE,
+    width: W - MARGIN * 2,
+    weight: 700,
+    maxHeight: headlineBudget,
+  })
+  const headlineH = await layerHeight(headline)
+  // Bottom-align short headlines against the gap so the block reads as one unit
+  // instead of leaving a hole above the footer.
   layers.push({
-    input: await qrLayer(article.canonicalUrl, QR),
-    left: W - QR - 60,
-    top: H - QR - 130,
+    input: headline,
+    left: MARGIN,
+    top: cursor + Math.max(0, headlineBudget - headlineH),
   })
 
   return sharp({ create: { width: W, height: H, channels: 4, background: CHARCOAL } })
