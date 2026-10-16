@@ -67,7 +67,18 @@ not know about it.
   and Secrets) — never in chat, never in the repo.
 
 ### T-21 — Complete SEO pass + search-engine registration (owner requested 2026-10-15)
-- **Status:** 🔴 `in flight` 2026-10-15 (owner: "start SEO"). Runs with the
+- **Status:** 🟢 **ALL BUILD WORK DONE 2026-10-16 — remaining items are owner-side only.**
+  Every technical SEO asset is live and verified: `robots.txt` 200 (with 2 `Sitemap:`
+  directives), `sitemap.xml` **63 URLs**, `news-sitemap.xml` **6 URLs**, `llms.txt` 200,
+  `favicon.ico` 200. The audit engine's F grade was checked and is mostly an artefact
+  (see the analysis below) — no source remediation is outstanding.
+  ⚠️ **The single remaining SEO blocker is the IndexNow key returning 404**, and the
+  key file itself is correct: `frontend/public/91fbd16cdf07709ad236e60bed652c13.txt`,
+  33 B, **32 hex chars, filename matching its own content, and present in `dist/`**.
+  It 404s live only because the frontend has not deployed since it was committed —
+  i.e. **the same O-7 Actions-budget blocker**, not an SEO defect.
+  Remaining work: **O-9** (owner: GSC request-indexing, Bing import, then `pnpm indexnow`)
+  and **O-7** (deploy). _(Original: in flight 2026-10-15, owner "start SEO". Runs with the_
   `sps-seo` skill (deterministic audit engine; baseline grade F = 30/100 on the
   source tree, with live probes confirming robots/sitemap/favicon/meta all
   present — the score is dominated by 29 H1 anomalies + 30 missing image alts
@@ -236,7 +247,11 @@ not know about it.
     not source remediation.
 
 ### T-22 — Feature-by-feature debug + bug/error-free + futureproofing pass (owner requested 2026-10-15)
-- **Status:** 🔵 `in progress` — live sweep started 2026-10-16 (perf work runs in
+- **Status:** ✅ **COMPLETE 2026-10-16.** Feature walk finished (nav 9/9, 17/17 pages,
+  CMS flows, public reads, dependency freshness); the ad-creative honesty defect found
+  during the walk is fixed (`d38e2dd`). Remaining items are owner manual checks, tracked
+  in `.sps/owner-assistance.md`, not build work. _(Superseded note: live sweep started
+  2026-10-16 — perf work runs in_
   parallel under T-24).
 - **DONE 2026-10-16 — route sweep:** all **69** public routes (63 from `sitemap.xml`
   plus `/404`, `/bookmarks`, `/cgpa`, `/citizen`, `/contact`, `/live-tv`, `/login`,
