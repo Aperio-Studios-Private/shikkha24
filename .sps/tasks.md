@@ -131,6 +131,20 @@ not know about it.
   min**); (3) it compared **today's** API Asr against a computed Asr for a fixed
   **5 October** — an 11-day mismatch that produced a stubborn ~8 min drift no
   formula could explain. `verify:prayer-times` now passes.
+- **DONE 2026-10-16 — full verifier-suite sweep: 29/29 green.** Ran every `verify:*`
+  script that can run locally (`lighthouse` is CI-only by design). One genuine bug
+  surfaced, in the prayer widget — see the entry below. Everything else passed,
+  which is meaningful coverage rather than an assumption: CSP/inline-script
+  invariants, container nesting, favicon consistency, calculator ID wiring,
+  Pagefind hooks, internal links, Apache↔Worker header parity, deploy-mode inputs,
+  CMS bundle sanitisation, SQLite WAL, importmap and migration drift, reporter
+  pages, bookmarks merge, client-IP handling.
+  ⚠️ **The lesson worth keeping: two of the three defects behind that one bug were
+  in the verifier itself** — it omitted the same `school` parameter it existed to
+  catch, and it compared two different dates. A failing check is evidence that
+  *something* is wrong, not evidence of *what*; read the check before trusting it.
+  Also note `timeout` is not on macOS (use `gtimeout`) — it silently made two
+  results meaningless before I noticed.
 - **REMAINING:** feature matrix walk (nav, home modules, article page, listing,
   exam-results, scholarship, deadline, prayer widget, live TV, /verify, ad slots,
   404, CMS admin flows end-to-end, publish watcher) with happy-path + edge cases;
