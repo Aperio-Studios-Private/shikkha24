@@ -66,6 +66,19 @@ const nextConfig: NextConfig = {
   output: 'standalone',
 
   /**
+   * Suppress the `X-Powered-By: Next.js, Payload` response header.
+   *
+   * Next.js sends it by default. It is a free gift to an attacker: it names the
+   * exact framework and CMS, so scanning effort starts from known advisories for
+   * those two products instead of probing blind. Verified live before the change —
+   * `curl -I https://cms.shikkha24.com/` returned `x-powered-by: Next.js, Payload`.
+   *
+   * Nothing depends on it; it is pure version advertising, so removing it costs
+   * nothing and closes a reconnaissance step.
+   */
+  poweredByHeader: false,
+
+  /**
    * Security headers on every response, including API routes.
    *
    * The CSP is deliberately NOT on the catch-all. Two `Content-Security-Policy`
