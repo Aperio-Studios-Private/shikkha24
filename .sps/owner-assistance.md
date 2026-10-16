@@ -269,6 +269,29 @@ summer; Asr is the only affected time.
 - **Nothing for you to do beyond the deploy.** Recorded because a wrong prayer time is
   the kind of thing a reader notices and quietly stops trusting the site over.
 
+### O-12. Two audit leftovers need one fact each from the server (5 minutes, no risk)
+Neither is a confirmed vulnerability. Both are facts I could not read from source, and I
+have deliberately not probed for them.
+
+**a) Does Passenger run more than one worker?** The CMS rate limiter is an in-process
+`Map`, which is correct for a single process. Passenger *can* fork; if it does, every
+per-IP limit (login 5/min, forgot-password 3/h, comments, polls, bookmarks) is N× more
+permissive than it reads. **What I need:** the `PassengerMaxInstances` value, or the
+process count. Bounded either way — login also has a per-account lockout.
+
+**b) `TICK_SECRET` must be set or the ops route stays closed.** As part of closing the
+unauthenticated `/run-tick` hole I made it fail *closed*: with no secret configured the
+route returns 404. That is deliberate — a missing secret must not silently restore the
+old open behaviour. **What I need:** `wrangler secret put TICK_SECRET` (or the
+dashboard), the same place `GITHUB_TOKEN` already lives. Until then the cron still works
+normally; only the manual "run a tick now" button is unavailable.
+
+⚠️ **Also worth knowing, no action:** a separate audit item asked whether a fresh CI run
+still traces `cms/.env` into the published `cms-standalone` artifact. `cms/.next` on my
+disk does contain one, but that tree may predate the sanitizer that strips it, so I have
+**not** claimed it as a live problem. I can settle it with an offline build — flagging it
+so you know it is on the list rather than silently closed.
+
 ### O-3. Rotate the CMS password
 You said you would rotate it after the publishing task. **The publishing task is
 done** (6 articles live). The credentials you pasted are in this chat's history and
