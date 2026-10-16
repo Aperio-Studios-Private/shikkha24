@@ -342,6 +342,25 @@ not know about it.
 - **DoD:** an image URL returns 200 with image bytes, and the covers from
   `editorial/assets-batch-1/upload-ready/` can be attached to articles 23–28.
 
+- **SHARPENED 2026-10-16 — the records are intact, the *files* are gone.** All 8
+  media documents read fine from the API, and each one reports its **correct
+  filesize** (e.g. `demo-plate-7.webp` = 13,482 bytes) — so the uploads originally
+  succeeded and the metadata is specific, not stubbed. Only the **file-serve** route
+  fails, and it fails per-file, not per-route:
+  | path | HTTP |
+  |---|---|
+  | `/api/media/file/icon-maskable.svg` (2026-10-13) | **200** |
+  | `/api/media/file/demo-plate-7.webp` (2026-10-04) | **500** |
+  | `/media/demo-plate-7.webp`, `/uploads/…` | 404 (wrong path, expected) |
+  Both working and failing files use the **identical route**, so this is not a
+  routing, config or permission-profile difference — it is that the 2026-10-04
+  files are absent from `upload.staticDir` on the host while their database rows
+  survive. `{"errors":[{"message":"Something went wrong."}]}` (48 B) is Payload's
+  generic wrapper over the underlying `ENOENT`.
+  **Conclusion: nothing further can be diagnosed without host access.** The owner
+  needs to look at Payload's `upload.staticDir` (see `.sps/owner-assistance.md`
+  O-1); if the directory is empty, the T-03 backup is the recovery source. The
+  owner's 12 images never reached the CMS at all and are safe in the repo.
 ### T-26 — CMS admin UI/UX: buttons read as flat text, not as buttons (owner requested 2026-10-16)
 - **Status:** 🟡 `code complete, not yet live` — implemented and verified 2026-10-16,
   committed `b711eb3`. **Needs a CMS deploy on DianaHost to appear**: the Cloudflare
