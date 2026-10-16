@@ -2574,6 +2574,12 @@ to it rather than stopping work.
   all reject. Every workaround must go through the cPanel UI, the cPanel API, or
   **"Run JavaScript Script"** (runs a `package.json` script — this is what retires
   runbook §3.4's Terminal-only venv symlink loop).
+  ⚠️ **UPDATE 2026-10-16 (late): jailshell Terminal IS working again** — the owner
+  pasted ~30 session commands through it during the deploy incident
+  (`[shikkhac@b201 ~]` prompt). Treat the disablement above as
+  historically-true-but-currently-lifted; DianaHost may re-disable it at any
+  time, so keep workarounds (File Manager, API, Run JS Script) valid. Budget
+  figures note below also moved to "DH 5GB SSD NVMe" before this session.
 - **No international credit/debit card. No paid service, ever.** Budget: the
   existing DianaHost plan + the domain.
 - **Budget figures in rule 7 of the root mirrors are stale** — the plan is
@@ -2583,3 +2589,57 @@ to it rather than stopping work.
   not representative.
 - **Counter-prove every fix.** A check that has never been seen to fail is not
   evidence. Revert the fix, watch it go red, restore, watch it go green.
+
+---
+
+### T-31 — ⛔ PARKED: redeploy the CMS redesign from an owner-owned Linux build (Windows + WSL2)
+
+**Owner decision 2026-10-16 (late):** build the CMS bundle on the owner's own
+Windows machine inside **WSL2 Ubuntu**, then deploy via the proven cPanel
+upload path — no CI minutes, no Cloudflare, no card, no host resource caps.
+**Blocked on:** a Windows machine (Win10/11, ≥8 GB RAM) being available to the
+owner. **Fallback if none materialises:** private mirror on GitLab Free
+(their Linux runners build; repo stays private — owner explicitly refuses
+going public).
+
+Why not the host: three `pnpm install` attempts all died `EXIT=137`
+(SIGKILL from the account's CloudLinux LVE cap — shell `ulimit` shows
+unlimited, so it is cPanel-level enforcement). Attempts made progress because
+the pnpm store at `~/.local/share/pnpm/store/v11` survives kills, but even
+`--filter cms` + 768 MB heap + concurrency 2 was killed at `added 12`.
+The account's Resource Usage memory limit was never read — if the owner later
+reports ≥2 GB, a heap-tuned on-host build may still be viable as plan C.
+
+**Runbook for the WSL2 path (full detail when work starts):**
+1. `wsl --install` (Ubuntu), then Node 24 + pnpm 11.22.0 inside WSL.
+2. Source: GitHub → **Download ZIP** (browser, repo stays private) — contains
+   everything tracked incl. `frontend/package.json`, which pnpm's frozen
+   install needs as a workspace importer.
+3. `pnpm install --frozen-lockfile --filter cms` (no resource cap here).
+4. `pnpm --filter cms build` → `cms/.next/standalone`.
+5. Assemble the bundle — **must ship a COMPLETE `payload@3.90.2` package**
+   (dist + `package.json` + `bin.js`; Next tracing hollows it out in every
+   bundle seen to date). The live DB is already on the 3.90.2 schema
+   (migrations applied 2026-10-16 during the outage), so runtime 3.90.2
+   finally matches schema, and the venv's 3.89.0 fallback stops being load
+   bearing. Copy from the build tree's `node_modules/.pnpm/payload@3.90.2*`.
+   Steps already scripted in `scripts/assemble-cms-bundle.mjs` (six
+   assertions; fonts: TTF+Woff2); add the payload-promote step there.
+6. Sanitize (no `.env`, no `data/`), zip (~30 MB), upload via cPanel File
+   Manager drag-drop (owner's browser) or the API path in
+   `scripts/deploy-cms.mjs`.
+7. On the host: extract into a **CLEAN** dir (never over the running tree),
+   copy in `data/` (root; DB is absolute URI) + `cms/data/media` (56 files;
+   cwd-relative) + `.env`, then directory-swap.
+8. **Kill stale workers:** `for p in $(pgrep -f next-server); do case
+   "$(readlink /proc/$p/cwd)" in *broken-*|*prev-*) kill $p;; esac; done` —
+   required after ANY swap; cPanel "Restart" does not do it (see handoff
+   2026-10-16).
+9. Verify remotely: admin/articles/photocard 200 + photocard background
+   sd > 3 (photo present) — the check added in `6669b58`.
+
+Live state as of parking (all verified by command output): CMS restored on the
+2026-10-11 CI bundle — old card WITH photo (sd 32.74, 1,031,858 B); DB on
+3.90.2 schema; media + `.env` restored; host holds `~/cms-src-6c9ab27.zip`
+(841,950 B — source, commit `6c9ab27`) and a partial pnpm store from the
+killed attempts. Nothing on the host is broken.

@@ -1,5 +1,38 @@
 # SPS Handoff
 
+## 2026-10-16 (final) — host-build verdict: this account cannot build; next deploy = owner's Windows/WSL2 (T-31, parked)
+
+Follow-on to the outage entry below. After the restore, three on-host
+`pnpm install` attempts (frozen lockfile, then `--filter cms`, heap capped to
+768 MB, network-concurrency 2) all died `EXIT=137`. Shell `ulimit` reports
+unlimited, so the ceiling is **CloudLinux LVE per-account enforcement**, not
+the shell — the 48 GB `free -m` shows is machine-level, irrelevant to the
+cage. The pnpm store persists across kills, so attempts are resumable, but
+the cap number from cPanel → Resource Usage was never read; if it ever
+surfaces as ≥2 GB, a tuned on-host build is still possible (plan C).
+
+**Architecture truth the night confirmed:** bundles are built on Linux CI
+runners and only uploaded here; the host runs them. Cross-compiling from
+macOS is dead (see outage entry). `pnpm` flags verified against pnpm 11.22.0
+source on this machine: `--config.minimum-release-age=0` is the valid CLI
+shape (bare `--minimum-release-age` errors "Unknown option"); the
+"Verifying lockfile against supply-chain policies (N entries)" phase is
+`minimumReleaseAge` (see `minimumReleaseAge ? … : null` gate in the bundle).
+
+**Owner decision:** T-31 — build in WSL2 Ubuntu on the owner's own Windows
+machine, deploy via cPanel path. Full runbook lives in `.sps/tasks.md` →
+T-31, including the fix that matters most: **ship a complete
+`payload@3.90.2`** so runtime matches the already-migrated 3.90.2 schema and
+the venv stops being load-bearing. Fallback if no Windows machine: private
+GitLab Free mirror (owner refuses going public; no card exists).
+
+Also this session: `scripts/assemble-cms-bundle.mjs` landed (commit
+`6c9ab27`) reproducing CI's six assembly assertions; the jailshell-Terminal
+hard-constraint in `.sps/tasks.md`/AGENTS bullets was annotated — Terminal
+**works** again as of tonight (owner ran ~30 commands), annotation recorded
+rather than history rewritten.
+
+
 ## 2026-10-16 (later) — CMS outage and restore; the macOS-bundle path is dead; zombie workers
 
 **Outcome: the CMS was down ~5 h (every route 500) and is now restored to the

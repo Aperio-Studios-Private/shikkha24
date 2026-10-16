@@ -399,3 +399,19 @@ explicit request speeds up first crawl.
   AdSense replaces later.
 - **All 6 articles are live** with headlines, H1s, FAQPage schema on `/faq`, and both
   sitemaps updated (news sitemap 6 URLs, main sitemap 63).
+
+
+---
+
+## Owner asks parked with T-31 (WSL2 deploy, 2026-10-16 late)
+
+1. **A Windows machine** (Win10/11, ≥8 GB RAM) with admin rights for
+   `wsl --install` — the only blocker for T-31.
+2. One-time read: cPanel → **Resource Usage** → the account's **memory
+   limit** number. If it is ≥2 GB, a heap-tuned on-host build reopens as
+   plan C without any new hardware.
+3. Cleanup after a few stable days on the restored CMS: delete
+   `~/shikkha24-cms.broken-1792132158` (holding copy from the incident) and
+   archive the stale `~/shikkha24-cms/cms-deploy-*.zip` files (~300 MB) to
+   `~/cms-archive-backup/`; also `~/cms-src/` + `~/cms-src-6c9ab27.zip` can
+   go once T-31's WSL build replaces them.
