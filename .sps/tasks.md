@@ -704,6 +704,36 @@ not know about it.
   the same 96 in the same conditions.
   **Target is ≥95 on all four categories.** Two of three templates meet a11y/bp/seo
   at 100; performance is 93–96 and **`/` at 94 is the remaining gap.**
+- ## ✅ T-24 TARGET MET 2026-10-16 — all templates ≥95 (commits `c42d639`, `4424ab0`)
+  | template | before | **after** |
+  |---|---|---|
+  | `/` | 89–90 | **97** |
+  | `/latest/` | 96 | **98** |
+  | article | 93 | **97–98** |
+
+  Accessibility 100, SEO 100 on all three. **Gate raised 0.9 → 0.95** in
+  `lighthouserc.json`, with a stale gated URL fixed at the same time — the third URL
+  was `/education-news/20/demo-madrasa-new-syllabus/`, which **returns 404**, so CI had
+  been asserting against a missing page. Replaced with the real article.
+  - **The fix was `CmsImage.astro`** — Astro `<Picture>` for remote CMS sources,
+    emitting AVIF + WebP at 412w/800w where the old path served one full-size JPEG.
+    Wired into `ArticleCard` (homepage + listings) and the article hero, which are the
+    LCP elements on those templates. `uses-responsive-images` and
+    `modern-image-formats` both went **0 → 1** — independent confirmation.
+  - ⚠️ **My earlier homepage figure of 94 was wrong, and so was the 89–90 that
+    replaced it.** The harness was serving **no compression**, which invented a
+    `uses-text-compression` failure; the live site serves Brotli (78,625 → 12,164 B).
+    With Brotli in the harness the same build scored **97, not 91**. Lesson: a local
+    static server is part of the measurement instrument, and an uncompressed one
+    measures a site that does not exist.
+  - **Also found and rejected:** inlining all CSS reaches the same 97 but with worse
+    FCP (1.2 s vs 1.1 s) because the sheet stops caching across pages. The 8 KB
+    ceiling stays — **the gain was the images, not the CSS.**
+  - ⚠️ **Variance is real:** `/` scores **93 on a cold first run, 97 after**. LHCI
+    takes the median of 3, so the gate passes; recorded rather than smoothed away.
+  - `best-practices` reads **96 locally** only because the harness cannot reach
+    third-party hosts. Live it is 100. **O-4** (the CSP-blocked Cloudflare beacon) is
+    the one genuinely outstanding item there.
 - **DECLINED 2026-10-16 — `font-display: optional` on the headline face.**
   Every template's LCP element is a **bold Bengali headline**, so the 700 face is the
   shared binding constraint (see the font-subsetting decision above). `optional`
