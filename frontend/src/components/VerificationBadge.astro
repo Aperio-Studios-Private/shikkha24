@@ -78,12 +78,16 @@ const stateClasses = expired
         stateClasses,
       ]}
       title={expired ? `কার্ডের মেয়াদ শেষ: ${expiryLabel}` : 'যাচাইকৃত প্রতিবেদক'}
+      data-verification-until={expiry ?? undefined}
+      data-server-expired={expired ? '1' : '0'}
+      data-active-title="যাচাইকৃত প্রতিবেদক"
+      data-expired-title={expiryLabel ? `কার্ডের মেয়াদ শেষ: ${expiryLabel}` : 'কার্ডের মেয়াদ শেষ'}
     >
       {
         expired ? (
           <svg
             aria-hidden="true"
-            class={isSmall ? 'h-3 w-3' : 'h-3.5 w-3.5'}
+            class:list={[isSmall ? 'h-3 w-3' : 'h-3.5 w-3.5', !expired && 'hidden', 'icon-verification-expired']}
             viewBox="0 0 20 20"
             fill="currentColor"
           >
@@ -96,7 +100,7 @@ const stateClasses = expired
         ) : (
           <svg
             aria-hidden="true"
-            class={isSmall ? 'h-3 w-3' : 'h-3.5 w-3.5'}
+            class:list={[isSmall ? 'h-3 w-3' : 'h-3.5 w-3.5', expired && 'hidden', 'icon-verification-ok']}
             viewBox="0 0 20 20"
             fill="currentColor"
           >
@@ -108,8 +112,40 @@ const stateClasses = expired
           </svg>
         )
       }
-      <span>{expired ? 'মেয়াদোত্তীর্ণ' : 'যাচাইকৃত'}</span>
+      <span data-verification-label>{expired ? 'মেয়াদোত্তীর্ণ' : 'যাচাইকৃত'}</span>
       {!isSmall && expiryLabel && !expired && <span class="font-normal opacity-80">· {expiryLabel}</span>}
+      {/* Ship the expired-state utilities even when no badge is expired at build
+          time, so the client-side flip always has its classes in the CSS bundle. */}
+      {!expired && (
+        <span class="hidden border border-ink-subtle/50 text-ink-muted dark:border-dark-rule dark:text-dark-ink-muted" aria-hidden="true" />
+      )}
     </span>
   )
 }
+
+<script>
+  // T-32: expiry was compared to the BUILD day, freezing "expired" state on a
+  // static page. Re-evaluate in Asia/Dhaka at view time instead.
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dhaka' }).format(new Date())
+  document.querySelectorAll<HTMLElement>('[data-verification-until]').forEach((el) => {
+    const until = el.dataset.verificationUntil
+    if (!until) return
+    const expired = until < today
+    if (expired === (el.dataset.serverExpired === '1')) return
+    el.dataset.serverExpired = expired ? '1' : '0'
+    el.classList.toggle('bg-brand-charcoal', !expired)
+    el.classList.toggle('text-white', !expired)
+    el.classList.toggle('dark:bg-dark-ink', !expired)
+    el.classList.toggle('dark:text-dark-base', !expired)
+    el.classList.toggle('border', expired)
+    el.classList.toggle('border-ink-subtle/50', expired)
+    el.classList.toggle('text-ink-muted', expired)
+    el.classList.toggle('dark:border-dark-rule', expired)
+    el.classList.toggle('dark:text-dark-ink-muted', expired)
+    const label = el.querySelector('[data-verification-label]')
+    if (label) label.textContent = expired ? 'মেয়াদোত্তীর্ণ' : 'যাচাইকৃত'
+    el.querySelector('.icon-verification-ok')?.classList.toggle('hidden', expired)
+    el.querySelector('.icon-verification-expired')?.classList.toggle('hidden', !expired)
+    el.title = (expired ? el.dataset.expiredTitle : el.dataset.activeTitle) ?? ''
+  })
+</script>

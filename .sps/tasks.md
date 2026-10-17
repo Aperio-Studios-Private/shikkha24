@@ -2660,7 +2660,12 @@ killed attempts. Nothing on the host is broken.
 
 ---
 
-### T-32 — ✅ Masthead dates were frozen at build day — fixed, and the Hijri line added
+### T-32 — ✅ DONE & LIVE (2026-10-18 ~02:05): three build-time date bugs fixed
+
+(DeadlineStrip, VerificationBadge, Footer — Dhaka-time client hydration,
+deploy dff857e2; see handoff)
+
+### T-32 (archive) — ✅ Masthead dates were frozen at build day — fixed, and the Hijri line added
 
 **Owner report 2026-10-17:** the masthead showed
 `শুক্রবার, ১ কার্তিক, ১৪৩৩ · ১৬ অক্টোবর, ২০২৬` on a day that was actually

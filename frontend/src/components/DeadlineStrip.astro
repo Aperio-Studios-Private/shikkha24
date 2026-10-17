@@ -26,8 +26,7 @@
  * rather than wrapping, so content length never changes page height.
  */
 import type { CmsDeadline } from '../lib/cms'
-import { toBnDigits } from '../lib/widgets'
-import { formatBnBd } from '../lib/bangla-date'
+import { formatBnBd, getDhakaDate } from '../lib/bangla-date'
 
 interface Props {
   deadlines: CmsDeadline[]
@@ -51,24 +50,14 @@ const TYPE_LABELS: Record<string, string> = {
   circular: 'বিজ্ঞপ্তি',
 }
 
-const TODAY = new Date()
-TODAY.setHours(0, 0, 0, 0)
-
-/** Whole days from today until `date`. Negative means already past. */
-function daysUntil(date: string | null | undefined): number | null {
-  if (!date) return null
-  const target = new Date(date)
-  target.setHours(0, 0, 0, 0)
-  return Math.round((target.getTime() - TODAY.getTime()) / 86_400_000)
-}
-
-function urgencyLabel(days: number | null): { text: string; urgent: boolean } | null {
-  if (days === null) return null
-  if (days < 0) return { text: 'শেষ', urgent: false }
-  if (days === 0) return { text: 'আজ', urgent: true }
-  if (days === 1) return { text: 'আগামীকাল', urgent: true }
-  return { text: `${toBnDigits(days)} দিন বাকি`, urgent: days <= 3 }
-}
+/**
+ * The relative chip ("আজ", "২ দিন বাকি") is computed **in the browser**, not at
+ * build time. This strip ships inside a static build that can serve for days,
+ * so a build-time `new Date()` froze "আজ" onto whatever day the last deploy
+ * happened (T-32) — precisely the staleness a deadline list must never show.
+ * The absolute date in each card stays server-rendered, so no-JS readers keep
+ * the real information; only this label hydrates.
+ */
 
 function formatDate(date: string | null | undefined): string {
   if (!date) return ''
@@ -103,8 +92,7 @@ function formatDate(date: string | null | undefined): string {
 
         <ul id="deadline-rail" class="deadline-rail flex cursor-grab snap-x snap-mandatory gap-3 overflow-x-auto pb-2 active:cursor-grabbing">
           {deadlines.map((deadline) => {
-            const days = daysUntil(deadline.dateEnd ?? deadline.dateStart)
-            const urgency = urgencyLabel(days)
+            const targetIso = getDhakaDate(deadline.dateEnd ?? deadline.dateStart)
             const typeLabel = deadline.type ? (TYPE_LABELS[deadline.type] ?? deadline.type) : null
 
             return (
@@ -119,15 +107,11 @@ function formatDate(date: string | null | undefined): string {
                         {typeLabel}
                       </span>
                     )}
-                    {urgency && (
+                    {targetIso && (
                       <span
-                        class:list={[
-                          'text-xs font-semibold',
-                          urgency.urgent ? 'text-brand-red' : 'text-ink-subtle dark:text-dark-ink-muted',
-                        ]}
-                      >
-                        {urgency.text}
-                      </span>
+                        data-days-until={targetIso}
+                        class="text-xs font-semibold text-ink-subtle dark:text-dark-ink-muted"
+                      />
                     )}
                   </div>
 
@@ -153,6 +137,37 @@ function formatDate(date: string | null | undefined): string {
     </section>
   )
 }
+
+<script>
+  // T-32: relative deadline labels are computed at view time in Asia/Dhaka — a
+  // static build can serve for days and must never show a frozen "আজ".
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dhaka' }).format(new Date())
+  const toUtc = (iso: string): number => {
+    const [y, m, d] = iso.split('-').map(Number)
+    return Date.UTC(y, (m ?? 1) - 1, d ?? 1)
+  }
+  document.querySelectorAll<HTMLElement>('[data-days-until]').forEach((el) => {
+    const target = el.dataset.daysUntil
+    if (!target) return
+    const days = Math.round((toUtc(target) - toUtc(today)) / 86_400_000)
+    const markUrgent = (): void => {
+      el.classList.remove('text-ink-subtle', 'dark:text-dark-ink-muted')
+      el.classList.add('text-brand-red')
+    }
+    if (days < 0) {
+      el.textContent = 'শেষ'
+    } else if (days === 0) {
+      el.textContent = 'আজ'
+      markUrgent()
+    } else if (days === 1) {
+      el.textContent = 'আগামীকাল'
+      markUrgent()
+    } else {
+      el.textContent = `${days.toLocaleString('bn-BD')} দিন বাকি`
+      if (days <= 3) markUrgent()
+    }
+  })
+</script>
 
 <style>
   /* Hide the scrollbar chrome but keep the rail scrollable by touch, keyboard

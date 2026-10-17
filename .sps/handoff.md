@@ -2274,3 +2274,23 @@ root all HTTP 200 ✓; uploaded + stale zips swept. Owner manual visual check
 pending (English buttons, brand-red primary, danger delete, grouped sidebar).
 The 2026-10-17 faqs trap line is now fully obsolete: /api/faqs is a live
 endpoint (collection exists; empty until FAQs are published).
+
+### 2026-10-18 ~02:05 — T-32 DONE & LIVE: the three build-time date bugs fixed
+
+DeadlineStrip: relative chip ("আজ"/"N দিন বাকি") was computed from a
+build-time `new Date()` and froze on the deploy day; now the server renders
+only `data-days-until` (ISO, via getDhakaDate) and a small client script
+computes the label + urgency class in Asia/Dhaka on every view. Dead server
+funcs (daysUntil/urgencyLabel/toBnDigits import) removed (no dead code).
+VerificationBadge: expiry compared against the BUILD day; now the badge ships
+both icons + dataset labels and a script re-evaluates in Dhaka time; a hidden
+safelist span guarantees the expired-state utilities exist in the CSS bundle
+even when no badge is expired at build time. Footer: © year stamped at build;
+client script keeps it true while the page serves.
+
+Toolchain truth (records what the gates actually are): `astro check` cannot
+run on this toolchain (requires TS 6, project has TS 7) and biome.json
+ignores .astro files in BOTH configs — so the binding gates for .astro files
+are `astro build` (exit 0 required) + review. Build verified 0; deployed
+front end dff857e2; live evidence: data-days-until="2027-10-17" +
+data-copyright-year present on the live homepage.

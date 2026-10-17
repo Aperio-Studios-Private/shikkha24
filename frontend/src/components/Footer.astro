@@ -289,7 +289,7 @@ const newsletter = await getNewsletterStatus()
   <div class="border-t border-rule dark:border-dark-rule">
     <div class="container-page flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
       <p class="text-center text-xs text-ink-subtle dark:text-dark-ink-muted sm:text-left">
-        © {currentYear} {settings.siteName}। সর্বস্বত্ব সংরক্ষিত।
+        © <span data-copyright-year>{currentYear}</span> {settings.siteName}। সর্বস্বত্ব সংরক্ষিত।
       </p>
       <nav aria-label="আইনি ও সহায়ক লিংক">
         <ul class="flex flex-wrap items-center justify-center gap-4 text-xs sm:justify-end">
@@ -357,3 +357,10 @@ const newsletter = await getNewsletterStatus()
   {/* ── Developer credit — the last, smallest line (see the component) ── */}
   <DeveloperCredit />
 </footer>
+
+<script>
+  // T-32: the © year is stamped at build time for a static page; keep it true
+  // for as long as the page serves by reading the visitor's clock once.
+  const year = document.querySelector('[data-copyright-year]')
+  if (year) year.textContent = String(new Date().getFullYear())
+</script>
