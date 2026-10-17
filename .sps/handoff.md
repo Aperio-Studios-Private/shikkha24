@@ -2368,3 +2368,13 @@ Yandex GET = 202 ACCEPTED (key verified good). Conclusion: Microsoft ingest
 suppression after the initial 202; not a key/config bug. Bing coverage is
 unaffected (owner Webmaster submission + crawler sitemap discovery). Join
 endpoint retry scheduled +24h; escalation if 403 persists 7d: regenerate key.
+
+### 2026-10-18 ~04:30 — Day-1 content: WEEKLY DIGEST published (id 30)
+
+Self-sourced publish (recap of our 7 own reports — no external dependency,
+internal-link block to every report = the crawl-depth play from the 30-day
+plan). CMS: id 30, published, tags [hsc,result,scholarship,admission].
+Frontend v82371bb3: article 200, in sitemap (65+ URLs), on homepage, Yandex
+200 on the URL. Blog cadence Day-1 notion 'content needs owner links' has an
+exception: weekly digests + own-recap evergreens need none — usable anytime
+the pipeline is quiet.
