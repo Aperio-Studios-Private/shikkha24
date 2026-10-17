@@ -2361,3 +2361,10 @@ pipeline stays: publish → deploy → sitemap regenerated → IndexNow ping.
 Remaining owner inputs: (3) logo file for T-37, (4) source links for content
 cadence (84-পদ Ittefaq link or any circular/news URL). Handover doc (T-41)
 starts after P1 confirmation — beginning now in background of content intake.
+
+### 2026-10-18 ~04:30 — IndexNow verdict: pipeline VALID, joint endpoint suppressing
+Retry matrix: key file 200/32B exact; api.indexnow.org batch+single = 403;
+Yandex GET = 202 ACCEPTED (key verified good). Conclusion: Microsoft ingest
+suppression after the initial 202; not a key/config bug. Bing coverage is
+unaffected (owner Webmaster submission + crawler sitemap discovery). Join
+endpoint retry scheduled +24h; escalation if 403 persists 7d: regenerate key.
