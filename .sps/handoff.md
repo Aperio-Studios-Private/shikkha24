@@ -1,5 +1,103 @@
 # SPS Handoff
 
+## ⭐ START HERE — 2026-10-17 end-of-day. Read THIS before any chronology below.
+
+Written so a fresh agent on ANY harness/chat can work from zero. Read this +
+`.sps/tasks.md` (the queue, T-31…T-34 are the live items); every claim below
+was verified by command output the same day.
+
+### Where the product stands
+
+| Surface | State (verified 2026-10-17) |
+|---|---|
+| **Storefront** `shikkha24.com` | Cloudflare Workers, worker `shikkha24-frontend`, version `9df9f338`. 6 published articles live; 89-page build. Masthead dates computed client-side per view (build-freeze bug T-32 FIXED) — বঙ্গাব্দ, খ্রিস্টাব্দ and হিজরি (calendar pinned `islamic-umalqura`, see `frontend/src/lib/hijri-date.ts`) |
+| **CMS** `cms.shikkha24.com` | DianaHost cPanel (host `b201.serverdiana.com`, user `shikkhac`, app root `~/shikkha24-cms`, startup `cms/server.js`, cPanel Node venv 24). Running the **2026-10-11 CI restore** (payload 3.89.0 / next 16.3.6 — matches the venv, coherent & serving). All 6 DB migrations APPLIED → **DB schema is 3.90.2 while runtime is 3.89.0** — deliberate, additive, tolerated (T-33-era outage record below). Media (56 files) at `~/shikkha24-cms/cms/data/media` (cwd-relative). `/api/faqs` → **404 BY DESIGN** until a 3.90.2 deploy; the storefront already falls back to its seed |
+| **Source of truth** | git `main` on GitHub (private). Do not trust chat history — trust these files |
+
+### The next CMS deploy (T-31) ships, in one shot
+Payload **3.90.2** complete package (matches the migrated DB schema; bundle
+must carry the FULL package — tracing hollows it otherwise), **T-20 security
+hardening currently MISSING from live CMS** (draft leak, medical-data leak,
+six unfiltered reads, serverURL pin, result-links leak — running admin predates
+them), the **photocard redesign** (c7e1c9c..6669b58), and the **FAQs admin
+collection**. Method: owner's Windows machine + **WSL2 Ubuntu** build → zip →
+upload via cPanel path → extract CLEAN dir → restore `data/` + `cms/data/media`
++ `.env` → swap → **kill stale `next-server` workers** (zombie lesson below) →
+verify. Fallback if no Windows machine: private GitLab Free mirror. NEVER
+repeat the two dead paths: macOS-built bundles and host builds (CloudLinux LVE
+kills installs with EXIT=137; three fails on 2026-10-16 prove it).
+
+### Credentials / auth state on this Mac
+- `wrangler login` = **Abdullahalmamunmay@gmail.com**, account
+  **`0e2e4a6986f91edabe1dae4945a9b88b`** (fresh login 2026-10-17 after the
+  stored login drifted to a personal account `chalantika07` that could not see
+  the site account). Always pin `CLOUDFLARE_ACCOUNT_ID=0e2e…`. Previously logged
+  wrangler state was stale → Authentication error 10000 (see
+  `docs/manual-deploy.md` account-ID trap + this drift).
+- cPanel UAPI token lives in `cms/.env.local` (`CPANEL_HOST/USER/TOKEN`) —
+  enables uploads & Fileman listing; **no `Fileman::extract_files` on this
+  host** (uploads alone extract nothing).
+- `frontend/.env` exists locally (git-ignored, rule 11):
+  `CMS_URL`, `PUBLIC_CMS_ORIGIN`, `PUBLIC_MEDIA_BASE_URL`,
+  `PUBLIC_SITE_URL` → all `https://…shikkha24.com`. Vite auto-loads it — the
+  documented one-paste build+deploy is safe as written. WITHOUT it the build
+  silently degrades to empty defaults (thin build, T-33).
+
+### Runbooks that are proven (copy-paste safe today)
+- **Frontend deploy:** `cd frontend && pnpm run build && CLOUDFLARE_ACCOUNT_ID=0e2e4a6986f91edabe1dae4945a9b88b pnpm exec wrangler deploy`
+  — then the build log must NOT contain `[cms] Could not reach the CMS`.
+  `verify:build-output` needs `CMS_URL` in ITS env (repo-root script; does not
+  read `frontend/.env`).
+- **CMS deploy:** T-31 runbook in `.sps/tasks.md` (9 steps incl. zombie-kill).
+- **Content → storefront:** write in CMS admin → publish (free, always works) →
+  run the frontend deploy above. Storefront content is BUILD-TIME frozen
+  (`output: 'static'`) — nothing else syncs it.
+- **After ANY host directory swap:** for `pgrep -f next-server`, kill PIDs whose
+  `/proc/PID/cwd` is inside a renamed dir; cPanel "Restart" does NOT kill them.
+
+### Trap list (each burned real time — details in entries below)
+1. Account-ID trap + OAuth drift → Authentication error 10000 (manual-deploy.md).
+2. Zombie `next-server` workers surviving renames/restarts → restarts that
+   "do nothing" (2026-10-16 outage was prolonged ~2h by exactly this).
+3. Missing `CMS_URL` → silent thin build (deploys that ERASE content!). The
+   faqs-404 warning line is by-design and harmless; the localhost line is fatal.
+4. `unzip -o` over pnpm symlink farms silently skips entries — always extract
+   into a CLEAN dir.
+5. `payload migrate` reads `./src/migrations` from its CWD (deploy bundles keep
+   them at `cms/src/migrations` — copy up one level before running).
+6. DB schema is 3.90.2 with a 3.89.0 runtime — do NOT "fix" by re-running or
+   reverting migrations; additive and tolerated.
+7. Live article URLs are `/<category>/<id>/<slug>/` (NOT `/category/…`) — grep
+   accordingly.
+8. CloudLinux LVE caps the cPanel account (not `ulimit`) — no heavy builds on
+   the host, ever. Jailshell works but: single-line commands only, no process
+   substitution (`/dev/fd` missing), no node without venv `source`.
+9. Bengali dates: `bangla-date.ts` (+ `hijri-date.ts`) are the ONLY date
+   formatters; never mint `new Date()` into static HTML (T-32) — same-class
+   build-time-date spots still parked: `DeadlineStrip.astro:54`,
+   `VerificationBadge.astro:48`, `Footer.astro:38`.
+10. Owner protocol: ONE instruction per message, single-line Terminal commands,
+    owner pastes output before the next step; counter-prove every fix; the
+    owner has NO international card (rule 7) — WSL2/GitLab-free/own-Mac paths
+    only.
+
+### Priority queue right now
+1. **T-31** — WSL2 CMS deploy (ships security fixes + redesign + faqs admin + runtime 3.90.2). Highest value, waits on owner's Windows machine (fallback: GitLab mirror).
+2. **T-34** — owner publishes the মাউশি breaking-news draft (file committed at `editorial/breaking-2026-10-17/`) → frontend deploy; runner-up: 84-post recruitment circular for jobs-career.
+3. Copy `PUBLIC_VAPID_PUBLIC_KEY` (public half, from CMS env on DianaHost) into `frontend/.env` → rebuild → deadline-reminder control returns.
+4. T-32 same-class build-time-date fixes (DeadlineStrip, VerificationBadge, Footer year).
+5. Host cleanup (after a few stable days): `~/shikkha24-cms.broken-1792132158`, stale `cms-deploy-*.zip` (~300 MB), `~/cms-src*`.
+6. Older parked O-items — the ledger in `.sps/tasks.md` is authoritative.
+
+### Doc map
+`tasks.md` (queue; T-31…T-34 current) · `profile.md` (identity/budget/architecture
+amendments — Workers publishing approved T-18 P1 2026-10-15) ·
+`owner-assistance.md` (owner's parked asks) · `mistakes.md` ·
+`docs/manual-deploy.md` (frontend deploy + account-ID trap) ·
+`docs/hosting-and-deployment.md` · `frontend/AGENTS.md` (Astro specifics) ·
+`.sps/plan.md` (build plan; sections S0–S12).
+
+
 ## 2026-10-17 (evening) — T-33: thin builds wiped the storefront's news; `.env` written locally; real article URL scheme noted
 
 Follow-on to T-32's deploy: manual frontend builds without `CMS_URL` degraded

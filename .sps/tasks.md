@@ -7,6 +7,13 @@ Updated by the agent at the end of every task that changes it. Never written fro
 memory — if it is not in this file, it was not recorded, and a new session will
 not know about it.
 
+> ⭐ **New session? Read `.sps/handoff.md` → "⭐ START HERE" first** — production
+> state, credentials, proven runbooks, trap list, and the priority queue as of
+> 2026-10-17 EOD. Then come back to this queue: live items are **T-31 (WSL2 CMS
+> deploy — waiting on owner's Windows machine), T-33 follow-ups (VAPID key,
+> DeadlineStrip/VerificationBadge build-time dates) and T-34 (breaking-news
+> draft ready to publish)**.
+
 ---
 
 ## How this queue is worked

@@ -134,3 +134,27 @@ curl -s -o /dev/null -w '%{http_code}\n' \
 
 Rollback is instant: Cloudflare dashboard → Workers → `shikkha24-frontend` → Deployments →
 choose a previous version.
+
+
+---
+
+## Addendum — 2026-10-17 (deploy-day lessons; details in `.sps/handoff.md` START HERE)
+
+1. **The login can drift, not just the account ID.** The account-ID trap above
+   assumed the stored OAuth grant covers `0e2e4a69…`. On 2026-10-17 it did
+   not — a fresh `wrangler login` as **Abdullahalmamunmay@gmail.com** was the
+   actual fix. If `CLOUDFLARE_ACCOUNT_ID=0e2e…` still yields Authentication
+   error 10000: `npx wrangler whoami` → the account must LIST `0e2e4a69…`;
+   if it does not, re-login before debugging anything else.
+2. **The build needs the CMS env.** Astro fetches all content at build time from
+   `CMS_URL` (defaults to `http://localhost:3000` → silent thin build that
+   ships EMPTY default content with 200s). `frontend/.env` with the four values
+   now exists locally and Vite loads it automatically — do not delete it, do
+   not commit it. Sanity check: the build log must NOT contain
+   `[cms] Could not reach the CMS`. A `/api/faqs` 404 in that log IS expected
+   until the P4 CMS deploy (the storefront intentionally falls back to its FAQ
+   seed).
+3. Shell state resets between sessions: `npx` exists only inside the CMS venv
+   (`source /home/shikkhac/nodevenv/shikkha24-cms/24/bin/activate`), and pnpm
+   flags differ from pnpm-config keys (`--config.minimum-release-age=0`, not
+   `--minimum-release-age=0`).
