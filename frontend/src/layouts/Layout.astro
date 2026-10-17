@@ -15,10 +15,12 @@
  *   of the wrong theme or size. Running before any CSS blocks paint prevents it.
  */
 import '../styles/global.css'
+import BreakingTicker from '../components/BreakingTicker.astro'
 import Header from '../components/Header.astro'
 import Footer from '../components/Footer.astro'
 import MobileShareBar from '../components/MobileShareBar.astro'
-import type { CmsSiteSettings, CmsCategory, CmsPage } from '../lib/cms'
+import type { CmsArticle, CmsSiteSettings, CmsCategory, CmsPage } from '../lib/cms'
+import { getBreakingNews } from '../lib/cms'
 import { mediaUrl } from '../lib/media'
 
 interface Props {
@@ -130,6 +132,20 @@ const faviconUrl =
   faviconBase && Number.isFinite(faviconStamp)
     ? `${faviconBase}${faviconBase.includes('?') ? '&' : '?'}v=${faviconStamp}`
     : faviconBase
+
+/**
+ * Site-wide breaking ticker data (S2 chrome, amended 2026-10-17 by the owner:
+ * the red row moved from the homepage template into this layout so it renders
+ * on every page, directly under the navbar).
+ *
+ * Sponsored pieces stay out for the same reason the homepage excluded them —
+ * a paid placement must not borrow the urgency framing of breaking news.
+ * `getBreakingNews()` is served by the build's shared CMS response cache, so
+ * all 44 pages cost one request, not one per page.
+ */
+const breakingArticles = (await getBreakingNews().catch(() => [])).filter(
+  (article) => !article.isSponsored,
+)
 ---
 
 <!doctype html>
@@ -237,6 +253,10 @@ const faviconUrl =
     </a>
 
     <Header settings={settings} categories={categories} />
+
+    {/* Breaking ticker — site chrome (S2). Renders nothing when nothing is
+        flagged breaking; an empty red bar is noise. */}
+    <BreakingTicker articles={breakingArticles} />
 
     <main id="main-content" class="min-h-[50vh]">
       <slot />

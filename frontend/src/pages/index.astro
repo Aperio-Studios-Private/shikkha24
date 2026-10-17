@@ -3,7 +3,8 @@
  * Homepage (S3).
  *
  * Structure, top to bottom:
- *   1. Breaking ticker      — only when something is flagged breaking
+ *   1. Breaking ticker      — site chrome since 2026-10-17: lives in
+ *                             Layout.astro (renders on every page), not here
  *   2. Filter bar           — level × district, applied across every section
  *   3. Lead story           — the editor's lead, else the newest
  *   4. Latest + Trending    — two columns; recency vs popularity
@@ -26,7 +27,6 @@
  */
 import Layout from '../layouts/Layout.astro'
 import ArticleCard from '../components/ArticleCard.astro'
-import BreakingTicker from '../components/BreakingTicker.astro'
 import DeadlineStrip from '../components/DeadlineStrip.astro'
 import FilterBar from '../components/FilterBar.astro'
 import CategorySection from '../components/CategorySection.astro'
@@ -45,7 +45,6 @@ import {
   getCategories,
   getFooterPages,
   getArticles,
-  getBreakingNews,
   getDeadlines,
   getLevels,
   getDistricts,
@@ -54,12 +53,11 @@ import {
   FALLBACK_LEVELS,
 } from '../lib/cms'
 
-const [settings, categories, footerPages, breakingRaw, deadlines, levels, districts, latest] =
+const [settings, categories, footerPages, deadlines, levels, districts, latest] =
   await Promise.all([
     getSiteSettings().catch(() => FALLBACK_SETTINGS),
     getCategories().catch(() => FALLBACK_CATEGORIES),
     getFooterPages().catch(() => []),
-    getBreakingNews().catch(() => []),
     getDeadlines().catch(() => []),
     getLevels().catch(() => FALLBACK_LEVELS),
     getDistricts().catch(() => []),
@@ -102,7 +100,6 @@ const cmsOrigin = getPublicCmsOrigin()
  * appears in the category sections and in the latest feed, where it carries the
  * label and sits alongside editorial on equal terms.
  */
-const breaking = breakingRaw.filter((article) => !article.isSponsored)
 const editorial = latest.filter((article) => !article.isSponsored)
 
 /*
@@ -200,10 +197,7 @@ const siteJsonLd = {
 >
   <h1 class="sr-only">{homeHeading}</h1>
 
-  {/* 1 — Breaking ticker. Renders nothing when nothing is flagged. */}
-  <BreakingTicker articles={breaking} />
-
-  {/* 1b — Entry point for the interactive features. Renders nothing when there
+  {/* Entry point for the interactive features. Renders nothing when there
           is no live blog and no quiz, so it can never advertise an empty page. */}
   <InteractiveStrip liveBlog={liveBlog} latestQuiz={latestQuiz} />
 

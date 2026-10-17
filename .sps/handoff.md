@@ -2138,3 +2138,16 @@ and migration drift, reporter pages, bookmarks, client-IP, origins, endpoints.
 
 Minor trap: `timeout` does not exist on macOS (it is `gtimeout`), and its absence
 silently made two suite results meaningless until I re-ran them.
+
+## 2026-10-17 (later) — T-35: breaking ticker moved to site chrome
+
+Owner's recalled red-row design existed since S2/S3 (component + CMS flag +
+getter) — it was invisible because **no article carries the ব্রেকিং flag**
+(by-design empty bar, not a bug). Owner picked "every page": ticker wired into
+`Layout.astro` under `<Header>` (sponsored filter moved with it off the
+homepage; one cached build fetch serves all pages), homepage instance removed,
+forced-visibility proof run on homepage/category/faq/article/404 then reverted,
+clean build deployed (`ecf2aada…`). Lights up site-wide the moment a published
+article is flagged ব্রেকিং in the CMS. Sequencing note: code landed one step
+ahead of the plan.md amendment — same commit carries both (rule 13 recorded).
+

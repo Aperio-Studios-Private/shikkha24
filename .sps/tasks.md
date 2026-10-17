@@ -2759,3 +2759,33 @@ session (no DeepSeek API key) — sourced by fetching Ittefaq's education desk
 `editorial/breaking-2026-10-17/moushi-scholarship-bank-info-correction.md`
 with CMS metadata. Runner-up: 84-post recruitment circular (jobs-career).
 Publish = owner pastes draft into CMS admin → publish → deploy command.
+
+---
+
+### T-35 — ✅ Breaking-news red bar made site-wide (2026-10-17); wired into Layout; dormant by design
+
+Owner recalled the designed red breaking row and asked where it is. Found:
+`BreakingTicker.astro` (solid red `bg-brand-red`, white ব্রেকিং chip, marquee
+with pause-on-hover, reduced-motion list, zero CLS) + CMS `isBreaking` flag +
+`getBreakingNews()` — all present since S2/S3. It renders **nothing when no
+article is flagged breaking** (verified: 0 flagged, 0 markup on live) — hence
+invisible, not broken.
+
+Owner chose **every page, under the navbar** (was homepage-only). Implemented:
+wired `<BreakingTicker>` into `frontend/src/layouts/Layout.astro` (after
+`<Header>`, fetch via `getBreakingNews()` — build-cached, one request per
+build; sponsored excluded, moving the filter out of index.astro) and removed
+the homepage-only instance (component import, getter import, `breakingRaw`
+tuple slot, filter line, render block; docblock updated). about-us.astro has
+no Layout chrome — untouched (standalone page).
+
+**Verified (rule 5):** typecheck clean; forced-visibility build (temp dummy in
+component, never deployed) proved the bar on homepage, real category listing
+(`dist/category/…`), faq, article and 404; reverted; clean rebuild 89 pages,
+0 ticker files (dormant); deployed `ecf2aada…`. Note: `dist/education-news/
+…` files from older builds were redirect-era stubs — the worker serves
+`/category/…` files for those URLs; grep the real path.
+
+**To light it up:** publish any article with the ব্রেকিং toggle ON (the T-34
+মাউশি piece is the natural first), then deploy — bar appears site-wide. Max 8
+headlines scroll at once.
