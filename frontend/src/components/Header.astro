@@ -17,6 +17,7 @@ import TextResizer from './TextResizer.astro'
 import type { CmsSiteSettings, CmsCategory } from '../lib/cms'
 import { isEnabled } from '../lib/feature-flags'
 import { formatBanglaDate, formatBnBd } from '../lib/bangla-date'
+import { formatHijriDate } from '../lib/hijri-date'
 import SocialLinks from './SocialLinks.astro'
 import HeaderWidgets from './HeaderWidgets.astro'
 
@@ -37,16 +38,24 @@ const showWeather = isEnabled('weatherWidget')
 const showPrayer = isEnabled('prayerWidget')
 
 /*
- * Bengali date — the masthead shows BOTH calendars, as a Bengali newspaper does:
+ * Bengali date — the masthead shows ALL THREE calendars, as a Bengali newspaper does:
  *   বঙ্গাব্দ      ২৮ ভাদ্র, ১৪৩৩      (what readers mean by "the Bengali date")
  *   খ্রিস্টাব্দ   ১২ সেপ্টেম্বর, ২০২৬  (familiar for deadlines and official dates)
+ *   হিজরি      ৬ই জমাদিউল আউয়াল, ১৪৪৮  (the Islamic date, added by owner request)
  *
  * `toLocaleDateString('bn-BD')` alone is NOT enough — that is the Gregorian
  * date in Bengali digits, which is not what a masthead is expected to show.
+ *
+ * With `output: 'static'` any date minted here is BAKED IN at build time — the
+ * masthead would show the build day forever (owner reported exactly that on
+ * 2026-10-17). The frontmatter strings below stay as the no-JS/SEO fallback;
+ * the module script at the bottom recomputes both lines on every view, in
+ * Asia/Dhaka via `../lib/bangla-date`.
  */
 const now = new Date()
 const banglaDate = formatBanglaDate(now)
 const gregorianDate = formatBnBd(now, { year: 'numeric', month: 'long', day: 'numeric' })
+const hijriDate = formatHijriDate(now)
 ---
 
 <header class="border-b border-rule bg-surface dark:border-dark-rule dark:bg-dark-base">
@@ -55,9 +64,10 @@ const gregorianDate = formatBnBd(now, { year: 'numeric', month: 'long', day: 'nu
     <div class="container-page flex items-center justify-between gap-3 py-1.5">
       {/* Date + optional widgets */}
       <div class="flex min-w-0 items-center gap-2 text-xs text-ink-muted dark:text-dark-ink-muted">
-        <time datetime={now.toISOString()} class="font-ui whitespace-nowrap">
+        <time id="masthead-date" datetime={now.toISOString()} class="font-ui whitespace-nowrap">
           {banglaDate}
           <span class="hidden text-ink-subtle sm:inline dark:text-dark-ink-muted"> · {gregorianDate}</span>
+          <span class="hidden text-ink-subtle sm:inline dark:text-dark-ink-muted"> · {hijriDate}</span>
         </time>
 
         {/* Weather, prayer and location. Each renders a neutral placeholder and
@@ -302,4 +312,30 @@ const gregorianDate = formatBnBd(now, { year: 'numeric', month: 'long', day: 'nu
       if (e.key === 'Escape') closeMenu()
     })
   })()
+</script>
+
+<script>
+  // The masthead dates are prerendered with output:'static', so the shipped HTML
+  // shows the build day forever. Recompute all three calendar lines from the
+  // reader's clock in Asia/Dhaka on every view; the prerendered text remains
+  // the fallback for no-JS crawlers.
+  import { formatHijriDate } from '../lib/hijri-date'
+  import { formatBanglaDate, formatBnBd } from '../lib/bangla-date'
+
+  const masthead = document.getElementById('masthead-date');
+  if (masthead) {
+    const now = new Date();
+    const bangla = formatBanglaDate(now);
+    const gregorian = formatBnBd(now, { year: 'numeric', month: 'long', day: 'numeric' });
+    const hijri = formatHijriDate(now);
+    masthead.setAttribute('datetime', now.toISOString());
+    const extraClass = 'hidden text-ink-subtle sm:inline dark:text-dark-ink-muted';
+    const gregorianSpan = document.createElement('span');
+    gregorianSpan.className = extraClass;
+    gregorianSpan.textContent = ` · ${gregorian}`;
+    const hijriSpan = document.createElement('span');
+    hijriSpan.className = extraClass;
+    hijriSpan.textContent = ` · ${hijri}`;
+    masthead.replaceChildren(bangla, gregorianSpan, hijriSpan);
+  }
 </script>

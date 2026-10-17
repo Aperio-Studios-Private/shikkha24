@@ -1,5 +1,19 @@
 # SPS Handoff
 
+## 2026-10-17 — masthead date bug (frozen at build day) fixed; Hijri line added (T-32)
+
+Owner caught the masthead printing the previous day. Not timezone drift:
+`output: 'static'` had baked the build-day date into every page. The masthead
+now recomputes the বঙ্গাব্দ, খ্রিস্টাব্দ and (new, by owner request) হিজরি
+lines in the reader's browser via `lib/bangla-date.ts` and the new
+`lib/hijri-date.ts`; prerendered text remains the no-JS fallback. The Hijri
+calendar is pinned to `islamic-umalqura` after a four-variant empirical test
+against the owner's ground truth on 2026-10-17 (only umalqura said
+5/6/1448). Full evidence trail: `.sps/tasks.md` → T-32. Same-class stale-date
+spots (DeadlineStrip, VerificationBadge, Footer year) are recorded in T-32 as
+open follow-ups.
+
+
 ## 2026-10-16 (final) — host-build verdict: this account cannot build; next deploy = owner's Windows/WSL2 (T-31, parked)
 
 Follow-on to the outage entry below. After the restore, three on-host

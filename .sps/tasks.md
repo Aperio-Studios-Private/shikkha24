@@ -2643,3 +2643,42 @@ Live state as of parking (all verified by command output): CMS restored on the
 3.90.2 schema; media + `.env` restored; host holds `~/cms-src-6c9ab27.zip`
 (841,950 B — source, commit `6c9ab27`) and a partial pnpm store from the
 killed attempts. Nothing on the host is broken.
+
+---
+
+### T-32 — ✅ Masthead dates were frozen at build day — fixed, and the Hijri line added
+
+**Owner report 2026-10-17:** the masthead showed
+`শুক্রবার, ১ কার্তিক, ১৪৩৩ · ১৬ অক্টোবর, ২০২৬` on a day that was actually
+`শনিবার, ২ কার্তিক, ১৪৩৩ · ১৭ অক্টোবর, ২০২৬`.
+
+**Root cause (not a timezone bug):** `Header.astro` minted `new Date()` in
+frontmatter and `astro.config` uses `output: 'static'` — so the masthead date
+is baked in at BUILD time and shows the build day forever. The last frontend
+deploy was on ১৬ অক্টোবর, which is exactly what the site kept printing.
+
+**Fix:** the `<time>` element now carries `id="masthead-date"`, and a module
+script recomputes all three calendar lines from the reader's clock in
+Asia/Dhaka on every view (via the existing `lib/bangla-date.ts`, which was
+already correctly Dhaka-aware). The prerendered text stays as the no-JS/SEO
+fallback. Proof: typecheck clean; `astro build` ok; `dist/index.html` carries
+`masthead-date` + `শনিবার` + `১৭ অক্টোবর`; the `_astro/Header.astro_*` chunk
+carries `islamic` + `replaceChildren`. (biome skips `.astro` files by config
+— nothing to lint there.)
+
+**Hijri line added (owner request, same day):** new `lib/hijri-date.ts`
+reuses `toBnDigits` and prints the newspaper form, e.g.
+`৬ই জমাদিউল আউয়াল, ১৪৪৮ হিজরি`. Calendar chosen **empirically**: of the four
+Intl islamic variants only `islamic-umalqura` returned 5/6/1448 on 2026-10-17
+(`islamic`/`rgsa` → day 7, `islamic-civil` → day 5); it is a named constant
+documented as the single swap point for moon-sighting drift. Bengali date
+suffixes (১লা, ২রা, ৩রা, ৪ঠা, ৫ই…১৯ই, ২০শে…, ২৪ঠা) implemented; locally
+verified byte-equal to the owner's ground truth, and the 2026-10-16 instant
+correctly prints `৫ই`.
+
+**Same-class findings recorded, NOT fixed in this task (surgical scope):**
+- `DeadlineStrip.astro:54` — `const TODAY = new Date()` at build; deadline
+  day-labels are computed against the build day and go stale.
+- `VerificationBadge.astro:48` — validity check run against the build day.
+- `Footer.astro:38` — copyright year frozen (cosmetic; next build each year
+  happens to heal it).
