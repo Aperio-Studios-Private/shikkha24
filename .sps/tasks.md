@@ -2692,3 +2692,49 @@ advance by itself tomorrow with no deploy).
 - `VerificationBadge.astro:48` — validity check run against the build day.
 - `Footer.astro:38` — copyright year frozen (cosmetic; next build each year
   happens to heal it).
+
+---
+
+### T-33 — ✅ Content outage on the storefront (two thin builds deployed 2026-10-17 evening); local `.env` written; runbook corrected
+
+**Symptom (owner):** storefront showed no news. **Cause:** two manual builds —
+mine 19:2x and the owner's 19:30 — ran without `CMS_URL`, so Astro fetched
+`http://localhost:3000`, logged its built-in warning
+("the page is NOT showing live CMS content"), and shipped **default/empty**
+content: 40 pages, zero article routes, no client islands (`PUBLIC_CMS_ORIGIN`
+empty → browser islands like live-blog/comments/newsletter don't render at
+all). The incomplete one-paste deploy command was mine, given in reply to the
+owner's CMS→storefront question. Deployed versions `867c80b2`, `70df6785`
+were both thin; version `9df9f338` restored full content.
+
+**Root causes, layered:**
+1. `frontend/.env` did not exist on this Mac (only `.env.example` is committed,
+   by rule 11) and the manual-build instruction didn't set the four build envs.
+2. `verify:build-output` **cannot** use `frontend/.env` — it is a repo-root
+   node script reading `process.env`, so as I ran it, it fell back to the hard
+   floor of 10 articles and "failed" at 6 — the CMS simply has 6 published
+   articles. With `CMS_URL` in its env it PASSes honestly: "6 article page(s)
+   built, CMS reports 6 published".
+3. `/api/faqs` 404s against the Oct-11 CMS restore (faqs collection is
+   Oct-15 code; the DB table exists, the endpoint doesn't) — **expected**, the
+   frontend already falls back to `src/data/faqs.seed.json` by design
+   (cms.ts "until the P4 CMS deploy"). Loud but harmless; do not "fix" it.
+
+**Remediation now in place:**
+- `frontend/.env` written on this Mac (git-ignored, verified):
+  `PUBLIC_SITE_URL`, `CMS_URL`, `PUBLIC_MEDIA_BASE_URL`, `PUBLIC_CMS_ORIGIN`
+  — all `https://…shikkha24.com`. Vite auto-loads it on build, so the owner's
+  one-paste build+deploy command is now correct **as written**.
+- Verified: rebuild → 89 pages / 6 article routes / newest title in
+  `dist/index.html`; `verify:build-output` PASS with `CMS_URL` set; live
+  proofs on `9df9f338`: homepage news, `HTTP 200` on
+  `/admission/23/admission-policy-2027`, category listing populated at its
+  real path `/education-news/` (article URLs are `/<category>/<id>/<slug>/`,
+  **not** `/category/<category>/…` — the checker message names the template).
+- Article URL scheme note for future greps: live links are
+  `/education-news/27/hsc-result-2026-possible-date` style.
+
+**Open follow-up:** `PUBLIC_VAPID_PUBLIC_KEY` is not in the local `.env`, so
+the deadline-reminder control renders hidden (documented degradation). The
+VAPID *public* key is safe to paste out of the CMS env on DianaHost; add it
+here and rebuild to restore that control.

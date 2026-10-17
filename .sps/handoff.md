@@ -1,5 +1,18 @@
 # SPS Handoff
 
+## 2026-10-17 (evening) — T-33: thin builds wiped the storefront's news; `.env` written locally; real article URL scheme noted
+
+Follow-on to T-32's deploy: manual frontend builds without `CMS_URL` degraded
+to Astro's empty defaults and two of them (one mine, one the owner's, using
+the command I supplied) went live. Fixed by writing `frontend/.env` on the
+Mac (the documented four values) — the owner's one-paste build+deploy is now
+correct as written — and re-deploying version `9df9f338`, proven live
+(articles 200, category listings populated, masthead dates unchanged). See
+T-33 for the checker nuance (`verify:build-output` needs `CMS_URL` in *its*
+env — root script, does not read `frontend/.env`) and the real article URL
+scheme (`/<category>/<id>/<slug>/`). VAPID public key follow-up recorded.
+
+
 ## 2026-10-17 — masthead date bug (frozen at build day) fixed; Hijri line added (T-32)
 
 Owner caught the masthead printing the previous day. Not timezone drift:
