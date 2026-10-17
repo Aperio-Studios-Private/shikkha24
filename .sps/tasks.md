@@ -2767,7 +2767,7 @@ here and rebuild to restore that control.
 
 ### T-40 — ⬜ SEO activation: GSC submission + Bing + IndexNow auto-ping
 
-**Status:** diagnosed 2026-10-18 01:50. Technical SEO verified GREEN live:
+**Status:** Day-1 agent items done/corrected 04:05 (indexing bootstrap launched; on-page meta verified healthy by design — see handoff correction). Originally diagnosed 2026-10-18 01:50. Technical SEO verified GREEN live:
 sitemap.xml 63 URLs (proper XML, real lastmod), robots.txt correct,
 NewsArticle+NewsMediaOrganization JSON-LD on articles, OG/canonical clean,
 news-sitemap + rss live, google-site-verification TXT in DNS. Root cause of

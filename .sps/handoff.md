@@ -2335,3 +2335,20 @@ editors stop re-typing standard paragraphs (source lines, deadline notes,
 result-explainers). CMS-only, no storefront coupling; ships with the next
 Codespace build. Tag slug rename → sitemap + /tags/* regenerate on the next
 frontend deploy (run after any change).
+
+### 2026-10-18 ~04:05 — Day 1 audit: CORRECTIONS + true on-page state
+
+CORRECTION (own earlier claim): "7 articles missing meta description" was a
+false alarm — I probed nonexistent CMS fields. The storefront already renders
+meta description (Layout.astro:168) for every page type from existing data:
+articles use excerpt ([category]/[id]/[slug].astro:313), category/author/
+archive have their own copy; verified live on article 29. On-page meta =
+healthy by design; no fix needed.
+
+IndexNow: first batch 202 accepted; resubmissions consistently 403 across
+UA variants (not a UA issue, key file 200, exact-content). Consistent with
+duplicate-suppression / key-challenge cache. Bing-side proper submission
+happens via Bing Webmaster (owner Day-1) + regular crawler sitemap discovery;
+retry reminder stays (+2h loop collapsed into scheduled item). mesu.gov.bd
+unreachable from this network tonight (HTTP 000 both schemes) — Day-1 original
+news piece remains blocked on an owner-supplied source link.
