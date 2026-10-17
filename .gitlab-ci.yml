@@ -1,0 +1,90 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# CMS deploy factory — GitLab CI (T-31)
+#
+# Runs on GitLab's free shared runners (400 compute-minutes/month): one CMS
+# bundle costs ≈15 runner-minutes, so the budget holds ~6 bundles/month —
+# ample for this site's cadence.
+#
+# Pipeline shape — deliberately staged, applying the Oct-16 outage lessons:
+#
+#   build  — automatic on every push to `main` (and on Run pipeline):
+#            installs ONLY the cms workspace deps (root scripts are
+#            dependency-free Node), builds `cms` standalone on Node 24 (the
+#            exact minor the proven Oct-11 bundle used, matching the host
+#            venv), then `scripts/assemble-cms-bundle.mjs` assembles,
+#            promotes the complete payload package and sanitises the bundle
+#            (strips `data/` and `.env*` — the host restores its own copies
+#            during the swap, exactly as the runbook requires).
+#
+#   upload — a MANUAL button in the pipeline UI: runs the already-proven
+#            `scripts/deploy-cms.mjs` (asserts the bundle is safe, pins the
+#            commit, uploads through the cPanel API as
+#            `cms-deploy-<pipeline>.zip`). Manual on purpose: nothing lands
+#            on the production host without a human click naming it.
+#
+#   swap   — NOT automated here (T-31 phases 3+): extraction into a clean
+#            dir, data/media/.env restore, atomic dir swap, zombie-worker
+#            kill and restart remain cPanel-Terminal steps from the T-31
+#            runbook until the first automated upload has proven end-to-end.
+#            Full SSH automation is phase 3, gated on the same evidence.
+#
+# Secrets: CPANEL_HOST / CPANEL_USER / CPANEL_TOKEN / CPANEL_BASE are created
+# ONCE as **masked** CI/CD variables (Settings → CI/CD → Variables), values
+# copied from the operator machine's `cms/.env.local`. They are never
+# committed, never printed in job logs (masking), and scoped to this project.
+# ═════════════════════════════════════════════════════════════════════════════
+
+stages:
+  - build
+  - upload
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+variables:
+  GIT_DEPTH: "1"
+
+build-cms-bundle:
+  stage: build
+  image: node:24-bookworm-slim
+  cache:
+    key: pnpm-cms-store
+    paths:
+      - .pnpm-store/
+  before_script:
+    - corepack enable
+    - pnpm config set store-dir .pnpm-store
+  script:
+    - pnpm install --frozen-lockfile --filter cms
+    - (cd cms && pnpm run build)
+    - node scripts/assemble-cms-bundle.mjs
+  artifacts:
+    name: cms-deploy-$CI_PIPELINE_ID
+    paths:
+      - cms-deploy-*.zip
+    expire_in: 48 hours
+    # ^ retention lesson from ci.yml: long artifact retention exhausted a
+    #   quota once already. 48h is enough to download and deploy; nothing more.
+
+upload-to-cpanel:
+  stage: upload
+  image: node:24-bookworm-slim
+  needs:
+    - job: build-cms-bundle
+      artifacts: true
+  before_script:
+    - corepack enable
+  script:
+    # `deploy-cms.mjs` predates GitLab, so its run-id/commit inputs keep their
+    # GitHub-era names; these aliases feed the exact same commit pinning and
+    # archive naming (`cms-deploy-<id>.zip`) the old CI had.
+    - export GITHUB_RUN_ID=$CI_PIPELINE_ID
+    - export GITHUB_SHA=$CI_COMMIT_SHA
+    - node scripts/deploy-cms.mjs
+  environment:
+    name: production-cms
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual

@@ -2817,7 +2817,27 @@ and a private-repo clone on their disk (clean up after: delete the clone, log
 out GitHub). Because the friend's PC solves only THIS deploy build, the GitLab
 private-mirror CI path is being explained to the owner as the likely
 PERMANENT builder (repeatable for every future CMS bundle, no dependency on
-any physical machine). Decision pending with owner: friend-PC session now vs
+any physical machine). **OWNER DECISION (2026-10-17 ~22:15): GitLab CI chosen, made as automatic as
+GitHub ('no manual zip upload').** Recipe committed: `.gitlab-ci.yml` — phase 1
+build auto on push (node:24 image, matches proven Oct-11 bundle), phase 2
+upload = manual pipeline button running the existing `scripts/deploy-cms.mjs`
+(safety-assert + commit-pin + cPanel API upload under
+`cms-deploy-<pipeline>.zip`); swap stays a Terminal runbook step until the
+first automated upload proves itself; full SSH automation deferred as phase 3.
+Artifact retention 48h (quota lesson from ci.yml). GitLab free budget:
+≈15 runner-min/bundle × 400 min/mo. Creds live ONLY as masked GitLab CI/CD
+variables (CPANEL_HOST/USER/TOKEN/BASE — values from operator's
+cms/.env.local; names verified in scripts/cpanel-client.mjs).
+
+**To activate (owner):** ① create free GitLab account (no card) ② New project
+PRIVATE named `shikkha24-cms-mirror` ③ Settings→Access Tokens→Project Access
+Token (Maintainer, scope write_repository) ④ add the 4 masked CI variables ⑤
+then EITHER run the mirror-push command themselves (token stays off-chat) or
+hand the agent the URL+token to finish: add remote, push main+tags, first
+pipeline runs, owner clicks upload, then the Terminal swap per runbook = T-31
+done with zero Windows PC.
+
+Decision pending with owner: friend-PC session now vs
 GitLab mirror setup (~30–45 min, agent writes the CI YAML) vs GitHub
 Codespaces cloud build (free tier, but verify card-free terms at signup).
 

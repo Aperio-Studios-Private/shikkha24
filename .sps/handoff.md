@@ -2160,3 +2160,13 @@ risk), archived originals, refreshed the static favicon trio, generated the
 settings.favicon are SET on the CMS (old assets) — so the switch happens in
 the CMS admin (owner), then rebuild+deploy (agent; favicon ?v stamp is baked
 at build). Inverted + brand-red proposal SVGs sit in docs/assets/.
+
+### 2026-10-17 ~22:20 — GitLab CI recipe committed (T-31 re-scoped to 'GitLab mirror factory')
+
+`.gitlab-ci.yml` landed: auto build on push (mirrors the proven ci.yml
+recipe: node 24, cms-only install, assemble+sanitize), MANUAL upload button
+via `scripts/deploy-cms.mjs` (env aliases GITHUB_RUN_ID/GITHUB_SHA preserve
+commit-pinning + `cms-deploy-<id>.zip` naming), swap stays human until the
+first automated upload proves end-to-end. Pending: owner creates the GitLab
+account + private mirror + project token + 4 masked variables (values from
+cms/.env.local); then mirror-push and T-31 completes with no Windows PC.
