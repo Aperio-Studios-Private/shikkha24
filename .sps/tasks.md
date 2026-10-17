@@ -2809,7 +2809,13 @@ already measured in docs/assets.
 
 **Status (final): LIVE on cms.shikkha24.com at commit 1fb2be5 via Codespace cycle (restart+verify done, all endpoints 200; owner visual check pending). Phase-1 implemented 2026-10-18 ~01:00, owner approved "GO but verify"). Evidence: cms tsc 0 / build 0 / scoped biome 40 files 0 (after one format-fix pass, recorded in handoff correction). Phase 2 optional: field-description prose sweep. LIVE via the T-31 Codespace deploy cycle on owner word.
 
-### T-34 — ✅ Breaking-news sourcing (2026-10-17): মাউশি scholarship MIS correction draft ready
+### T-34 — ✅ DONE & LIVE (2026-10-18 ~02:20): মাউশি breaking published by agent + ticker live
+
+Self-serve publishing recipe in handoff (JWT header, author required,
+Lexical shape). The 84-পদ second piece: BLOCKED on verifiable source —
+need the Ittefaq link from the owner (not fabricated).
+
+### T-34 (archive) — ✅ Breaking-news sourcing (2026-10-17): মাউশি scholarship MIS correction draft ready
 
 Owner asked for breaking-news candidates. `web_search` unavailable this
 session (no DeepSeek API key) — sourced by fetching Ittefaq's education desk

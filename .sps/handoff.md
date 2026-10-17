@@ -2294,3 +2294,29 @@ ignores .astro files in BOTH configs — so the binding gates for .astro files
 are `astro build` (exit 0 required) + review. Build verified 0; deployed
 front end dff857e2; live evidence: data-days-until="2027-10-17" +
 data-copyright-year present on the live homepage.
+
+### 2026-10-18 ~02:20 — T-34 LIVE + self-serve publishing + IndexNow (T-40 milestone)
+
+BREAKING PUBLISHED BY THE AGENT (#T-34): "বৃত্তিপ্রাপ্ত শিক্ষার্থীদের তথ্য ও
+ব্যাংক হিসাব সংশোধনের সুযোগ দিচ্ছে মাউশি" — CMS id 29, _status published,
+isBreaking true, category scholarship(2), author 1. Storefront rebuilt +
+deployed version 864af1b3: sitewide ticker shows the slug, article 200 with
+NewsArticle JSON-LD, sitemap now 64 URLs. RECIPE (self-serve publishing,
+recorded for any future agent): login POST /api/users/login (creds in
+cms/.env.local) returns JWT; use header `Authorization: JWT <token>` — the
+payload-token COOKIE DOES NOT BIND on this host; `Bearer` also works, bare
+`Cookie: payload-token=` silently fails as anonymous. POST /api/articles
+requires `author` (use authors[0], id 1) and body as Lexical JSON (copy node
+shapes from a live GET; text nodes carry a `diets: []` field); set
+category=<id>, isBreaking, reviewStatus approved, publishedAt, _status
+published. Publish helper lives at /tmp/publish-moushi.mjs (host-local, not
+committed — secrets-free flow can be productized later).
+
+MORE-NEWS constraint (owner asked): the 84-পদ কারিগরি-মাদ্রাসা circular could
+NOT be verified from fetchable sources tonight (Bing zero results, PA feed
+non-education) — composing recruitment facts without a source is refused
+(integrity). Need the Ittefaq link from the owner, then it ships in minutes.
+Post-verify of a re-ping: IndexNow accepted 63+64 URLs HTTP 202; key
+FB079BAFCAA04021AE9B9778B693F0AA at /FB079….txt (200); key recorded in
+.sps/indexnow-key.txt; pinger at scripts/ping-indexnow.mjs — run after every
+frontend deploy.
