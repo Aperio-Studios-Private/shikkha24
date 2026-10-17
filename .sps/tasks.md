@@ -2676,6 +2676,16 @@ suffixes (১লা, ২রা, ৩রা, ৪ঠা, ৫ই…১৯ই, ২০
 verified byte-equal to the owner's ground truth, and the 2026-10-16 instant
 correctly prints `৫ই`.
 
+**Deployed + live (2026-10-17 ~19:3x +06):** Workers deploy `867c80b2`
+(account `0e2e4a69…`, login Abdullahalmamunmay) — cache-busted homepage greps:
+`masthead-date` 1, `শনিবার` 1, `১৭ অক্টোবর` 1, `জমাদিউল আউয়াল` 1, `হিজরি` 1,
+new chunk `Cn-zfWAq.js` served. Deploy blocked ~20 min by the account-ID trap
+(docs/manual-deploy.md) plus a *drifted OAuth login*: fresh `wrangler login`
+as Abdullahalmamunmay resolved it — the docs' "pin the ID" fix was not
+sufficient because the stored login no longer granted `0e2e4a69…` at all.
+Owner visual check pending (and the real regression test: the date must
+advance by itself tomorrow with no deploy).
+
 **Same-class findings recorded, NOT fixed in this task (surgical scope):**
 - `DeadlineStrip.astro:54` — `const TODAY = new Date()` at build; deadline
   day-labels are computed against the build day and go stale.
