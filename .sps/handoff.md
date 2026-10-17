@@ -2242,3 +2242,12 @@ Collection label objects keep their bn values (switchable locale = one line).
 Phase 2 (optional, queued): collection FIELD DESCRIPTIONS are Bengali prose
 (guidance, not control words) — sweep only on owner request. Goes LIVE via the
 T-31 Codespace cycle (build -> download -> unzip) on the owner's word.
+
+### 2026-10-18 ~01:18 — developer credit replaced (Aperio Studios)
+
+Owner request: footer credit "ডেভেলপার: শাহিদুল ইসলাম·ফেসবুক·হোয়াটসঅ্যাপ"
+→ "Developed by Aperio Studios" (https://www.aperiostudios.com/).
+DeveloperCredit.astro rewritten: one 11px ink-muted line, single link on the
+studio name (noopener, brand-red hover), target conventions preserved
+(inline links exempt from 48px rule), social links removed per owner choice.
+Hardcoded-filename rationale stays valid.

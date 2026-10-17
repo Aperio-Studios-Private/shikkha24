@@ -19,11 +19,12 @@
  * and belong as low-prominence inline text, separated from navigation, with the
  * copyright sitting at the very bottom. So this is:
  *
- *   · one line, all the developer's details together
+ *   · one line, one link
  *   · the smallest type in the footer (11px vs the 12px used elsewhere)
- *   · inline text links — no border, no background, no shadow, no icon buttons
+ *   · inline text link — no border, no background, no shadow, no icon buttons
  *   · the last band, below the copyright and the CMS footer text
- *   · labelled "ডেভেলপার:" so it cannot be mistaken for site navigation
+ *   · the link lands on the studio name, not the verb — "Developed by" stays
+ *     plain text so the sentence, not the decoration, carries the credit
  *
  * ## Why the colour is `ink-muted` and not `ink-subtle`
  *
@@ -39,7 +40,7 @@
  * publishes. It changes at most once per rebuild of the stack, so a CMS field
  * would add an editor-facing control for a value no editor should change — and
  * an editable credit is one more thing that can be pointed somewhere wrong.
- * The WhatsApp number and profile URL live here, in one place, deliberately.
+ * The studio's URL lives here, in one place, deliberately.
  *
  * ## Touch targets
  *
@@ -48,10 +49,9 @@
  * with the accessibility budget. The legal links above rely on the same
  * exemption.
  */
-const DEVELOPER = {
-  name: 'শাহিদুল ইসলাম',
-  facebook: 'https://www.facebook.com/shahid88142',
-  whatsapp: 'https://wa.me/8801840488142',
+const STUDIO = {
+  name: 'Aperio Studios',
+  url: 'https://www.aperiostudios.com/',
 } as const
 
 /** Shared inline-link treatment — matches the footer's legal links, one step down in size. */
@@ -62,26 +62,16 @@ const linkClass =
 <div class="border-t border-rule dark:border-dark-rule">
   <div class="container-page py-3">
     <p class="text-center text-[11px] leading-relaxed text-ink-muted dark:text-dark-ink-muted">
-      ডেভেলপার: <span class="font-medium">{DEVELOPER.name}</span>
-      <span aria-hidden="true" class="mx-1.5 text-ink-subtle dark:text-dark-ink-muted">·</span>
+      Developed by
       <a
-        href={DEVELOPER.facebook}
+        href={STUDIO.url}
         target="_blank"
         rel="noopener noreferrer"
         class={linkClass}
-        aria-label={`ডেভেলপার ${DEVELOPER.name} — ফেসবুক প্রোফাইল`}
+        aria-label="Developed by Aperio Studios — aperiostudios.com"
+        title="Aperio Studios — aperiostudios.com"
       >
-        ফেসবুক
-      </a>
-      <span aria-hidden="true" class="mx-1.5 text-ink-subtle dark:text-dark-ink-muted">·</span>
-      <a
-        href={DEVELOPER.whatsapp}
-        target="_blank"
-        rel="noopener noreferrer"
-        class={linkClass}
-        aria-label={`ডেভেলপার ${DEVELOPER.name} — হোয়াটসঅ্যাপে যোগাযোগ`}
-      >
-        হোয়াটসঅ্যাপ
+        {STUDIO.name}
       </a>
     </p>
   </div>

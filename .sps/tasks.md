@@ -2755,6 +2755,10 @@ here and rebuild to restore that control.
 
 ---
 
+### T-39 — ✅ developer credit → "Developed by Aperio Studios" (aperiostudios.com) — footer, deployed
+
+(see handoff 2026-10-18 ~01:18)
+
 ### T-38 — ⬜ CMS admin UX: English-first + (বাংলা) helpers + semantic color theme
 
 **Owner rule stated 2026-10-18 00:33 (governing all admin UI from now on):**
