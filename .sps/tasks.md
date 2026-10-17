@@ -2789,3 +2789,18 @@ component, never deployed) proved the bar on homepage, real category listing
 **To light it up:** publish any article with the ব্রেকিং toggle ON (the T-34
 মাউশি piece is the natural first), then deploy — bar appears site-wide. Max 8
 headlines scroll at once.
+
+---
+
+### T-36 — ✅ ChatGPT logo-design brief (2026-10-17)
+
+Owner asked for a context file to hand to ChatGPT for logo generation. Wrote
+`docs/logo-design-brief-chatgpt.md`: brand identity + positioning (from
+profile.md), the critical constraint that the deliverable is a **mark only —
+never lettering** (site name renders as live text beside it from Site
+Settings; AI generators corrupt Bengali script), surfaces (16 px favicon →
+share cards), exact palette (#DA1C25 / #C4161E / #F87171 / #1F1F1F), four
+concept directions, an anti-list, deliverable checklist (mark + dark +
+monochrome, traceable to ≤5 KB SVG), and a ready-to-paste image prompt.
+Acceptance path after generation: trace → CMS Site Settings upload (logo +
+favicon) → verify 16 px/dark/share.
