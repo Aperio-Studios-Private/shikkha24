@@ -2222,3 +2222,23 @@ Remainder of T-31 family: GitHub Actions auto-revives at the owner's monthly
 minute reset (deploy.yml target=cms, CPANEL_* secrets stored) — verify then;
 GitLab mirror parked (revive only if identity verification ever passes).
 Windows-PC plan: NO LONGER NEEDED.
+
+### 2026-10-18 ~01:00 — T-38 phase 1 CORRECTION + verification record
+
+The ~00:55 commit's message claimed 'scoped biome clean' before the check had
+finished — it had 4 errors (3 format drifts from the string edits + 1 import
+order nit in payload.config.ts). Fixed with biome --write, follow-up commit.
+honest state: scoped biome 40 files 0 issues ✓; cms tsc 0 errors ✓; cms build
+0 errors ✓ (from the ~00:55 run).
+
+Delivered: admin language = English-first (payload i18n en-only; en Language
+wrapper needs { dateFNSKey: 'en-US', translations } — the raw tree fails
+TS2739 and bare 'en' fails DateFNSKeys); all 8 nav groups + 15 select options
++ 4 reporter components use 'English (বাংলা)'; custom.scss T-38 layer
+(primary = brand #DA1C25/#C4161E, delete toggle = error-500 solid on hover,
+>=48px mobile targets); src/i18n/bn.ts deleted (dead 115-line locale).
+Collection label objects keep their bn values (switchable locale = one line).
+
+Phase 2 (optional, queued): collection FIELD DESCRIPTIONS are Bengali prose
+(guidance, not control words) — sweep only on owner request. Goes LIVE via the
+T-31 Codespace cycle (build -> download -> unzip) on the owner's word.

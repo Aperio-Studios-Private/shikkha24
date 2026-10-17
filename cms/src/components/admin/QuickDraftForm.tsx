@@ -161,7 +161,8 @@ export function QuickDraftForm({ categories }: Props) {
       )}
 
       <p className="text-xs text-gray-500 dark:text-gray-400">
-        This creates a draft — publishing needs editor approval (এটি একটি খসড়া তৈরি করে — প্রকাশ করতে সম্পাদকের অনুমোদন লাগবে)।
+        This creates a draft — publishing needs editor approval (এটি একটি খসড়া তৈরি করে — প্রকাশ করতে
+        সম্পাদকের অনুমোদন লাগবে)।
       </p>
     </form>
   )

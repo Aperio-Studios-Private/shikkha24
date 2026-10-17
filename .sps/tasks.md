@@ -2775,7 +2775,7 @@ red destructive, amber/green semantic states, ≥48px touch targets for mobile;
 branded login screen. Admin-only; zero data risk; brandred proposal colors
 already measured in docs/assets.
 
-**Status:** awaiting owner approval to start (rule 2). Est: 1-2 h, one section.
+**Status:** ✅ phase 1 IMPLEMENTED (2026-10-18 ~01:00, owner approved "GO but verify"). Evidence: cms tsc 0 / build 0 / scoped biome 40 files 0 (after one format-fix pass, recorded in handoff correction). Phase 2 optional: field-description prose sweep. LIVE via the T-31 Codespace deploy cycle on owner word.
 
 ### T-34 — ✅ Breaking-news sourcing (2026-10-17): মাউশি scholarship MIS correction draft ready
 

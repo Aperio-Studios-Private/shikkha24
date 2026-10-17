@@ -137,7 +137,9 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
       <header style={{ marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>My Work (প্রতিবেদকের কাজ)</h1>
         <p style={{ marginTop: '0.25rem', opacity: 0.75, fontSize: '0.875rem' }}>
-          {isEditor ? 'Viewing all assignments as desk (ডেস্ক হিসেবে সব কাজ দেখা হচ্ছে)।' : 'Your own assignments and quick-draft (আপনার নিজের কাজ ও দ্রুত সংবাদ জমা দেওয়ার জায়গা)।'}
+          {isEditor
+            ? 'Viewing all assignments as desk (ডেস্ক হিসেবে সব কাজ দেখা হচ্ছে)।'
+            : 'Your own assignments and quick-draft (আপনার নিজের কাজ ও দ্রুত সংবাদ জমা দেওয়ার জায়গা)।'}
         </p>
       </header>
 
@@ -149,8 +151,8 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
 
         {assignments.length === 0 ? (
           <p style={{ fontSize: '0.875rem', opacity: 0.75 }}>
-            Nothing assigned yet. Work from an editor will appear here
-            (এখন কোনো কাজ নেই। সম্পাদক কাজ দিলে এখানে দেখা যাবে)।
+            Nothing assigned yet. Work from an editor will appear here (এখন কোনো কাজ নেই। সম্পাদক কাজ
+            দিলে এখানে দেখা যাবে)।
           </p>
         ) : (
           <ul style={{ display: 'grid', gap: '0.75rem', listStyle: 'none', padding: 0, margin: 0 }}>
@@ -182,7 +184,9 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
                       gap: '0.5rem',
                     }}
                   >
-                    <span>Status: {STATUS_LABELS[assignment.status ?? ''] ?? assignment.status}</span>
+                    <span>
+                      Status: {STATUS_LABELS[assignment.status ?? ''] ?? assignment.status}
+                    </span>
                     <span>·</span>
                     <span>
                       Priority: {PRIORITY_LABELS[assignment.priority ?? ''] ?? assignment.priority}
@@ -209,7 +213,9 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
 
       {/* ── দ্রুত সংবাদ ───────────────────────────────────────────────────── */}
       <section>
-        <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.75rem' }}>Quick Draft (দ্রুত সংবাদ)</h2>
+        <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+          Quick Draft (দ্রুত সংবাদ)
+        </h2>
 
         {hasProfile ? (
           <QuickDraftForm categories={categories} />

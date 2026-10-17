@@ -32,7 +32,9 @@ export function ReporterDashboardLink() {
         marginBottom: '1.5rem',
       }}
     >
-      <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>My Work (প্রতিবেদকের কাজ)</h2>
+      <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+        My Work (প্রতিবেদকের কাজ)
+      </h2>
       <p style={{ fontSize: '0.875rem', opacity: 0.75, marginBottom: '0.75rem' }}>
         See your assignments and submit a quick draft (আপনার কাজের তালিকা দেখুন এবং দ্রুত সংবাদ জমা দিন)।
       </p>
