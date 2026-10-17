@@ -2804,3 +2804,28 @@ concept directions, an anti-list, deliverable checklist (mark + dark +
 monochrome, traceable to ≤5 KB SVG), and a ready-to-paste image prompt.
 Acceptance path after generation: trace → CMS Site Settings upload (logo +
 favicon) → verify 16 px/dark/share.
+
+---
+
+### T-37 — ✅ New logo from the owner's design round staged (2026-10-17); CMS upload handoff pending
+
+Owner produced two Illustrator-exported SVGs (16×16 viewBox, white rounded
+tile + red art `#D21209`, zero text/embeds — brand-brief compliant) and asked
+to install them. Findings that shaped the install: **both Site Settings fields
+are already CMS-cloaked** (`settings.logo` → icon-maskable.svg 899B placeholder;
+`settings.favicon` → old PNG), so static-file swaps alone change nothing — the
+authoritative switch is a CMS upload, then a storefront rebuild (favicon URL
+carries a `?v=updatedAt` stamp baked at build time).
+
+Done: originals archived at `docs/assets/logo-2026-10-17-{official,favicon}.svg`;
+static fallback trio refreshed (`public/favicon.svg` = owner file, generated
+`favicon.ico` 16/32/48 + `apple-touch-icon.png` 180px via bundled Pillow);
+typecheck PASS; 89 pages; deployed `42d9dcde`. Two PROPOSAL variants written
+(not installed): `docs/assets/logo-favicon-inverted-proposal.svg` (red tile +
+white art — measured reason: at 16px the original art renders ~2% red, the tab
+icon reads as a white tile) and `docs/assets/logo-brandred-proposal.svg`
+(`#D21209` → brand `#DA1C25`). Awaiting owner choice; either is a 2-line swap.
+
+**Pending (owner, then agent):** owner uploads Logo_Official LOGO.svg as Site
+Settings → logo and apple-touch-icon.png (or the .ico) as favicon in the CMS
+admin; agent then rebuilds+deploys so the storefront picks up the new URLs.

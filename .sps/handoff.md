@@ -2151,3 +2151,12 @@ clean build deployed (`ecf2aada…`). Lights up site-wide the moment a published
 article is flagged ব্রেকিং in the CMS. Sequencing note: code landed one step
 ahead of the plan.md amendment — same commit carries both (rule 13 recorded).
 
+## 2026-10-17 (night) — T-37: owner's new logo staged; CMS upload pending
+
+ owner brought two AI-designed+Illustrator-traced SVGs ("use these"). Verified
+hygiene (no text/embeds), measured 16px behavior (2% red → tab-legibility
+risk), archived originals, refreshed the static favicon trio, generated the
+.ico/apple-touch rasters, deployed 42d9dcde. Learned live: settings.logo and
+settings.favicon are SET on the CMS (old assets) — so the switch happens in
+the CMS admin (owner), then rebuild+deploy (agent; favicon ?v stamp is baked
+at build). Inverted + brand-red proposal SVGs sit in docs/assets/.
