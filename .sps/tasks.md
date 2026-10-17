@@ -2847,8 +2847,14 @@ GitLab is a build worker. Sync = the AGENT pushes every commit to BOTH remotes
 (`git push origin main && git push gitlab main`) — standing protocol for all
 future commits; the GitLab push auto-triggers its pipeline. Drift check = the
 agent can compare SHAs via API before any build. No other automation exists
-for the GitLab→GitHub direction on the free tier. Owner's remaining manual part: GitLab signup (their identity),
-create the private project, mint the token → file.
+for the GitLab→GitHub direction on the free tier. **CORRECTION (2026-10-17 23:15): Project Access Tokens are Premium-only** —
+GitLab Free refuses the dialog. Switch: **Personal Access Token (PAT)**, which
+IS free-tier. Identical scopes used (`api` + `write_repository`); blast radius
+bounded because the owner's fresh GitLab account contains only this mirror
+project. Everything else unchanged (push, masked variables via API, pipeline
+trigger/press, logs). Owner's remaining manual part: GitLab signup (their
+identity), create the private project (DONE: shahidprintshop-group/shikkha24-
+cms-mirror), mint the PAT → Desktop file.
 
 **To activate (owner):** ① create free GitLab account (no card) ② New project
 PRIVATE named `shikkha24-cms-mirror` ③ Settings→Access Tokens→Project Access
