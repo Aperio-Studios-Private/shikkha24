@@ -2188,3 +2188,37 @@ for mirror ops (auth, ci status/view, variable set --masked, raw api for
 pipeline trigger + manual-job play). License: MIT. Terminal-only tool; no
 services, no card. Auth will use the pending project PAT from the owner's
 Desktop token file (never chat).
+
+### 2026-10-18 ~00:25 — T-31 COMPLETE: CMS deployed from a Codespace build (no card, no CI minutes)
+
+Route that finally worked (GitLab CI dead: identity-verification card-wall;
+GitHub Actions frozen till monthly minute reset): **GitHub Codespaces** builds
+via `scripts/codespace-cms-build.sh` (commit fe24c21, payload 3.90.2, hygiene
+gate green) → zip → cPanel Terminal `unzip -o` (API extract paths on this host
+are BROKEN — see below) → agent-driven restart + verify via UAPI.
+
+Deploy evidence (all live on cms.shikkha24.com): sentinel = fe24c21 ✓;
+chunks 72→138 with our hashes ✓; **/api/faqs HTTP 200** (endpoint exists only
+in the new build — old answered 404 by design); /api/articles 200 with all 6
+articles; / and /admin/login 200. data/, .env, media untouched. tmp/ created
+for restart.txt. Old cms-deploy zips swept.
+
+**New facts for every future agent:**
+1. cPanel 134 has NO `Fileman::extract_files`; API2 `fileop op=extract`
+   answers `[]` and extracts NOTHING — the Oct-10 "one directory too high"
+   era failures were this. Server-side extract on this host = cPanel Terminal
+   `unzip -o <zip-in-app-dir>` (owner one-liner) — deterministic, verified.
+2. `deploy-cms.mjs` dry-run flag is **`DEPLOY_DRY_RUN=true`** — NOT `DRY_RUN`.
+   A wrong flag = LIVE deploy (cost us one halted live run; the commit-check
+   halted safely, no restart was issued).
+3. `writeTextFile`'s mkdir fallback passes `path` but this host's API2
+   Fileman::mkdir wants `name` — first-time `tmp/` creation must use
+   `api2(cfg,'Fileman','mkdir',{path:R,name:'tmp'})`.
+4. faqs trap line is STALE from 2026-10-17: /api/faqs now answers **200 with an
+   empty collection** (no FAQs published yet) — the frontend seed fallback
+   still applies until real FAQs exist, by design.
+
+Remainder of T-31 family: GitHub Actions auto-revives at the owner's monthly
+minute reset (deploy.yml target=cms, CPANEL_* secrets stored) — verify then;
+GitLab mirror parked (revive only if identity verification ever passes).
+Windows-PC plan: NO LONGER NEEDED.

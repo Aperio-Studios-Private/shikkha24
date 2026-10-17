@@ -9,7 +9,7 @@ not know about it.
 
 > ⭐ **New session? Read `.sps/handoff.md` → "⭐ START HERE" first** — production
 > state, credentials, proven runbooks, trap list, and the priority queue as of
-> 2026-10-17 EOD. Then come back to this queue: live items are **T-31 (WSL2 CMS
+> 2026-10-17 EOD. Then come back to this queue: live items are **T-34 (publish breaking draft), T-37 (logo CMS upload), T-32 (date bugs)**  — T-31 CMS redeploy is DONE (2026-10-18, Codespace route)
 > deploy — waiting on owner's Windows machine), T-33 follow-ups (VAPID key,
 > DeadlineStrip/VerificationBadge build-time dates) and T-34 (breaking-news
 > draft ready to publish)**.
@@ -2599,7 +2599,14 @@ to it rather than stopping work.
 
 ---
 
-### T-31 — ⛔ PARKED: redeploy the CMS redesign from an owner-owned Linux build (Windows + WSL2)
+### T-31 — ✅ DONE (2026-10-18 00:25): CMS deployed from a Codespace build — payload 3.90.2 + T-20 + FAQs live
+
+> Done WITHOUT GitLab (card-gated identity verification), WITHOUT GitHub Actions
+> minutes (frozen till monthly reset), WITHOUT the Windows PC. Full story,
+> deploy evidence and the three new host facts: `.sps/handoff.md`,
+> "T-31 COMPLETE" entry (2026-10-18 ~00:25). Route: Codespace build via
+> `scripts/codespace-cms-build.sh` → download → cPanel Terminal `unzip -o` →
+> agent restart + live verification.
 
 **Owner decision 2026-10-16 (late):** build the CMS bundle on the owner's own
 Windows machine inside **WSL2 Ubuntu**, then deploy via the proven cPanel
