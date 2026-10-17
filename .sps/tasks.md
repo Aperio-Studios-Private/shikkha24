@@ -2759,6 +2759,29 @@ here and rebuild to restore that control.
 
 (see handoff 2026-10-18 ~01:18)
 
+
+### T-40 — ⬜ SEO activation: GSC submission + Bing + IndexNow auto-ping
+
+**Status:** diagnosed 2026-10-18 01:50. Technical SEO verified GREEN live:
+sitemap.xml 63 URLs (proper XML, real lastmod), robots.txt correct,
+NewsArticle+NewsMediaOrganization JSON-LD on articles, OG/canonical clean,
+news-sitemap + rss live, google-site-verification TXT in DNS. Root cause of
+"nothing on Google": (a) domain live 3 days (Oct 15) — crawl lag is normal;
+(b) sitemaps never submitted in GSC. Owner action list handed over (property
+verify → submit 2 sitemaps → request indexing). Agent-side next: Bing
+Webmaster steps, IndexNow key + ping script (free, no card — budget rule OK),
+then re-audit after 7 days.
+
+### T-41 — ⬜ Project handover document
+
+**Status:** owner declared handover intent 2026-10-18. Deliverable:
+HANDOVER.md (repo root) — stack map, folder map, account inventory (names
+NOT secrets), deploy runbooks (storefront one-paste + Codespace CMS cycle),
+DianaHost/Cloudflare/GitHub/GitLab registration points, K where secrets live,
+what to revoke on handover (glab token, Codespace, cPanel password), open
+debts (pre-lint errors, i18n phase-2, VAPID key). Written AFTER code queue
+empties.
+
 ### T-38 — ✅ DONE & LIVE (2026-10-18 01:35): English-first admin + (বাংলা) helpers + semantic colors
 
 **Owner rule stated 2026-10-18 00:33 (governing all admin UI from now on):**
