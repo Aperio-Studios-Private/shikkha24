@@ -2170,3 +2170,12 @@ commit-pinning + `cms-deploy-<id>.zip` naming), swap stays human until the
 first automated upload proves end-to-end. Pending: owner creates the GitLab
 account + private mirror + project token + 4 masked variables (values from
 cms/.env.local); then mirror-push and T-31 completes with no Windows PC.
+
+### 2026-10-17 ~23:05 — GitLab control protocol locked (T-31)
+
+Agent pivots to full remote control of the GitLab mirror: one project token
+(Maintainer, api+write_repository) — token travels Desktop-file → local git
+remote → deleted, never via chat. Agent then: mirror-push, set the 3 masked
+variables (CPANEL_BASE unnecessary: client derives host:2083), run pipeline,
+press the upload job via API, then owner pastes the 3 Terminal swap commands.
+Owner's manual residue: signup + private project + token minting only.

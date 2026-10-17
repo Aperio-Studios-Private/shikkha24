@@ -2829,6 +2829,20 @@ Artifact retention 48h (quota lesson from ci.yml). GitLab free budget:
 variables (CPANEL_HOST/USER/TOKEN/BASE — values from operator's
 cms/.env.local; names verified in scripts/cpanel-client.mjs).
 
+**Control protocol refinement (2026-10-17 ~23:05): agent-driven end to end.**
+With one GitLab project token (role Maintainer, scopes `api` + `write_repository`)
+the agent can do EVERYTHING it does on GitHub: mirror-push, set the masked CI
+variables via the API (values pulled from cms/.env.local, never printed),
+trigger/poll pipelines, read logs, and even press the manual upload job
+(`POST /projects/:id/jobs/:job_id/play`). No extra tools — git 2.54 + curl
+8.7.1 suffice. Verified preflight: CPANEL_HOST/USER/TOKEN present in
+cms/.env.local; CPANEL_BASE absent but optional (client derives
+`https://$HOST:2083`) → only THREE variables to set. Token hygiene: owner
+saves the token to a Desktop file (never chat); agent reads it, embeds it in
+the local git remote URL, then deletes the raw file; token is revocable in one
+GitLab UI click. Owner's remaining manual part: GitLab signup (their identity),
+create the private project, mint the token → file.
+
 **To activate (owner):** ① create free GitLab account (no card) ② New project
 PRIVATE named `shikkha24-cms-mirror` ③ Settings→Access Tokens→Project Access
 Token (Maintainer, scope write_repository) ④ add the 4 masked CI variables ⑤
