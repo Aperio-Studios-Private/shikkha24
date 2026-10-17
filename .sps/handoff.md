@@ -2179,3 +2179,12 @@ remote → deleted, never via chat. Agent then: mirror-push, set the 3 masked
 variables (CPANEL_BASE unnecessary: client derives host:2083), run pipeline,
 press the upload job via API, then owner pastes the 3 Terminal swap commands.
 Owner's manual residue: signup + private project + token minting only.
+
+### 2026-10-17 ~23:40 — dependency: glab CLI added (rule 8)
+
+`glab` 1.123.0 (5686d7484) installed via Homebrew for owner-facing parity with
+`gh`. Justification: official GitLab CLI gives agent+owner a clean interface
+for mirror ops (auth, ci status/view, variable set --masked, raw api for
+pipeline trigger + manual-job play). License: MIT. Terminal-only tool; no
+services, no card. Auth will use the pending project PAT from the owner's
+Desktop token file (never chat).
