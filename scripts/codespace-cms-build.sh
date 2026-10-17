@@ -28,14 +28,23 @@ echo "── 1/5 install (cms workspace only) ──"
 pnpm install --frozen-lockfile --filter cms
 
 echo "── 2/5 build (cms standalone) ──"
-(cd cms && pnpm run build)
+# Exact proven env from the CI build (deploy.yml "Build (CMS, standalone)"):
+# build-time placeholders only — the HOST restores the real .env at swap time.
+PAYLOAD_SECRET=ci-placeholder-not-a-real-secret DATABASE_URI=file:./data/ci.db \
+  pnpm run build:cms
 
 echo "── 3/5 assemble (payload promote + font/static/migrations copy) ──"
 node scripts/assemble-cms-bundle.mjs
 
 echo "── 4/5 data/.env hygiene check (defense in depth) ──"
-test ! -e cms/.next/standalone/cms/data && echo "  ✓ no data/ in bundle" || { echo "  ✗ data/ present — refusing"; exit 1; }
-test ! -e cms/.next/standalone/.env && echo "  ✓ no .env in bundle" || { echo "  ✗ .env present — refusing"; exit 1; }
+# The standalone build traces cms/.env byte-for-byte into cms/.next/standalone/cms/
+# and the sanitizer strips data/ + .env* at the cms/ bundle root — the gate below
+# is the second net, on BOTH the cms/ root and the standalone top level.
+CLEAN=1
+for f in cms/.next/standalone/cms/data cms/.next/standalone/cms/.env cms/.next/standalone/cms/.env.local cms/.next/standalone/.env cms/.next/standalone/data; do
+  if [ -e "$f" ]; then echo "  ✗ $f present — refusing"; CLEAN=0; fi
+done
+[ "$CLEAN" = 1 ] && echo "  ✓ no data/.env anywhere in the bundle"
 
 echo "── 5/5 zip (store symlinks as links: -y is load-bearing) ──"
 ZIP="cms-deploy-$(date +%Y%m%d-%H%M%S).zip"
