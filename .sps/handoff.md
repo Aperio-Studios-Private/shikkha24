@@ -2320,3 +2320,18 @@ Post-verify of a re-ping: IndexNow accepted 63+64 URLs HTTP 202; key
 FB079BAFCAA04021AE9B9778B693F0AA at /FB079….txt (200); key recorded in
 .sps/indexnow-key.txt; pinger at scripts/ping-indexnow.mjs — run after every
 frontend deploy.
+
+### 2026-10-18 ~02:25 — tag library curated (30) + T-42 registered (reusable elements)
+
+Renamed all 14 seed tags to clean slugs (demo-admission → admission …,
+ids preserved so article relations survive); created 16 common Bengali tags
+(jsc psc degree honours masters university gst bcs govt-job private-job
+recruitment madrasah technical moushi education-ministry mis) → 30 total.
+Articles can now reference reused labels instead of free-typing.
+
+T-42 (NEXT CMS BUNDLE): EditorialSnippets collection — reusable boilerplate
+(title + body richText + where-to-use description, group Editorial) so
+editors stop re-typing standard paragraphs (source lines, deadline notes,
+result-explainers). CMS-only, no storefront coupling; ships with the next
+Codespace build. Tag slug rename → sitemap + /tags/* regenerate on the next
+frontend deploy (run after any change).

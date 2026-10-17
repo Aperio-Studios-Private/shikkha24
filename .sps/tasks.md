@@ -2777,6 +2777,13 @@ verify → submit 2 sitemaps → request indexing). Agent-side next: Bing
 Webmaster steps, IndexNow key + ping script (free, no card — budget rule OK),
 then re-audit after 7 days.
 
+### T-42 — ⬜ EditorialSnippets reusable-elements collection (next CMS bundle)
+
+**Status:** registered 2026-10-18 ~02:25 after owner asked for "common tags +
+reusable elements" (tags part DONE same night — 30-tag library). Collection:
+title + richText body + usage description, Editorial group. Ships in next
+Codespace CMS build.
+
 ### T-41 — ⬜ Project handover document
 
 **Status:** owner declared handover intent 2026-10-18. Deliverable:
