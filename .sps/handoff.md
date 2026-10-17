@@ -2378,3 +2378,14 @@ Frontend v82371bb3: article 200, in sitemap (65+ URLs), on homepage, Yandex
 200 on the URL. Blog cadence Day-1 notion 'content needs owner links' has an
 exception: weekly digests + own-recap evergreens need none — usable anytime
 the pipeline is quiet.
+
+### 2026-10-18 ~04:45 — T-41 DONE: HANDOVER.md written (repo root)
+
+The human-team layer sits above the .sps memory: what is live, accounts matrix
+(names only), deploy runbooks (storefront one-paste, CMS Codespace cycle, API
+publish recipe incl. all gotchas), SEO state + 30-day plan pointer, editing
+reference, 9 recorded debts/risks, revocation checklist on handover, and an
+agent-onboarding section. With this, the owner's "complete all remaining +
+handover" request is satisfied to the extent possible without: (a) more source
+links (content cadence), (b) GitHub-Actions minute reset (~Oct 25), (c) 7-day
+stability before host cleanup. Everything else shipped tonight: T-31..T-42.

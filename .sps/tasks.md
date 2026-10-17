@@ -2784,7 +2784,12 @@ reusable elements" (tags part DONE same night — 30-tag library). Collection:
 title + richText body + usage description, Editorial group. Ships in next
 Codespace CMS build.
 
-### T-41 — ⬜ Project handover document
+### T-41 — ✅ DONE (2026-10-18 ~04:45): HANDOVER.md at repo root
+
+Accounts matrix, runbooks, API gotchas, SEO state + pointer to 30-day plan,
+editing reference, debts/risks, revocation checklist, agent onboarding.
+
+### T-41 (archive) — ⬜ Project handover document
 
 **Status:** owner declared handover intent 2026-10-18. Deliverable:
 HANDOVER.md (repo root) — stack map, folder map, account inventory (names
