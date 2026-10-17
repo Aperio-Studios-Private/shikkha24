@@ -2251,3 +2251,16 @@ DeveloperCredit.astro rewritten: one 11px ink-muted line, single link on the
 studio name (noopener, brand-red hover), target conventions preserved
 (inline links exempt from 48px rule), social links removed per owner choice.
 Hardcoded-filename rationale stays valid.
+
+### 2026-10-18 ~01:30 — GitLab sync quirk (dual-push protocol)
+
+In non-interactive shells the git push to the gitlab remote can fall through
+to a credential prompt and die (device not configured) even though glab sees
+the keyring. Working pattern (verified, no secret ever printed):
+  T=$(printf 'protocol=https
+host=gitlab.com
+
+' | glab auth git-credential get | grep ^password= | cut -d= -f2)
+  git push https://shahiddesignhouse:$T@gitlab.com/shahidprintshop-group/shikkha24-cms-mirror.git main
+GitHub (primary) always pushes first, so a GitLab hiccup never loses work —
+retry before any build.
