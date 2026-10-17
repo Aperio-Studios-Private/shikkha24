@@ -405,6 +405,46 @@ explicit request speeds up first crawl.
 
 ## Owner asks parked with T-31 (WSL2 deploy, 2026-10-16 late)
 
+### Remote operation of the Windows PC for T-31 (added 2026-10-17 night)
+
+Working from another machine is fully supported — pick one of two modes:
+
+**Mode A — remote screen (no card, free personal tier):**
+1. On the Windows PC (once, on-site or with someone's help): install
+   **Chrome Remote Desktop** (`remotedesktop.google.com/headless/`) and set a
+   6+ digit PIN — it runs as a service and survives reboots/unattended use.
+   AnyDesk or TeamViewer (free personal) are known-good alternatives.
+2. From the Mac: open `remotedesktop.google.com/access`, enter the PIN — done.
+3. If the PC will be on the same Wi-Fi, skip third parties entirely:
+   Windows Settings → System → Remote Desktop → enable, and use
+   **Microsoft Remote Desktop** (free, Mac App Store) over LAN.
+
+**Mode B — no screen at all (the repo runs the show):**
+1. On the Windows PC (PowerShell, admin): `wsl --install -d Ubuntu`, reboot.
+2. Inside Ubuntu: install Node 20+ (nvm one-liner or apt Ubuntu repo) and pnpm
+   (`corepack enable`), verify `node -v` and `pnpm -v`.
+3. `git clone` the private repo (GitHub username + a Personal Access Token
+   with repo read).
+4. Then EITHER paste the T-31 runbook commands one at a time (established
+   protocol), OR — if any coding agent is installed on that PC — tell it:
+   **"Read `.sps/handoff.md` → START HERE, then `.sps/tasks.md` T-31 and
+   execute."** The repo memory carries the full state; nothing needs copying
+   from this Mac.
+
+**T-31 machine checklist:** admin rights · ≥8 GB RAM · WSL2 Ubuntu · ~5 GB
+free disk · Node 20+/pnpm · GitHub PAT · 15–30 min for the bundle build
+(`scripts/assemble-cms-bundle.mjs` + payload-promote per the T-31 runbook) ·
+then the cPanel upload path from the same runbook.
+
+**Fallback if the PC proves unreachable remote:** the GitLab private-mirror
+CI build (free, no card — the rule-7-sanctioned fallback for CMS builds)
+produces the same bundle without any Windows machine.
+
+**Remember the two dead paths (do NOT attempt):** macOS-built bundles and
+builds on DianaHost itself — both caused/prolonged the Oct-16 outage; details
+in `.sps/handoff.md` START HERE.
+
+
 1. **A Windows machine** (Win10/11, ≥8 GB RAM) with admin rights for
    `wsl --install` — the only blocker for T-31.
 2. One-time read: cPanel → **Resource Usage** → the account's **memory
