@@ -33,7 +33,7 @@ export const Categories: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'nameBn',
-    group: 'ট্যাক্সোনমি',
+    group: { en: 'Taxonomy (ট্যাক্সোনমি)' },
     defaultColumns: ['nameBn', 'slug', 'parent', 'sortOrder', 'isActive'],
     description: 'আটটি মূল বিভাগ। উপবিভাগ যোগ করা যায় — একটি বিভাগকে অন্যটির অধীনে রাখুন।',
   },

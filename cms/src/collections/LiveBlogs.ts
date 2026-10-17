@@ -20,7 +20,7 @@ export const LiveBlogs: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: 'ইন্টারঅ্যাকটিভ',
+    group: { en: 'Interactive (ইন্টারঅ্যাকটিভ)' },
     defaultColumns: ['title', 'slug', 'isActive', 'updatedAt'],
     description: 'ফলাফল প্রকাশ বা ভর্তি লটারির দিনের লাইভ কভারেজ।',
   },

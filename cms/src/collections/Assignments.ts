@@ -73,7 +73,7 @@ export const Assignments: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: 'সম্পাদকীয়',
+    group: { en: 'Editorial (সম্পাদকীয়)' },
     defaultColumns: ['title', 'assignedTo', 'dueAt', 'priority', 'status'],
     description: 'সম্পাদক প্রতিবেদককে কাজ দেন; প্রতিবেদক কাজ নিয়ে খসড়া জমা দেন।',
   },

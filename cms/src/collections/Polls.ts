@@ -24,7 +24,7 @@ export const Polls: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'questionBn',
-    group: 'ইন্টারঅ্যাকটিভ',
+    group: { en: 'Interactive (ইন্টারঅ্যাকটিভ)' },
     defaultColumns: ['questionBn', 'isActive', 'expiresAt'],
     description: 'পাঠক জরিপ — ভর্তি নীতি বা পরীক্ষা সংক্রান্ত মতামত।',
   },

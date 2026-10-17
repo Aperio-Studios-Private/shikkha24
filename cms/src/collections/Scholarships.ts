@@ -21,7 +21,7 @@ export const Scholarships: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: 'শিক্ষা',
+    group: { en: 'Education (শিক্ষা)' },
     defaultColumns: ['title', 'provider', 'level', 'deadline', 'isActive'],
     description: 'বৃত্তির তালিকা — সময়সীমা অনুযায়ী সাজানো।',
   },
@@ -65,9 +65,9 @@ export const Scholarships: CollectionConfig = {
       index: true,
       label: { en: 'Funding type', bn: 'অর্থায়নের ধরন' },
       options: [
-        { value: 'full', label: 'সম্পূর্ণ বৃত্তি' },
-        { value: 'partial', label: 'আংশিক বৃত্তি' },
-        { value: 'tuition', label: 'শুধু টিউশন' },
+        { value: 'full', label: 'Full Scholarship (সম্পূর্ণ বৃত্তি)' },
+        { value: 'partial', label: 'Partial Scholarship (আংশিক বৃত্তি)' },
+        { value: 'tuition', label: 'Tuition Only (শুধু টিউশন)' },
       ],
     },
     { name: 'amount', type: 'text', label: { en: 'Amount', bn: 'পরিমাণ' } },

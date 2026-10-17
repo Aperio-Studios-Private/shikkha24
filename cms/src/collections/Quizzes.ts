@@ -18,7 +18,7 @@ export const Quizzes: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: 'ইন্টারঅ্যাকটিভ',
+    group: { en: 'Interactive (ইন্টারঅ্যাকটিভ)' },
     defaultColumns: ['title', 'date', 'isActive'],
     description: 'ভর্তি ও বিসিএস প্রস্তুতির দৈনিক কুইজ।',
   },

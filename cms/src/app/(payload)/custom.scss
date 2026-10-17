@@ -159,3 +159,46 @@
     --hover-bg: var(--theme-elevation-100);
   }
 }
+
+/**
+ * T-38 (2026-10-18) — semantic color layer: color expresses the action.
+ *
+ * Owner rule: a first-time admin reads the button's job from its color.
+ * Primary = brand red (the committing action: Publish, Save, Create);
+ * the delete toggle = unmistakable solid danger on hover (it was only a
+ * hover tint before this). Brand hexes are literals on purpose — brand
+ * identity is theme-independent; everything else stays a --theme-* variable
+ * so dark mode keeps working.
+ */
+@layer payload-default {
+  :root {
+    --shikkha-brand: #da1c25;
+    --shikkha-brand-dark: #c4161e;
+  }
+  .btn--style-primary:not(.btn--disabled) {
+    --bg-color: var(--shikkha-brand);
+    --btn-border: 1px solid var(--shikkha-brand-dark);
+    --hover-bg: var(--shikkha-brand-dark);
+    background-color: var(--shikkha-brand);
+    border: 1px solid var(--shikkha-brand-dark);
+    color: #fff;
+  }
+  .btn--style-primary:hover:not(.btn--disabled) {
+    background-color: var(--shikkha-brand-dark) !important;
+    --hover-bg: var(--shikkha-brand-dark);
+    color: #fff;
+  }
+  /* The delete control must be the most obvious danger in every view: */
+  .delete-document__toggle {
+    color: var(--theme-error-750, #b91c1c);
+  }
+  .delete-document__toggle:hover {
+    background-color: var(--theme-error-500, #dc2626);
+    color: #fff;
+  }
+  @media (max-width: 768px) {
+    .btn {
+      min-block-size: 48px;
+    }
+  }
+}

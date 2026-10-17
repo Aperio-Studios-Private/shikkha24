@@ -60,7 +60,7 @@ export const Reactions: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'type',
-    group: 'পাঠক',
+    group: { en: 'Readers (পাঠক)' },
     defaultColumns: ['article', 'type', 'reader', 'createdAt'],
     description: 'পাঠকের প্রতিক্রিয়া — সংখ্যা রানটাইমে পড়া হয়, তাই সংবাদ বদলালে রিবিল্ড লাগে না।',
   },

@@ -41,7 +41,7 @@ export const PollVotes: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'voterHash',
-    group: 'পাঠক',
+    group: { en: 'Readers (পাঠক)' },
     defaultColumns: ['poll', 'voterHash', 'createdAt'],
     description: 'ডুপ্লিকেট ভোট ঠেকানোর জন্য সংরক্ষিত ওয়ান-ওয়ে হ্যাশ। কোন বিকল্পে ভোট পড়েছে তা এখানে রাখা হয় না।',
   },

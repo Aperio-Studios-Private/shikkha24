@@ -40,7 +40,7 @@ export const PushSubscriptions: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'endpoint',
-    group: 'পাঠক',
+    group: { en: 'Readers (পাঠক)' },
     defaultColumns: ['endpoint', 'reader', 'updatedAt'],
     description: 'ব্রাউজারভিত্তিক পুশ সাবস্ক্রিপশন ও সময়সীমার রিমাইন্ডার।',
   },

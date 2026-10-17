@@ -59,7 +59,7 @@ export const Institutions: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'nameBn',
-    group: 'শিক্ষা',
+    group: { en: 'Education (শিক্ষা)' },
     defaultColumns: ['nameBn', 'type', 'discipline', 'district', 'isVerified'],
     description: 'বিশ্ববিদ্যালয় ও কলেজের তালিকা। ধরন (মালিকানা) ও বিভাগ (বিষয়) — দুটি আলাদা অক্ষ।',
   },

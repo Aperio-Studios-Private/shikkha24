@@ -49,7 +49,7 @@ import { oauthEndpoints } from './endpoints/oauth'
 import { pushEndpoints } from './endpoints/push'
 import { reporterQuickDraftEndpoint } from './endpoints/reporter'
 import { SiteSettings } from './globals/SiteSettings'
-import { bn } from './i18n/bn'
+import { enTranslations } from '@payloadcms/translations/languages/en'
 import { isMailConfigured } from './lib/mailer'
 import { ALLOWED_ORIGINS } from './lib/origins'
 import { withRebuildTrigger, withRebuildTriggerGlobal } from './lib/rebuild-trigger'
@@ -368,11 +368,16 @@ export default buildConfig({
     'It signs auth tokens, reader sessions and OAuth state; an empty value would let anyone mint a session.',
   ),
 
-  // Bengali admin UI. Payload ships no Bengali locale; `src/i18n/bn.ts` writes one.
-  // The key is the BCP-47 tag `bn-BD` (Bangladesh), not a bare `bn`.
+  // T-38 (owner rule, 2026-10-18): the admin language is English-first. General
+  // control words (Delete, Save, Publish) stay English-only; uncommon domain
+  // words carry a Bengali helper in parentheses at the label level
+  // (`group: { en: 'Editorial (সম্পাদকীয়)' }`). The previous bn-only locale
+  // (`src/i18n/bn.ts`, deleted) rendered the chrome as Bengali and confused a
+  // first-time admin ("মুছুন" was unrecognizable). Collection label objects keep
+  // their `bn` values, so restoring a switchable locale is a one-line change.
   i18n: {
-    supportedLanguages: { 'bn-BD': bn },
-    fallbackLanguage: 'bn-BD',
+    supportedLanguages: { en: { dateFNSKey: 'en-US', translations: enTranslations } },
+    fallbackLanguage: 'en',
   },
 
   typescript: {

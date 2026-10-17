@@ -17,7 +17,7 @@ export const SavedDeadlines: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'id',
-    group: 'পাঠক',
+    group: { en: 'Readers (পাঠক)' },
     defaultColumns: ['reader', 'deadline', 'remindAt', 'notified'],
     description: 'পাঠকের সেভ করা সময়সীমা ও রিমাইন্ডার।',
   },

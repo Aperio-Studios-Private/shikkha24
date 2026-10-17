@@ -37,7 +37,7 @@ export const NewsletterCampaigns: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'subject',
-    group: 'পাঠক',
+    group: { en: 'Readers (পাঠক)' },
     defaultColumns: ['subject', 'status', 'sentAt', 'sentCount', 'deferredCount'],
     description: 'নিউজলেটার ক্যাম্পেইন। পাঠানোর আগে বিষয় ও বিষয়বস্তু দেখে নিন — পাঠানোর পর পরিবর্তন করা যায় না।',
   },

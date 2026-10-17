@@ -17,7 +17,7 @@ export const Circulars: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: 'শিক্ষা',
+    group: { en: 'Education (শিক্ষা)' },
     defaultColumns: ['title', 'organisation', 'type', 'deadline'],
     description: 'শিক্ষা ও চাকরির বিজ্ঞপ্তি — আবেদনের শেষ তারিখসহ।',
   },
@@ -49,10 +49,10 @@ export const Circulars: CollectionConfig = {
       index: true,
       label: { en: 'Type', bn: 'ধরন' },
       options: [
-        { value: 'education', label: 'শিক্ষা' },
-        { value: 'bcs', label: 'বিসিএস' },
-        { value: 'governmentJob', label: 'সরকারি চাকরি' },
-        { value: 'privateJob', label: 'বেসরকারি চাকরি' },
+        { value: 'education', label: 'Education (শিক্ষা)' },
+        { value: 'bcs', label: 'BCS' },
+        { value: 'governmentJob', label: 'Government Job (সরকারি চাকরি)' },
+        { value: 'privateJob', label: 'Private Job (বেসরকারি চাকরি)' },
       ],
     },
     {

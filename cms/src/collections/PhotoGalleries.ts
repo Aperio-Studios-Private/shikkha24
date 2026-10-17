@@ -14,7 +14,7 @@ export const PhotoGalleries: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: 'মিডিয়া',
+    group: { en: 'Media (মিডিয়া)' },
     defaultColumns: ['title', 'slug', 'updatedAt'],
     description: 'ছবির গ্যালারি — প্রতিটি ছবির ক্যাপশনসহ।',
   },

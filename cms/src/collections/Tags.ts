@@ -18,7 +18,7 @@ export const Tags: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'nameBn',
-    group: 'ট্যাক্সোনমি',
+    group: { en: 'Taxonomy (ট্যাক্সোনমি)' },
     defaultColumns: ['nameBn', 'slug', 'updatedAt'],
     description: 'বিভাগের বাইরে বিষয়ভিত্তিক লেবেল। লেখার সময়েই তৈরি করা যায়।',
   },

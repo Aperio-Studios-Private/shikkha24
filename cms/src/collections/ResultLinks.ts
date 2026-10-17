@@ -30,7 +30,7 @@ export const ResultLinks: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: 'শিক্ষা',
+    group: { en: 'Education (শিক্ষা)' },
     defaultColumns: ['title', 'examName', 'level', 'publicationDate', 'isPublished'],
     description: 'ফলাফল ও মেধাতালিকার লিংক এবং ব্যবহারের নিয়ম।',
   },

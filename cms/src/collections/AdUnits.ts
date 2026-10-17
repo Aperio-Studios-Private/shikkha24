@@ -76,7 +76,7 @@ export const AdUnits: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
-    group: 'বিজ্ঞাপন',
+    group: { en: 'Advertising (বিজ্ঞাপন)' },
     defaultColumns: ['name', 'position', 'adType', 'isActive', 'campaignEnd'],
     description:
       'বিজ্ঞাপনের অবস্থান ও ক্যাম্পেইন। CLS শূন্য রাখতে নির্দিষ্ট অবস্থান ব্যবহার করুন — নতুন অবস্থান যোগ করার আগে ফ্রন্টএন্ডে সেই স্লট থাকতে হবে।',
@@ -120,8 +120,8 @@ export const AdUnits: CollectionConfig = {
       label: { en: 'Type', bn: 'ধরন' },
       options: [
         { value: 'adsense', label: 'AdSense' },
-        { value: 'sponsorBanner', label: 'স্পনসর ব্যানার' },
-        { value: 'direct', label: 'সরাসরি বিজ্ঞাপন' },
+        { value: 'sponsorBanner', label: 'Sponsor Banner (স্পনসর ব্যানার)' },
+        { value: 'direct', label: 'Direct Ad (সরাসরি বিজ্ঞাপন)' },
       ],
     },
     {

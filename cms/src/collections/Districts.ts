@@ -20,7 +20,7 @@ export const Districts: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'nameBn',
-    group: 'ট্যাক্সোনমি',
+    group: { en: 'Taxonomy (ট্যাক্সোনমি)' },
     defaultColumns: ['nameBn', 'divisionBn', 'slug'],
     description: '৬৪টি জেলা — "আমার জেলা" ফিল্টারে ব্যবহৃত।',
   },

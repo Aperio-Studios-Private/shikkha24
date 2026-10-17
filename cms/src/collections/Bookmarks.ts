@@ -34,7 +34,7 @@ export const Bookmarks: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'id',
-    group: 'পাঠক',
+    group: { en: 'Readers (পাঠক)' },
     defaultColumns: ['reader', 'kind', 'createdAt'],
     description: 'পাঠকের সেভ করা সংবাদ ও সময়সীমা।',
   },

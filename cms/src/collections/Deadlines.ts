@@ -40,7 +40,7 @@ export const Deadlines: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: 'শিক্ষা',
+    group: { en: 'Education (শিক্ষা)' },
     defaultColumns: ['title', 'type', 'dateStart', 'level'],
     description: 'ভর্তি, ফলাফল, রুটিন ও ছুটির তারিখ — একাডেমিক ক্যালেন্ডার।',
   },

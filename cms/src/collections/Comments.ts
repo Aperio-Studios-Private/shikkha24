@@ -21,7 +21,7 @@ export const Comments: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'body',
-    group: 'পাঠক',
+    group: { en: 'Readers (পাঠক)' },
     defaultColumns: ['article', 'userName', 'isApproved', 'createdAt'],
     description: 'পাঠকের মন্তব্য — অনুমোদনের পর প্রকাশিত হয়।',
   },

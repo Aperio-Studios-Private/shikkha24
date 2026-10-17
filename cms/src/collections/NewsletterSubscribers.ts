@@ -38,7 +38,7 @@ export const NewsletterSubscribers: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'email',
-    group: 'পাঠক',
+    group: { en: 'Readers (পাঠক)' },
     defaultColumns: ['email', 'isActive', 'subscribedAt', 'confirmedAt', 'unsubscribedAt'],
     description:
       'নিউজলেটার গ্রাহক তালিকা — সম্পূর্ণ নিজস্ব, তৃতীয় পক্ষের নয়। ডাবল অপ্ট-ইন নিশ্চিত হওয়ার পর সক্রিয় হয়।',

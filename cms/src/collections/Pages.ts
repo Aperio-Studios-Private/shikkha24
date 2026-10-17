@@ -22,7 +22,7 @@ export const Pages: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: 'সম্পাদকীয়',
+    group: { en: 'Editorial (সম্পাদকীয়)' },
     defaultColumns: ['title', 'slug', '_status', 'updatedAt'],
     description: 'স্থায়ী পাতা — পরিচিতি, সম্পাদকীয় নীতি, গোপনীয়তা ও শর্তাবলি।',
   },

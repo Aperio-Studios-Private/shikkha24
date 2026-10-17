@@ -23,7 +23,7 @@ export const Levels: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'nameBn',
-    group: 'ট্যাক্সোনমি',
+    group: { en: 'Taxonomy (ট্যাক্সোনমি)' },
     defaultColumns: ['nameBn', 'slug', 'sortOrder'],
     description: 'প্রাথমিক থেকে স্নাতকোত্তর — সাইটজুড়ে ব্যবহৃত শ্রেণি ফিল্টার।',
   },

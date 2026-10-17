@@ -32,7 +32,7 @@ export const Readers: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'displayName',
-    group: 'প্রশাসন',
+    group: { en: 'Administration (প্রশাসন)' },
     defaultColumns: ['displayName', 'email', 'provider', 'createdAt'],
     description: 'পাঠকের অ্যাকাউন্ট — মন্তব্য, বুকমার্ক ও সময়সীমা সেভের জন্য। সম্পাদকীয় অ্যাকাউন্ট থেকে সম্পূর্ণ আলাদা।',
   },

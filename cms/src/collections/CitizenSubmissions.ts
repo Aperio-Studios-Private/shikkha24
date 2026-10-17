@@ -36,7 +36,7 @@ export const CitizenSubmissions: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: 'পাঠক',
+    group: { en: 'Readers (পাঠক)' },
     defaultColumns: ['title', 'reporterName', 'status', 'createdAt'],
     description: 'পাঠকের পাঠানো সংবাদ। এখান থেকে সরাসরি প্রকাশ হয় না — সম্পাদক যাচাই করে সংবাদ লেখেন।',
   },

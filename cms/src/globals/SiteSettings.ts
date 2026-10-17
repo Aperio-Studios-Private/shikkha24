@@ -51,7 +51,7 @@ export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
   label: { en: 'Site settings', bn: 'সাইট সেটিংস' },
   admin: {
-    group: 'প্রশাসন',
+    group: { en: 'Administration (প্রশাসন)' },
     description: 'সাইটের নাম, লোগো, যোগাযোগ ও সোশ্যাল লিংক — একবার বদলালেই সব জায়গায় বদলাবে।',
   },
   access: {

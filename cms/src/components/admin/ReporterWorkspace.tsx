@@ -47,18 +47,18 @@ interface AssignmentDoc {
 
 /** Bengali labels for the assignment statuses, mirroring the CMS options. */
 const STATUS_LABELS: Record<string, string> = {
-  assigned: 'দেওয়া হয়েছে',
-  accepted: 'নেওয়া হয়েছে',
-  inProgress: 'কাজ চলছে',
-  filed: 'জমা দেওয়া হয়েছে',
-  approved: 'অনুমোদিত',
-  rejected: 'বাতিল',
+  assigned: 'Assigned (দেওয়া হয়েছে)',
+  accepted: 'Accepted (নেওয়া হয়েছে)',
+  inProgress: 'In Progress (কাজ চলছে)',
+  filed: 'Filed (জমা দেওয়া হয়েছে)',
+  approved: 'Approved (অনুমোদিত)',
+  rejected: 'Rejected (বাতিল)',
 }
 
 const PRIORITY_LABELS: Record<string, string> = {
-  normal: 'সাধারণ',
-  high: 'জরুরি',
-  urgent: 'অতি জরুরি',
+  normal: 'Normal (সাধারণ)',
+  high: 'High (জরুরি)',
+  urgent: 'Urgent (অতি জরুরি)',
 }
 
 /** `YYYY-MM-DD` in Dhaka time — the same basis the public site uses. */
@@ -79,7 +79,7 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
   const user = req?.user
 
   if (!req) {
-    return <p>অ্যাডমিন অনুরোধ লোড করা যায়নি।</p>
+    return <p>Could not load the request (অ্যাডমিন অনুরোধ লোড করা যায়নি)।</p>
   }
 
   /*
@@ -135,21 +135,22 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
   return (
     <div style={{ maxWidth: '46rem', margin: '0 auto', padding: '1rem' }}>
       <header style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>প্রতিবেদকের কাজ</h1>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>My Work (প্রতিবেদকের কাজ)</h1>
         <p style={{ marginTop: '0.25rem', opacity: 0.75, fontSize: '0.875rem' }}>
-          {isEditor ? 'ডেস্ক হিসেবে আপনি সব কাজ দেখছেন।' : 'আপনার নিজের কাজ ও দ্রুত সংবাদ জমা দেওয়ার জায়গা।'}
+          {isEditor ? 'Viewing all assignments as desk (ডেস্ক হিসেবে সব কাজ দেখা হচ্ছে)।' : 'Your own assignments and quick-draft (আপনার নিজের কাজ ও দ্রুত সংবাদ জমা দেওয়ার জায়গা)।'}
         </p>
       </header>
 
       {/* ── আমার কাজ ─────────────────────────────────────────────────────── */}
       <section style={{ marginBottom: '2rem' }}>
         <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.75rem' }}>
-          আমার কাজ {assignments.length > 0 && `(${assignments.length})`}
+          My Work (আমার কাজ) {assignments.length > 0 && `(${assignments.length})`}
         </h2>
 
         {assignments.length === 0 ? (
           <p style={{ fontSize: '0.875rem', opacity: 0.75 }}>
-            এখন কোনো কাজ নেই। সম্পাদক কাজ দিলে এখানে দেখা যাবে।
+            Nothing assigned yet. Work from an editor will appear here
+            (এখন কোনো কাজ নেই। সম্পাদক কাজ দিলে এখানে দেখা যাবে)।
           </p>
         ) : (
           <ul style={{ display: 'grid', gap: '0.75rem', listStyle: 'none', padding: 0, margin: 0 }}>
@@ -168,7 +169,7 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
                     href={`/admin/collections/assignments/${assignment.id}`}
                     style={{ fontWeight: 600, display: 'block', minHeight: '1.5rem' }}
                   >
-                    {assignment.title ?? '(শিরোনামহীন)'}
+                    {assignment.title ?? 'Untitled (শিরোনামহীন)'}
                   </a>
 
                   <p
@@ -181,15 +182,15 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
                       gap: '0.5rem',
                     }}
                   >
-                    <span>অবস্থা: {STATUS_LABELS[assignment.status ?? ''] ?? assignment.status}</span>
+                    <span>Status: {STATUS_LABELS[assignment.status ?? ''] ?? assignment.status}</span>
                     <span>·</span>
                     <span>
-                      গুরুত্ব: {PRIORITY_LABELS[assignment.priority ?? ''] ?? assignment.priority}
+                      Priority: {PRIORITY_LABELS[assignment.priority ?? ''] ?? assignment.priority}
                     </span>
                     {due && (
                       <>
                         <span>·</span>
-                        <span>সময়সীমা: {due}</span>
+                        <span>Deadline (সময়সীমা): {due}</span>
                       </>
                     )}
                   </p>
@@ -208,7 +209,7 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
 
       {/* ── দ্রুত সংবাদ ───────────────────────────────────────────────────── */}
       <section>
-        <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.75rem' }}>দ্রুত সংবাদ</h2>
+        <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.75rem' }}>Quick Draft (দ্রুত সংবাদ)</h2>
 
         {hasProfile ? (
           <QuickDraftForm categories={categories} />
@@ -219,8 +220,8 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
            * form that fails on submit.
            */
           <p style={{ fontSize: '0.875rem', opacity: 0.75 }}>
-            আপনার অ্যাকাউন্টের সাথে কোনো লেখক প্রোফাইল যুক্ত নেই, তাই সংবাদ জমা দেওয়া যাবে না। সম্পাদকের সাথে যোগাযোগ
-            করুন।
+            No author profile is linked to your account, so drafts cannot be submitted. Contact an
+            editor (আপনার অ্যাকাউন্টের সাথে কোনো লেখক প্রোফাইল যুক্ত নেই, তাই সংবাদ জমা দেওয়া যাবে না)।
           </p>
         )}
       </section>

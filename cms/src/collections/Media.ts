@@ -84,7 +84,7 @@ export const Media: CollectionConfig = {
         Upload: '@/components/media/OptimisedUpload#OptimisedUploadServer',
       },
     },
-    group: 'মিডিয়া',
+    group: { en: 'Media (মিডিয়া)' },
     description:
       'ছবির লাইব্রেরি। প্রতিটি আপলোড স্বয়ংক্রিয়ভাবে WebP-তে রূপান্তরিত হয় এবং প্রতিদিনের আপলোড সীমা প্রযোজ্য।',
   },

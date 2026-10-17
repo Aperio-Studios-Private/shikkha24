@@ -31,7 +31,7 @@ export const Users: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'nameBn',
-    group: 'প্রশাসন',
+    group: { en: 'Administration (প্রশাসন)' },
     defaultColumns: ['nameBn', 'email', 'roles', 'updatedAt'],
     description: 'সম্পাদকীয় দলের অ্যাকাউন্ট। পাঠকের অ্যাকাউন্ট আলাদা।',
   },

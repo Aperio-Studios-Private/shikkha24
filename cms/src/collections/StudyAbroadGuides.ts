@@ -17,7 +17,7 @@ export const StudyAbroadGuides: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'country',
-    group: 'শিক্ষা',
+    group: { en: 'Education (শিক্ষা)' },
     defaultColumns: ['country', 'slug', 'isFeatured'],
     description: 'প্রতিটি দেশের জন্য ভিসা, খরচ, ইনটেক ও আবেদনের ধাপ।',
   },

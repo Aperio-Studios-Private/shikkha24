@@ -39,7 +39,7 @@ export function ReporterNavLink() {
         opacity: active ? 1 : 0.85,
       }}
     >
-      প্রতিবেদকের কাজ
+      My Work (প্রতিবেদকের কাজ)
     </a>
   )
 }

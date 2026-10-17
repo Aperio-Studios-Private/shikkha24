@@ -37,7 +37,7 @@ export const LiveStreams: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: 'মিডিয়া',
+    group: { en: 'Media (মিডিয়া)' },
     defaultColumns: ['title', 'provider', 'isLive', 'scheduledStart', 'updatedAt'],
     description:
       'লাইভ টিভি — ইউটিউব বা ফেসবুকের লাইভ সম্প্রচার। /live-tv পাতায় দেখানো হয়। স্ট্রিম শেষ হলে isLive বন্ধ করুন।',
@@ -65,8 +65,8 @@ export const LiveStreams: CollectionConfig = {
       index: true,
       label: { en: 'Provider', bn: 'সেবাদাতা' },
       options: [
-        { label: 'ইউটিউব', value: 'youtube' },
-        { label: 'ফেসবুক', value: 'facebook' },
+        { label: 'YouTube (ইউটিউব)', value: 'youtube' },
+        { label: 'Facebook (ফেসবুক)', value: 'facebook' },
       ],
       admin: { description: 'কোন প্লেয়ার ব্যবহার হবে তা ঠিক করে।' },
     },

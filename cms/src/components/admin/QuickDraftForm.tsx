@@ -20,9 +20,9 @@ import { useState } from 'react'
  * the transition into `published` for a non-editor independently. Hiding a
  * button is not authorisation (`docs/security.md` §3).
  *
- * ## Bengali-only, per the project's UI rule
+ * ## English-first with Bengali helpers (owner rule, T-38)
  *
- * Every string a reporter sees is Bengali. The `name` attributes are English
+ * Headlines in English; uncommon words keep a Bengali helper in parentheses. The `name` attributes are English
  * because they are the API contract, not copy.
  */
 
@@ -66,17 +66,17 @@ export function QuickDraftForm({ categories }: Props) {
 
       if (!response.ok) {
         setState('error')
-        setMessage(result.error ?? 'সংবাদ তৈরি করা যায়নি।')
+        setMessage(result.error ?? 'Could not create the draft (সংবাদ তৈরি করা যায়নি)')
         return
       }
 
       setState('saved')
-      setMessage('খসড়া তৈরি হয়েছে।')
+      setMessage('Draft created (খসড়া তৈরি হয়েছে)')
       setEditUrl(result.editUrl ?? '')
       event.currentTarget.reset()
     } catch {
       setState('error')
-      setMessage('নেটওয়ার্ক সমস্যা — আবার চেষ্টা করুন।')
+      setMessage('Network problem — try again (নেটওয়ার্ক সমস্যা — আবার চেষ্টা করুন)')
     }
   }
 
@@ -89,14 +89,14 @@ export function QuickDraftForm({ categories }: Props) {
     <form onSubmit={onSubmit} className="space-y-4">
       <div>
         <label className={label} htmlFor="qd-title">
-          শিরোনাম
+          Title (শিরোনাম)
         </label>
         <input id="qd-title" name="title" required maxLength={200} className={field} />
       </div>
 
       <div>
         <label className={label} htmlFor="qd-excerpt">
-          সংক্ষিপ্তসার
+          Excerpt (সংক্ষিপ্তসার)
         </label>
         <textarea
           id="qd-excerpt"
@@ -110,11 +110,11 @@ export function QuickDraftForm({ categories }: Props) {
 
       <div>
         <label className={label} htmlFor="qd-category">
-          বিভাগ
+          Category (বিভাগ)
         </label>
         <select id="qd-category" name="category" required className={field} defaultValue="">
           <option value="" disabled>
-            বিভাগ বাছুন
+            Select a category (বিভাগ বাছুন)
           </option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
@@ -126,7 +126,7 @@ export function QuickDraftForm({ categories }: Props) {
 
       <div>
         <label className={label} htmlFor="qd-body">
-          বিবরণ
+          Body (বিবরণ)
         </label>
         <textarea id="qd-body" name="body" required rows={8} className={field} />
         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -139,7 +139,7 @@ export function QuickDraftForm({ categories }: Props) {
         disabled={state === 'saving'}
         className="min-h-12 w-full rounded-md bg-blue-600 px-4 font-medium text-white disabled:opacity-60"
       >
-        {state === 'saving' ? 'জমা হচ্ছে…' : 'খসড়া জমা দিন'}
+        {state === 'saving' ? 'Submitting (জমা হচ্ছে…)' : 'Submit Draft (খসড়া জমা দিন)'}
       </button>
 
       {message && (
@@ -154,14 +154,14 @@ export function QuickDraftForm({ categories }: Props) {
           {message}{' '}
           {editUrl && (
             <a className="underline" href={editUrl}>
-              সম্পূর্ণ এডিটরে খুলুন
+              Open full editor (সম্পূর্ণ এডিটরে খুলুন)
             </a>
           )}
         </p>
       )}
 
       <p className="text-xs text-gray-500 dark:text-gray-400">
-        এটি একটি খসড়া তৈরি করে — প্রকাশ করতে সম্পাদকের অনুমোদন লাগবে।
+        This creates a draft — publishing needs editor approval (এটি একটি খসড়া তৈরি করে — প্রকাশ করতে সম্পাদকের অনুমোদন লাগবে)।
       </p>
     </form>
   )

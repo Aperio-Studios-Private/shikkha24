@@ -62,7 +62,7 @@ export const Articles: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: 'সম্পাদকীয়',
+    group: { en: 'Editorial (সম্পাদকীয়)' },
     defaultColumns: ['title', 'category', 'reviewStatus', '_status', 'publishedAt'],
     description: 'সংবাদের মূল কনটেন্ট। খসড়া → পর্যালোচনা → প্রকাশ।',
     preview: (doc) => (doc?.slug ? `/article/${doc.slug}` : null),
@@ -132,8 +132,8 @@ export const Articles: CollectionConfig = {
       index: true,
       label: { en: 'Layout', bn: 'লেআউট' },
       options: [
-        { value: 'standard', label: 'সাধারণ' },
-        { value: 'photoStory', label: 'ছবির গল্প' },
+        { value: 'standard', label: 'Standard (সাধারণ)' },
+        { value: 'photoStory', label: 'Photo Story (ছবির গল্প)' },
       ],
       admin: {
         position: 'sidebar',
@@ -146,8 +146,8 @@ export const Articles: CollectionConfig = {
       defaultValue: 'youtube',
       label: { en: 'Video provider', bn: 'ভিডিও সেবাদাতা' },
       options: [
-        { label: 'ইউটিউব', value: 'youtube' },
-        { label: 'ফেসবুক', value: 'facebook' },
+        { label: 'YouTube (ইউটিউব)', value: 'youtube' },
+        { label: 'Facebook (ফেসবুক)', value: 'facebook' },
       ],
       admin: {
         position: 'sidebar',

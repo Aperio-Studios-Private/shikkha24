@@ -31,7 +31,7 @@ export const FactChecks: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'claim',
-    group: 'সম্পাদকীয়',
+    group: { en: 'Editorial (সম্পাদকীয়)' },
     defaultColumns: ['claim', 'verdict', 'updatedAt'],
     description: 'ভুয়া খবর, গুজব ও বিভ্রান্তিকর দাবির যাচাই।',
   },

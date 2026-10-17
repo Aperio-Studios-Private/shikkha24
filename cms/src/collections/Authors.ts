@@ -32,7 +32,7 @@ export const Authors: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'nameBn',
-    group: 'সম্পাদকীয়',
+    group: { en: 'Editorial (সম্পাদকীয়)' },
     defaultColumns: ['nameBn', 'designation', 'slug'],
     description: 'লেখক প্রোফাইল — প্রতিবেদকের বাইলাইন ও সম্পাদকীয় দলের পাতা।',
   },
