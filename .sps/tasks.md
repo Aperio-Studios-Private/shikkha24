@@ -2738,3 +2738,17 @@ were both thin; version `9df9f338` restored full content.
 the deadline-reminder control renders hidden (documented degradation). The
 VAPID *public* key is safe to paste out of the CMS env on DianaHost; add it
 here and rebuild to restore that control.
+
+---
+
+### T-34 — ✅ Breaking-news sourcing (2026-10-17): মাউশি scholarship MIS correction draft ready
+
+Owner asked for breaking-news candidates. `web_search` unavailable this
+session (no DeepSeek API key) — sourced by fetching Ittefaq's education desk
+(kalerkantho blocked 403; bdnews24's desk is `/campus`). Chosen:
+**মাউশির বিজ্ঞপ্তি — ২০২৬–২৭ বৃত্তিপ্রাপ্ত শিক্ষার্থীদের তথ্য ও ব্যাংক হিসাব
+সংশোধন (১৪ অক্টোবর, EFT-ভিত্তিক)** — deadline-driven utility news. Draft
+(original Bengali composition, sources cited) at
+`editorial/breaking-2026-10-17/moushi-scholarship-bank-info-correction.md`
+with CMS metadata. Runner-up: 84-post recruitment circular (jobs-career).
+Publish = owner pastes draft into CMS admin → publish → deploy command.
