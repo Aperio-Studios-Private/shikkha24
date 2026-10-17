@@ -2807,6 +2807,20 @@ favicon) → verify 16 px/dark/share.
 
 ---
 
+### T-31 context update (2026-10-17 night): the "Windows machine" is a friend's personal PC
+
+Implications: it is a ONE-SHOT supervised session (not unattended recurring
+access — screen-share over a call, owner dictates the runbook commands, the
+friend pastes; no persistent remote-access install on a friend's machine).
+Requires the friend's consent for: WSL2 install (admin + reboot + ~2 GB disk)
+and a private-repo clone on their disk (clean up after: delete the clone, log
+out GitHub). Because the friend's PC solves only THIS deploy build, the GitLab
+private-mirror CI path is being explained to the owner as the likely
+PERMANENT builder (repeatable for every future CMS bundle, no dependency on
+any physical machine). Decision pending with owner: friend-PC session now vs
+GitLab mirror setup (~30–45 min, agent writes the CI YAML) vs GitHub
+Codespaces cloud build (free tier, but verify card-free terms at signup).
+
 ### T-37 — ✅ New logo from the owner's design round staged (2026-10-17); CMS upload handoff pending
 
 Owner produced two Illustrator-exported SVGs (16×16 viewBox, white rounded
