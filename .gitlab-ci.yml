@@ -64,6 +64,7 @@ build-cms-bundle:
     name: cms-deploy-$CI_PIPELINE_ID
     paths:
       - cms-deploy-*.zip
+      - cms/cms-deploy-*.zip
     expire_in: 48 hours
     # ^ retention lesson from ci.yml: long artifact retention exhausted a
     #   quota once already. 48h is enough to download and deploy; nothing more.

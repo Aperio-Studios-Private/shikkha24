@@ -47,8 +47,9 @@ done
 [ "$CLEAN" = 1 ] && echo "  ✓ no data/.env anywhere in the bundle"
 
 echo "── 5/5 zip (store symlinks as links: -y is load-bearing) ──"
-ZIP="cms-deploy-$(date +%Y%m%d-%H%M%S).zip"
-(cd cms/.next/standalone && zip -rqy "../../${ZIP}" .)
+# Absolute path from the script's cwd (repo root) — immune to depth mistakes.
+ZIP="$PWD/cms-deploy-$(date +%Y%m%d-%H%M%S).zip"
+(cd cms/.next/standalone && zip -rqy "$ZIP" .)
 SIZE=$(du -sm "$ZIP" | cut -f1)
 test "${SIZE:-0}" -gt 40 || { echo "  ✗ zip suspiciously small (${SIZE} MB) — inspect before shipping"; exit 1; }
 
