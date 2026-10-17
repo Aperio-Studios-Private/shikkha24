@@ -2759,7 +2759,7 @@ here and rebuild to restore that control.
 
 (see handoff 2026-10-18 ~01:18)
 
-### T-38 — ⬜ CMS admin UX: English-first + (বাংলা) helpers + semantic color theme
+### T-38 — ✅ DONE & LIVE (2026-10-18 01:35): English-first admin + (বাংলা) helpers + semantic colors
 
 **Owner rule stated 2026-10-18 00:33 (governing all admin UI from now on):**
 the CMS basic language is **English** — the general words every mobile-era user
@@ -2779,7 +2779,7 @@ red destructive, amber/green semantic states, ≥48px touch targets for mobile;
 branded login screen. Admin-only; zero data risk; brandred proposal colors
 already measured in docs/assets.
 
-**Status:** ✅ phase 1 IMPLEMENTED (2026-10-18 ~01:00, owner approved "GO but verify"). Evidence: cms tsc 0 / build 0 / scoped biome 40 files 0 (after one format-fix pass, recorded in handoff correction). Phase 2 optional: field-description prose sweep. LIVE via the T-31 Codespace deploy cycle on owner word.
+**Status (final): LIVE on cms.shikkha24.com at commit 1fb2be5 via Codespace cycle (restart+verify done, all endpoints 200; owner visual check pending). Phase-1 implemented 2026-10-18 ~01:00, owner approved "GO but verify"). Evidence: cms tsc 0 / build 0 / scoped biome 40 files 0 (after one format-fix pass, recorded in handoff correction). Phase 2 optional: field-description prose sweep. LIVE via the T-31 Codespace deploy cycle on owner word.
 
 ### T-34 — ✅ Breaking-news sourcing (2026-10-17): মাউশি scholarship MIS correction draft ready
 

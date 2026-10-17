@@ -2264,3 +2264,13 @@ host=gitlab.com
   git push https://shahiddesignhouse:$T@gitlab.com/shahidprintshop-group/shikkha24-cms-mirror.git main
 GitHub (primary) always pushes first, so a GitLab hiccup never loses work —
 retry before any build.
+
+### 2026-10-18 ~01:35 — T-38 LIVE on production CMS
+
+Deployed via the proven cycle (owner pulled + built in Codespace at commit
+1fb2be5 → downloaded → cPanel Terminal unzip → agent restart+verify).
+Evidence: host sentinel = 1fb2be5 ✓; /api/articles, /api/faqs, /admin/login,
+root all HTTP 200 ✓; uploaded + stale zips swept. Owner manual visual check
+pending (English buttons, brand-red primary, danger delete, grouped sidebar).
+The 2026-10-17 faqs trap line is now fully obsolete: /api/faqs is a live
+endpoint (collection exists; empty until FAQs are published).
