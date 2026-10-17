@@ -2840,7 +2840,14 @@ cms/.env.local; CPANEL_BASE absent but optional (client derives
 `https://$HOST:2083`) → only THREE variables to set. Token hygiene: owner
 saves the token to a Desktop file (never chat); agent reads it, embeds it in
 the local git remote URL, then deletes the raw file; token is revocable in one
-GitLab UI click. Owner's remaining manual part: GitLab signup (their identity),
+GitLab UI click.
+**Sync architecture (verified 2026-10-17 vs docs: pull-mirroring is
+Premium-only):** GitHub stays the SINGLE source of truth and primary platform;
+GitLab is a build worker. Sync = the AGENT pushes every commit to BOTH remotes
+(`git push origin main && git push gitlab main`) — standing protocol for all
+future commits; the GitLab push auto-triggers its pipeline. Drift check = the
+agent can compare SHAs via API before any build. No other automation exists
+for the GitLab→GitHub direction on the free tier. Owner's remaining manual part: GitLab signup (their identity),
 create the private project, mint the token → file.
 
 **To activate (owner):** ① create free GitLab account (no card) ② New project
