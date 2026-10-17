@@ -2856,6 +2856,23 @@ trigger/press, logs). Owner's remaining manual part: GitLab signup (their
 identity), create the private project (DONE: shahidprintshop-group/shikkha24-
 cms-mirror), mint the PAT → Desktop file.
 
+**ROUTE CHANGE (2026-10-17 23:40): GitLab CI is DEAD on this account — identity
+verification demands a credit card (phone unavailable), which rule 7 forbids.
+Live evidence: first-push zombie pipeline 2958834521 (instant fail, no jobs) +
+POST /pipeline → "Identity verification is required in order to run CI jobs";
+owner reported the verify page: "Phone number verification is unavailable at
+this time. Please verify with a credit card instead."** GitHub Actions is also
+frozen this cycle (today's runs fail in 3-4s = billing wall; auto-revives at
+the owner's monthly Actions-minute reset — the proven deploy.yml cms path needs
+no new setup; CPANEL_* secrets stored since Oct 4). SELECTED TODAY-PATH:
+**GitHub Codespaces** — `scripts/codespace-cms-build.sh` (committed): one
+command builds + promotes + sanitizes + symlinks-preserving zips
+`cms-deploy-<ts>.zip`; owner downloads it to the Mac; agent uploads via
+scripts/cpanel-client.mjs (secrets stay local), then dictates the Terminal
+swap. Friend-PC WSL2 = plan C with the same script. GitLab mirror parked with
+variables set (revive only if the owner ever passes identity verification; the
+.yml is already mirrored).
+
 **To activate (owner):** ① create free GitLab account (no card) ② New project
 PRIVATE named `shikkha24-cms-mirror` ③ Settings→Access Tokens→Project Access
 Token (Maintainer, scope write_repository) ④ add the 4 masked CI variables ⑤
