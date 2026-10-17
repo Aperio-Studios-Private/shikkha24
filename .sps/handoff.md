@@ -2352,3 +2352,12 @@ happens via Bing Webmaster (owner Day-1) + regular crawler sitemap discovery;
 retry reminder stays (+2h loop collapsed into scheduled item). mesu.gov.bd
 unreachable from this network tonight (HTTP 000 both schemes) — Day-1 original
 news piece remains blocked on an owner-supplied source link.
+
+### 2026-10-18 ~04:15 — P1 DONE (owner): GSC sitemaps submitted + Bing Webmaster submitted
+
+Owner confirmed both. Now on engine clocks: GSC processing 24-72h; brand-term
+visibility expected day 3-7; tomorrow check GSC Pages report. Agent-side
+pipeline stays: publish → deploy → sitemap regenerated → IndexNow ping.
+Remaining owner inputs: (3) logo file for T-37, (4) source links for content
+cadence (84-পদ Ittefaq link or any circular/news URL). Handover doc (T-41)
+starts after P1 confirmation — beginning now in background of content intake.
