@@ -2755,6 +2755,28 @@ here and rebuild to restore that control.
 
 ---
 
+### T-38 — ⬜ CMS admin UX: English-first + (বাংলা) helpers + semantic color theme
+
+**Owner rule stated 2026-10-18 00:33 (governing all admin UI from now on):**
+the CMS basic language is **English** — the general words every mobile-era user
+already knows (Delete, Save, Publish, Upload) stay English-only; ONLY uncommon
+or technical words carry a Bengali helper **in parentheses under/beside the
+English term** (`Delete (মুছুন)`) — never as the headline. And **color must
+express the action**: primary = brand red, destructive = red, moderate =
+amber, success = green; today's admin is monochrome and misleading.
+
+**Root cause found:** `cms/src/payload.config.ts:374` sets the ONLY supported
+language to a custom Bengali locale (`src/i18n/bn.ts`) — every built-in word
+renders Bengali. Fix plan: (1) restore English as the base admin language;
+(2) walk our own labels (collections, fields, nav groups, select options,
+login screen) applying the "English (বাংলা)" convention — Bengali only for
+non-general words; (3) inject an admin theme CSS layer: brand-red primary,
+red destructive, amber/green semantic states, ≥48px touch targets for mobile;
+branded login screen. Admin-only; zero data risk; brandred proposal colors
+already measured in docs/assets.
+
+**Status:** awaiting owner approval to start (rule 2). Est: 1-2 h, one section.
+
 ### T-34 — ✅ Breaking-news sourcing (2026-10-17): মাউশি scholarship MIS correction draft ready
 
 Owner asked for breaking-news candidates. `web_search` unavailable this
