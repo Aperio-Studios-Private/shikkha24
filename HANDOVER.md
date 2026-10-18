@@ -44,7 +44,7 @@ collection (CMS-side pending deploy), BreakingNews ticker.
 | DianaHost cPanel (plan ~$47/yr, the only paid thing) | CMS hosting, mail, DNS zone? | owner's registrar/hosting mailbox |
 | Cloudflare account `0e2e4a6986f91edabe1dae4945a9b88b` | Workers + custom domain, deploy token OAuth'd on the build Mac via wrangler | Mac keyring (wrangler login) |
 | GitHub `SHAHID8142/shikkha24` — **PUBLIC since 2026-10-18** (T-52; full-history secret scan clean) → Actions minutes now free/unlimited, the T-51 budget block is dead | code of record | owner GitHub login |
-| GitLab mirror `shahidprintshop-group/shikkha24-cms-mirror` | read-only backup sync via `glab` (token `shahiddesignhouse`) | macOS keyring via glab |
+| ~~GitLab mirror `shahidprintshop-group/shikkha24-cms-mirror`~~ **DROPPED 2026-10-18 (owner decision — "GitLab আর ব্যবহার করব না")** | was read-only backup sync; no more mirror pushes | deleting the GitLab project / glab token stays an owner item (§7) |
 | Google Search Console | property shikkha24.com (TXT verified), sitemaps submitted | owner Google login |
 | Bing Webmaster Tools | sitemaps submitted | owner login |
 | CMS admin | `shahiddesignhouse@gmail.com` (superAdmin) | password + origin in `cms/.env.local` |
@@ -173,6 +173,7 @@ recipe** (runbook in `.sps/handoff.md` §2026-10-18 02:20):
 
 Read `.sps/tasks.md` (queue) then `.sps/handoff.md` (host facts, deploy
 recipes, API gotchas — grep for "recipe"). Rule remainder: card-free budget
-(rule 7), Bengali-first storefront / English admin (T-38 rule), dual-push
-both remotes every commit, proof before "done". Working dir:
+(rule 7), Bengali-first storefront / English admin (T-38 rule), push to
+`origin` (GitHub) only — the GitLab mirror was **dropped by owner decision
+2026-10-18**, never push there — proof before "done". Working dir:
 `/Volumes/SSD/CODES/NewsPortal`; timestamps Asia/Dhaka.

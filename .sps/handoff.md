@@ -25,6 +25,11 @@ CMS→watcher→Actions cycle is proven end-to-end **without** DEPLOY_WEBHOOK_UR
   the pending T-31 CMS bundle deploy.
 
 ### Fresh facts tonight (command-proven, keep for the next session)
+- **GitLab mirror is DROPPED (owner instruction, 2026-10-18 রাত: "আমরা GitLab
+  ব্যবহার করব না").** All future pushes are `origin`-only; the local `gitlab`
+  remote was removed so nothing can push there by accident. Deleting the
+  GitLab project and revoking the glab token remain owner items (HANDOVER §7);
+  the old "dual-push both remotes every commit" rule is voided from tonight.
 - **The deployed publish-watcher predates `bdccf53`.** `POST /run-tick` with
   no headers → 200 `{"action":"unchanged"}` twice tonight, so the route is
   effectively OPEN in production; the repo's hardened version (TICK_SECRET,
