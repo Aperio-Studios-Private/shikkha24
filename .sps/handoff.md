@@ -1,6 +1,59 @@
 # SPS Handoff
 
-## ⭐ START HERE — 2026-10-18 evening. This block supersedes the 10-17 block below it.
+## ⭐ START HERE — 2026-10-18 রাত (late). This block supersedes the evening block below it.
+
+All claims re-verified by command output tonight (+06). CI **and** Deploy are
+green on `49f1469` (HEAD): `gh run list --limit 4` → 4/4 success. shikkha24.com
+200 in 0.47 s; the digest correction is live (0 moushi/মৌসুমী hits;
+`/admission/23/admission-policy-2027` → 200). The owner's own publishes of
+today (article 31, article 32) are LIVE (both 200) — the
+CMS→watcher→Actions cycle is proven end-to-end **without** DEPLOY_WEBHOOK_URL
+(≤5-min cron poll).
+
+### Done tonight (each with its own commit)
+- **T-55 — HANDOVER.md refreshed**: repo public + unlimited Actions + green
+  Deploy + **CMS state corrected with evidence**: the 3.90.2 bundle
+  (`1fb2be5`) is already on the host (pins verified via UAPI) and FAQs is
+  live — the remaining CMS work is ONE clean runtime cycle (extract + kill
+  stale workers + re-probe; the `0.0.0.0:3000` leak proves the running
+  process doesn't match the deployed source). The old "runtime 3.89.0 /
+  T-31 bundle still pending / FAQs 404 by design" block is now corrected.
+- **T-56 — DEPLOY_WEBHOOK_URL cPanel guide**: 🔄 in progress, lands in the
+  next commit; two owner-gated prerequisites discovered on the way (below).
+- **T-50 — sharp/WebP decision packet** added to its `.sps/tasks.md` entry:
+  options, costs, risks, recommendation. Owner picks; whatever is chosen rides
+  the pending T-31 CMS bundle deploy.
+
+### Fresh facts tonight (command-proven, keep for the next session)
+- **The deployed publish-watcher predates `bdccf53`.** `POST /run-tick` with
+  no headers → 200 `{"action":"unchanged"}` twice tonight, so the route is
+  effectively OPEN in production; the repo's hardened version (TICK_SECRET,
+  404-on-wrong/missing) is committed but NOT deployed. Arming the webhook
+  cleanly therefore needs: (1) deploy the watcher + set `TICK_SECRET`
+  (wrangler OAuth'd on this Mac — owner approval required), and (2) teach
+  `cms/src/lib/rebuild-trigger.ts` to send `X-Tick-Secret` (it currently sends
+  only `Authorization: Bearer`) — a ~2-line change that must ride the T-31
+  CMS bundle deploy. Failure handling is graceful: a refused webhook is a
+  caught no-op and the 5-min cron still carries the rebuild.
+- **Both IndexNow key files serve 200** (`FB079B…AA` 32 B and `91fbd1…13`
+  33 B — both tracked in `frontend/public/`), so HANDOVER §3's ping key and
+  §4's claim are each true; no contradiction to chase.
+- **npm `payload` latest is 3.91.0; the repo pin stays 3.90.2** (matches the
+  migrated DB schema). The T-31 clean-cycle runs against the already-deployed
+  3.90.2 pin; a later 3.91.x bump is a separate, owner-approved decision —
+  do not silently interpret "CMS 3.89→3.91" as the bundle version.
+- **CMS runtime state tonight (UAPI + public probes, read-only):** host
+  sentinel = `1fb2be5`, deployed `cms/package.json` pins payload 3.90.2 /
+  next 16.4.0; `/api/faqs` 200; `X-Powered-By` absent; `/api/payload-migrations`
+  still prints `{"message":"Cannot GET https://0.0.0.0:3000/…"}` (6/6 stable)
+  — impossible under the deployed source, where
+  `serverURL` = `process.env.CMS_URL || 'https://cms.shikkha24.com'`
+  (`payload.config.ts:243`). Consistent with a stale worker/chunk serving that
+  route (the 10-17 zombie lesson). The T-31 window must do: clean extract +
+  kill stale `next-server` workers + restart, then re-probe ALL T-20 items
+  externally (this specific leak was T-20's own first fix).
+
+## ⭐ START HERE (previous) — 2026-10-18 evening. This block supersedes the 10-17 block below it.
 
 Written so a fresh agent/chat can continue with zero context loss. Read this +
 `.sps/tasks.md` (T-50…T-54 are the live items). Every claim verified by command

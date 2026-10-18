@@ -3287,6 +3287,48 @@ minutes are not purchasable. Budget must be *reduced*, not increased.
 **Not investigated yet:** the exact reset date of the billing cycle, and whether
 any of the 966 historical runs are still consuming the current window.
 
+### T-55 — ✅ DONE (2026-10-18 রাত): HANDOVER.md refreshed for the post-T-54 state
+
+Owner priority 1 of tonight. Every fact re-proven this session, not carried:
+- CI + Deploy green on `49f1469` (`gh run list` → 4/4 success); shikkha24.com
+  200 in 0.47 s; workers.dev serves the body; digest correction verified live
+  (0 moushi hits; `/admission/23/admission-policy-2027` → 200).
+- Repo public (`gh repo view` → `isPrivate:false`) → Actions unlimited; §6
+  item 5 marked RESOLVED; lint-debt item 1 marked FIXED (`707c1a2`).
+- §1 CMS row corrected from a WRONG inherited claim ("Payload 3.90.2",
+  then "runtime 3.89.0 / FaQs 404 by design") to tonight's measured state:
+  host pins payload 3.90.2 / next 16.4.0 (`1fb2be5` sentinel via UAPI),
+  `/api/faqs` 200 — but `/api/payload-migrations` still prints
+  `0.0.0.0:3000` (6/6), impossible under that source (`payload.config.ts:243`
+  has a production fallback) ⇒ stale worker/chunk; the remaining CMS work is
+  the runbook's own clean cycle, NOT a missed code deploy. Recorded in
+  handoff night block.
+- Content state re-counted: **9 published articles** (was 8). Today's owner
+  publishes (ids 31, 32) verified LIVE → publish→watcher→deploy proven
+  end-to-end without the webhook.
+- New debts 10–13 recorded (CMS deploy pending, DEPLOY_WEBHOOK_URL + guide
+  path, T-50 decision pending, personal Gmail addresses now public).
+- Cross-checked §3/§4 IndexNow claims live: both key files 200 (`FB079B…` 32 B,
+  `91fbd1…` 33 B) — no contradiction found, nothing changed.
+
+### T-56 — 🔄 DOING (registered 2026-10-18 রাত): arm DEPLOY_WEBHOOK_URL — Bengali cPanel guide for the owner
+
+Owner priority 3 of tonight. The webhook should point at the publish-watcher's
+`POST /run-tick` — the dispatch adapter that already works — because pointing
+straight at GitHub's dispatch APIs cannot work: the endpoint body needs
+`event_type` (repo dispatch) or `ref` (workflow dispatch), which
+`rebuild-trigger.ts` does not send. Two prerequisites surfaced while
+verifying; both are owner-gated, not guide-blockers:
+1. The deployed watcher predates `bdccf53` — its `/run-tick` is OPEN (probe:
+   `POST /run-tick` with no header → 200 `{"action":"unchanged"}` twice
+   tonight). Arming properly = deploy the watcher + set `TICK_SECRET`
+   (wrangler is OAuth'd on this Mac; needs owner approval).
+2. `cms/src/lib/rebuild-trigger.ts` sends only `Authorization: Bearer`, but the
+   hardened watcher wants `X-Tick-Secret` — a ~2-line change that must ride
+   the pending T-31 CMS bundle deploy.
+Graceful degradation holds either way: a refused webhook is a caught no-op and
+the ≤5-min cron still rebuilds. The guide file lands in the next commit.
+
 ### Session ledger 2026-10-18 (evening) — commits pushed to BOTH remotes
 
 - `1ebe7a5` T-51 registered (budget exhausted, 3s failures)
