@@ -3236,9 +3236,16 @@ a **value predicate** reading `siblingData`, because a flat `editorField` strips
 relationship and breaks the reporter's own quick-draft (400 instead of 201 — measured). Evidence:
 `verify:reporter-access` PASS, `verify:access` still passes 39 collections (both contracts agree).
 
-### T-61 — 🔴 OPEN (High): `authorProfile` retargetable by its own user
+### T-61 — ✅ DONE (2026-10-19, commit `710132c`): `authorProfile` locked to Super Admin
 `cms/src/collections/Users.ts:58` (`update: isSelfIn`) + `:119` (`authorProfile`, no field access).
 Files: `cms/src/collections/Users.ts`, `cms/src/collections/Assignments.ts`.
+
+
+**Closed this session.** Evidence and reasoning are in the commit above; the harness for the
+four fail-visible operations proved the failure paths by fault injection (17/17 pass on the fixed
+code, 13/17 fail on the git-HEAD originals), and T-61 is covered by 16 new assertions in
+`verify/reporter-access.ts` (49 total). No permanent automated gate covers the four failure paths
+yet — that is noted in the commit and remains worth adding.
 
 ### T-62 — ✅ DONE (2026-10-19, commit `4bc554b`): workflow outputs hardened against input injection
 `.github/workflows/deploy.yml:188`, `.github/workflows/deploy-cloudflare.yml:128`.
@@ -3249,17 +3256,45 @@ heredoc delimiter, allow-listed values, and a read-back round-trip assertion; th
 reads the verified outputs rather than local variables. `verify:deploy-mode` 73/0 including a
 negative control proving the pre-fix write *did* forge `target`.
 
-### T-63 — 🔴 OPEN (High): failed campaign query marks campaign permanently sent
+### T-63 — ✅ DONE (2026-10-19, commit `a767f02`): a failed recipient query no longer retires a campaign
 `cms/src/lib/campaign.ts:150`.
 
-### T-64 — 🔴 OPEN (High): account erasure returns 200 after partial failure
+
+**Closed this session.** Evidence and reasoning are in the commit above; the harness for the
+four fail-visible operations proved the failure paths by fault injection (17/17 pass on the fixed
+code, 13/17 fail on the git-HEAD originals), and T-61 is covered by 16 new assertions in
+`verify/reporter-access.ts` (49 total). No permanent automated gate covers the four failure paths
+yet — that is noted in the commit and remains worth adding.
+
+### T-64 — ✅ DONE (2026-10-19, commit `a767f02`): erasure is atomic-or-explicit and returns 500 on failure
 `cms/src/endpoints/account.ts:73`.
 
-### T-65 — 🔴 OPEN (Medium): bookmark sync can claim success after failed writes
+
+**Closed this session.** Evidence and reasoning are in the commit above; the harness for the
+four fail-visible operations proved the failure paths by fault injection (17/17 pass on the fixed
+code, 13/17 fail on the git-HEAD originals), and T-61 is covered by 16 new assertions in
+`verify/reporter-access.ts` (49 total). No permanent automated gate covers the four failure paths
+yet — that is noted in the commit and remains worth adding.
+
+### T-65 — ✅ DONE (2026-10-19, commit `a767f02`): bookmark sync reports failure instead of claiming success
 `cms/src/endpoints/bookmarks.ts:238`.
 
-### T-66 — 🔴 OPEN (Medium): push reminders marked notified despite send failure; sweep caps at 200
+
+**Closed this session.** Evidence and reasoning are in the commit above; the harness for the
+four fail-visible operations proved the failure paths by fault injection (17/17 pass on the fixed
+code, 13/17 fail on the git-HEAD originals), and T-61 is covered by 16 new assertions in
+`verify/reporter-access.ts` (49 total). No permanent automated gate covers the four failure paths
+yet — that is noted in the commit and remains worth adding.
+
+### T-66 — ✅ DONE (2026-10-19, commit `a767f02`): only sent reminders retire; the sweep pages
 `cms/src/endpoints/push.ts:311` and `:231`.
+
+
+**Closed this session.** Evidence and reasoning are in the commit above; the harness for the
+four fail-visible operations proved the failure paths by fault injection (17/17 pass on the fixed
+code, 13/17 fail on the git-HEAD originals), and T-61 is covered by 16 new assertions in
+`verify/reporter-access.ts` (49 total). No permanent automated gate covers the four failure paths
+yet — that is noted in the commit and remains worth adding.
 
 ### T-67 — ✅ DONE (2026-10-19, commit `5fefd84`): deploys hold-then-restore; ⚠️ `fileop op=move` unproven on the live host
 `scripts/deploy-static.mjs:356`, `scripts/deploy-cms.mjs:407`.
