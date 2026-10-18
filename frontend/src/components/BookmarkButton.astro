@@ -30,6 +30,20 @@ interface Props {
 const { kind, id, slug, title, variant = 'full' } = Astro.props
 
 const renderable = isEnabled('bookmarks')
+
+/*
+ * The server-rendered accessible name.
+ *
+ * ⚠️ The `compact` variant hides its label and shows only a decorative icon
+ * (`aria-hidden`), so without this the button would ship an **empty** accessible
+ * name and be unusable by screen reader. The `full` variant shows the word
+ * `সংরক্ষণ`, so its name must *contain* that word (WCAG 2.5.3, Label in Name) —
+ * hence the label leads in both cases, matching what the client script sets
+ * after a toggle. The visible label wins over the icon for that reason; see
+ * `paint()` for the same rule applied at runtime.
+ */
+const initialLabel = 'সংরক্ষণ'
+const initialAriaLabel = `${initialLabel} — তালিকায় যোগ করুন`
 ---
 
 {
@@ -42,6 +56,7 @@ const renderable = isEnabled('bookmarks')
       data-slug={slug}
       data-title={title}
       aria-pressed="false"
+      aria-label={initialAriaLabel}
       class:list={[
         'bookmark-btn inline-flex min-h-12 items-center justify-center gap-1.5 rounded-md border border-rule bg-white px-3 text-sm font-medium text-ink-muted transition-colors hover:text-brand-red dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted',
         variant === 'full' && 'min-w-28',
@@ -50,7 +65,7 @@ const renderable = isEnabled('bookmarks')
       <span data-bookmark-icon aria-hidden="true">
         ☆
       </span>
-      {variant === 'full' && <span data-bookmark-label>সংরক্ষণ</span>}
+      {variant === 'full' && <span data-bookmark-label>{initialLabel}</span>}
     </button>
   )
 }
@@ -90,9 +105,23 @@ const renderable = isEnabled('bookmarks')
     const icon = button.querySelector<HTMLElement>('[data-bookmark-icon]')
     const label = button.querySelector<HTMLElement>('[data-bookmark-label]')
     button.setAttribute('aria-pressed', saved ? 'true' : 'false')
+    /*
+     * ⚠️ The accessible name must **contain the visible text**, or WCAG 2.5.3
+     * (Label in Name) fails and speech-input users cannot reach the control:
+     * someone saying "click সংরক্ষণ" would not match a name that never includes
+     * that word. This previously read 'সংরক্ষিত তালিকায় যোগ করুন' — an action
+     * phrase sharing no substring with the visible label 'সংরক্ষণ' — and because
+     * the server-rendered button carries no `aria-label` at all, the mismatch was
+     * *introduced* by this function rather than shipped in the HTML. Lighthouse
+     * reported it as `label-content-name-mismatch` (T-82).
+     *
+     * So the visible label comes first and the disambiguating context follows it.
+     * The visible text is a substring of the name in both states, which is exactly
+     * what the success criterion asks for.
+     */
     button.setAttribute(
       'aria-label',
-      saved ? 'সংরক্ষিত তালিকা থেকে সরান' : 'সংরক্ষিত তালিকায় যোগ করুন',
+      saved ? `${SAVED_LABEL} — তালিকা থেকে সরান` : `${UNSAVED_LABEL} — তালিকায় যোগ করুন`,
     )
     if (icon) icon.textContent = saved ? '★' : '☆'
     if (label) label.textContent = saved ? SAVED_LABEL : UNSAVED_LABEL

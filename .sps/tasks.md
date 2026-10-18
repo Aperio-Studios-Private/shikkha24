@@ -3471,13 +3471,29 @@ catches (T-80, T-83). If the project intends to keep the relaxation, then rule 9
 owner — the same pattern as T-71/T-72. Leaving the rule and the gate disagreeing is the one option that
 is not acceptable, because it manufactures false confidence.
 
-### T-82 — 🔴 OPEN (Medium, a11y): the bookmark button's accessible name omits its visible text
+### T-82 — ✅ DONE (2026-10-19): bookmark button name now contains its visible label
 `label-content-name-mismatch` on the article template: the bookmark button
 (`site: <button type="button" data-bookmark="" data-kind="article" …>`) has visible text that is not part
 of its accessible name, which breaks speech-input users ("click থামান" cannot reach it). It is the **only**
 remaining Lighthouse accessibility failure after commit `2468cc3` brought all three templates to 100/100/100,
 and it was masked before that fix. One component, needs its own change — deliberately not folded into the
 a11y commit.
+
+**Root cause, which the audit could only see as a symptom.** The server-rendered button carried **no
+`aria-label` at all**, so its accessible name came from its contents and matched fine. The mismatch was
+*introduced by JavaScript*: `paint()` overwrote the name with the action phrase
+`'সংরক্ষিত তালিকায় যোগ করুন'`, which shares no substring with the visible label `সংরক্ষণ`. That breaks
+WCAG 2.5.3 (Label in Name) — a speech-input user saying "click সংরক্ষণ" cannot reach the control. It also
+meant the `compact` variant, which hides its label and shows only a decorative (`aria-hidden`) icon,
+would ship an **empty** accessible name once the script ran.
+
+**Fix.** Build the accessible name *from* the visible label so the containment the criterion requires is
+structural rather than incidental: `${label} — তালিকায় যোগ করুন`, in both the server-rendered state and
+`paint()`. The `compact` variant now also ships a real name instead of relying on an icon that screen
+readers ignore.
+
+**Verified:** `label-content-name-mismatch` score 1 (was 0); accessibility **100/100/100** on home,
+/latest/ and a real article with **zero** failing audits; build exit 0 (114 pages); `biome check` clean.
 
 ### T-83 — 🔴 OPEN (Medium, performance): `verify:lighthouse` asserts CLS 0.03 but CI saw 0.0436
 `docs/performance-budget.md` §8.3a records a **0.0436** CLS on the GitHub runner (`KeyTakeaways.astro`),
