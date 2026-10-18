@@ -2697,3 +2697,20 @@ theme token would have flipped to `dark-rule` (#333) in dark mode. Verified in
 the re-render: hero border 3,472 px (x53–1186, y190–827), row-card 228 px at
 x=68/155, dark-section 1,234 px with a pure-white (255,255,255) interior.
 Build green, border present in `dist/` output.
+
+### 2026-10-18 ~17:55 — T-46 Phase 4 COMPLETE (uncommitted work finished and committed)
+
+The previous agent stopped mid-Phase-4, leaving 22 modified files uncommitted.
+Verified the work was actually COMPLETE before committing (rule 14: no
+hallucinated state): every Phase-4 file scans clean for reader-facing em dashes
+and ellipses, no file imports the non-existent `lib/formatters` module, and the
+build/verifier gate passes. Committed c74f299.
+
+Two pre-existing defects found on the way and fixed in ba86b50:
+- `DemoAd`'s honesty badge used `bg-surface-sunken`, a token that was never
+  defined, so it rendered fully transparent — introduced by my own T-43 commit.
+  Added `--color-surface-sunken` / `--color-dark-sunken`.
+- `verify:dark-tokens` was failing on HEAD (5 FAILs, reproduced on a stashed
+  tree) because its regex reported a phantom `sunken` for `dark:bg-dark-sunken`.
+  Patched, with a negative control proving it still catches a real undefined
+  token. Now 9 passed, 0 failed.
