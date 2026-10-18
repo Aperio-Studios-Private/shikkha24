@@ -680,6 +680,40 @@ credit should be taken for them.
 
 ---
 
+## 8b. E2 — Autoplay and total asset weight (measured 2026-10-19, orchestrator)
+
+The audit scored E2 0/3 as *"autoplay and total asset-weight policies were
+not exhaustively checked"* — an unverified dimension, not a failure. Measured
+statically against the built output after a clean `pnpm run build` (114 pages):
+
+**Autoplay — nothing autoplays.**
+
+| Check | Result |
+|---|---|
+| `<video>` / `<audio>` elements in the whole build | **0** (`grep -rho "<video[^>]*>\|<audio[^>]*>" dist` → empty) |
+| `autoplay` attributes shipped | **0** |
+| `autoplay` mentions in source | 2, both inside an iframe `allow` list set **after a user tap** (`ContentBlockScripts.astro:97,103`, `MediaEmbed.astro:174,212`) — the comment states the reasoning: *"`autoplay=1` is allowed because a tap is a user gesture"*. A gesture-gated embed is not autoplay. |
+| Timed loops that move content | 1 — the demo ad's 4s rotation, which now carries a real stop control (see the D2 fix) |
+| Timed loops that only change text | 1 — the prayer countdown repaints every 30s (`HeaderWidgets.astro:256`), no animation and no layout shift; interruptible and not motion |
+
+**Total asset weight.** Whole build **7.5 MB** against the repo's 15 MB CI
+ceiling; per-type: HTML 4,169 KB (114 documents, 19 of them redirect stubs),
+WebP 649 KB, JS 514 KB, CSS 109 KB, woff2 154 KB, PNG 68 KB, SVG 6 KB.
+
+Per-page critical path was measured separately at **309 KB** (homepage) and
+**287 KB** (article) against the **1.2 MB** gate — see the design-gates report.
+The 30 KB *data-saver* budget is defined in `docs/performance-budget.md:53` as a
+whole-page mode that *"strips ads, defers images behind a tap placeholder"*;
+that mode is a build-time feature, so its budget is **not measurable from the
+default build** and is recorded as such rather than assumed to pass.
+
+**Verdict: E2 satisfied on the evidence available** — no autoplaying media
+exists to violate the policy, and both weight budgets that can be measured
+statically are inside their gates with room to spare. The data-saver budget
+remains unmeasured pending a browser and that mode's build flag.
+
+---
+
 ## 9. Reproducing this
 
 ```bash
