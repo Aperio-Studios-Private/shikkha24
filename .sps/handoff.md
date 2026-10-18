@@ -28,6 +28,19 @@ CMS→watcher→Actions cycle is proven end-to-end **without** DEPLOY_WEBHOOK_UR
   the pending T-31 CMS bundle deploy.
 
 ### Fresh facts tonight (command-proven, keep for the next session)
+- **T-50 C is LIVE-VERIFIED (2026-10-18 ~23:47 Dhaka; CI run 39150731305 and
+  Deploy run 39150731349 both completed success on `676b2d0`).**
+  Production article 23 now serves `og:image`/`twitter:image`/JSON-LD `image`
+  as `https://shikkha24.com/_astro/01-admission-policy-2027_Z2riDkX.jpeg` —
+  79,104 bytes, 1200×630 (raw CMS JPEG down the old path was 157,116 bytes,
+  1376×768 → −50%); article 32 (no photo) still shares the per-article
+  photocard; homepage 200 in 0.49 s.
+- **⚠️ CI lesson from the same hour: Biome lint reaches `docs/**/*.mjs` too.**
+  The T-57 sample generator (a docs-asset script) failed CI's Lint step on a
+  docs-only commit, and the Deploy CI-gate correctly refused to publish —
+  production was never at risk (previous green deploy kept serving). Any new
+  `.mjs`/`.js` anywhere must go through
+  `pnpm exec biome check --write <file>` before pushing.
 - **T-50 option C is IMPLEMENTED (same evening, commit follows this block).**
   `frontend/src/pages/[category]/[id]/[slug].astro` now emits a build-time
   og variant: `getImage({ width: 1200, height: 630, fit: 'cover',
