@@ -3316,6 +3316,90 @@ explicit rather than translate the panel. Rule 10 now distinguishes **reader-fac
 toggle — unchanged) from the **operator** admin panel (English-first), and keeps Bengali as the right
 choice for admin strings that are *content* rather than chrome, such as the corrected `Media` description.
 
+### T-80 — 🔴 OPEN (High, performance): LCP fails every template (2.48–2.86s vs a 1.5s gate)
+Measured 2026-10-19 with the repo's own `pnpm verify:lighthouse` (Chrome **is** present, contrary to
+the earlier assumption; `@lhci/cli@0.15.1` was already a devDependency). Numbers are in
+`docs/audit-measurements-design-gates.md` §3. **This is the single largest un-met gate in the project**
+and it was invisible until now for a specific reason — see T-81.
+
+| template | LCP | FCP | gap |
+|---|---|---|---|
+| homepage | 2637 ms | 1373 ms | ~1.26 s |
+| /latest/ | 2481 ms | 1134 ms | ~1.35 s |
+| article | 2855 ms | 1511 ms | ~1.34 s |
+
+**The LCP element is text, not an image.** Lighthouse names it: the homepage lead card's excerpt `<p>`,
+and on the article the first `.prose-bn > p`. This overturns the plan of attack that was written into
+the earlier handoff ("add `fetchpriority="high"` to the LCP image") — that attribute cannot be applied to
+a text node, and optimising the hero image would not have moved this metric at all. `fetchpriority` on
+images remains worth doing for general correctness, but it is **not** the LCP fix.
+
+**The gap is render delay, not transfer.** FCP is already 1.1–1.5 s and LCP trails it by ~1.3 s, so the
+time is being spent before/around first paint, not fetching the LCP element. The three costs identified
+in the profile, in order of size:
+1. **158 KB of fonts on the critical path** — 72% of the whole initial payload, because **both** weights
+   are preloaded (`Layout.astro:176-189`). The two-weight decision is reasoned and documented (the article
+   H1 is bold and is the largest text), so changing it is a real trade-off, not an obvious win: preload
+   only 400 and let 700 arrive normally, then re-measure both LCP *and* the article layout.
+2. **48 KB of render-blocking CSS**, one stylesheet, no critical-CSS split.
+3. **A parser-blocking `theme-init.js`** in `<head>` — deliberate, to prevent a dark-mode FOUC. Making it
+   non-blocking must not reintroduce the flash, so it needs care.
+
+**Do not claim this is fixed until `lhci` shows LCP < 1500 ms on all three URLs.** The measurement command
+is in the report §9.
+
+### T-81 — 🔴 OPEN (High, gate integrity): the Lighthouse gate does not assert LCP, and relaxes CLS
+`lighthouserc.json` asserts only these numeric metrics:
+
+| assertion | gate in the file | rule 9 (`AGENTS.md`) |
+|---|---|---|
+| `cumulative-layout-shift` | `maxNumericValue: 0.03` | **0.02** |
+| `total-byte-weight` | `maxNumericValue: 1258291` (1.2 MB) | 1.2 MB — agrees |
+| `largest-contentful-paint` | **absent** | **< 1.5 s** |
+| `first-contentful-paint` | **absent** | — |
+
+So `pnpm verify:lighthouse` can pass green while LCP fails by nearly 2× — which is exactly what happened,
+and it is why T-80 went unnoticed through several sessions. The relaxations are deliberate and documented
+(`docs/performance-budget.md` §8.2), so this is not a bug someone introduced by accident; the problem is
+that the *gate* is weaker than the *rule* and nothing said so.
+
+**Fix:** add a `largest-contentful-paint` assertion at 1500 ms and tighten CLS to 0.02, then fix what it
+catches (T-80, T-83). If the project intends to keep the relaxation, then rule 9 must be amended by the
+owner — the same pattern as T-71/T-72. Leaving the rule and the gate disagreeing is the one option that
+is not acceptable, because it manufactures false confidence.
+
+### T-82 — 🔴 OPEN (Medium, a11y): the bookmark button's accessible name omits its visible text
+`label-content-name-mismatch` on the article template: the bookmark button
+(`site: <button type="button" data-bookmark="" data-kind="article" …>`) has visible text that is not part
+of its accessible name, which breaks speech-input users ("click থামান" cannot reach it). It is the **only**
+remaining Lighthouse accessibility failure after commit `2468cc3` brought all three templates to 100/100/100,
+and it was masked before that fix. One component, needs its own change — deliberately not folded into the
+a11y commit.
+
+### T-83 — 🔴 OPEN (Medium, performance): `verify:lighthouse` asserts CLS 0.03 but CI saw 0.0436
+`docs/performance-budget.md` §8.3a records a **0.0436** CLS on the GitHub runner (`KeyTakeaways.astro`),
+above even the relaxed 0.03 assertion. It could **not** be reproduced locally (measured 0.0007 / 0.0003 /
+0.0000 with TBT = 0 ms), so it is unresolved rather than disproven — CI-runner timing differs from a local
+static server. Either reproduce it on the runner or find the layout that shifts only under a cold cache.
+Until then, describe CLS as *passing locally, unresolved on CI* — never as conclusively green.
+
+### T-84 — 🔴 OPEN (Low, scope): data-saver mode does not exist, and rule 9 requires it
+Rule 9 gates "data-saver < 30 KB", `docs/performance-budget.md` §8.4 describes the mode (strips ads,
+defers images behind a tap placeholder), and `frontend/src` contains **no** toggle control and **no**
+`Save-Data` request-header handling. So this is a *build* gap, not a measurement gap: there is nothing to
+measure. Either implement it or formally descope it by amending rule 9 — the owner's call, same pattern as
+T-71/T-72. Related: touch targets (T-85).
+
+### T-85 — 🔴 OPEN (Low, a11y): the 48×48 touch-target gate has no automated enforcement anywhere
+`docs/audit-measurements-design-gates.md` §4 lists **24** controls whose Tailwind sizing classes imply a
+box under the project's 48px minimum — worst are `SocialLinks.astro:83` (`h-4 w-4` = **16×16**) and `:58`
+(28×28), `TextResizer.astro:15,24,33` (32×32), `Header.astro:90` (32×32, search), `deadlines.astro:164,172`
+(32px selects), then a tail of 36–40px controls. **Honesty caveat: these are class-value proxies, not
+measured geometry** — see the report for why. Note also that Lighthouse's own `target-size` audit scores
+**1.00** on these pages because it tests the 24px WCAG minimum, not this project's stricter 48px, which is
+why nothing has ever caught this. Fix the worst offenders and add an assertion, or the gate stays
+document-only for a fourth session.
+
 ### T-73 — 🟢 MOSTLY CLOSED (2026-10-19): the audit's "Unverified" dimensions are now measured
 D1–D4 + F3 → `docs/audit-measurements-a11y-responsive.md` (712 lines). F2 →
 `docs/audit-measurements-ci-deployability.md` (408 lines). Both are static analyses of the built

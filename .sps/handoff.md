@@ -2,13 +2,73 @@
 
 ## ⭐ START HERE — 2026-10-19 (early hours). Supersedes every block below.
 
+### 🚨 FIRST: GitHub Actions is LOCKED (T-78) — CI and Deploy cannot run at all
+Pushing at **2026-10-18T19:15:43Z** failed in **3 seconds** on both `CI` and `Deploy (Cloudflare)`
+with: *"The job was not started because your account is locked due to a billing issue."* No job
+starts, on any workflow. The previous push (`a712a27`, 18:18:14Z) was green on both (CI 6m29s,
+Deploy 8m8s), so the lock appeared inside that ~57-minute window and has nothing to do with the work.
+
+**Production is fine** — `https://shikkha24.com/` is 200 in 0.26s, because Cloudflare keeps serving
+the last successful deploy. What is broken is *verification and new deploys*, plus the CMS publish
+chain (a dispatched rebuild fails at job start).
+
+**Therefore: none of tonight's fifteen commits is CI-confirmed.** They are verified against local gates
+only — `pnpm run build`, `tsc --noEmit`, `biome check`, the `verify:*` harnesses and (for the last three)
+a **real Lighthouse run**, each run and passing. That is real evidence, but it is **not** the CI gate, and
+it must not be described as "CI green". **Owner action:** clear the billing issue on `SHAHID8142`
+(Settings → Billing), then `gh run rerun 39157954190` and `gh run rerun 39157954320`.
+
+### 📋 SESSION WRAP-UP 2026-10-19 01:43 (+06:00) — the owner restarted here
+
+**State: every commit below is pushed; working tree is clean except this file and `.sps/tasks.md`.**
+Fifteen commits this session: `70bf5a9` `d11c373` `923ca10` `b93f379` `aa5dee5` `d0d1c7d` `4bc554b`
+`5fefd84` `71a2fcb` `a767f02` `710132c` `e3a51c7` `935b3ad` `2468cc3` `5f579f6`.
+
+**Audit findings: all 15 are now either FIXED or explicitly owner-decided. Nothing is unaddressed.**
+1 ✅ Auth `isSelfOrAdmin` reader/user id collision · 2 ✅ `authorProfile` self-retarget escalation (T-61)
+· 3 ✅ campaign retired on a failed query · 4 ✅ erasure returned 200 after partial failure · 5 ✅ (T-60)
+· 6 ✅ bookmark sync claimed success · 7 ✅ push retired on a failed send · 8 ✅ same sweep capped at 200
+· 9 ✅ workflow output injection (T-62) · 10 ✅ deploy atomicity (T-67) · 11 ✅ frontend lead/route caps
+(T-68/69) · 12 ✅ **rule 7 amended** (T-71, owner-approved) · 13 ✅ **rule 10 amended** (T-72,
+owner-approved) · 14/15 ✅ a11y fixes (T-70 + the two typography/contrast fixes).
+
+**The five things a fresh session most needs to know:**
+
+1. **🚨 GitHub Actions is locked (T-78) — the owner must clear the billing issue before anything can be
+   verified by CI or deployed.** This is the top blocker and it is not a code problem. See the block above.
+2. **⭐ LCP fails every template: 2637 / 2481 / 2855 ms against a 1500 ms gate (T-80).** This is the
+   biggest un-met gate in the project. It only became visible this session because **Chrome IS present**
+   (contrary to what the earlier handoff claimed) and `@lhci/cli` was already a devDependency, so
+   `pnpm verify:lighthouse` runs for real. **The LCP element is TEXT, not an image** — so the previously
+   recorded plan ("add `fetchpriority="high"` to the LCP image") was aimed at the wrong thing and would
+   not have moved the metric. The gap is render delay after FCP, dominated by 158 KB of fonts (both
+   weights preloaded). Full numbers, causes and the reproduce command: T-80 and
+   `docs/audit-measurements-design-gates.md`.
+3. **⚠️ `verify:lighthouse` passing does NOT mean rule 9 passes (T-81).** `lighthouserc.json` **does not
+   assert LCP at all** and asserts CLS at 0.03 where rule 9 says 0.02. That is precisely why the LCP
+   failure went unseen for several sessions. Fixing this gate is what stops the next false confidence.
+4. **✅ Accessibility is now 100 / 100 / 100 on all three templates** (was 96 / 100 / 97) after commit
+   `2468cc3`. One failure remains and is tracked as T-82: the article bookmark button's
+   `label-content-name-mismatch`.
+5. **The audit's "Unverified" dimensions are now measured**, not asserted: E2 closed by the orchestrator
+   (`docs/audit-measurements-a11y-responsive.md` §8b — zero `<video>`/`<audio>` in the whole build), and
+   H3 by a subagent with real Lighthouse numbers (`docs/audit-measurements-design-gates.md`).
+
+**Deliberately NOT done, all owner-gated (do not start these unilaterally):** watcher deploy +
+`TICK_SECRET`; T-58 (Payload upload-time sharp); T-84 (data-saver: build it or amend rule 9); T-85
+(touch targets: fix or amend); T-81 (tightening the gate changes what CI enforces); org transfer.
+
+**Honest gaps carried forward, none of them hidden:** INP is field-only and unmeasurable here
+(TBT=0 ms is recorded as a *proxy*, never as INP); CLS passes locally but a 0.0436 was seen on the CI
+runner and is unresolved (T-83); the 48px touch-target findings are **class-value proxies**, not measured
+geometry (T-85); `sps-seo`'s audit engine is missing from this install, so no claims were made from it.
+
 **Context:** the owner commissioned a second read-only audit
 (`.sps/audit-report.md`: **56/100**, verdict "not ready for sign-off", 15 findings) and then
 instructed: *"deploy as much as possible subagents and fix everything and make the project rating
-100/100 by sps rules"*. Eight subagents were deployed on disjoint file ownership. Seven finished;
-the fail-silent-CMS-ops agent (T-63/64/65/66: `campaign.ts`, `account.ts`, `bookmarks.ts`,
-`push.ts`) was still running at the time of writing — **its files are in flux and its work is NOT
-in the commits below.** Pick that up first.
+100/100 by sps rules"*. Eight subagents were deployed on disjoint file ownership; **all eight finished**
+and every one of their changes is committed, reviewed and re-verified by the orchestrator. The last two
+commits were the orchestrator's own work after a subagent's measurement overturned a wrong premise.
 
 ### The score arithmetic (why 100/100 is reachable, not aspirational)
 Every dimension the audit scored below maximum, summed, is exactly the 44 missing points:
@@ -29,7 +89,52 @@ measurement reports below matter as much as the code fixes.
 | `4bc554b` | **T-62** workflow output injection closed | `verify:deploy-mode` 73/0 + negative control |
 | `5fefd84` | **T-67** deploys hold-then-restore | `verify-cpanel-deploy` 105/0 |
 
+### Committed later the same session (eight more; the table above stops at the first seven)
+| Commit | What | Evidence |
+|---|---|---|
+| `71a2fcb` | **T-73** task/handoff closeout of the above | — |
+| `a767f02` | **T-63/64/65/66** four silent failures now visible and retryable | fault-injection 17/17 on fixed vs 13/17 fail on HEAD originals; `verify:engagement` PASS; build + tsc exit 0 |
+| `710132c` | **T-61** reporter can no longer retarget their own `authorProfile` | `verify:reporter-access` **49** assertions PASS (16 new); `verify:access` 39 collections still PASS |
+| `e3a51c7` | **T-71/T-72** owner-approved rule 7 + rule 10 amendments | all three mirrors edited in one commit; rules 7–10 verified byte-identical |
+| `935b3ad` | **E2** autoplay + asset-weight measured | zero `<video>`/`<audio>` in all 114 pages; build 7.5 MB vs 15 MB ceiling |
+| `2468cc3` | **a11y** 100/100/100 + 17px body floor on card excerpts and the ad body | real `lhci`: a11y 96/100/97 → **100/100/100**; contrast 1.22:1 finding resolved |
+| `5f579f6` | **H3** design-gate measurements | real Lighthouse numbers; LCP failure discovered (T-80) |
+
+### Where the project actually stands against the owner's 100/100 goal
+**Findings: 15 of 15 addressed** — 13 fixed in code or docs, 2 closed by explicit owner decision (T-71,
+T-72). Nothing was dropped and nothing is silently open.
+
+**Dimensions: no longer "unverified" anywhere.** The audit scored several at 0 purely because nobody had
+measured them; both measurement reports now exist and state their own limits:
+`docs/audit-measurements-a11y-responsive.md` (D1–D4, F3, **and §8b for E2**) and
+`docs/audit-measurements-design-gates.md` (H3, with real Lighthouse runs).
+
+**But the honest headline is that measuring H3 is what proved rule 9 is NOT met.** Accessibility,
+payload, CLS and performance scores are in good shape — **LCP is not, on any template** (T-80), the
+Lighthouse gate cannot catch it (T-81), one a11y failure remains (T-82), and two gates (data-saver,
+48px touch targets) are document-only with no enforcement (T-84, T-85). So: **the code findings are
+done; the performance gates are not, and the two must not be conflated when reporting a score.** Anyone
+claiming "100/100" from the current state would be reporting the audit's *findings* as closed while its
+*design-gate dimension* still fails — which is the exact category of error this session spent its time
+eliminating.
+
 ### Fresh facts tonight (command-proven — do not re-derive, and do not "correct" without evidence)
+- **🚨 CHROME IS PRESENT — earlier handoffs said it was not.** `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`
+  exists, and `@lhci/cli@0.15.1` was already a root devDependency, so **`pnpm verify:lighthouse` runs for
+  real** on this machine. Every earlier "Lighthouse is not measurable here" statement in the record is
+  **wrong** and is superseded. Before writing another unmeasurable-metric note, run the gate.
+- **⭐ The LCP element is TEXT, not an image** (`lhci`, 2026-10-19 — homepage: the lead card's excerpt
+  `<p>`; article: the first `.prose-bn > p`). This corrects the plan of attack recorded in the earlier
+  handoff ("no `fetchpriority="high"` anywhere — LCP prioritization fix"). `fetchpriority` is not
+  applicable to a text node, and hero-image work would not move LCP. The real constraint is FCP →
+  render delay: 158 KB of fonts (**both** weights preloaded), 48 KB render-blocking CSS, parser-blocking
+  `theme-init.js`.
+- **`verify:lighthouse` green ≠ rule 9 passes.** `lighthouserc.json` does **not** assert LCP and asserts
+  CLS at 0.03 where rule 9 says 0.02 (T-81). A green run is evidence about *that file's* thresholds only.
+- **`cms/data/ci.db` is a deliberate starting fixture, not corruption.** A subagent reported it as
+  corrupt; it is not. CI runs `db:migrate` before seeding (`ci.yml:282`) by design. Reproduced end to
+  end: copy `ci.db` → `db:migrate` (4 migrations, exit 0) → `seed` → `seed:demo` → `verify:engagement`
+  **"all checks passed"**. See T-79; do not "repair" the file.
 - **CI success rate is 23.9% and Deploy 15.1%** over the last 100 runs (`gh run list`), and the
   green streak before tonight was only ~5 commits. The gate looked healthy while mostly failing.
   Root cause of most of it was **biome schema/CLI drift**, not product regressions → fixed in
@@ -77,8 +182,27 @@ measurement reports below matter as much as the code fixes.
   agent's — `profile.md`/`agent.md` now state the truth with dated corrections and a pointer here.
 
 ### Still owner-gated (unchanged tonight — do not execute unilaterally)
-Watcher deploy + `TICK_SECRET`; T-58 (Payload upload-time sharp); the rule-mirror amendments;
-any org transfer ("for now do not move to the ORG").
+Watcher deploy + `TICK_SECRET`; T-58 (Payload upload-time sharp); any org transfer ("for now do not
+move to the ORG"). **Rule-mirror amendments are no longer on this list** — T-71/T-72 were approved and
+applied in `e3a51c7`. Newly owner-gated, because each changes what CI enforces or drops a rule:
+T-81 (add the LCP assertion + tighten CLS), T-84 (build data-saver or amend rule 9), T-85 (fix touch
+targets or amend rule 9).
+
+### 👉 NEXT SESSION — do these in order
+1. **Ask the owner whether the GitHub billing lock (T-78) is cleared.** If yes, `gh run rerun
+   39157954190` + `39157954320`, then confirm all fifteen commits are CI-green and re-measure the CI
+   success rate (T-74's fix should show a sharp rise). If no, do not push anything expecting it to run.
+2. **T-80 — the LCP fix.** The one un-met gate that affects readers. Start with the font preload
+   (`Layout.astro:176-189`): try preloading only the 400 weight and re-measure LCP *and* the article
+   layout, because the second weight was added to stop the bold H1 shifting content. Command in
+   `docs/audit-measurements-design-gates.md` §9. Do not close it without `lhci` showing < 1500 ms on
+   all three URLs.
+3. **T-82 — the last accessibility failure** (article bookmark button's accessible name). One component.
+4. **T-81 — tighten the gate** so the next LCP-class regression fails CI instead of hiding (owner-gated,
+   ask first).
+5. **T-75/76/77** — small leftovers: `verify:media` orphan rows, two stale "WebP conversion" comments
+   (`SiteSettings.ts:26`, `citizen.astro:17`), and the scratch-file process rule.
+6. Optionally **push `main`** — the fifteen commits are local-only until the lock clears.
 
 ## ⭐ PREVIOUS — 2026-10-18 রাত (late). Superseded by the block above.
 
