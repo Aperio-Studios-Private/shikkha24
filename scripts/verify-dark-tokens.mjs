@@ -164,6 +164,17 @@ console.log('\n2b. Light mode is checked too — the same bug hides there')
   // it. Colour utilities only ever appear inside `class="…"`.
   const COLOR_UTIL =
     /(?<![\w-])(?:bg|border|text|from|to|via|ring|fill|stroke|shadow|accent|caret|divide|outline|decoration)-(dark-)?([a-z][a-z0-9-]*)/g
+
+  /**
+   * A `dark:`-prefixed utility is section 2's job, and the optional `(dark-)?`
+   * capture above makes it report TWO names — `dark:bg-dark-sunken` yields
+   * `dark-sunken` *and* a phantom `sunken`, because group 1 ate the `dark-`
+   * prefix. The phantom has no `--color-*` definition by construction, so the
+   * check failed on a name that does not exist in any source file. Skip any
+   * match that is preceded by a `dark:` variant from the same class string.
+   */
+  const isDarkVariant = (value, index) =>
+    /(?:^|[\s"'`])dark:/.test(value.slice(0, index).split(/\s+/).slice(-1)[0] ?? '')
   const found = []
   for (const file of globSync('**/*.{astro,tsx}', { cwd: srcDir })) {
     const text = readFileSync(join(srcDir, file), 'utf8')
@@ -173,6 +184,9 @@ console.log('\n2b. Light mode is checked too — the same bug hides there')
         const name = m[2]
         // Skip any colour preceded by a variant prefix — those belong to the
         // `dark:` walk in section 2, and a bare `hover:bg-x` is still `bg-x`.
+        // The phantom described on `isDarkVariant` is skipped for the same
+        // reason: it is not a real utility name.
+        if (m[1] === 'dark-' || isDarkVariant(value, m.index)) continue
         const prefix = value.slice(0, m.index).match(/([\w-]+)-$/)
         if (prefix && /^(dark|hover|focus|active|group|peer|sm|md|lg|xl|2xl)$/.test(prefix[1])) {
           if (prefix[1] === 'dark') continue // covered by section 2

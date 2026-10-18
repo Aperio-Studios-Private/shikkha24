@@ -96,11 +96,19 @@
   --color-rule: #e4e4e4;
   --color-surface: #ffffff;
   --color-surface-raised: #f7f7f7;
+  /* One step *below* `surface-raised`: a chip that sits ON a raised panel and
+     must stay distinguishable from it. The demo-ad "নমুনা বিজ্ঞাপন" badge used
+     `surface-sunken` before this token existed, so the name resolved to nothing
+     and the badge rendered **fully transparent** — invisible, which is the one
+     thing a honesty label must not be. `verify:dark-tokens` is the gate that
+     catches an undefined `--color-*` utility. */
+  --color-surface-sunken: #ececec;
 
   /* Dark-mode counterparts, so components can read semantic names instead of
      branching on `.dark` everywhere. */
   --color-dark-surface: #1a1a1a;
   --color-dark-raised: #242424;
+  --color-dark-sunken: #333333;
   --color-dark-rule: #333333;
   --color-dark-ink: #ededed;
   --color-dark-ink-muted: #a8a8a8;
