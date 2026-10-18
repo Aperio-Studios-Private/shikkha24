@@ -92,7 +92,13 @@ const metaDescription = description || settings.tagline || ''
  * See audit §2.1.
  */
 const siteOrigin = (import.meta.env.PUBLIC_SITE_URL || Astro.url.origin).replace(/\/$/, '')
-const ogImagePath = ogImage || '/og-default.png'
+// ⚠️ Cache-break the DEFAULT share image when its bytes change (T-59). The
+// file URL is years old and every platform caches og:image by URL — swapping
+// the file in place left Facebook/WhatsApp serving the old red plate for days.
+// Bump OG_DEFAULT_VERSION whenever og-default.png is regenerated; custom
+// per-page images keep their own (content-hashed) URLs and need no version.
+const OG_DEFAULT_VERSION = '20261019'
+const ogImagePath = ogImage || `/og-default.png?v=${OG_DEFAULT_VERSION}`
 const ogImageUrl = /^https?:\/\//i.test(ogImagePath) ? ogImagePath : `${siteOrigin}${ogImagePath}`
 
 /**

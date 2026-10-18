@@ -3223,6 +3223,13 @@ name below, content inside the central square-safe zone. Verified: PIL dims
 1200×630, white ratio 94%, ink bbox (306,113)-(893,553) ⊂ safe zone, 34,132
 bytes (old red plate 27,514 bytes remains in git history). Live verification
 recorded in the handoff after deploy.
+**Addendum (same night):** og:image is cached by URL, and the URL was years
+old — platforms kept serving the old red plate after the content swap. Fix:
+the default share URL is now versioned (`/og-default.png?v=20261019`,
+`Layout.astro` OG_DEFAULT_VERSION) so every cache treats it as new. Bump that
+constant whenever the file bytes change. (Facebook still needs one
+"Scrape Again" in its Sharing Debugger to refresh immediately; WhatsApp may
+keep its cache for days and that is on their side.)
 
 ### T-58 — 🔴 PARKED (registered 2026-10-18 রাত; start only with owner approval AND a green T-31 cycle): Payload upload-time sharp/WebP
 
