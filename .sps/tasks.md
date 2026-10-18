@@ -2997,7 +2997,7 @@ corrected my wrong dashboard path. Final mobile: perf 97 / a11y 100 / BP 100 /
 SEO 100, LCP 2.5s, TBT 0ms, CLS 0, console clean. Commits: 23ea439 (code),
 b34613f (guidance correction), this entry.
 
-### T-44 — ⏳ OPEN (registered 2026-10-18 ~09:15): subset the Bengali webfonts
+### T-44 — 🔴 OPEN, PREMISE CORRECTED (2026-10-19): fonts cannot be cut by ~70%; measured ceiling is ~15%
 
 Evidence: fonts are 155.9KB of a 226KB mobile page (69%); Lighthouse LCP
 breakdown on mobile attributes 2,596ms of a 3.1s LCP to RENDER DELAY, and the
@@ -3010,6 +3010,50 @@ fonttools availability (not installed; rule 8 dependency line + license note
 required). Everything else already passes: a11y 100, BP 100, SEO 100,
 CLS 0, TBT 0ms, 28 requests, 24.5KB JS, 10.5KB CSS, font-display:swap,
 metrics-matched fallback.
+
+**⚠️ ROUND 3: the size estimate in this task is wrong, and the blocker is stale. Do not act on either
+without reading this.**
+
+Two claims here were checked directly with `fontTools` (**already installed — `fontTools 4.67.0`**; the
+"not installed" blocker is stale and the dependency line for it needs no ruling, since nothing new is
+being added to the project):
+
+**1. "Subsetting should cut ~156 KB to ~25–45 KB" — measured, and false.** The fonts are not bloated
+with unused glyphs. Table-level breakdown of `solaimanlipi-400.woff2`:
+
+| table | size | share |
+|---|---|---|
+| `glyf` (the outlines themselves) | **138.0 KB** | **92.2%** |
+| `GSUB` (shaping) | 3.9 KB | 2.6% |
+| `loca` / `hmtx` / `GPOS` | 2.3 / 2.3 / 2.0 KB | ~4.4% |
+| everything else | <1 KB | — |
+
+`glyf` is the font. And the 289 mapped codepoints are all *inside* the `unicode-range` the CSS already
+declares, so there is nothing declared-but-unshipped to remove — which is why a subset to exactly the
+declared range **saved 0%** (68.3 → 68.4 KB on the 400 weight; the rounding is real, not a bug).
+
+The most aggressive cut that is possible at all — **Bengali block only, dropping every Latin glyph** —
+saves just **14–15%**: 68.3 → 57.9 KB (400) and 85.8 → 73.4 KB (700). That is ~10 KB per weight, not
+110 KB. And it is not even a free win: the font deliberately covers Bengali **and** Latin so one file
+serves mixed headlines like "HSC ২০২৬" (that reasoning is written into `Layout.astro`), so dropping
+Latin would reintroduce a second font request for Latin text.
+
+**2. The LCP attribution in this task is also stale, and was independently superseded.** Its
+"2,596 ms of a 3.1 s LCP attributed to RENDER DELAY" matches what T-80 later measured, but T-80 went
+further: the render delay is **serialised round trips** (critical chain depth 3, fonts behind the
+stylesheet, under a simulated 250 ms RTT), and **removing the font preloads moved LCP by only ~150 ms**
+while making FCP worse. So fonts are *a* contributor worth ~150 ms, not the 1.5 s this task implies.
+
+**What is actually still open here:** the only real remaining lever is **a smaller file for the same
+coverage** — a higher `woff2` compression effort, or dropping rarely-used ranges (currency symbols,
+arrows) that the declared `unicode-range` admits but the site never renders. That is worth perhaps tens
+of KB, so it belongs *after* the round-trip fixes in T-80, not before them. Keeping it open at Low
+priority with the corrected ceiling is the honest state; closing it as "done" would be wrong, because no
+subsetting has been shipped.
+
+**Method note:** the numbers above come from `fontTools.subset` with `layout_features=['*']` so the
+Bengali shaping tables (`akhn, blwf, half, liga, nukt, pstf, vatu`) are preserved — a subset that drops
+them would look smaller and render every conjunct (যুক্তাক্ষর) broken.
 
 ### T-45 — ✅ DONE (2026-10-18 ~09:20): client-facing Bengali handover guide (HTML)
 
