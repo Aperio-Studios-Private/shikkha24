@@ -1,6 +1,86 @@
 # SPS Handoff
 
-## ⭐ START HERE — 2026-10-18 রাত (late). This block supersedes the evening block below it.
+## ⭐ START HERE — 2026-10-19 (early hours). Supersedes every block below.
+
+**Context:** the owner commissioned a second read-only audit
+(`.sps/audit-report.md`: **56/100**, verdict "not ready for sign-off", 15 findings) and then
+instructed: *"deploy as much as possible subagents and fix everything and make the project rating
+100/100 by sps rules"*. Eight subagents were deployed on disjoint file ownership. Seven finished;
+the fail-silent-CMS-ops agent (T-63/64/65/66: `campaign.ts`, `account.ts`, `bookmarks.ts`,
+`push.ts`) was still running at the time of writing — **its files are in flux and its work is NOT
+in the commits below.** Pick that up first.
+
+### The score arithmetic (why 100/100 is reachable, not aspirational)
+Every dimension the audit scored below maximum, summed, is exactly the 44 missing points:
+A3 +3, A4 +1, B4 +2, D1 +6, D2 +4, D3 +6, D4 +3, E1 +3, E2 +3, F2 +2, F3 +3, H2 +4, H3 +4.
+So "100/100" is not a rounding exercise — it is this finite list, each item either fixed or
+measured. Most were scored 0 for being **unverified rather than failed**, which is why the
+measurement reports below matter as much as the code fixes.
+
+### Committed tonight (seven commits, each verified before its commit)
+| Commit | What | Evidence |
+|---|---|---|
+| `70bf5a9` | **T-74** biome 2.5.13/2.5.15 drift — the dominant CI failure cause | deserialize diagnostic → 0 |
+| `d11c373` | **T-73** a11y/responsive: heading skips, table wrappers, stoppable ad | build exit 0; skips **50 → 0** |
+| `923ca10` | **T-60** reporter access scoped to owned rows | 33-assertion harness PASS + `verify:access` 39 collections |
+| `b93f379` | **A3/A4/B4/E1** stale identity + self-contradicting hosting state | see below |
+| `aa5dee5` | **T-70** media docs truth + watcher `x-tick-secret` header | `verify:media` 5/5 no-sharp assertions |
+| `d0d1c7d` | **T-68/T-69** `isLead` honoured; route caps now page | build exit 0, twice |
+| `4bc554b` | **T-62** workflow output injection closed | `verify:deploy-mode` 73/0 + negative control |
+| `5fefd84` | **T-67** deploys hold-then-restore | `verify-cpanel-deploy` 105/0 |
+
+### Fresh facts tonight (command-proven — do not re-derive, and do not "correct" without evidence)
+- **CI success rate is 23.9% and Deploy 15.1%** over the last 100 runs (`gh run list`), and the
+  green streak before tonight was only ~5 commits. The gate looked healthy while mostly failing.
+  Root cause of most of it was **biome schema/CLI drift**, not product regressions → fixed in
+  `70bf5a9`. **Verify this claim is still true at the start of the next session** (`gh run list
+  --limit 30`); if CI is green now, the fix worked.
+- **The repository is PUBLIC** (`gh repo view SHAHID8142/shikkha24 --json isPrivate` → `false`), so
+  Actions minutes are **unmetered** and the "private → 2,000 minutes/month, rebuild batching is
+  load-bearing" reasoning in `profile.md` was stale. Batching is still kept, for build-time and
+  CMS-load reasons rather than quota. One subagent inferred "private" from `git remote` — that
+  command does not report visibility; the authoritative check is `gh repo view`.
+- **`.sps/profile.md` contradicted itself about hosting.** The 2026-10-15 amendment said the
+  storefront publishes to Cloudflare Workers; the rows beneath it still said "No Cloudflare
+  services at all", "CDN: None — DianaHost direct" and "Deploy Target: DianaHost `public_html`".
+  Both cannot be true and the live site settles it (`server: cloudflare`, `cf-cache-status: HIT`).
+  Corrected with dated notes; **the root rule text is still unamended** — see T-71/T-72.
+- **Production DOES have `isLead` set** — 3 articles, not zero. The flagged article and the newest
+  article are currently the same row, so T-68's fix is not yet reader-visible; it becomes visible
+  when a newer unflagged story publishes. (This corrects the premise given to the subagent.)
+- **The audit's "host cannot fork → sharp cannot load" framing is withdrawn.** `payload.config.ts`
+  carries a 2026-10-16 CORRECTION: the libvips routes return 200 today and NPROC was raised
+  100 → 200, so `sharp` is unset **by deliberate choice** pending a deploy window, not by a host
+  limit. Do not reason from the withdrawn version.
+- **`/article/*` is not the article template** — all 9 are ~900-byte meta-refresh stubs. The real
+  template is `/[category]/[id]/[slug]`. 19 of 114 built pages are redirect stubs; **95 are real**.
+  An earlier measurement pass was measuring the wrong route until this was caught.
+- **Heading-order skips: 50 built pages → 0** (`d11c373`). Method: walk each real page's heading
+  sequence and flag any jump of more than one level. Re-runnable in one script.
+
+### Honest gaps — do NOT read these as green
+- **No browser exists in this environment**, so these remain unmeasured and were recorded as such,
+  not as passes: Lighthouse categories, LCP/INP/CLS, **colour contrast (not measured at all)**,
+  rendered touch-target sizes (class evidence shows 28px and 32px controls against the ≥48px gate —
+  a real risk), focus-visible rendering, tab order, screen-reader output. Requires a browser.
+- **`fileop op=move` has never been called against the real DianaHost account** (T-67). It matches
+  the documented File Manager workflow and is modelled in the harness, but it is not a measured
+  response. If the host refuses it, the deploy fails safe with zero deletions and the fix is inert.
+- **`verify:reporter` and `verify:media` fail in this environment**, both proven pre-existing by
+  reproducing them on stashed original code: a stale dev DB missing the committed
+  `20261011_092820_payload_3_90_schema` migration, and a fixture-cleanup bug (new task T-75).
+  **Do not run `payload migrate`** on `cms/data/payload.db` — it warns of data loss on that file.
+- **T-77:** parallel agents left scratch harnesses in `cms/src/` (`verify-tmp-t63.ts` still
+  present). Delete or promote before staging that directory.
+- **Rule mirrors are unamended** (T-71 Cloudflare vs rule 7; T-72 English admin vs rule 10). Both
+  are recorded owner decisions contradicted by stale rule text. That is the owner's call, not an
+  agent's — `profile.md`/`agent.md` now state the truth with dated corrections and a pointer here.
+
+### Still owner-gated (unchanged tonight — do not execute unilaterally)
+Watcher deploy + `TICK_SECRET`; T-58 (Payload upload-time sharp); the rule-mirror amendments;
+any org transfer ("for now do not move to the ORG").
+
+## ⭐ PREVIOUS — 2026-10-18 রাত (late). Superseded by the block above.
 
 All claims re-verified by command output tonight (+06). CI **and** Deploy are
 green on `49f1469` (HEAD): `gh run list --limit 4` → 4/4 success. shikkha24.com

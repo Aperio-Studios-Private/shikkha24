@@ -3213,6 +3213,142 @@ build-emitted 1200px **JPEG** variant (scraper-safe format) of the same photo
 instead of the raw 1376×768 CMS JPEG — implemented in the code commit that
 follows this record, verified against the built output.
 
+---
+
+# AUDIT REMEDIATION QUEUE (2026-10-19) — from `.sps/audit-report.md` (56/100)
+
+> Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
+> fix everything and make the project rating 100/100 by sps rules". Findings are
+> worked in the audit's own risk order. Each task closes only with the repo's own
+> gates run on the built output (or live/CI evidence), never on belief.
+> **Parallelism rule for this queue:** subagents get disjoint file ownership —
+> no two tasks in flight may write the same file.
+
+### T-60 — ✅ DONE (2026-10-19, commit `923ca10`): reporter article access scoped to owned rows
+`cms/src/collections/Articles.ts:74` (`update: isEditorial`) + `cms/src/hooks/publish.ts:53`.
+Reporter can edit another reporter's article (incl. published) and set any byline.
+Files: `cms/src/collections/Articles.ts`, `cms/src/hooks/publish.ts`, `cms/src/access/roles.ts`.
+Closed by `cms/src/access/articles.ts` (new) + `Articles.ts` + `hooks/publish.ts`, with a
+permanent 33-assertion harness `cms/src/verify/reporter-access.ts` (`verify:reporter-access`).
+Ownership is the `author` relationship; `delete` deliberately stays superAdmin/EiC (it was never
+loose, and widening it would let a reporter erase their own correction history). `authorField` is
+a **value predicate** reading `siblingData`, because a flat `editorField` strips a `required`
+relationship and breaks the reporter's own quick-draft (400 instead of 201 — measured). Evidence:
+`verify:reporter-access` PASS, `verify:access` still passes 39 collections (both contracts agree).
+
+### T-61 — 🔴 OPEN (High): `authorProfile` retargetable by its own user
+`cms/src/collections/Users.ts:58` (`update: isSelfIn`) + `:119` (`authorProfile`, no field access).
+Files: `cms/src/collections/Users.ts`, `cms/src/collections/Assignments.ts`.
+
+### T-62 — ✅ DONE (2026-10-19, commit `4bc554b`): workflow outputs hardened against input injection
+`.github/workflows/deploy.yml:188`, `.github/workflows/deploy-cloudflare.yml:128`.
+Multiline value can inject extra output records and change deploy mode.
+Files: the two workflow files.
+All four outputs in `deploy.yml` and all three in `deploy-cloudflare.yml` now use a random
+heredoc delimiter, allow-listed values, and a read-back round-trip assertion; the confirmation gate
+reads the verified outputs rather than local variables. `verify:deploy-mode` 73/0 including a
+negative control proving the pre-fix write *did* forge `target`.
+
+### T-63 — 🔴 OPEN (High): failed campaign query marks campaign permanently sent
+`cms/src/lib/campaign.ts:150`.
+
+### T-64 — 🔴 OPEN (High): account erasure returns 200 after partial failure
+`cms/src/endpoints/account.ts:73`.
+
+### T-65 — 🔴 OPEN (Medium): bookmark sync can claim success after failed writes
+`cms/src/endpoints/bookmarks.ts:238`.
+
+### T-66 — 🔴 OPEN (Medium): push reminders marked notified despite send failure; sweep caps at 200
+`cms/src/endpoints/push.ts:311` and `:231`.
+
+### T-67 — ✅ DONE (2026-10-19, commit `5fefd84`): deploys hold-then-restore; ⚠️ `fileop op=move` unproven on the live host
+`scripts/deploy-static.mjs:356`, `scripts/deploy-cms.mjs:407`.
+`scripts/lib/deploy-recovery.mjs` (new) holds the computed delete set out-of-tree via
+`Fileman::fileop op=move` **before** the extract, and moves it back on any failure. Counter-proof:
+reverting to the old `deletePath` loop fails 4 checks. **Unverified:** `op=move` has never been
+called against the real DianaHost account — if refused, the deploy fails safe with zero deletions.
+
+### T-68 — ✅ DONE (2026-10-19, commit `d0d1c7d`): homepage honours `isLead`
+`frontend/src/pages/index.astro:103`, `frontend/src/lib/cms.ts:539`.
+⚠️ **Correction to the finding:** production *does* have `isLead` set — 3 articles, not zero.
+The flagged article and the newest article are currently the same row, so the fix is not yet
+reader-visible; it becomes so when a newer unflagged story publishes. Also removed the dead
+`getLeadStory()` that had the same bug.
+
+### T-69 — ✅ DONE (2026-10-19, commit `d0d1c7d`): both route caps now page
+`frontend/src/lib/cms.ts:948`, `frontend/src/pages/fact-check/[id].astro:47`,
+`frontend/src/lib/education.ts:280`, `frontend/src/pages/study-abroad/[slug].astro:14`.
+Both now walk pages via the shared `fetchAllPages()` (200/request, cached per path). Today's
+volumes make the caps moot (fact-checks 0, guides 8) — this is a correctness fix for growth.
+
+### T-70 — ✅ DONE (2026-10-19, commit `aa5dee5`): Media docs + Bengali admin string corrected
+`cms/src/collections/Media.ts:21` and `:178`.
+The only non-comment change is the Bengali `admin.description`, which promised WebP conversion
+that never runs. Old wording preserved in a `⚠️ Correction` block. Also corrected the stale
+"host cannot run sharp" premise (its own 2026-10-16 note records NPROC was raised 100→200).
+
+### T-71 — 🟡 OWNER DECISION REQUIRED (Medium, policy): Cloudflare hosting vs root rule 7
+Finding 12. The live storefront IS Cloudflare (`server: cloudflare`, `cf-cache-status: HIT`)
+while `AGENTS.md`/`GEMINI.md`/`CLAUDE.md` rule 7 says "No Cloudflare services". The owner
+drove this migration (T-18 P1, 2026-10-15). Needs a recorded amendment — I will not
+silently rewrite a rule mirror, and I will not revert live production hosting.
+
+### T-72 — 🟡 OWNER DECISION REQUIRED (Medium, policy): English-first CMS admin vs Bengali-only rule 10
+Finding 13. `cms/src/payload.config.ts:377` ships `en` as fallback; live `/admin` returns
+`lang="en"`. Rule 10 says all user-facing UI is Bengali. Needs either an amendment
+("admin is operator UI, not reader UI") or an i18n change — owner's call.
+
+### T-73 — 🟢 MOSTLY CLOSED (2026-10-19): the audit's "Unverified" dimensions are now measured
+D1–D4 + F3 → `docs/audit-measurements-a11y-responsive.md` (712 lines). F2 →
+`docs/audit-measurements-ci-deployability.md` (408 lines). Both are static analyses of the built
+output; **no browser was available**, so nothing was installed and the reports state plainly which
+metrics remain unmeasurable rather than estimating them.
+
+Results: **D1** responsive verified (114/114 viewports, max fixed width 4px, 43/43 responsive images
+correct; 3 of 39 templates deficient → now fixed). **D2** no hover-only controls exist (41 `:hover`
+rules, all cosmetic). **D3** motion fully gated (9 declarations, 9 gated, 0 ungated), **D4** the
+reduced-motion path keeps the information in every case. **F3** 39/39 one `<h1>`, 0/156 images
+missing `alt`, 0/2698 unnamed links; the real defect was **50 built pages with a heading-order
+skip** → now 0.
+
+Still genuinely unmeasurable here (recorded as such, NOT as passes): touch-target rendered sizes
+(class evidence shows `h-7 w-7` 28px and `h-8 w-8` 32px controls against the ≥48px gate — a real
+unverified risk), colour contrast (**not measured at all**), INP, CLS, Lighthouse category scores,
+focus-visible rendering and tab order, screen-reader output, and runtime application of
+`prefers-reduced-motion`. **E2** (autoplay/asset weight) was folded into the D2/D3 findings and the
+payload numbers in the design-gates task below.
+
+### T-74 — ✅ DONE (2026-10-19, commit `70bf5a9`): biome schema/CLI drift was the dominant CI failure
+`biome.json` pinned schema 2.5.13 while the installed CLI was 2.5.15, and `frontend/package.json`
+pinned a second, older biome (2.5.13) in the same workspace. Measured effect: the last 100 runs
+showed **CI at 23.9% and Deploy at 15.1% success**, and every sampled failure had `FAILED STEP:
+Lint` on the resulting deserialize error — a gate that looked healthy (a ~5-commit green streak)
+while mostly failing for a reason unrelated to the code under test. Aligned all three manifests on
+2.5.15; the deserialize diagnostic is gone (`biome check . | grep -c deserialize` → 0).
+
+### T-75 — 🔴 OPEN (Low, tooling): `verify:media` leaves orphaned rows and stray files
+`cms/src/verify/media.ts` uses `payload.delete`, which does not remove the `media` rows, so every
+run accumulates `s9-verify-*` documents and files. Verified pre-existing: the same two cleanup
+assertions fail on unmodified code. Also relevant because **T-58 is gated on this script's
+no-sharp contract flipping**, and a broken cleanup there will bite whoever picks T-58 up. (The 6
+orphaned rows created during tonight's runs were deleted; the library is back to its 8 real docs.)
+
+### T-76 — 🔴 OPEN (Low, honesty): two more live-code comments repeat the "WebP conversion" claim
+Found while closing T-70 but outside its file ownership: `cms/src/globals/SiteSettings.ts:26` and
+`frontend/src/pages/citizen.astro:17` both state that uploads are re-encoded to WebP / stripped of
+EXIF. Neither is true (see T-70). Same class as the Bengali string T-70 fixed, but in code comments
+rather than operator text. Stale copies also sit in `cms/src/verify/media.ts:6-16` (header only —
+its assertions are correct), `docs/security-audit-2026-10-01.md:244`, `.sps/content-model.md:122`,
+`.sps/plan.md:102`. Small, but it is the exact failure mode the audit flagged.
+
+### T-77 — 🔴 OPEN (Low, process): scratch files left in `cms/src/` by parallel agents
+`cms/src/verify-tmp-t63.ts` (15.7 KB) and earlier `cms/src/verify/_t60-sched.ts` /
+`_probe-t60.ts` were written as throwaway harnesses. Two were cleaned up by their own agents; the
+T-63 one is still present and must be removed or promoted before any commit that includes
+`cms/src`. **Rule for future parallel work:** a temporary file must be named, listed in the task,
+and deleted by the agent that created it, or it will end up committed by whoever stages a
+directory.
+
 ### T-59 — ✅ DONE (2026-10-18, ~23:59): homepage/fallback share image replaced with the T-57 white stacked design
 
 Owner noticed the homepage `og:image` still showed the old full-bleed red
