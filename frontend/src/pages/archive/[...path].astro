@@ -208,7 +208,7 @@ const jsonLd = {
       )
     }
 
-    {!isIndex && <ArticleGrid articles={result.docs} emptyMessage="এই মাসে কোনো খবর নেই।" />}
+    {!isIndex && <ArticleGrid articles={result.docs} headingLevel={2} emptyMessage="এই মাসে কোনো খবর নেই।" />}
 
     {!isIndex && <Pagination page={result.page} totalPages={result.totalPages} basePath={basePath} />}
   </div>

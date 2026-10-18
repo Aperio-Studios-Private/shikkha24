@@ -161,7 +161,7 @@ const jsonLd = {
       <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">{toBnDigits(result.totalDocs)}টি খবর</p>
     </header>
 
-    <ArticleGrid articles={result.docs} emptyMessage="এই বিষয়ে এখনো কোনো খবর প্রকাশিত হয়নি।" />
+    <ArticleGrid articles={result.docs} headingLevel={2} emptyMessage="এই বিষয়ে এখনো কোনো খবর প্রকাশিত হয়নি।" />
 
     <Pagination page={result.page} totalPages={result.totalPages} basePath={basePath} />
   </div>

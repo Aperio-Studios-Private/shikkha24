@@ -131,17 +131,21 @@ const scaleTables = CGPA_SCALES.map((scale) => ({
         </ul>
       </div>
 
-      <table class="w-full border-collapse text-sm">
-        <thead>
-          <tr class="border-b border-rule dark:border-dark-rule">
-            <th class="p-2 text-left text-ink dark:text-dark-ink">কোর্স</th>
-            <th class="p-2 text-left text-ink dark:text-dark-ink">ক্রেডিট</th>
-            <th class="p-2 text-left text-ink dark:text-dark-ink">গ্রেড</th>
-            <th class="p-2 text-left text-ink dark:text-dark-ink">সেমিস্টার</th>
-          </tr>
-        </thead>
-        <tbody id="cgpa-rows"></tbody>
-      </table>
+      {/* Wrapped so a narrow viewport scrolls the table instead of the page
+          (the pattern already used in institutions/[slug].astro). */}
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-rule dark:border-dark-rule">
+              <th class="p-2 text-left text-ink dark:text-dark-ink">কোর্স</th>
+              <th class="p-2 text-left text-ink dark:text-dark-ink">ক্রেডিট</th>
+              <th class="p-2 text-left text-ink dark:text-dark-ink">গ্রেড</th>
+              <th class="p-2 text-left text-ink dark:text-dark-ink">সেমিস্টার</th>
+            </tr>
+          </thead>
+          <tbody id="cgpa-rows"></tbody>
+        </table>
+      </div>
 
       <button id="cgpa-add-row" type="button"
         class="mt-3 rounded-md border border-rule px-3 py-1.5 text-sm text-ink hover:bg-surface-raised dark:border-dark-rule dark:text-dark-ink dark:hover:bg-dark-raised">
@@ -162,24 +166,26 @@ const scaleTables = CGPA_SCALES.map((scale) => ({
           <summary class="cursor-pointer text-ink-muted dark:text-dark-ink-muted">
             গ্রেড তালিকা: {scale.labelBn}
           </summary>
-          <table class="mt-3 w-full border-collapse text-sm">
-            <thead>
-              <tr class="border-b border-rule dark:border-dark-rule">
-                <th class="p-2 text-left text-ink dark:text-dark-ink">নম্বর (%)</th>
-                <th class="p-2 text-left text-ink dark:text-dark-ink">গ্রেড</th>
-                <th class="p-2 text-left text-ink dark:text-dark-ink">পয়েন্ট</th>
-              </tr>
-            </thead>
-            <tbody>
-              {scale.rows.map((row) => (
+          <div class="mt-3 overflow-x-auto">
+            <table class="w-full border-collapse text-sm">
+              <thead>
                 <tr class="border-b border-rule dark:border-dark-rule">
-                  <td class="p-2 text-ink dark:text-dark-ink">{row.range}</td>
-                  <td class="p-2 text-ink dark:text-dark-ink">{row.label}</td>
-                  <td class="p-2 text-ink dark:text-dark-ink">{row.point}</td>
+                  <th class="p-2 text-left text-ink dark:text-dark-ink">নম্বর (%)</th>
+                  <th class="p-2 text-left text-ink dark:text-dark-ink">গ্রেড</th>
+                  <th class="p-2 text-left text-ink dark:text-dark-ink">পয়েন্ট</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {scale.rows.map((row) => (
+                  <tr class="border-b border-rule dark:border-dark-rule">
+                    <td class="p-2 text-ink dark:text-dark-ink">{row.range}</td>
+                    <td class="p-2 text-ink dark:text-dark-ink">{row.label}</td>
+                    <td class="p-2 text-ink dark:text-dark-ink">{row.point}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <p class="mt-2 text-xs text-ink-subtle dark:text-dark-ink-muted">{scale.sourceBn}</p>
           <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
             শ্রেণি: {scale.classes.map((entry) => `${entry.range}: ${entry.labelBn}`).join(' · ')}

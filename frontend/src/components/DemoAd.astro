@@ -25,9 +25,15 @@
  *
  * ## Motion
  *
- * Rotation pauses on hover and stops entirely under `prefers-reduced-motion` —
- * an animated ad the reader cannot stop is both hostile and a WCAG 2.2.2
- * failure.
+ * Rotation stops entirely under `prefers-reduced-motion`, and otherwise the
+ * reader can stop it themselves with a visible `থামান` / `চালু করুন` button.
+ *
+ * ⚠️ **Corrected 2026-10-19:** this block used to claim hover-pause satisfied
+ * WCAG 2.2.2. It did not. Hover does not exist on a touch device, so the phone
+ * reader — the majority of this site's traffic — had no way to stop an
+ * auto-rotating ad. The button is the mechanism of record; hover-pause is kept
+ * as an extra for pointer users. The button ships `hidden` and is revealed by
+ * the script, so it is never a dead control when JavaScript does not run.
  */
 interface Props {
   /** Which inventory format this slot represents. */
@@ -133,6 +139,28 @@ const CREATIVES = [
   >
     নমুনা বিজ্ঞাপন
   </span>
+
+  {/*
+    WCAG 2.2.2 (Pause, Stop, Hide): moving content that auto-starts and runs for
+    more than five seconds must be stoppable by the reader.
+
+    Hover alone did not satisfy it — a touch device has no hover, so a phone
+    reader had no way to stop the rotation at all, which is the case this
+    component's own docblock already called a failure. This is a real control:
+    keyboard-reachable, labelled, and it reflects its state through
+    `aria-pressed` so the change is announced. The label and icon are updated by
+    the script below.
+  */}
+  <button
+    type="button"
+    data-ad-toggle
+    hidden
+    aria-pressed="false"
+    aria-label="বিজ্ঞাপন ঘোরানো থামান"
+    class="absolute bottom-1 left-1.5 rounded bg-surface-sunken px-1.5 py-0.5 text-[10px] font-medium text-ink hover:bg-surface dark:bg-dark-sunken dark:text-dark-ink dark:hover:bg-dark-raised"
+  >
+    <span data-ad-toggle-label>থামান</span>
+  </button>
 </div>
 
 <script>
@@ -152,8 +180,28 @@ const CREATIVES = [
       let index = 0
       let paused = false
 
+      // Hover-pause is a convenience for pointer users, not the mechanism of
+      // record — touch has no hover. The button below is what satisfies
+      // WCAG 2.2.2, and `paused` is shared so either one stops the rotation.
       ad.addEventListener('mouseenter', () => (paused = true))
       ad.addEventListener('mouseleave', () => (paused = false))
+
+      const toggle = ad.querySelector<HTMLButtonElement>('[data-ad-toggle]')
+      const toggleLabel = ad.querySelector<HTMLElement>('[data-ad-toggle-label]')
+
+      if (toggle && toggleLabel) {
+        toggle.hidden = false
+        toggle.addEventListener('click', () => {
+          paused = !paused
+          toggle.setAttribute('aria-pressed', String(paused))
+          // The label names the action the reader gets, not the current state:
+          // while rotating the button offers "stop", while stopped it offers
+          // "start". `aria-label` carries the same meaning for screen readers,
+          // and the visible text stays short enough for the 10px badge row.
+          toggleLabel.textContent = paused ? 'চালু করুন' : 'থামান'
+          toggle.setAttribute('aria-label', paused ? 'বিজ্ঞাপন ঘোরানো চালু করুন' : 'বিজ্ঞাপন ঘোরানো থামান')
+        })
+      }
 
       setInterval(() => {
         if (paused || document.hidden) return

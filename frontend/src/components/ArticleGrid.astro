@@ -13,9 +13,20 @@ interface Props {
   articles: CmsArticle[]
   /** Shown when there is nothing to list. */
   emptyMessage?: string
+  /**
+   * Heading level for each card's headline.
+   *
+   * Defaults to `3` because most listing pages put an `<h2>` section heading
+   * between the page `<h1>` and the grid. A page with **no** intervening `<h2>`
+   * must pass `2`, or its card headlines jump from `<h1>` to `<h3>` — a real
+   * heading-order failure that screen-reader users navigate by (F3-1/F3-3,
+   * 2026-10-19). Three pages previously patched this by inserting a
+   * screen-reader-only `<h2>`; passing the level states the structure directly.
+   */
+  headingLevel?: 2 | 3
 }
 
-const { articles, emptyMessage = 'এই বিভাগে এখনো কোনো খবর নেই।' } = Astro.props
+const { articles, emptyMessage = 'এই বিভাগে এখনো কোনো খবর নেই।', headingLevel = 3 } = Astro.props
 ---
 
 {
@@ -27,7 +38,7 @@ const { articles, emptyMessage = 'এই বিভাগে এখনো কো�
     <ul class="grid-12">
       {articles.map((article) => (
         <li class="col-span-4 sm:col-span-4 lg:col-span-4">
-          <ArticleCard article={article} variant="default" headingLevel={3} />
+          <ArticleCard article={article} variant="default" headingLevel={headingLevel} />
         </li>
       ))}
     </ul>

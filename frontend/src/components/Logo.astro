@@ -95,9 +95,17 @@ const markHeight = logo?.height ?? 40
 >
   {
     logoSrc && (
+      /*
+       * Decorative: the link already carries the accessible name — `aria-label`
+       * when the wordmark is hidden, or the adjacent `<span>` text when it is
+       * shown. `alt=""` therefore keeps it out of the name computation, and
+       * `aria-hidden` makes that explicit and consistent with the other 29
+       * decorative brand marks in the build (F3-4, 2026-10-19).
+       */
       <img
         src={logoSrc}
         alt=""
+        aria-hidden="true"
         width={markWidth}
         height={markHeight}
         class="h-9 w-auto shrink-0 sm:h-10"
