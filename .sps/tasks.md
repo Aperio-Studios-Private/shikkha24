@@ -3631,12 +3631,39 @@ Lint` on the resulting deserialize error — a gate that looked healthy (a ~5-co
 while mostly failing for a reason unrelated to the code under test. Aligned all three manifests on
 2.5.15; the deserialize diagnostic is gone (`biome check . | grep -c deserialize` → 0).
 
-### T-75 — 🔴 OPEN (Low, tooling): `verify:media` leaves orphaned rows and stray files
+### T-75 — ✅ CLOSED / NOT REPRODUCIBLE (2026-10-19): `verify:media` cleanup works
 `cms/src/verify/media.ts` uses `payload.delete`, which does not remove the `media` rows, so every
 run accumulates `s9-verify-*` documents and files. Verified pre-existing: the same two cleanup
 assertions fail on unmodified code. Also relevant because **T-58 is gated on this script's
 no-sharp contract flipping**, and a broken cleanup there will bite whoever picks T-58 up. (The 6
 orphaned rows created during tonight's runs were deleted; the library is back to its 8 real docs.)
+
+**The premise was wrong — this is a disproven task, not a fix.** Re-ran the harness from a migrated and
+seeded copy of `ci.db` (`DATABASE_URI=file:/tmp/t75.db`, isolated `MEDIA_UPLOAD_DIR`):
+
+```
+PASS  every test document was removed — remaining=0
+PASS  no stray test files were left on disk
+✅ all checks passed
+```
+
+and then queried the database directly rather than trusting the harness's own assertion:
+`SELECT COUNT(*) FROM media WHERE filename LIKE 's9-verify%'` → **0** rows, and **0** stray files on
+disk. Ran it a **second** time against the same database to check idempotency — again 0 rows and 0
+strays, all checks passing. So `payload.delete` **does** remove the `media` rows; the claim recorded
+here that it does not was incorrect.
+
+**Why it was believed.** The failure was reported as "verified pre-existing: the same two cleanup
+assertions fail on unmodified code" — but the assertions are *conditional on what else is in the
+collection and on `MEDIA_UPLOAD_DIR`*. Asserting against a database where a prior interrupted run had
+already left rows, or with an upload directory pointed somewhere stale, reproduces the symptom without
+the cause being the delete call. The harness has since been made to count only its **own** uploads
+(`filename LIKE 's9-verify'`), which is the right fix and is already in place; whatever produced the
+original failure is not reproducible now.
+
+**Consequence for T-58:** the concern recorded here — that a broken cleanup would bite whoever picked
+T-58 up — is withdrawn. The cleanup is sound, so T-58's gate on this script's no-sharp contract is not
+additionally blocked by it.
 
 ### T-76 — ✅ DONE (2026-10-19): false media claims corrected — one was a reader-facing privacy promise
 Found while closing T-70 but outside its file ownership: `cms/src/globals/SiteSettings.ts:26` and
