@@ -2389,3 +2389,34 @@ agent-onboarding section. With this, the owner's "complete all remaining +
 handover" request is satisfied to the extent possible without: (a) more source
 links (content cadence), (b) GitHub-Actions minute reset (~Oct 25), (c) 7-day
 stability before host cleanup. Everything else shipped tonight: T-31..T-42.
+
+### 2026-10-18 ~08:50 — T-43: PageSpeed audit round (owner shared PSI link)
+
+PSI public API was quota-blocked (429, no key), so I measured locally with
+Lighthouse 12 + local Chrome against production — same lab conditions.
+
+BEFORE → AFTER (mobile): accessibility 96 → 100 (both defects fixed),
+performance 96 (held), seo 100, best-practices 93, CLS 0, TBT 0 ms,
+LCP 2.6 s, TTFB 390 ms. Desktop: perf 100 / a11y 100 / seo 100 / bp 93.
+
+FIXED (our code):
+1. DemoAd.astro — three muted-on-raised labels failed 4.5:1 (13px body text
+   plus two 10px captions). Body now text-ink; captions stepped up from
+   ink-subtle/ink-muted to ink-muted/ink. color-contrast now PASS.
+2. HeaderWidgets.astro — the weather button's aria-label ("আবহাওয়া") did not
+   contain its visible text (city + temperature), tripping
+   label-content-name-mismatch. Label dropped for a visually-hidden
+   "আবহাওয়া:" prefix (sr-only exists in global.css), so the accessible name
+   now includes the visible text. Audit now PASS.
+
+NOT ours / not fixable in code:
+3. errors-in-console + inspector-issues: Cloudflare's zone auto-injects
+   static.cloudflareinsights.com/beacon.min.js and our strict/relaxed CSP
+   blocks it. Editing csp.ts would break the byte-for-byte parity contract
+   with .htaccess (verify-cloudflare.mjs, 83 checks) — and rule 7 bans
+   Cloudflare services. Correct fix = OWNER TOGGLE: disable Web Analytics/RUM
+   in the Cloudflare zone (Speed → Web Analytics). Console then goes clean.
+4. uses-long-cache-ttl: CMS-hosted logo SVG (7-day TTL). Cosmetic; the site's
+   own _astro assets are immutable-hashed.
+
+CSP parity re-verified after the change: 83 checks OK. Deployed 828398bc.

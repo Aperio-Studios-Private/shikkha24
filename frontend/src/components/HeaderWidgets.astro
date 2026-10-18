@@ -47,9 +47,9 @@ const { showWeather = true, showPrayer = true } = Astro.props
           type="button"
           id="hw-weather"
           class="hover:text-brand-red"
-          aria-label="আবহাওয়া"
           aria-busy="true"
         >
+          <span class="sr-only">আবহাওয়া:</span>
           <span id="hw-city">—</span>{' '}
           <span class="font-medium text-ink dark:text-dark-ink" id="hw-temp">—</span>{' '}
           <span class="text-ink-subtle dark:text-dark-ink-muted" id="hw-cond" />
