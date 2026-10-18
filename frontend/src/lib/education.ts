@@ -10,7 +10,7 @@
  * All data is **editorially curated** — no external API
  * (`docs/education-feature-inventory.md` §4, `docs/data-sources.md` §2).
  */
-import { cmsFetch } from './cms'
+import { cmsFetch, fetchAllPages } from './cms'
 import type { CmsMedia } from './media'
 
 /* ── Scholarships (N1) ─────────────────────────────────────────── */
@@ -277,12 +277,23 @@ export async function getStudyAbroadGuideBySlug(slug: string): Promise<CmsStudyA
   return data?.docs?.[0] ?? null
 }
 
-/** Every guide slug — for `/study-abroad/[slug]` routes. */
+/**
+ * Every guide slug — for `/study-abroad/[slug]` routes.
+ *
+ * ⚠️ **Paginated. This feeds `getStaticPaths`, so a cap here is not a truncated
+ * list — it is missing routes.** At `limit: 50` the 51st guide simply never got
+ * a page, while the guide stayed listed on `/study-abroad` and in the sitemap:
+ * a live link to a 404, with a green build and no warning. Same failure shape as
+ * the `getAllArticleSlugs()` 500-cap and the 200-cap institution list.
+ *
+ * `fetchAllPages` is the shared walker (200 per request, page until
+ * `totalPages`), so this costs one request today and stops at the real end of
+ * the collection rather than at a guess.
+ */
 export async function getAllStudyAbroadSlugs(): Promise<string[]> {
-  const q = new URLSearchParams({ limit: '50' })
-  const data = await cmsFetch<{ docs?: Array<{ slug: string }> } | null>(
-    `/api/study-abroad-guides?${q}`,
-    null,
-  )
-  return (data?.docs ?? []).map((d) => d.slug).filter(Boolean)
+  const docs = await fetchAllPages<{ slug?: string }>('/api/study-abroad-guides', {
+    depth: 0,
+    sort: '-isFeatured',
+  })
+  return docs.map((doc) => doc.slug).filter((slug): slug is string => Boolean(slug))
 }

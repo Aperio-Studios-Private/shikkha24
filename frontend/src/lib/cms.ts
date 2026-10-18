@@ -555,10 +555,45 @@ export async function getArticles(
   return data?.docs ?? []
 }
 
-/** The single lead story — `isLead`, else the newest published article. */
-export async function getLeadStory(): Promise<CmsArticle | null> {
-  const [lead] = await getArticles({ limit: 1 })
-  return lead ?? null
+/**
+ * The single lead story — the editor's `isLead` pick, else the newest published
+ * article.
+ *
+ * ⚠️ **Why the flagged article is fetched instead of read off the homepage
+ * list.** `getArticles()` returns newest-first, so `[0]` is simply the most
+ * recent story. When an editor ticks `isLead` (an Editor-in-Chief-only field in
+ * `Articles.ts`) they are overriding recency on purpose, and any newer article
+ * would silently take the masthead back from them — the homepage then says "this
+ * is today's most important story" about a story no one chose.
+ *
+ * The filtered read is a **separate request** on purpose: the homepage list is
+ * capped (`limit: 14`) for payload size, so a lead flagged outside that window
+ * is absent from it and cannot be found by searching the array.
+ *
+ * Fallback: when nothing is flagged — which is the state of production today —
+ * `undefined` is returned and the homepage keeps its existing newest-first
+ * masthead byte for byte, so this change cannot reorder a page that has no lead
+ * selected yet.
+ *
+ * The relation fields (`category`, `level`, `district`) are what `ArticleCard`
+ * and the FilterBar render, so those must be populated: `category` is always
+ * populated by Payload, and the `hasMany` taxonomies need `depth=2`.
+ *
+ * @returns The flagged article, or `undefined` when nothing is flagged or the
+ *          CMS is unreachable — never a fabricated story.
+ */
+export async function getLeadArticle(): Promise<CmsArticle | undefined> {
+  const data = await cmsFetch<{ docs?: CmsArticle[] } | null>(
+    `/api/articles${qs({
+      limit: 1,
+      depth: 2,
+      sort: '-publishedAt',
+      'where[_status][equals]': 'published',
+      'where[isLead][equals]': true,
+    })}`,
+    null,
+  )
+  return data?.docs?.[0]
 }
 
 /** Breaking news for the ticker. Empty when nothing is flagged. */
@@ -944,13 +979,18 @@ export interface CmsFactCheck {
  * Returns `[]` both when there are none and when the CMS is unreachable; the
  * page treats both the same way and shows an honest empty state rather than an
  * empty grid (`docs/reliability.md` §4).
+ *
+ * ⚠️ **Paginated, because this feeds `getStaticPaths`.** At the old single
+ * `limit: 100` the 101st fact check silently had no `/fact-check/:id` route at
+ * all — the build stayed green while a published, already-linked correction
+ * became a 404. `fetchAllPages` walks to the real end of the collection
+ * (200 per request) instead of stopping at a fixed cap.
  */
 export async function getFactChecks(): Promise<CmsFactCheck[]> {
-  const data = await cmsFetch<{ docs?: CmsFactCheck[] } | null>(
-    `/api/fact-checks${qs({ limit: 100, depth: 1, sort: '-updatedAt' })}`,
-    null,
-  )
-  return data?.docs ?? []
+  return fetchAllPages<CmsFactCheck>('/api/fact-checks', {
+    depth: 1,
+    sort: '-updatedAt',
+  })
 }
 
 /** A single fact check by id. The id is the stable part of the URL. */

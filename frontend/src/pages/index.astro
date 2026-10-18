@@ -45,6 +45,7 @@ import {
   getCategories,
   getFooterPages,
   getArticles,
+  getLeadArticle,
   getDeadlines,
   getLevels,
   getDistricts,
@@ -103,13 +104,38 @@ const cmsOrigin = getPublicCmsOrigin()
 const editorial = latest.filter((article) => !article.isSponsored)
 
 /*
+ * ⚠️ THE LEAD SLOT FOLLOWS THE EDITOR, NOT THE CLOCK.
+ *
+ * `editorial` is newest-first, so `editorial[0]` is only ever the most recent
+ * story. When an editor ticks `isLead` in the CMS they are choosing the front
+ * page deliberately, and a story published an hour later would silently displace
+ * it — the masthead then claims "most important" for whatever happened to be
+ * newest. So the flagged article is fetched on its own (see `getLeadArticle`)
+ * and lifted to the head of the list here.
+ *
+ * The `!isSponsored` check on that article is not redundant: the CMS field is
+ * editorial-only, but the sponsored ban on the masthead is an owner rule, and it
+ * must hold even if someone flags a paid piece. Falling through to the unfiltered
+ * list is safe — `editorial` contains no sponsored article by construction.
+ *
+ * Fallback (production state today, verified against the live CMS): nothing is
+ * flagged, `getLeadArticle()` returns `undefined`, and the masthead is the
+ * newest-first list exactly as before this change.
+ */
+const flaggedLead = await getLeadArticle().catch(() => undefined)
+const leadFirst = flaggedLead && !flaggedLead.isSponsored ? flaggedLead : null
+const orderedEditorial = leadFirst
+  ? [leadFirst, ...editorial.filter((article) => article.slug !== leadFirst.slug)]
+  : editorial
+
+/*
  * Newspaper hierarchy — the masthead block reads top-to-bottom in descending
  * importance, the way a printed front page does:
  *   lead    one story, largest image and headline
  *   medium  2-3 stories, medium treatment
  *   small   the next few, headline only
  */
-const masthead = editorial.slice(0, 9)
+const masthead = orderedEditorial.slice(0, 9)
 const lead = masthead[0] ?? null
 const medium = masthead.slice(1, 4)
 const small = masthead.slice(4, 9)
