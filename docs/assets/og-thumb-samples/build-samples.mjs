@@ -163,8 +163,11 @@ async function main() {
       .composite([
         { input: mark, left: Math.round((W - markPx) / 2), top: y0 },
         { input: t.buf, left: Math.round((W - t.w) / 2), top: y0 + markPx + gap },
-      ]).jpeg({ quality: 92 }).toFile(path.join(OUT, 'S3-stacked-1200x1200.jpg'))
-    console.log('S3', out.s3, `font=${fontSize}`)
+      ])
+    await out.s3.clone().jpeg({ quality: 92 }).toFile(path.join(OUT, 'S3-stacked-1200x1200.jpg'))
+    // Owner pick (T-57): the stacked design ships as the final lossless PNG.
+    await out.s3.clone().png().toFile(path.join(OUT, 'thumbnail-final-1200x1200.png'))
+    console.log('S3 + final PNG written', `font=${fontSize}`)
   }
 
   // V0 — the CURRENT pattern recreated (one wide row) + its centre 1:1 crop,
