@@ -16,34 +16,45 @@ import { checkUploadQuota } from '../lib/media-quota'
  * browser caching via `Cache-Control` in `.htaccess` is the only mitigation for
  * repeat-visit bandwidth. The 200 GB/month cap applies to all media traffic.
  *
- * ## Three storage controls, all enforced here rather than left to discipline
+ * ## What is actually stored — the original, byte for byte
  *
- * 1. **The original is never kept as uploaded.** `upload.formatOptions` runs the
- *    incoming file through sharp `toFormat('webp')` *before it is written*, so
- *    the stored "original" is already a WebP — a 900 KB JPEG becomes a ~90 KB
- *    WebP. This is the plan's mitigation, implemented at the storage layer
- *    instead of hoped for. (`formatOptions` on `upload` applies to the file
- *    itself; each `imageSize` needs its own — Payload documents this.)
- * 2. **The stored dimensions are capped.** `resizeOptions` stops a 6000px phone
- *    photo from being retained at full size. `withoutEnlargement` means a small
- *    image is never upscaled into a bigger file.
- * 3. **A per-day upload cap** (`lib/media-quota.ts`) rejects a burst day that
- *    would consume the month's headroom — the failure that would otherwise be
- *    discovered when the disk filled.
+ * **No conversion, no resize, no metadata stripping happens here.** The file
+ * lands on disk exactly as it was uploaded: a JPEG stays a JPEG at its original
+ * dimensions and filesize, EXIF and all. `upload` below configures no
+ * `formatOptions`, no `resizeOptions` and no `imageSizes`, and those three keys
+ * are the *only* thing that makes Payload construct sharp
+ * (`payload/dist/uploads/generateFileData.js:138,145` — `fileHasAdjustments`
+ * gates `sharp(...)`, and it is `false` with all three unset). Dimensions are
+ * still recorded: `getImageSize` falls through to `probeImageSize`, a pure-JS
+ * header reader (`payload/dist/uploads/getImageSize.js:20,22`).
  *
- * **Metadata is stripped** (`withMetadata: false`) — EXIF, colour profiles and
- * embedded thumbnails add tens of KB per image and can carry location data
- * (`docs/security.md` §8, PII).
+ * **Why:** sharp cannot load on this host (T-07 — the fork/thread limit the
+ * 2026-10-11 uploads hit; full reasoning in `payload.config.ts:509-568`), so it
+ * is deliberately left unset. See the `upload` block below.
  *
- * ## Why WebP only, and not AVIF as well
+ * **Where the compensation is:** the storefront re-encodes remote CMS images at
+ * **build time** through Astro's pipeline (`frontend/src/components/CmsImage.astro`;
+ * `docs/image-optimization.md` §4). Reader-facing pages do get AVIF/WebP — the
+ * CMS just does not make them.
  *
- * `docs/image-optimization.md` prefers AVIF first. For **CMS media** it was
- * considered and deliberately not adopted: emitting AVIF *and* WebP for every
- * size doubles the bytes on the one resource that is actually constrained
- * (host disk), while WebP already captures most of the saving. AVIF remains in
- * use for the locally-built assets that go through Astro's pipeline, where the
- * extra variant costs build output rather than host storage. Revisit if the host
- * moves to the 5 GB plan.
+ * **What would change this:** `.sps/tasks.md` **T-58** (parked, option A) —
+ * add the three keys back, gated on owner approval, a green T-31 clean-cycle,
+ * and a backfill decision for the existing photos.
+ *
+ * ### ⚠️ Correction — this section used to claim the opposite
+ *
+ * It described "three storage controls" that transformed every upload at the
+ * storage layer: `formatOptions` converting to WebP before the write, a
+ * `resizeOptions` dimension cap, and `withMetadata: false` stripping EXIF. It
+ * was wrong because those keys were **removed from this collection on
+ * 2026-10-11** (commit `70e1266`) — the text outlived the code it described, and
+ * an operator reading it would expect WebP files and capped dimensions that are
+ * never produced. The per-day cap it listed third (`lib/media-quota.ts`) is
+ * real and stayed; it is documented in the `beforeValidate` hook below.
+ *
+ * The AVIF-vs-WebP trade-off previously argued here is likewise moot while the
+ * pipeline is off — there is no format decision to make. Whether AVIF joins
+ * WebP is T-58's call, not this file's.
  *
  * ## Security (docs/security.md §6)
  *
@@ -65,7 +76,15 @@ const ALLOWED_MIME_TYPES = [
   'image/svg+xml',
 ]
 
-/** WebP quality. 82 sits in the 75–90 band `docs/image-optimization.md` sets. */
+/*
+ * ⚠️ **Correction (T-70).** WebP quality, and `82` sits in the 75–90 band
+ * `docs/image-optimization.md` sets — but **nothing in this file consumes it**,
+ * because there is no `formatOptions` and no `imageSizes` to apply it to (see
+ * the `upload` block). It is a leftover from the sharp pipeline removed on
+ * 2026-10-11 (`70e1266`). The band still governs the build-time optimiser in the
+ * storefront, which keeps its own settings. Left in place rather than deleted
+ * because this change is comments only; T-58 would be its consumer.
+ */
 export const Media: CollectionConfig = {
   slug: 'media',
   labels: {
@@ -80,13 +99,29 @@ export const Media: CollectionConfig = {
          * run libvips at all (T-07), so this replaces the server-side pipeline
          * rather than supplementing it. Restore the default (delete this block)
          * together with the sharp pipeline when the CloudLinux limit is raised.
+         *
+         * ⚠️ **Correction (T-70).** The restore condition "when the CloudLinux
+         * limit is raised" is **already met** — NPROC went 100 → 200 (see
+         * `payload.config.ts:528`). What keeps this component in place is that
+         * nothing configures sharp in the collection, not a host limit. The
+         * restore condition is now **T-58**: owner approval plus a green T-31
+         * clean-cycle.
          */
         Upload: '@/components/media/OptimisedUpload#OptimisedUploadServer',
       },
     },
     group: { en: 'Media (মিডিয়া)' },
+    /*
+     * ⚠️ **Corrected 2026-10-19 (T-70).** This description used to promise, in
+     * Bengali, that "every upload is automatically converted to WebP". That was
+     * false: `upload` below configures no `formatOptions`, so the CMS converts
+     * nothing and stores the original bytes. A wrong promise in operator-facing
+     * text is worse than no text — an editor would upload a 5 MB JPEG believing
+     * it had been shrunk. It now states what actually happens, in the same
+     * Bengali register as the rest of the admin chrome (rule 10).
+     */
     description:
-      'ছবির লাইব্রেরি। প্রতিটি আপলোড স্বয়ংক্রিয়ভাবে WebP-তে রূপান্তরিত হয় এবং প্রতিদিনের আপলোড সীমা প্রযোজ্য।',
+      'ছবির লাইব্রেরি। আপলোড করা ফাইলটি অবিকৃত অবস্থায় সংরক্ষিত হয় (CMS কোনো রূপান্তর বা রিসাইজ করে না); প্রতিদিনের আপলোড সীমা প্রযোজ্য।',
   },
   access: {
     // Media is publicly readable — it is the site's image origin.
@@ -156,8 +191,14 @@ export const Media: CollectionConfig = {
           throw new Error(`ফাইলটি অনেক বড় (${mb} MB)। সর্বোচ্চ ১৫ MB অনুমোদিত।`)
         }
 
-        // The per-day cap. Measured on the **incoming** size — conversion
-        // shrinks the stored file, but a cap must not understate the input.
+        /*
+         * The per-day cap. Measured on the **incoming** size, which is also the
+         * **stored** size — nothing shrinks the file on the way in (no
+         * `formatOptions`; see the `upload` block). This comment used to say
+         * "conversion shrinks the stored file", which described the sharp
+         * pipeline removed on 2026-10-11 (`70e1266`). Measuring input and output
+         * as equal is the conservative reading and keeps the cap honest.
+         */
         const quota = await checkUploadQuota(req.payload, file.size ?? 0, req)
         if (!quota.allowed) {
           throw new Error(quota.message ?? 'আজকের ছবি আপলোডের সীমা শেষ।')
@@ -170,9 +211,13 @@ export const Media: CollectionConfig = {
   upload: {
     mimeTypes: ALLOWED_MIME_TYPES,
     // SVG is allowed above but is sanitised on delivery by the strict CSP
-    // (`img-src 'self'`) and never served as a top-level document. sharp does
-    // not rasterise SVG (`canResizeImage` excludes it), so a vector stays
-    // vector and no size variants are generated for it.
+    // (`img-src 'self'`) and never served as a top-level document.
+    // ⚠️ **Correction (T-70).** The rest of this comment used to explain that
+    // "sharp does not rasterise SVG (`canResizeImage` excludes it), so a vector
+    // stays vector and no size variants are generated for it". Both halves are
+    // now vacuous here: no `imageSizes` exist for *any* type, and sharp is never
+    // constructed (see below), so SVG is not a special case in this collection.
+    // The CSP sentence above is the part that still governs SVG delivery.
     focalPoint: true,
     /** Where the library lives on the host disk. Outside the web root. */
     staticDir: process.env.MEDIA_UPLOAD_DIR || './data/media',
@@ -181,12 +226,27 @@ export const Media: CollectionConfig = {
      * ⚠️ **No `formatOptions`, `resizeOptions` or `imageSizes`.** Not an
      * oversight — see the sharp note in `payload.config.ts`.
      *
-     * Those three are the *only* things that make Payload construct sharp, and
-     * sharp cannot run on this host at all (T-07). With them absent, uploads
-     * store the original file and `getImageSize` falls through to its pure-JS
-     * probe, so dimensions are still recorded.
+     * Those three are the *only* things that make Payload construct sharp
+     * (`payload/dist/uploads/generateFileData.js:138` builds `fileHasAdjustments`
+     * from exactly `resizeOptions || formatOptions || trimOptions ||
+     * constructorOptions`, and `:145` gates `sharp(...)` on it). With them absent
+     * Payload still records width/height, via `getImageSize`'s pure-JS
+     * `probeImageSize` fallback (`payload/dist/uploads/getImageSize.js:20,22`).
      *
-     * The 15 MB input cap in the `beforeValidate` hook below is what makes this
+     * **Why sharp stays unset:** T-07. The reason is a deliberate choice, not a
+     * permanent host limit — the NPROC limit that caused the 2026-10-11 upload
+     * failures has since been raised, which is exactly why re-enabling this is
+     * **T-58** (owner approval + green T-31 cycle). Do not read this block as
+     * "sharp cannot work here".
+     *
+     * **What compensates today:** the browser-side optimiser in
+     * `@/components/media/OptimisedUpload` (above) shrinks the file before it is
+     * sent, and `frontend/src/components/CmsImage.astro` re-encodes the remote
+     * result at **build time** (`docs/image-optimization.md` §4). Neither is a
+     * substitute for stored variants — admin previews and hotlinks still get the
+     * full-size original.
+     *
+     * The 15 MB input cap in the `beforeValidate` hook above is what makes this
      * tolerable: no resizing means a large photo is stored whole, so the input is
      * bounded instead and the editor is told in Bengali rather than a visitor
      * paying for it on every page load. That guard already existed and is

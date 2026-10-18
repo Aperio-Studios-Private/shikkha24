@@ -60,6 +60,15 @@ async function fire(reason: string): Promise<void> {
       headers: {
         'content-type': 'application/json',
         ...(WEBHOOK_TOKEN ? { authorization: `Bearer ${WEBHOOK_TOKEN}` } : {}),
+        // ⚠️ The hardened publish-watcher (`publish-watcher/src/index.js`,
+        // `isAuthorizedTick`) authorises `POST /run-tick` with `X-Tick-Secret`
+        // — NOT with `authorization`. That header is kept above only because
+        // `DEPLOY_WEBHOOK_URL` can also point at a GitHub-style endpoint; the
+        // watcher ignores it. Both headers carry the same shared secret, so
+        // whichever endpoint is configured on the host finds the one it wants.
+        // Without this header the watcher answers 404 (T-19 hardening, and the
+        // route is closed outright when its TICK_SECRET is unset).
+        ...(WEBHOOK_TOKEN ? { 'x-tick-secret': WEBHOOK_TOKEN } : {}),
       },
       body: JSON.stringify({ reason, at: new Date().toISOString() }),
       signal: AbortSignal.timeout(10_000),
