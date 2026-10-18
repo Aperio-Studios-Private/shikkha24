@@ -3010,3 +3010,22 @@ fonttools availability (not installed; rule 8 dependency line + license note
 required). Everything else already passes: a11y 100, BP 100, SEO 100,
 CLS 0, TBT 0ms, 28 requests, 24.5KB JS, 10.5KB CSS, font-display:swap,
 metrics-matched fallback.
+
+### T-45 — ✅ DONE (2026-10-18 ~09:20): client-facing Bengali handover guide (HTML)
+
+`docs/handover-bn.html` — a self-contained, visual-heavy Bengali manual for a
+NON-TECHNICAL client. 14 sections: getting started, login, admin tour, 9-step
+publishing, breaking news, editing/corrections, image upload, the other
+collections, daily routine, HOW TO REPORT PROBLEMS (5-field template + 3
+severity tiers + screenshot how-to per OS), Google visibility, security,
+8-question FAQ, contacts + first-week checklist.
+
+Visual approach: CSS-drawn admin mockups (sidebar + form, no screenshots to
+rot), step timelines, do/don't split panes, traffic-light severity panes,
+colour-coded button tables, 24 icon tiles, big callouts. Zero external
+requests (rule 7), Bengali-first (rule 10), prints cleanly. Verified: 14 nav
+links ↔ 14 ids, zero broken/orphan anchors, all tables/details balanced,
+~70KB, single file.
+
+Accuracy: every field name, collection, and nav group was read from the real
+CMS source (34 collections / 8 groups / Articles field list), not invented.

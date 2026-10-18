@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>শিক্ষা২৪.কম — হ্যান্ডওভার গাইড | ক্লায়েন্ট ম্যানুয়াল</title>
+<meta name="description" content="শিক্ষা২৪.কম CMS ও ওয়েবসাইট ব্যবহারের সম্পূর্ণ বাংলা গাইড — প্রকাশনা, সম্পাদনা, সমস্যা জানানো ও দৈনন্দিন কাজ।">
+<style>
+/* ============================================================
+   শিক্ষা২৪.কম — ক্লায়েন্ট হ্যান্ডওভার গাইড
+   Self-contained: no CDN, no external requests (rule 7)
+   Bengali-first, visual-heavy (rule 10)
+   ============================================================ */
+:root{
+  --brand:#da1c25; --brand-dark:#b3131b; --brand-soft:#fdecec;
+  --ink:#16181d; --ink-2:#3d4249; --ink-3:#6b7280; --ink-4:#9aa1ab;
+  --line:#e5e7eb; --line-2:#f1f2f4;
+  --bg:#f6f7f9; --card:#ffffff;
+  --ok:#0f7b3f; --ok-soft:#e8f6ee;
+  --warn:#b45309; --warn-soft:#fef4e6;
+  --info:#1d4ed8; --info-soft:#eaeffd;
+  --purple:#6d28d9; --purple-soft:#f2ecfd;
+  --radius:14px; --radius-sm:9px;
+  --shadow:0 1px 2px rgba(16,18,29,.05), 0 4px 14px rgba(16,18,29,.06);
+  --shadow-lg:0 2px 6px rgba(16,18,29,.07), 0 14px 40px rgba(16,18,29,.10);
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:84px}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"SolaimanLipi","Noto Sans Bengali","Hind Siliguri",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:17px; line-height:1.78; -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- layout shell ---------- */
+.wrap{max-width:1180px; margin:0 auto; padding:0 20px}
+.layout{display:grid; grid-template-columns:262px 1fr; gap:34px; align-items:start}
+@media (max-width:1000px){ .layout{grid-template-columns:1fr; gap:0} }
+
+/* ---------- hero ---------- */
+.hero{
+  background:linear-gradient(135deg,#7f0f15 0%,var(--brand) 52%,#ef4444 100%);
+  color:#fff; padding:52px 0 46px; position:relative; overflow:hidden;
+}
+.hero::after{
+  content:""; position:absolute; inset:0;
+  background:radial-gradient(circle at 88% 12%, rgba(255,255,255,.20), transparent 46%),
+             radial-gradient(circle at 8% 92%, rgba(255,255,255,.12), transparent 40%);
+  pointer-events:none;
+}
+.hero .wrap{position:relative; z-index:1}
+.badge{
+  display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.17);
+  border:1px solid rgba(255,255,255,.35); padding:6px 15px; border-radius:999px;
+  font-size:14.5px; font-weight:600; letter-spacing:.2px; backdrop-filter:blur(4px);
+}
+.hero h1{font-size:40px; line-height:1.32; margin:18px 0 12px; font-weight:700; letter-spacing:-.4px}
+.hero p.lead{font-size:18.5px; max-width:74ch; margin:0; color:rgba(255,255,255,.94)}
+.hero-meta{display:flex; flex-wrap:wrap; gap:11px; margin-top:26px}
+.chip{
+  background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3);
+  padding:8px 15px; border-radius:10px; font-size:15px; font-weight:600;
+}
+@media (max-width:640px){ .hero h1{font-size:29px} .hero p.lead{font-size:16.5px} .hero{padding:36px 0 32px} }
+
+/* ---------- sidebar nav ---------- */
+.side{position:sticky; top:20px; background:var(--card); border:1px solid var(--line);
+  border-radius:var(--radius); padding:18px 15px; box-shadow:var(--shadow)}
+@media (max-width:1000px){ .side{position:static; margin:22px 0} }
+.side h2{font-size:12.5px; text-transform:uppercase; letter-spacing:1.1px; color:var(--ink-4);
+  margin:0 0 12px; font-weight:700; padding-left:4px}
+.side ol{list-style:none; margin:0; padding:0; counter-reset:s}
+.side li{counter-increment:s; margin-bottom:2px}
+.side a{
+  display:flex; gap:10px; align-items:center; padding:8px 10px; border-radius:8px;
+  color:var(--ink-2); text-decoration:none; font-size:15.5px; font-weight:500; transition:.15s;
+}
+.side a::before{
+  content:counter(s); flex:0 0 23px; height:23px; border-radius:6px; background:var(--line-2);
+  color:var(--ink-3); font-size:12.5px; font-weight:700; display:grid; place-items:center; transition:.15s;
+}
+.side a:hover{background:var(--brand-soft); color:var(--brand-dark)}
+.side a:hover::before{background:var(--brand); color:#fff}
+.side .grp{margin-top:15px; padding-top:13px; border-top:1px solid var(--line-2)}
+
+/* ---------- main / sections ---------- */
+main{padding:34px 0 90px; min-width:0}
+section{margin-bottom:44px; scroll-margin-top:84px}
+.sec-head{display:flex; align-items:flex-start; gap:15px; margin-bottom:20px}
+.sec-num{
+  flex:0 0 48px; height:48px; border-radius:13px; background:var(--brand); color:#fff;
+  display:grid; place-items:center; font-size:21px; font-weight:700; box-shadow:0 5px 14px rgba(218,28,37,.3);
+}
+.sec-head h2{font-size:27px; margin:0; line-height:1.35; font-weight:700; letter-spacing:-.3px}
+.sec-head p{margin:5px 0 0; color:var(--ink-3); font-size:16px}
+
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:24px 26px; box-shadow:var(--shadow); margin-bottom:18px;
+}
+.card>h3{margin:0 0 14px; font-size:20px; font-weight:700; display:flex; align-items:center; gap:10px}
+.card>h3 .ic{font-size:22px}
+.card p{margin:0 0 13px}
+.card p:last-child{margin-bottom:0}
+.card ul,.card ol{margin:0 0 13px; padding-left:23px}
+.card li{margin-bottom:7px}
+.card ul:last-child,.card ol:last-child{margin-bottom:0}
+h4{font-size:17.5px; margin:20px 0 10px; font-weight:700}
+
+/* ---------- hero-ish figure blocks ---------- */
+.fig{
+  border:1px solid var(--line); border-radius:var(--radius-sm); overflow:hidden;
+  margin:16px 0; background:#fbfbfc;
+}
+.fig-bar{display:flex; align-items:center; gap:7px; padding:9px 13px; background:#eceef1; border-bottom:1px solid var(--line)}
+.fig-bar i{width:10px; height:10px; border-radius:50%; display:block}
+.fig-bar .t{margin-left:8px; font-family:var(--mono); font-size:12.5px; color:var(--ink-3)}
+.fig-body{padding:17px 18px}
+
+/* ---------- callouts ---------- */
+.call{border-radius:var(--radius-sm); padding:15px 17px 15px 16px; margin:15px 0;
+  border-left:5px solid; display:flex; gap:13px; align-items:flex-start}
+.call .ci{font-size:21px; line-height:1.35; flex:0 0 auto}
+.call .cb{flex:1; min-width:0}
+.call strong{display:block; margin-bottom:3px; font-size:16.5px}
+.call p{margin:0; font-size:16px}
+.call.tip{background:var(--ok-soft); border-color:var(--ok); color:#0a5c2f}
+.call.warn{background:var(--warn-soft); border-color:var(--warn); color:#7c3a06}
+.call.stop{background:var(--brand-soft); border-color:var(--brand); color:#8d1119}
+.call.info{background:var(--info-soft); border-color:var(--info); color:#1a3fa8}
+.call.note{background:var(--purple-soft); border-color:var(--purple); color:#4c1d95}
+
+/* ---------- steps ---------- */
+.steps{counter-reset:st; list-style:none; padding:0; margin:16px 0}
+.steps>li{
+  counter-increment:st; position:relative; padding:0 0 20px 52px; margin:0;
+}
+.steps>li::before{
+  content:counter(st); position:absolute; left:0; top:1px; width:34px; height:34px;
+  border-radius:50%; background:#fff; border:2.5px solid var(--brand); color:var(--brand);
+  display:grid; place-items:center; font-weight:700; font-size:15.5px;
+}
+.steps>li::after{
+  content:""; position:absolute; left:16px; top:37px; bottom:0; width:2px; background:var(--line);
+}
+.steps>li:last-child{padding-bottom:0}
+.steps>li:last-child::after{display:none}
+.steps>li b{display:block; font-size:17px; margin-bottom:2px}
+.steps>li .d{color:var(--ink-3); font-size:15.8px}
+
+/* ---------- grid cards (visual tiles) ---------- */
+.tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:14px; margin:16px 0}
+.tile{
+  border:1px solid var(--line); border-radius:var(--radius-sm); padding:17px 16px;
+  background:#fff; transition:.18s;
+}
+.tile:hover{border-color:var(--brand); box-shadow:0 6px 18px rgba(218,28,37,.1); transform:translateY(-2px)}
+.tile .ti{font-size:27px; display:block; margin-bottom:8px; line-height:1}
+.tile b{display:block; font-size:16.5px; margin-bottom:4px}
+.tile span{color:var(--ink-3); font-size:15.2px; line-height:1.6; display:block}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto; margin:16px 0; border:1px solid var(--line); border-radius:var(--radius-sm)}
+table{width:100%; border-collapse:collapse; font-size:15.6px; background:#fff}
+th{background:#f2f3f5; text-align:left; padding:11px 14px; font-weight:700; font-size:15px;
+  border-bottom:1px solid var(--line); white-space:nowrap}
+td{padding:11px 14px; border-bottom:1px solid var(--line-2); vertical-align:top}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:#fafbfc}
+td code,p code,li code{font-family:var(--mono); font-size:14px; background:var(--line-2);
+  padding:2px 6px; border-radius:5px; color:#8d1119; white-space:nowrap}
+
+/* ---------- before/after flow ---------- */
+.flow{display:flex; align-items:center; flex-wrap:wrap; gap:9px; margin:16px 0}
+.flow .n{
+  background:#fff; border:1.5px solid var(--line); border-radius:9px; padding:11px 15px;
+  font-size:15.4px; font-weight:600; display:flex; align-items:center; gap:8px;
+}
+.flow .n.on{border-color:var(--brand); background:var(--brand-soft); color:var(--brand-dark)}
+.flow .ar{color:var(--ink-4); font-size:18px; font-weight:700}
+@media (max-width:640px){ .flow{flex-direction:column; align-items:stretch} .flow .ar{transform:rotate(90deg); text-align:center} }
+
+/* ---------- do / dont split ---------- */
+.split{display:grid; grid-template-columns:1fr 1fr; gap:15px; margin:16px 0}
+@media (max-width:700px){ .split{grid-template-columns:1fr} }
+.pane{border-radius:var(--radius-sm); padding:17px 18px; border:1px solid}
+.pane.yes{background:var(--ok-soft); border-color:#a7d9bd}
+.pane.no{background:var(--brand-soft); border-color:#f3b6ba}
+.pane h4{margin:0 0 10px; font-size:16.5px; display:flex; align-items:center; gap:8px}
+.pane ul{margin:0; padding-left:21px}
+.pane li{margin-bottom:6px; font-size:15.8px}
+
+/* ---------- status pills ---------- */
+.pill{display:inline-block; padding:3px 11px; border-radius:999px; font-size:13.8px;
+  font-weight:700; white-space:nowrap}
+.pill.p-ok{background:var(--ok-soft); color:var(--ok)}
+.pill.p-warn{background:var(--warn-soft); color:var(--warn)}
+.pill.p-stop{background:var(--brand-soft); color:var(--brand-dark)}
+.pill.p-info{background:var(--info-soft); color:var(--info)}
+
+/* ---------- screenshot mock (CSS-drawn) ---------- */
+.mock{background:#fff; border:1px solid var(--line); border-radius:var(--radius-sm); overflow:hidden; margin:16px 0}
+.mock-top{background:#1f2430; padding:9px 13px; display:flex; align-items:center; gap:7px}
+.mock-top i{width:10px;height:10px;border-radius:50%;background:#4b5563;display:block}
+.mock-top .u{margin-left:10px; background:#2c3342; color:#9db2d0; font-family:var(--mono);
+  font-size:12.3px; padding:4px 11px; border-radius:6px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.mock-body{display:grid; grid-template-columns:186px 1fr; min-height:210px}
+@media (max-width:640px){ .mock-body{grid-template-columns:1fr} }
+.mock-side{background:#fafbfc; border-right:1px solid var(--line); padding:13px 11px}
+.mock-side .gi{font-size:12.4px; text-transform:uppercase; letter-spacing:.7px; color:var(--ink-4);
+  font-weight:700; margin:11px 0 6px; padding-left:5px}
+.mock-side .gi:first-child{margin-top:0}
+.mock-side .it{padding:7px 10px; border-radius:7px; font-size:15px; color:var(--ink-2); margin-bottom:2px}
+.mock-side .it.hl{background:var(--brand-soft); color:var(--brand-dark); font-weight:700}
+.mock-main{padding:17px 19px}
+.mock-main .h{font-size:19px; font-weight:700; margin:0 0 4px}
+.mock-main .sub{color:var(--ink-3); font-size:14.8px; margin-bottom:15px}
+.f-row{margin-bottom:13px}
+.f-row label{display:block; font-size:15.2px; font-weight:600; margin-bottom:4px}
+.f-in{border:1.5px solid var(--line); border-radius:8px; padding:9px 12px; font-size:15px;
+  color:var(--ink-4); background:#fcfcfd}
+.f-in.ta{min-height:64px}
+.f-btn{background:var(--brand); color:#fff; border:0; border-radius:8px; padding:10px 20px;
+  font-size:15.4px; font-weight:700; font-family:inherit}
+.f-btn.gh{background:#fff; color:var(--ink-2); border:1.5px solid var(--line)}
+
+/* ---------- faq ---------- */
+details{background:#fff; border:1px solid var(--line); border-radius:var(--radius-sm);
+  margin-bottom:10px; overflow:hidden}
+summary{padding:15px 18px; cursor:pointer; font-weight:600; font-size:16.6px;
+  list-style:none; display:flex; align-items:center; gap:11px}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸"; color:var(--brand); font-size:16px; transition:.2s; flex:0 0 auto}
+details[open] summary::before{transform:rotate(90deg)}
+details[open] summary{border-bottom:1px solid var(--line-2); background:#fcfcfd}
+details .dc{padding:16px 18px 17px 44px}
+details .dc p:first-child{margin-top:0}
+details .dc p:last-child{margin-bottom:0}
+
+/* ---------- contact cards ---------- */
+.contact{display:grid; grid-template-columns:repeat(auto-fit,minmax(245px,1fr)); gap:14px; margin:16px 0}
+.cc{border:1px solid var(--line); border-radius:var(--radius-sm); padding:19px; background:#fff}
+.cc .ci{font-size:29px; display:block; margin-bottom:9px}
+.cc b{display:block; font-size:17px; margin-bottom:5px}
+.cc span{color:var(--ink-3); font-size:15.4px; display:block}
+.cc.stop{border-color:#f3b6ba; background:var(--brand-soft)}
+
+/* ---------- checklist ---------- */
+.check{list-style:none; padding:0; margin:14px 0}
+.check li{position:relative; padding:9px 0 9px 36px; border-bottom:1px dashed var(--line); font-size:16.2px}
+.check li:last-child{border-bottom:0}
+.check li::before{content:"✓"; position:absolute; left:0; top:9px; width:23px; height:23px;
+  background:var(--ok-soft); color:var(--ok); border-radius:6px; display:grid; place-items:center;
+  font-size:14px; font-weight:700}
+
+/* ---------- footer ---------- */
+.gfoot{background:#16181d; color:#a5acb8; padding:32px 0; margin-top:20px}
+.gfoot .wrap{display:flex; flex-wrap:wrap; gap:14px; justify-content:space-between; align-items:center}
+.gfoot b{color:#fff}
+.gfoot .fl{font-size:15px}
+.gfoot a{color:#fff; text-decoration:none; border-bottom:1px solid rgba(255,255,255,.3)}
+.totop{position:fixed; right:20px; bottom:20px; background:var(--brand); color:#fff;
+  width:47px; height:47px; border-radius:50%; display:grid; place-items:center; font-size:20px;
+  text-decoration:none; box-shadow:var(--shadow-lg); opacity:0; pointer-events:none; transition:.25s; z-index:50}
+.totop.show{opacity:1; pointer-events:auto}
+@media print{
+  .side,.totop{display:none} .layout{grid-template-columns:1fr}
+  body{background:#fff; font-size:12pt} .card{box-shadow:none; break-inside:avoid}
+  .hero{background:var(--brand) !important; -webkit-print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= HERO ================= -->
+<header class="hero">
+  <div class="wrap">
+    <span class="badge">📘 ক্লায়েন্ট হ্যান্ডওভার গাইড · সংস্করণ ১.০</span>
+    <h1>শিক্ষা২৪.কম<br>পরিচালনার সম্পূর্ণ গাইড</h1>
+    <p class="lead">এই গাইডটি আপনার জন্য — কোনো প্রযুক্তিগত জ্ঞান ছাড়াই শিক্ষা২৪.কম-এর সংবাদ প্রকাশ করা, সম্পাদনা করা, ছবি দেওয়া, এবং কোনো সমস্যা দেখা দিলে ঠিক কীভাবে জানাবেন — সবকিছু এখানে ধাপে ধাপে দেখানো হয়েছে।</p>
+    <div class="hero-meta">
+      <span class="chip">🌐 shikkha24.com</span>
+      <span class="chip">🔐 cms.shikkha24.com/admin</span>
+      <span class="chip">🗓️ আপডেট: অক্টোবর ২০২৬</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<div class="layout">
+
+  <!-- ================= SIDEBAR ================= -->
+  <nav class="side" aria-label="বিষয়সূচি">
+    <h2>বিষয়সূচি</h2>
+    <ol>
+      <li><a href="#start">শুরু করার আগে</a></li>
+      <li><a href="#login">লগইন করা</a></li>
+      <li><a href="#tour">অ্যাডমিন চেনা</a></li>
+      <li><a href="#publish">নতুন সংবাদ প্রকাশ</a></li>
+      <li><a href="#breaking">ব্রেকিং নিউজ</a></li>
+      <li><a href="#edit">সম্পাদনা ও সংশোধন</a></li>
+      <li><a href="#media">ছবি আপলোড</a></li>
+      <li><a href="#more">আরও যেসব বিভাগ</a></li>
+      <li><a href="#daily">দৈনন্দিন রুটিন</a></li>
+      <li><a href="#report">সমস্যা জানানো</a></li>
+    </ol>
+    <div class="grp">
+      <h2>সহায়ক</h2>
+      <ol style="counter-reset:s 10">
+        <li><a href="#seo">Google-এ দেখা যাওয়া</a></li>
+        <li><a href="#security">নিরাপত্তা</a></li>
+        <li><a href="#faq">সাধারণ প্রশ্ন</a></li>
+        <li><a href="#contacts">জরুরি যোগাযোগ</a></li>
+      </ol>
+    </div>
+  </nav>
+
+  <main>
+
+  <!-- ============ 1. শুরু ============ -->
+  <section id="start">
+    <div class="sec-head">
+      <div class="sec-num">১</div>
+      <div><h2>শুরু করার আগে</h2>
+      <p>আপনার হাতে যা আছে এবং প্রথমেই যা জানা দরকার</p></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">🧩</span> সাইটটি দুই অংশে তৈরি</h3>
+      <p>শিক্ষা২৪.কম দুইটি আলাদা অংশ দিয়ে কাজ করে। এই দুটির পার্থক্য বুঝলে বাকি সব সহজ হয়ে যাবে:</p>
+      <div class="split">
+        <div class="pane yes">
+          <h4>👀 যা পাঠক দেখে</h4>
+          <ul>
+            <li><b>shikkha24.com</b></li>
+            <li>এটি শুধু <b>দেখার</b> ওয়েবসাইট</li>
+            <li>এখানে আপনি কিছু বদলাতে পারবেন না</li>
+          </ul>
+        </div>
+        <div class="pane" style="background:var(--info-soft);border-color:#b9c8f5">
+          <h4>✍️ যেখানে আপনি লিখেন</h4>
+          <ul>
+            <li><b>cms.shikkha24.com/admin</b></li>
+            <li>এই জায়গাতেই সংবাদ লেখা ও প্রকাশ হয়</li>
+            <li>এখানে কাজ করলে ১ মিনিটে সাইটে দেখা যায়</li>
+          </ul>
+        </div>
+      </div>
+      <div class="call info">
+        <span class="ci">💡</span>
+        <div class="cb"><strong>সহজ কথায়</strong>
+        <p>CMS হলো আপনার লেখার ডায়েরি। আপনি ডায়েরিতে লিখে “প্রকাশ” চাপলে সেটি সাথে সাথে সবার সামনে চলে যায়।</p></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">🎁</span> আপনার হাতে যা দেওয়া হয়েছে</h3>
+      <div class="tiles">
+        <div class="tile"><span class="ti">🔑</span><b>লগইন তথ্য</b><span>ইমেইল ও পাসওয়ার্ড — আলাদা ও নিরাপদে রাখা হবে</span></div>
+        <div class="tile"><span class="ti">📘</span><b>এই গাইড</b><span>যেকোনো সময় খুলে দেখতে পারবেন</span></div>
+        <div class="tile"><span class="ti">🌐</span><b>লাইভ সাইট</b><span>shikkha24.com — সবাই এখনই দেখতে পাচ্ছে</span></div>
+        <div class="tile"><span class="ti">📞</span><b>সাপোর্ট</b><span>সমস্যা হলে জানানোর নির্দিষ্ট নিয়ম (১০ নম্বর অংশ)</span></div>
+      </div>
+    </div>
+
+    <div class="call warn">
+      <span class="ci">⚠️</span>
+      <div class="cb"><strong>প্রথম দিনেই এই তিনটি কাজ শেষ করুন</strong>
+      <p>১) নিজের পাসওয়ার্ড বদলে ফেলুন। ২) আরেকবার লগইন করে দেখুন পাসওয়ার্ডটি মনে আছে। ৩) একটি ছোট খবর লিখে <b>“ড্রাফট”</b> হিসেবে সংরক্ষণ করে দেখুন — প্রকাশ করবেন না।</p></div>
+    </div>
+  </section>
+
+  <!-- ============ 2. লগইন ============ -->
+  <section id="login">
+    <div class="sec-head">
+      <div class="sec-num">২</div>
+      <div><h2>লগইন করা</h2>
+      <p>প্রতিদিনের কাজের প্রথম ধাপ</p></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">🔐</span> ধাপে ধাপে লগইন</h3>
+      <ol class="steps">
+        <li><b>ব্রাউজার খুলুন</b><span class="d">Chrome বা Firefox — যেটি অভ্যস্ত</span></li>
+        <li><b>এই ঠিকানায় যান</b><span class="d"><code>cms.shikkha24.com/admin</code></span></li>
+        <li><b>ইমেইল ও পাসওয়ার্ড দিন</b><span class="d">আলাদা কাগজে সংরক্ষিত তথ্য ব্যবহার করুন</span></li>
+        <li><b>“Log in” চাপুন</b><span class="d">লাল রঙের বোতামটি</span></li>
+      </ol>
+
+      <div class="mock">
+        <div class="mock-top"><i></i><i></i><i></i><span class="u">cms.shikkha24.com/admin/login</span></div>
+        <div class="fig-body" style="padding:26px; text-align:center">
+          <div style="max-width:330px;margin:0 auto;text-align:left">
+            <p style="font-size:21px;font-weight:700;margin:0 0 3px">শিক্ষা২৪.কম</p>
+            <p style="color:var(--ink-3);font-size:15px;margin:0 0 17px">সম্পাদনা প্যানেল</p>
+            <div class="f-row"><label>Email</label><div class="f-in">your-email@example.com</div></div>
+            <div class="f-row"><label>Password</label><div class="f-in">••••••••••</div></div>
+            <button class="f-btn" style="width:100%">Log in</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="call stop">
+        <span class="ci">🚫</span>
+        <div class="cb"><strong>লগইন না হলে করবেন না</strong>
+        <p>বারবার ভুল পাসওয়ার্ড দেবেন না — ৫টির বেশি চেষ্টা করলে সাময়িকভাবে বন্ধ হয়ে যেতে পারে। একবার ভুল হলে অপেক্ষা করুন, তারপর সাপোর্টে জানান।</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3. অ্যাডমিন চেনা ============ -->
+  <section id="tour">
+    <div class="sec-head">
+      <div class="sec-num">৩</div>
+      <div><h2>অ্যাডমিন প্যানেল চেনা</h2>
+      <p>বাম দিকের মেনুতে কী কী আছে</p></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">🗺️</span> বাম মেনুর মানচিত্র</h3>
+      <p>লগইন করলে বাম দিকে ৮টি ভাগ দেখবেন। সবগুলো মুখস্থ করার দরকার নেই — আপনার <b>৯০% কাজ কেবল “Editorial” ভাগে</b>।</p>
+
+      <div class="mock">
+        <div class="mock-top"><i></i><i></i><i></i><span class="u">cms.shikkha24.com/admin/collections/articles</span></div>
+        <div class="mock-body">
+          <div class="mock-side">
+            <div class="gi">Editorial</div>
+            <div class="it hl">📰 Articles</div>
+            <div class="it">✍️ Authors</div>
+            <div class="it">📄 Pages</div>
+            <div class="it">✅ Fact Checks</div>
+            <div class="gi">Education</div>
+            <div class="it">🎓 Scholarships</div>
+            <div class="it">📅 Deadlines</div>
+            <div class="it">📢 Circulars</div>
+            <div class="gi">Taxonomy</div>
+            <div class="it">🏷️ Categories</div>
+            <div class="it">🔖 Tags</div>
+          </div>
+          <div class="mock-main">
+            <p class="h">Articles</p>
+            <p class="sub">এখানেই আপনার সব সংবাদ তৈরি হয়</p>
+            <div class="f-row"><label>Headline — শিরোনাম</label><div class="f-in">যেমন: এইচএসসি ফলাফল প্রকাশ ২৫ অক্টোবর</div></div>
+            <div class="f-row"><label>Standfirst — সংক্ষিপ্ত সারমর্ম</label><div class="f-in ta">এক-দুই বাক্যে খবরের মূল কথা</div></div>
+            <div class="f-row"><label>Body — মূল লেখা</label><div class="f-in ta">এখানে বিস্তারিত লিখুন…</div></div>
+            <div style="display:flex;gap:10px;margin-top:17px">
+              <button class="f-btn">Publish</button>
+              <button class="f-btn gh">Save Draft</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h4>৮টি ভাগ — এক নজরে</h4>
+      <div class="tw">
+        <table>
+          <thead><tr><th>ভাগ</th><th>কী কাজে</th><th>আপনার জন্য জরুরি?</th></tr></thead>
+          <tbody>
+            <tr><td><b>Editorial</b><br><span style="color:var(--ink-3);font-size:14.6px">সম্পাদকীয়</span></td><td>সংবাদ (Articles), লেখক, পৃষ্ঠা, ফ্যাক্ট-চেক</td><td><span class="pill p-stop">সবচেয়ে জরুরি</span></td></tr>
+            <tr><td><b>Education</b><br><span style="color:var(--ink-3);font-size:14.6px">শিক্ষা</span></td><td>বৃত্তি, ডেডলাইন, সার্কুলার, ফলাফল লিংক, প্রতিষ্ঠান</td><td><span class="pill p-ok">প্রায়ই লাগে</span></td></tr>
+            <tr><td><b>Taxonomy</b><br><span style="color:var(--ink-3);font-size:14.6px">ট্যাক্সোনমি</span></td><td>বিভাগ (Categories), ট্যাগ, জেলা, স্তর</td><td><span class="pill p-ok">প্রায়ই লাগে</span></td></tr>
+            <tr><td><b>Media</b><br><span style="color:var(--ink-3);font-size:14.6px">মিডিয়া</span></td><td>ছবি, ফটো গ্যালারি, লাইভ স্ট্রিম</td><td><span class="pill p-ok">প্রায়ই লাগে</span></td></tr>
+            <tr><td><b>Interactive</b><br><span style="color:var(--ink-3);font-size:14.6px">ইন্টারঅ্যাকটিভ</span></td><td>জরিপ (Poll), কুইজ, লাইভ ব্লগ</td><td><span class="pill p-info">মাঝে মাঝে</span></td></tr>
+            <tr><td><b>Readers</b><br><span style="color:var(--ink-3);font-size:14.6px">পাঠক</span></td><td>পাঠকের মন্তব্য, পাঠানো সংবাদ, নিউজলেটার</td><td><span class="pill p-info">মাঝে মাঝে</span></td></tr>
+            <tr><td><b>Advertising</b><br><span style="color:var(--ink-3);font-size:14.6px">বিজ্ঞাপন</span></td><td>বিজ্ঞাপনের জায়গা</td><td><span class="pill p-warn">পরে দেখবেন</span></td></tr>
+            <tr><td><b>Administration</b><br><span style="color:var(--ink-3);font-size:14.6px">প্রশাসন</span></td><td>ব্যবহারকারী, পাঠকের অ্যাকাউন্ট</td><td><span class="pill p-warn">সাবধানে</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="call tip">
+        <span class="ci">🎯</span>
+        <div class="cb"><strong>শুধু এই একটি কথা মনে রাখুন</strong>
+        <p>সংবাদ লিখতে সবসময় <b>Editorial → Articles</b>। এটি ভুলে গেলে কেবল এই গাইডের এই অংশটি আবার দেখুন।</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4. প্রকাশ ============ -->
+  <section id="publish">
+    <div class="sec-head">
+      <div class="sec-num">৪</div>
+      <div><h2>নতুন সংবাদ প্রকাশ করা</h2>
+      <p>সবচেয়ে গুরুত্বপূর্ণ কাজ — শুরু থেকে শেষ পর্যন্ত</p></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">🚀</span> পুরো প্রক্রিয়া — ৯ ধাপ</h3>
+      <ol class="steps">
+        <li><b>Editorial → Articles → “Create New”</b><span class="d">নতুন লেখার ফাঁকা পাতা খুলবে</span></li>
+        <li><b>Headline (শিরোনাম) লিখুন</b><span class="d">খবরের মূল কথা — ছোট, স্পষ্ট, আকর্ষণীয়। ৬০–৭০ অক্ষরের মধ্যে রাখলে ভালো</span></li>
+        <li><b>URL slug দিন</b><span class="d">ইংরেজি ছোট হাতের শব্দ, মাঝে হাইফেন। যেমন: <code>hsc-result-2026-date</code></span></li>
+        <li><b>Standfirst / excerpt লিখুন</b><span class="d">এক-দুই বাক্যে পুরো খবরের সারমর্ম — Google-এ এই লেখাটিই দেখা যায়</span></li>
+        <li><b>Body-তে মূল লেখা লিখুন</b><span class="d">অনুচ্ছেদ আলাদা করতে Enter চাপুন। উপশিরোনাম দিতে হেডিং বোতাম ব্যবহার করুন</span></li>
+        <li><b>Category বেছে নিন</b><span class="d">যেমন: শিক্ষা, ভর্তি, চাকরি — ড্রপডাউন থেকে</span></li>
+        <li><b>Tags যোগ করুন</b><span class="d">২–৪টি ট্যাগ — যেমন: এইচএসসি, ফলাফল, ২০২৬</span></li>
+        <li><b>Featured image (ছবি) দিন</b><span class="d">ছবি না দিলেও চলবে, তবে ছবি থাকলে খবর বেশি পড়া যায়</span></li>
+        <li><b>“Publish” চাপুন</b><span class="d">লাল বোতাম। সাথে সাথে সাইটে চলে যাবে ✅</span></li>
+      </ol>
+
+      <div class="call tip">
+        <span class="ci">⏱️</span>
+        <div class="cb"><strong>কত সময় লাগে?</strong>
+        <p>Publish চাপার সাথে সাথে CMS-এ সংরক্ষিত হয়। ওয়েবসাইটে দেখা যেতে <b>১–২ মিনিট</b> সময় লাগে — কারণ সাইটটি অত্যন্ত দ্রুত রাখার জন্য আগেই তৈরি (build) হয়ে থাকে।</p></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">🔴</span> লাল বোতামগুলোর অর্থ</h3>
+      <p>অ্যাডমিনে রঙ দিয়ে বোঝানো হয় কোন কাজটি কী ধরনের। এটিই ভুল হওয়া থেকে বাঁচায়:</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>রঙ</th><th>বোতাম</th><th>মানে</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill p-ok">সবুজ</span></td><td><b>Publish</b></td><td>সবার সামনে ছেড়ে দেওয়া — এটিই আপনি চান</td></tr>
+            <tr><td><span class="pill p-info">নীল</span></td><td><b>Save Draft</b></td><td>শুধু সংরক্ষণ, কেউ দেখবে না — পরে সম্পাদনা করবেন</td></tr>
+            <tr><td><span class="pill p-warn">অ্যাম্বার</span></td><td><b>Review / Approve</b></td><td>সম্পাদকের অনুমোদনের জন্য অপেক্ষা</td></tr>
+            <tr><td><span class="pill p-stop">লাল</span></td><td><b>Delete</b></td><td>মুছে ফেলা — <b style="color:var(--brand-dark)">ফিরিয়ে আনা যায় না</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="call stop">
+        <span class="ci">🛑</span>
+        <div class="cb"><strong>এই একটি কাজ কখনোই করবেন না</strong>
+        <p>কোনো লেখা মুছতে হলে আগে <b>সাপোর্টে জানান</b>। Delete চাপলে লেখাটি স্থায়ীভাবে হারিয়ে যায় — কোনো ফিরিয়ে আনার বোতাম নেই।</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5. ব্রেকিং ============ -->
+  <section id="breaking">
+    <div class="sec-head">
+      <div class="sec-num">৫</div>
+      <div><h2>ব্রেকিং নিউজ</h2>
+      <p>সাইটের সবচেয়ে উপরে লাল ফিতিতে দেখানোর নিয়ম</p></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">⚡</span> ব্রেকিং নিউজ কীভাবে বানাবেন</h3>
+      <p>ব্রেকিং নিউজ ওয়েবসাইটের একেবারে উপরে <b>লাল চলমান ফিতায়</b> সবার আগে দেখা যায়। এটি সাধারণ সংবাদের মতোই, শুধু একটি সুইচ বাড়তি:</p>
+      <ol class="steps">
+        <li><b>স্বাভাবিকভাবে সংবাদটি তৈরি করুন</b><span class="d">অংশ ৪ অনুযায়ী পুরো লেখাটি শেষ করুন</span></li>
+        <li><b>“Breaking” সুইচ চালু করুন</b><span class="d">সাধারণত মুখ্য অংশে থাকে</span></li>
+        <li><b>Publish চাপুন</b><span class="d">সাইটে গেলে উপরের ফিতায় দেখবেন</span></li>
+      </ol>
+
+      <div class="fig">
+        <div class="fig-bar"><i style="background:#ef4444"></i><i style="background:#fbbf24"></i><i style="background:#34d399"></i><span class="t">shikkha24.com — উপরের অংশ</span></div>
+        <div class="fig-body" style="padding:0">
+          <div style="background:var(--brand);color:#fff;padding:11px 15px;font-weight:700;font-size:15.6px;display:flex;align-items:center;gap:9px">
+            <span style="background:#fff;color:var(--brand);padding:2px 9px;border-radius:5px;font-size:13.4px">ব্রেকিং</span>
+            এইচএসসি ফলাফল ২৫ অক্টোবর প্রকাশের সম্ভাবনা
+          </div>
+          <div style="padding:15px;color:var(--ink-3);font-size:15.2px">↑ এখানেই আপনার ব্রেকিং সংবাদ দেখা যাবে</div>
+        </div>
+      </div>
+
+      <div class="split">
+        <div class="pane yes">
+          <h4>✅ ব্রেকিং করার সময়</h4>
+          <ul>
+            <li>হঠাৎ ফলাফল ঘোষণা</li>
+            <li>সরকারি প্রজ্ঞাপন জারি</li>
+            <li>পরীক্ষার তারিখ পরিবর্তন</li>
+            <li>সার্কুলার প্রকাশ</li>
+          </ul>
+        </div>
+        <div class="pane no">
+          <h4>❌ ব্রেকিং করবেন না</h4>
+          <ul>
+            <li>সাধারণ তথ্যমূলক লেখা</li>
+            <li>পুরনো খবর আবার</li>
+            <li>গুজব বা যাচাই না করা তথ্য</li>
+            <li>দুই-তিনটি একসাথে</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="call warn">
+        <span class="ci">⚠️</span>
+        <div class="cb"><strong>ব্রেকিং ফিতায় একসাথে অনেক খবর দেবেন না</strong>
+        <p>একসাথে ৩টির বেশি ব্রেকিং থাকলে পাঠক বিভ্রান্ত হন। নতুন ব্রেকিং দেওয়ার আগে পুরনোটির সুইচ বন্ধ করে দিন।</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 6. সম্পাদনা ============ -->
+  <section id="edit">
+    <div class="sec-head">
+      <div class="sec-num">৬</div>
+      <div><h2>সম্পাদনা, সংশোধন ও বাতিল</h2>
+      <p>প্রকাশের পরেও ভুল ঠিক করার নিয়ম</p></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">✏️</span> প্রকাশিত লেখা সম্পাদনা</h3>
+      <ol class="steps">
+        <li><b>Editorial → Articles-এ যান</b><span class="d">সব লেখার তালিকা দেখবেন</span></li>
+        <li><b>যে লেখাটি বদলাবেন সেটি খুঁজুন</b><span class="d">উপরের সার্চ বক্সে শিরোনামের শব্দ লিখুন — দ্রুত পাবেন</span></li>
+        <li><b>লেখাটিতে ক্লিক করুন</b><span class="d">সম্পাদনার পাতা খুলবে</span></li>
+        <li><b>যা দরকার বদলান</b><span class="d">শিরোনাম, লেখা, ছবি — সবকিছু</span></li>
+        <li><b>Save চাপুন</b><span class="d">পরিবর্তন সংরক্ষিত হবে</span></li>
+      </ol>
+      <div class="call info">
+        <span class="ci">ℹ️</span>
+        <div class="cb"><strong>অনুগ্রহ করে “মুছে ফেলা” নয়, “সংশোধন” করুন</strong>
+        <p>ভুল তথ্য দিলে লেখাটি মুছবেন না। সঠিক তথ্য দিয়ে সম্পাদনা করুন — কারণ পাঠক ও Google পুরনো লেখাটি ইতিমধ্যেই চিনে ফেলেছে।</p></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">📝</span> সংশোধনের ঘোষণা (Correction Notice)</h3>
+      <p>কোনো গুরুত্বপূর্ণ ভুল হলে পাঠকের আস্থা রাখতে প্রকাশ্যে সংশোধনী লেখা ভালো অভ্যাস। সংবাদ সম্পাদনার পাতায় <b>“Correction Notice”</b> নামে একটি ঘর আছে — সেখানে লিখলে লেখার শেষে সংশোধনীটি পাঠক দেখতে পায়।</p>
+      <div class="call tip">
+        <span class="ci">✅</span>
+        <div class="cb"><strong>এটি আপনার বিশ্বাসযোগ্যতা বাড়ায়</strong>
+        <p>ভুল স্বীকার করা দুর্বলতা নয় — বরং পাঠকের আস্থা অর্জনের সবচেয়ে ভালো উপায়।</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 7. ছবি ============ -->
+  <section id="media">
+    <div class="sec-head">
+      <div class="sec-num">৭</div>
+      <div><h2>ছবি আপলোড করা</h2>
+      <p>খবরের সাথে ছবি দিলে পড়া বাড়ে</p></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">🖼️</span> ছবি দেওয়ার নিয়ম</h3>
+      <ol class="steps">
+        <li><b>Media → Create New</b><span class="d">অথবা সংবাদের ভেতরেই Featured Image-এ ক্লিক করুন</span></li>
+        <li><b>“Choose file” চেপে ছবি বেছে নিন</b><span class="d">কম্পিউটার থেকে ছবি নির্বাচন করুন</span></li>
+        <li><b>Alt text অবশ্যই লিখুন</b><span class="d">ছবিতে কী দেখা যাচ্ছে — এক লাইনে</span></li>
+        <li><b>Caption (ছবির নিচের লেখা) দিন</b><span class="d">কোন অনুষ্ঠান, কোথায় — সংক্ষেপে</span></li>
+        <li><b>Credit (সূত্র) লিখুন</b><span class="d">ছবি কোথা থেকে পেয়েছেন</span></li>
+        <li><b>Save চাপুন</b><span class="d">তারপর সংবাদে ছবিটি বেছে নিন</span></li>
+      </ol>
+
+      <div class="call stop">
+        <span class="ci">⚠️</span>
+        <div class="cb"><strong>Alt text খালি রাখা যাবে না</strong>
+        <p>সিস্টেম ছবি সংরক্ষণ করবে না যদি Alt text না লেখা থাকে। এটি দৃষ্টিপ্রতিবন্ধী পাঠকদের জন্যও জরুরি — এবং Google-এ ছবি খুঁজে পাওয়ার জন্য।</p></div>
+      </div>
+
+      <h4>সুপারিশকৃত ছবির বৈশিষ্ট্য</h4>
+      <div class="tw">
+        <table>
+          <thead><tr><th>বিষয়</th><th>যা ভালো</th><th>যা এড়িয়ে চলুন</th></tr></thead>
+          <tbody>
+            <tr><td>ধরন</td><td>JPG, PNG, WebP</td><td>Word/PDF ফাইল</td></tr>
+            <tr><td>আকার</td><td>১ মেগাবাইটের কম</td><td>১০ মেগাবাইটের বড় ছবি</td></tr>
+            <tr><td>প্রস্থ</td><td>১২০০ পিক্সেলের কাছাকাছি</td><td>খুব ছোট বা বিশাল</td></tr>
+            <tr><td>নাম</td><td>ইংরেজিতে অর্থপূর্ণ<br><code>hsc-result-2026.jpg</code></td><td>মোবাইলের ডিফল্ট নাম<br><code>IMG_4821.jpg</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 8. আরও বিভাগ ============ -->
+  <section id="more">
+    <div class="sec-head">
+      <div class="sec-num">৮</div>
+      <div><h2>আরও যেসব বিভাগ কাজে লাগবে</h2>
+      <p>সংবাদ ছাড়াও সাইটে যা যা আছে</p></div>
+    </div>
+
+    <div class="card">
+      <div class="tiles">
+        <div class="tile"><span class="ti">🎓</span><b>বৃত্তি (Scholarships)</b><span>বৃত্তির তালিকা ও তথ্য — শিক্ষার্থীরা সবচেয়ে বেশি খোঁজে</span></div>
+        <div class="tile"><span class="ti">📅</span><b>ডেডলাইন (Deadlines)</b><span>আবেদনের শেষ তারিখ — সাইটে আলাদা ফিতে স্বয়ংক্রিয়ভাবে দেখায়</span></div>
+        <div class="tile"><span class="ti">📢</span><b>সার্কুলার (Circulars)</b><span>সরকারি নোটিশ ও বিজ্ঞপ্তি</span></div>
+        <div class="tile"><span class="ti">🔗</span><b>ফলাফল লিংক (Results)</b><span>ফলাফল দেখার সরকারি ওয়েবসাইটের লিংক</span></div>
+        <div class="tile"><span class="ti">🏫</span><b>প্রতিষ্ঠান (Institutions)</b><span>স্কুল, কলেজ ও বিশ্ববিদ্যালয়ের তথ্য</span></div>
+        <div class="tile"><span class="ti">❓</span><b>সাধারণ প্রশ্ন (FAQ)</b><span>পাঠকের বারবার আসা প্রশ্নের উত্তর</span></div>
+        <div class="tile"><span class="ti">📊</span><b>জরিপ (Polls)</b><span>পাঠকের মতামত নেওয়ার ছোট ভোট</span></div>
+        <div class="tile"><span class="ti">🧠</span><b>কুইজ (Quizzes)</b><span>পরীক্ষার প্রস্তুতির মজার পরীক্ষা</span></div>
+        <div class="tile"><span class="ti">📸</span><b>ফটো গ্যালারি</b><span>অনুষ্ঠানের একাধিক ছবি একসাথে</span></div>
+        <div class="tile"><span class="ti">✅</span><b>ফ্যাক্ট চেক</b><span>গুজব যাচাই করে সত্য জানানো</span></div>
+        <div class="tile"><span class="ti">📰</span><b>পাঠকের সংবাদ</b><span>পাঠক যা পাঠায়, যাচাই করে প্রকাশ</span></div>
+        <div class="tile"><span class="ti">💬</span><b>মন্তব্য (Comments)</b><span>পাঠকের মন্তব্য দেখা ও অনুমোদন</span></div>
+      </div>
+      <div class="call info">
+        <span class="ci">💡</span>
+        <div class="cb"><strong>শুরুতে সবগুলো শিখতে হবে না</strong>
+        <p>প্রথম সপ্তাহে কেবল <b>Articles</b> ও <b>ছবি</b> শিখুন। বাকিগুলো দরকার হলে ধীরে ধীরে — এই গাইডটি সবসময় আছে।</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 9. রুটিন ============ -->
+  <section id="daily">
+    <div class="sec-head">
+      <div class="sec-num">৯</div>
+      <div><h2>দৈনন্দিন রুটিন</h2>
+      <p>প্রতিদিন কী করবেন — সহজ তালিকা</p></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">🌅</span> সকালের কাজ (১০ মিনিট)</h3>
+      <ul class="check">
+        <li>সাইট খুলে দেখুন সবকিছু ঠিকভাবে দেখা যাচ্ছে কি না</li>
+        <li>আগের দিনের ব্রেকিং নিউজ ফিতা বন্ধ করুন (যদি পুরনো হয়)</li>
+        <li>কোনো ডেডলাইনের তারিখ পার হয়ে গেলে সেটি সরান বা হালনাগাদ করুন</li>
+        <li>পাঠকের নতুন মন্তব্য থাকলে দেখুন</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">📰</span> দিনের কাজ</h3>
+      <ul class="check">
+        <li>নতুন খবর থাকলে সাথে সাথে প্রকাশ করুন — সংবাদ পুরনো হলে মূল্য কমে</li>
+        <li>জরুরি খবর হলে ব্রেকিং সুইচ চালু করুন</li>
+        <li>প্রতিটি খবরে অন্তত ২–৩টি ট্যাগ দিন</li>
+        <li>সম্ভব হলে একটি ছবি দিন</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">🌙</span> দিনের শেষে (৫ মিনিট)</h3>
+      <ul class="check">
+        <li>আজ প্রকাশিত লেখাগুলো একবার পড়ে দেখুন বানান ঠিক আছে কি না</li>
+        <li>কোনো ভুল পেলে সংশোধন করুন</li>
+        <li>সাইটের homepage-এ দৃষ্টিনন্দন দেখাচ্ছে কি না দেখুন</li>
+      </ul>
+      <div class="call tip">
+        <span class="ci">🏆</span>
+        <div class="cb"><strong>একটি সহজ নিয়ম যা সবচেয়ে বেশি কাজে দেয়</strong>
+        <p><b>প্রতিদিন অন্তত একটি সংবাদ</b> প্রকাশ করুন। নিয়মিত প্রকাশই Google-এ সাইটটিকে দ্রুত দেখানোর সবচেয়ে বড় কারণ।</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 10. সমস্যা জানানো ============ -->
+  <section id="report">
+    <div class="sec-head">
+      <div class="sec-num">১০</div>
+      <div><h2>সমস্যা হলে কীভাবে জানাবেন</h2>
+      <p>এই অংশটি সংরক্ষণ করে রাখুন — বিপদে সবচেয়ে বেশি লাগবে</p></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">📣</span> সমস্যা জানানোর সঠিক নিয়ম</h3>
+      <p>ভালোভাবে জানালে দ্রুত সমাধান হয়। শুধু “সাইট কাজ করছে না” লিখলে কারণ খুঁজতে অনেক সময় নষ্ট হয়। <b>নিচের ৫টি তথ্য</b> একসাথে পাঠান:</p>
+
+      <div class="tw">
+        <table>
+          <thead><tr><th>#</th><th>যা পাঠাবেন</th><th>উদাহরণ</th></tr></thead>
+          <tbody>
+            <tr><td><b>১</b></td><td>ঠিক কী করছিলেন</td><td>“Articles-এ নতুন সংবাদ লিখছিলাম”</td></tr>
+            <tr><td><b>২</b></td><td>ঠিক কী হয়েছে</td><td>“Publish চাপলে লাল লেখা এসেছে”</td></tr>
+            <tr><td><b>৩</b></td><td>সম্পূর্ণ লেখা / ছবি</td><td>স্ক্রিনশট — <b>সবচেয়ে কাজের</b></td></tr>
+            <tr><td><b>৪</b></td><td>কোন পাতায় ছিলেন</td><td>ঠিকানার লিংক কপি করে দিন</td></tr>
+            <tr><td><b>৫</b></td><td>কখন হয়েছে</td><td>“আজ সকাল ১০টার দিকে”</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>স্ক্রিনশট কীভাবে নেবেন</h4>
+      <div class="tiles">
+        <div class="tile"><span class="ti">🪟</span><b>Windows</b><span><b>Windows + Shift + S</b> চাপুন → স্ক্রিনের যে অংশ দেখাতে চান টেনে নিন</span></div>
+        <div class="tile"><span class="ti">🍎</span><b>Mac</b><span><b>Command + Shift + 4</b> চাপুন → যে অংশ দেখাতে চান টেনে নিন</span></div>
+        <div class="tile"><span class="ti">📱</span><b>মোবাইল</b><span>Power + Volume Down একসাথে চাপুন</span></div>
+      </div>
+
+      <div class="call stop">
+        <span class="ci">📷</span>
+        <div class="cb"><strong>সমস্যার স্ক্রিনশট নেওয়া সবচেয়ে জরুরি</strong>
+        <p>লেখাটি যা বলছে তার চেয়ে ছবিটি অনেক বেশি তথ্য দেয়। সম্ভব হলে সবসময় স্ক্রিনশট পাঠান।</p></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">🚦</span> কতটা জরুরি — তিনটি স্তর</h3>
+      <div class="split" style="grid-template-columns:1fr">
+        <div class="pane no">
+          <h4>🔴 এখনই জানান (জরুরি)</h4>
+          <ul>
+            <li>সাইট সম্পূর্ণ বন্ধ / সাদা পাতা দেখাচ্ছে</li>
+            <li>লগইন হচ্ছে না</li>
+            <li>প্রকাশিত খবর ভুল দেখাচ্ছে</li>
+            <li>কোনো লেখা হঠাৎ হারিয়ে গেছে</li>
+            <li>সাইটে অশোভন বা ভুল বিজ্ঞাপন</li>
+          </ul>
+        </div>
+        <div class="pane" style="background:var(--warn-soft);border-color:#f2cfa0">
+          <h4>🟡 আজকের মধ্যে জানান</h4>
+          <ul>
+            <li>ছবি আপলোড হচ্ছে না</li>
+            <li>লেখার ফরম্যাট ঠিক আসছে না</li>
+            <li>ট্যাগ বা বিভাগ যোগ করতে সমস্যা</li>
+            <li>ব্রেকিং ফিতা কাজ করছে না</li>
+          </ul>
+        </div>
+        <div class="pane" style="background:var(--info-soft);border-color:#b9c8f5">
+          <h4>🔵 সুবিধামতো জানান</h4>
+          <ul>
+            <li>নতুন সুবিধা যোগ করার অনুরোধ</li>
+            <li>রঙ বা সাজসজ্জার পরামর্শ</li>
+            <li>“এটা আরও সহজ হলে ভালো হতো”</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">🎯</span> জানানোর আগে এই ৩টি চেষ্টা করুন</h3>
+      <ol class="steps">
+        <li><b>পাতাটি একবার রিফ্রেশ করুন</b><span class="d">অনেক সমস্যা এতেই সেরে যায় — F5 অথবা Command + R</span></li>
+        <li><b>আরেকবার লগইন করুন</b><span class="d">দীর্ঘ সময় কাজ না করলে লগইন শেষ হয়ে যায়</span></li>
+        <li><b>অন্য ব্রাউজারে চেষ্টা করুন</b><span class="d">Chrome-এ সমস্যা হলে Firefox-এ দেখুন — এতে বোঝা যায় সমস্যা সাইটে না ব্রাউজারে</span></li>
+      </ol>
+      <div class="call info">
+        <span class="ci">✍️</span>
+        <div class="cb"><strong>এই ৩টি চেষ্টা করেও না হলে জানান</strong>
+        <p>আর তার সাথে লিখে দিন “রিফ্রেশ ও অন্য ব্রাউজারে চেষ্টা করেছি” — এতে সমাধান আরও দ্রুত হয়।</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 11. SEO ============ -->
+  <section id="seo">
+    <div class="sec-head">
+      <div class="sec-num">১১</div>
+      <div><h2>Google-এ সাইট খুঁজে পাওয়া</h2>
+      <p>জটিল কিছু নয় — কয়েকটি অভ্যাসই যথেষ্ট</p></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">🔎</span> Google-এ ভালো দেখাতে ৫টি অভ্যাস</h3>
+      <div class="tiles">
+        <div class="tile"><span class="ti">✍️</span><b>১. নিয়মিত লিখুন</b><span>প্রতিদিন অন্তত একটি সংবাদ — এটি সবচেয়ে বড় কারণ</span></div>
+        <div class="tile"><span class="ti">🎯</span><b>২. শিরোনামে মূল শব্দ</b><span>যে শব্দে পাঠক খোঁজে, সেটি শিরোনামে রাখুন</span></div>
+        <div class="tile"><span class="ti">📝</span><b>৩. সারমর্ম লিখুন</b><span>Standfirst ভালো হলে Google-এ সেটিই দেখা যায়</span></div>
+        <div class="tile"><span class="ti">🏷️</span><b>৪. ট্যাগ দিন</b><span>প্রতিটি খবরে ২–৩টি ট্যাগ — বিষয়ভিত্তিক যোগাযোগ তৈরি হয়</span></div>
+        <div class="tile"><span class="ti">🔗</span><b>৫. পুরনো খবরের লিংক দিন</b><span>নতুন লেখায় পুরনো প্রাসঙ্গিক সংবাদের লিংক দিন</span></div>
+      </div>
+
+      <div class="call warn">
+        <span class="ci">⏳</span>
+        <div class="cb"><strong>ধৈর্য ধরা খুব জরুরি</strong>
+        <p>নতুন ওয়েবসাইট Google-এ আসতে সাধারণত <b>কয়েক দিন থেকে দুই সপ্তাহ</b> সময় নেয়। এটি স্বাভাবিক — এতে আতঙ্কিত হওয়ার কিছু নেই। নিয়মিত লেখা প্রকাশ করলে সময় কমে আসে।</p></div>
+      </div>
+
+      <div class="call stop">
+        <span class="ci">❌</span>
+        <div class="cb"><strong>যা করলে ক্ষতি হয়</strong>
+        <p>একই খবর বারবার প্রকাশ করা, অন্যের লেখা হুবহু কপি করা, অথবা শিরোনামে ভুল বা অতিরঞ্জিত তথ্য দেওয়া — এগুলো Google-এ সাইটকে পিছিয়ে দেয়।</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 12. নিরাপত্তা ============ -->
+  <section id="security">
+    <div class="sec-head">
+      <div class="sec-num">১২</div>
+      <div><h2>নিরাপত্তা — খুব জরুরি</h2>
+      <p>এই নিয়মগুলো ভাঙলে বড় ক্ষতি হতে পারে</p></div>
+    </div>
+
+    <div class="card">
+      <div class="split">
+        <div class="pane no">
+          <h4>❌ কখনোই করবেন না</h4>
+          <ul>
+            <li>পাসওয়ার্ড কারও সাথে শেয়ার করা</li>
+            <li>কাগজে পাসওয়ার্ড লিখে ডেস্কে রাখা</li>
+            <li>পাবলিক কম্পিউটারে লগইন করা</li>
+            <li>কাউকে লগইন করা অবস্থায় কম্পিউটার ছেড়ে যাওয়া</li>
+            <li>“আপনার পাসওয়ার্ড দিন” — এমন ইমেইলে বিশ্বাস করা</li>
+          </ul>
+        </div>
+        <div class="pane yes">
+          <h4>✅ সবসময় করবেন</h4>
+          <ul>
+            <li>শক্ত পাসওয়ার্ড — বড়-ছোট হাতের অক্ষর, সংখ্যা</li>
+            <li>কাজ শেষে লগআউট করা</li>
+            <li>নিজের কম্পিউটার/মোবাইল থেকেই কাজ করা</li>
+            <li>পাসওয়ার্ড মাসে একবার বদলানো</li>
+            <li>সন্দেহ হলে সাথে সাথে সাপোর্টে জানানো</li>
+          </ul>
+        </div>
+      </div>
+      <div class="call stop">
+        <span class="ci">🚨</span>
+        <div class="cb"><strong>যদি মনে হয় কেউ আপনার অ্যাকাউন্টে ঢুকেছে</strong>
+        <p>সাথে সাথে সাপোর্টে জানান এবং পাসওয়ার্ড বদলান। দেরি করলে ক্ষতি বাড়তে পারে।</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 13. FAQ ============ -->
+  <section id="faq">
+    <div class="sec-head">
+      <div class="sec-num">১৩</div>
+      <div><h2>সাধারণ প্রশ্ন ও উত্তর</h2>
+      <p>যা প্রায়ই জিজ্ঞাসা করা হয়</p></div>
+    </div>
+
+    <details>
+      <summary>সংবাদ প্রকাশ করার পর কতক্ষণে সাইটে দেখা যাবে?</summary>
+      <div class="dc">
+        <p>Publish চাপার সাথে সাথেই CMS-এ সংরক্ষিত হয়। মূল ওয়েবসাইটে দেখা যেতে সাধারণত <b>১–২ মিনিট</b> লাগে। মনে করুন ৫ মিনিট অপেক্ষা করে দেখুন; তারপরও না এলে সাপোর্টে জানান।</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>ভুল করে Publish চেপে ফেলেছি — এখন কী করব?</summary>
+      <div class="dc">
+        <p>চিন্তার কিছু নেই। লেখাটি খুলে সম্পাদনা করুন এবং যা ভুল ছিল ঠিক করে আবার Save চাপুন। <b>Delete চাপবেন না</b> — মুছে ফেললে ফিরিয়ে আনা যায় না।</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>সংবাদের সাথে ছবি না দিলে কি হবে?</summary>
+      <div class="dc">
+        <p>লেখাটি প্রকাশ হবে, সমস্যা নেই। তবে ছবি থাকলে পাঠক বেশি পড়ে এবং সোশ্যাল মিডিয়ায় শেয়ার করলে বেশি ভালো দেখায়। সম্ভব হলে অন্তত একটি ছবি দিন।</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>একসাথে কতগুলো খবর প্রকাশ করতে পারব?</summary>
+      <div class="dc">
+        <p>কোনো সীমা নেই। তবে প্রতিটি খবর <b>পৃথকভাবে</b> তৈরি করুন — কয়েকটি খবর এক লেখায় নয়। এতে পাঠক যা চান ঠিক সেটিই পান।</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>মোবাইল থেকে কাজ করা যাবে?</summary>
+      <div class="dc">
+        <p>যাবে — মোবাইল ব্রাউজারে CMS ভালোভাবে কাজ করে। তবে বড় লেখা ও ছবি আপলোডের জন্য কম্পিউটার ব্যবহার করা বেশি আরামদায়ক।</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>লগআউট হয়ে গেছে হঠাৎ — কেন?</summary>
+      <div class="dc">
+        <p>নিরাপত্তার জন্য কিছু সময় ব্যবহার না করলে সিস্টেম স্বয়ংক্রিয়ভাবে লগআউট করে দেয়। এটি স্বাভাবিক। আবার লগইন করলেই কাজ চালিয়ে যেতে পারবেন।</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>একই সংবাদ দুইবার প্রকাশ হয়ে গেছে — কী করব?</summary>
+      <div class="dc">
+        <p>একটি রাখুন, অন্যটির শিরোনামের পাশে “ডুপ্লিকেট” লিখে সাপোর্টে জানান। নিজে Delete চাপবেন না — আমরা নিরাপদে সরিয়ে দেব।</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Google-এ এখনও দেখা যাচ্ছে না কেন?</summary>
+      <div class="dc">
+        <p>নতুন সাইটে এটি স্বাভাবিক। Google-এর নিজের সময় লাগে — সাধারণত কয়েক দিন থেকে দুই সপ্তাহ। এর মধ্যে <b>নিয়মিত সংবাদ প্রকাশ</b> চালিয়ে যান; এটিই সবচেয়ে ভালো সমাধান।</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ 14. যোগাযোগ ============ -->
+  <section id="contacts">
+    <div class="sec-head">
+      <div class="sec-num">১৪</div>
+      <div><h2>জরুরি যোগাযোগ</h2>
+      <p>সমস্যা বা প্রশ্নে কোথায় জানাবেন</p></div>
+    </div>
+
+    <div class="card">
+      <div class="contact">
+        <div class="cc stop">
+          <span class="ci">🚨</span>
+          <b>জরুরি সমস্যা</b>
+          <span>সাইট বন্ধ, লগইন সমস্যা, লেখা হারিয়ে যাওয়া — সাথে সাথে জানান। স্ক্রিনশট দিতে ভুলবেন না।</span>
+        </div>
+        <div class="cc">
+          <span class="ci">📝</span>
+          <b>সাধারণ সমস্যা</b>
+          <span>ছবি আপলোড, ফরম্যাট, ট্যাগ — আজকের মধ্যে জানালেই যথেষ্ট।</span>
+        </div>
+        <div class="cc">
+          <span class="ci">💡</span>
+          <b>নতুন পরামর্শ</b>
+          <span>নতুন সুবিধা বা সাজসজ্জার 아이ডিয়া — যেকোনো সময় জানাতে পারেন।</span>
+        </div>
+      </div>
+
+      <div class="call note">
+        <span class="ci">📌</span>
+        <div class="cb"><strong>মনে রাখার সহজ নিয়ম</strong>
+        <p>যেকোনো সমস্যায় এই তিনটি জিনিস পাঠান: <b>১) কী করছিলেন ২) কী হয়েছে ৩) স্ক্রিনশট</b> — ব্যস, এতটুকুই।</p></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="ic">✅</span> যাত্রা শুরুর চেকলিস্ট</h3>
+      <p>নিচের কাজগুলো একবার করে ফেললে আপনি পুরোপুরি প্রস্তুত:</p>
+      <ul class="check">
+        <li>CMS-এ লগইন করতে পেরেছি</li>
+        <li>একটি ছোট সংবাদ ড্রাফট হিসেবে সংরক্ষণ করেছি</li>
+        <li>ছবি আপলোড করে দেখেছি</li>
+        <li>ব্রেকিং সুইচ কোথায় আছে দেখে নিয়েছি</li>
+        <li>সমস্যা জানানোর নিয়ম (১০ নম্বর অংশ) পড়েছি</li>
+        <li>নিজের পাসওয়ার্ড বদলেছি</li>
+        <li>এই গাইডটি সংরক্ষণ করেছি</li>
+      </ul>
+    </div>
+  </section>
+
+  </main>
+</div>
+</div>
+
+<footer class="gfoot">
+  <div class="wrap">
+    <div class="fl">
+      <b>শিক্ষা২৪.কম — ক্লায়েন্ট হ্যান্ডওভার গাইড</b><br>
+      সংস্করণ ১.০ · অক্টোবর ২০২৬ · প্রস্তুত: ডেভেলপমেন্ট টিম
+    </div>
+    <div class="fl">
+      🌐 <a href="https://shikkha24.com">shikkha24.com</a> &nbsp;·&nbsp;
+      🔐 <a href="https://cms.shikkha24.com/admin">সম্পাদনা প্যানেল</a>
+    </div>
+  </div>
+</footer>
+
+<a href="#" class="totop" aria-label="উপরে যান">↑</a>
+
+<script>
+/* Back-to-top visibility — the only behaviour this guide needs. */
+(function () {
+  var btn = document.querySelector('.totop');
+  if (!btn) return;
+  var toggle = function () { btn.classList.toggle('show', window.scrollY > 400); };
+  window.addEventListener('scroll', toggle, { passive: true });
+  toggle();
+})();
+</script>
+</body>
+</html>

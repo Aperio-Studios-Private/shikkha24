@@ -2499,3 +2499,25 @@ range), keeping the metrics overrides intact. NOT started: needs fonttools
 (not installed), is a real typography-rendering change, and rule 8/6 apply.
 Expected: ~156KB → roughly 25-45KB, cutting most of the 2.6s render delay and
 lifting mobile LCP toward the <1.5s target. Needs owner approval per rule 2.
+
+### 2026-10-18 ~09:20 — T-45 DONE: client-facing Bengali HTML handover guide
+
+Owner asked for a detailed, general-Bengali, visual-heavy HTML manual teaching
+the client to use the site and to report problems. Delivered
+`docs/handover-bn.html` (~70KB, single file, no external requests).
+
+Why HTML+CSS-drawn mockups instead of screenshots: screenshots of Payload's
+admin go stale the moment a field moves, and they would either bloat the file
+or require hosting. The admin mockups are CSS-drawn (sidebar groups, form
+fields, Publish/Save-Draft buttons) so they stay legible at any width and in
+print.
+
+Content was written from the REAL system, not assumed: the 8 admin nav groups,
+34 collections, and Articles field names (title / slug / excerpt / body /
+category / tags / featuredImage / isBreaking / correctionNotice) were read out
+of `cms/src/collections/*.ts` first. The problem-reporting section (the part
+the owner specifically asked for) gives a 5-field template, three severity
+tiers, and per-OS screenshot instructions.
+
+Verified: 14 sections and 14 matching nav anchors, no broken/orphan anchors,
+balanced tables/details, headless DOM render probe OK, prints cleanly.
