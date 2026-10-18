@@ -8,7 +8,14 @@ with: *"The job was not started because your account is locked due to a billing 
 starts, on any workflow. The previous push (`a712a27`, 18:18:14Z) was green on both (CI 6m29s,
 Deploy 8m8s), so the lock appeared inside that ~57-minute window and has nothing to do with the work.
 
-**Production is fine** — `https://shikkha24.com/` is 200 in 0.26s, because Cloudflare keeps serving
+**Confirmed twice.** The wrap-up commit `c27c0c3` was pushed at **19:45:09Z** (push exit 0 — a push is
+a git operation and is unaffected) and both workflows failed again in **3 seconds** with the *identical*
+annotation (`gh run view 39160189220`): CI `39160189220`, Deploy `39160189040`. So the lock was still
+active ~30 minutes after it was first observed, and **the last green run on this repository remains
+`49f1469` / `a712a27`**. Note the distinction a future agent must not blur: **the code is on `origin`,
+but nothing has been verified by CI since the lock began.**
+
+**Production is fine** — `https://shikkha24.com/` is 200 in 0.34s, because Cloudflare keeps serving
 the last successful deploy. What is broken is *verification and new deploys*, plus the CMS publish
 chain (a dispatched rebuild fails at job start).
 

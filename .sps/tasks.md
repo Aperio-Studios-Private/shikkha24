@@ -3450,9 +3450,14 @@ Consequences to be honest about:
   dispatched now will fail at job start. The owner should know publishes will not reach the site
   until this clears.
 
+**Confirmed twice.** Push at 19:45:09Z (commit `c27c0c3`) succeeded at the git level (exit 0) but both
+workflows failed again in **3 seconds** with the identical annotation — CI `39160189220`, Deploy
+`39160189040` (`gh run view 39160189220`). The lock outlasted the whole remainder of the session. The
+code *is* on `origin`; it is simply unverified.
+
 **Unblock:** owner resolves the billing issue on the GitHub account (`SHAHID8142`) — Settings →
-Billing. Then re-run the failed runs (`gh run rerun 39157954190` and `39157954320`) rather than
-pushing an empty commit.
+Billing. Then re-run the failed runs (`gh run rerun 39157954190`, `39157954320`, `39160189220`,
+`39160189040`) rather than pushing an empty commit. Expect **four** workflow runs to re-run, not two.
 
 ### T-79 — 🔴 OPEN (Low, verification hygiene): `cms/data/ci.db` must be migrated before local harness runs
 A subagent reported this fixture as "corrupt" (2 of 7 migrations, `no such column: faqs_id`). **It is
