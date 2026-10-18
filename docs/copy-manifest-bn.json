@@ -1,0 +1,1126 @@
+{
+  "_readme": [
+    "শিক্ষা২৪.কম — স্টোরফ্রন্টের বাংলা লেখার তালিকা।",
+    "\"text\" ঘরে নতুন স্বাভাবিক বাংলা লিখে ফাইলটি ফেরত দিন; বাকি ঘর বদলাবেন না।",
+    "খালি রাখলে সেই লেখা অপরিবর্তিত থাকবে।",
+    "এটি .astro টেমপ্লেটের দৃশ্যমান লেখা — শুধু পাঠ্যের অংশ।",
+    "কারিগরি ফাইল (weather-codes, bangla-date, hijri-date, cms) ইচ্ছাকৃতভাবে বাদ।",
+    "CMS-এর ৪০৫টি লেবেল আলাদা — সেগুলো docs/antigravity-site-copy-prompt.md ধাপ ৬-এ।"
+  ],
+  "total": 159,
+  "strings": [
+    {
+      "id": 1,
+      "file": "components/ArticleAudio.astro",
+      "line": 52,
+      "type": "markup",
+      "text": "শুনুন"
+    },
+    {
+      "id": 2,
+      "file": "components/ArticleCard.astro",
+      "line": 251,
+      "type": "markup",
+      "text": "ব্রেকিং"
+    },
+    {
+      "id": 3,
+      "file": "components/BookmarkButton.astro",
+      "line": 53,
+      "type": "markup",
+      "text": "সংরক্ষণ"
+    },
+    {
+      "id": 4,
+      "file": "components/CommentSection.astro",
+      "line": 116,
+      "type": "markup",
+      "text": "(প্রকাশ করা হবে না)"
+    },
+    {
+      "id": 5,
+      "file": "components/CorrectionNotice.astro",
+      "line": 38,
+      "type": "markup",
+      "text": "সংশোধনী"
+    },
+    {
+      "id": 6,
+      "file": "components/DeadlineReminder.astro",
+      "line": 90,
+      "type": "markup",
+      "text": "মনে করিয়ে দিন"
+    },
+    {
+      "id": 7,
+      "file": "components/DeadlineStrip.astro",
+      "line": 82,
+      "type": "markup",
+      "text": "মাউস/আঙুলে টেনে দেখুন"
+    },
+    {
+      "id": 8,
+      "file": "components/FactVerdictBadge.astro",
+      "line": 58,
+      "type": "markup",
+      "text": "রায়:"
+    },
+    {
+      "id": 9,
+      "file": "components/FilterBar.astro",
+      "line": 87,
+      "type": "markup",
+      "text": "সব জেলা"
+    },
+    {
+      "id": 10,
+      "file": "components/Footer.astro",
+      "line": 252,
+      "type": "markup",
+      "text": "ট্রেড লাইসেন্স:"
+    },
+    {
+      "id": 11,
+      "file": "components/Footer.astro",
+      "line": 258,
+      "type": "markup",
+      "text": "টিআইএন:"
+    },
+    {
+      "id": 12,
+      "file": "components/Footer.astro",
+      "line": 264,
+      "type": "markup",
+      "text": "নিবন্ধন:"
+    },
+    {
+      "id": 13,
+      "file": "components/Header.astro",
+      "line": 251,
+      "type": "markup",
+      "text": "বৃত্তি"
+    },
+    {
+      "id": 14,
+      "file": "components/Header.astro",
+      "line": 252,
+      "type": "markup",
+      "text": "ফলাফল"
+    },
+    {
+      "id": 15,
+      "file": "components/Header.astro",
+      "line": 253,
+      "type": "markup",
+      "text": "প্রতিষ্ঠান"
+    },
+    {
+      "id": 16,
+      "file": "components/Header.astro",
+      "line": 254,
+      "type": "markup",
+      "text": "বিজ্ঞপ্তি"
+    },
+    {
+      "id": 17,
+      "file": "components/Header.astro",
+      "line": 255,
+      "type": "markup",
+      "text": "বিদেশে পড়াশোনা"
+    },
+    {
+      "id": 18,
+      "file": "components/Header.astro",
+      "line": 256,
+      "type": "markup",
+      "text": "পরীক্ষার রুটিন"
+    },
+    {
+      "id": 19,
+      "file": "components/Header.astro",
+      "line": 257,
+      "type": "markup",
+      "text": "জিপিএ ক্যালকুলেটর"
+    },
+    {
+      "id": 20,
+      "file": "components/Header.astro",
+      "line": 258,
+      "type": "markup",
+      "text": "সিজিপিএ ক্যালকুলেটর"
+    },
+    {
+      "id": 21,
+      "file": "components/HeaderWidgets.astro",
+      "line": 52,
+      "type": "markup",
+      "text": "আবহাওয়া:"
+    },
+    {
+      "id": 22,
+      "file": "components/HeaderWidgets.astro",
+      "line": 75,
+      "type": "markup",
+      "text": "নামাজ"
+    },
+    {
+      "id": 23,
+      "file": "components/HeaderWidgets.astro",
+      "line": 112,
+      "type": "markup",
+      "text": "এলাকা নির্বাচন করুন"
+    },
+    {
+      "id": 24,
+      "file": "components/HeaderWidgets.astro",
+      "line": 118,
+      "type": "markup",
+      "text": "সনাক্ত করুন"
+    },
+    {
+      "id": 25,
+      "file": "components/InteractiveStrip.astro",
+      "line": 52,
+      "type": "markup",
+      "text": "দৈনিক কুইজ"
+    },
+    {
+      "id": 26,
+      "file": "components/LiveBlogEntry.astro",
+      "line": 70,
+      "type": "markup",
+      "text": "মূল ঘটনা"
+    },
+    {
+      "id": 27,
+      "file": "components/MobileShareBar.astro",
+      "line": 38,
+      "type": "markup",
+      "text": "হোয়াটসঅ্যাপ"
+    },
+    {
+      "id": 28,
+      "file": "components/MobileShareBar.astro",
+      "line": 49,
+      "type": "markup",
+      "text": "ফেসবুক"
+    },
+    {
+      "id": 29,
+      "file": "components/PollWidget.astro",
+      "line": 71,
+      "type": "markup",
+      "text": "একটি বিকল্প বেছে নিন"
+    },
+    {
+      "id": 30,
+      "file": "components/QuizRunner.astro",
+      "line": 123,
+      "type": "markup",
+      "text": "আপনার ফলাফল"
+    },
+    {
+      "id": 31,
+      "file": "components/ShareRow.astro",
+      "line": 57,
+      "type": "markup",
+      "text": "শেয়ার:"
+    },
+    {
+      "id": 32,
+      "file": "components/ShareRow.astro",
+      "line": 108,
+      "type": "markup",
+      "text": "লিংক কপি"
+    },
+    {
+      "id": 33,
+      "file": "components/SponsoredLabel.astro",
+      "line": 37,
+      "type": "markup",
+      "text": "বিজ্ঞাপন"
+    },
+    {
+      "id": 34,
+      "file": "pages/a/[id].astro",
+      "line": 51,
+      "type": "markup",
+      "text": "এগিয়ে যান"
+    },
+    {
+      "id": 35,
+      "file": "pages/about-us.astro",
+      "line": 19,
+      "type": "markup",
+      "text": "পুনর্নির্দেশ — আমাদের সম্পর্কে"
+    },
+    {
+      "id": 36,
+      "file": "pages/about-us.astro",
+      "line": 27,
+      "type": "markup",
+      "text": "এগিয়ে যান"
+    },
+    {
+      "id": 37,
+      "file": "pages/about.astro",
+      "line": 119,
+      "type": "markup",
+      "text": "যোগাযোগ"
+    },
+    {
+      "id": 38,
+      "file": "pages/about.astro",
+      "line": 122,
+      "type": "markup",
+      "text": "যোগাযোগ"
+    },
+    {
+      "id": 39,
+      "file": "pages/about.astro",
+      "line": 124,
+      "type": "markup",
+      "text": "খবর পাঠান"
+    },
+    {
+      "id": 40,
+      "file": "pages/archive/[...path].astro",
+      "line": 206,
+      "type": "markup",
+      "text": "এখনো কোনো সংবাদ প্রকাশিত হয়নি।"
+    },
+    {
+      "id": 41,
+      "file": "pages/article/[slug].astro",
+      "line": 57,
+      "type": "markup",
+      "text": "এগিয়ে যান"
+    },
+    {
+      "id": 42,
+      "file": "pages/author/[...path].astro",
+      "line": 191,
+      "type": "markup",
+      "text": "লেখকের প্রতিবেদন তালিকা"
+    },
+    {
+      "id": 43,
+      "file": "pages/cgpa.astro",
+      "line": 83,
+      "type": "markup",
+      "text": "সিজিপিএ ক্যালকুলেটর"
+    },
+    {
+      "id": 44,
+      "file": "pages/cgpa.astro",
+      "line": 97,
+      "type": "markup",
+      "text": "আপনার বিশ্ববিদ্যালয়ের গ্রেডিং স্কেল"
+    },
+    {
+      "id": 45,
+      "file": "pages/cgpa.astro",
+      "line": 116,
+      "type": "markup",
+      "text": "হিসাবের নিয়ম"
+    },
+    {
+      "id": 46,
+      "file": "pages/cgpa.astro",
+      "line": 119,
+      "type": "markup",
+      "text": "Σ (গ্রেড পয়েন্ট × ক্রেডিট) ÷ Σ (ক্রেডিট)"
+    },
+    {
+      "id": 47,
+      "file": "pages/cgpa.astro",
+      "line": 123,
+      "type": "markup",
+      "text": "এফ গ্রেড বাদ পড়ে না।"
+    },
+    {
+      "id": 48,
+      "file": "pages/cgpa.astro",
+      "line": 126,
+      "type": "markup",
+      "text": "সেমিস্টার/বর্ষ আলাদা করলে প্রতিটির জিপিএ দেখা যাবে; সব মিলিয়ে সিজিপিএ।"
+    },
+    {
+      "id": 49,
+      "file": "pages/cgpa.astro",
+      "line": 129,
+      "type": "markup",
+      "text": "জিপিএ ক্যালকুলেটর"
+    },
+    {
+      "id": 50,
+      "file": "pages/cgpa.astro",
+      "line": 137,
+      "type": "markup",
+      "text": "কোর্স"
+    },
+    {
+      "id": 51,
+      "file": "pages/cgpa.astro",
+      "line": 138,
+      "type": "markup",
+      "text": "ক্রেডিট"
+    },
+    {
+      "id": 52,
+      "file": "pages/cgpa.astro",
+      "line": 139,
+      "type": "markup",
+      "text": "গ্রেড"
+    },
+    {
+      "id": 53,
+      "file": "pages/cgpa.astro",
+      "line": 140,
+      "type": "markup",
+      "text": "সেমিস্টার"
+    },
+    {
+      "id": 54,
+      "file": "pages/cgpa.astro",
+      "line": 152,
+      "type": "markup",
+      "text": "আপনার সিজিপিএ"
+    },
+    {
+      "id": 55,
+      "file": "pages/cgpa.astro",
+      "line": 168,
+      "type": "markup",
+      "text": "নম্বর (%)"
+    },
+    {
+      "id": 56,
+      "file": "pages/cgpa.astro",
+      "line": 169,
+      "type": "markup",
+      "text": "গ্রেড"
+    },
+    {
+      "id": 57,
+      "file": "pages/cgpa.astro",
+      "line": 170,
+      "type": "markup",
+      "text": "পয়েন্ট"
+    },
+    {
+      "id": 58,
+      "file": "pages/circulars/index.astro",
+      "line": 65,
+      "type": "markup",
+      "text": "বিজ্ঞপ্তির তালিকা"
+    },
+    {
+      "id": 59,
+      "file": "pages/circulars/index.astro",
+      "line": 66,
+      "type": "markup",
+      "text": "শিক্ষা, বিসিএস ও সরকারি চাকরির বিজ্ঞপ্তি — শেষ তারিখ অনুযায়ী সাজানো।"
+    },
+    {
+      "id": 60,
+      "file": "pages/circulars/index.astro",
+      "line": 69,
+      "type": "markup",
+      "text": "এখনো কোনো বিজ্ঞপ্তি যোগ করা হয়নি।"
+    },
+    {
+      "id": 61,
+      "file": "pages/circulars/index.astro",
+      "line": 90,
+      "type": "markup",
+      "text": "আবেদন করুন →"
+    },
+    {
+      "id": 62,
+      "file": "pages/citizen.astro",
+      "line": 146,
+      "type": "markup",
+      "text": "(ঐচ্ছিক)"
+    },
+    {
+      "id": 63,
+      "file": "pages/citizen.astro",
+      "line": 166,
+      "type": "markup",
+      "text": "(ঐচ্ছিক)"
+    },
+    {
+      "id": 64,
+      "file": "pages/citizen.astro",
+      "line": 173,
+      "type": "markup",
+      "text": "নির্বাচন করুন"
+    },
+    {
+      "id": 65,
+      "file": "pages/contact.astro",
+      "line": 97,
+      "type": "markup",
+      "text": "ঠিকানা"
+    },
+    {
+      "id": 66,
+      "file": "pages/contact.astro",
+      "line": 131,
+      "type": "markup",
+      "text": "খবর পাঠাতে চান?"
+    },
+    {
+      "id": 67,
+      "file": "pages/contact.astro",
+      "line": 134,
+      "type": "markup",
+      "text": "খবর পাঠান"
+    },
+    {
+      "id": 68,
+      "file": "pages/deadlines.astro",
+      "line": 165,
+      "type": "markup",
+      "text": "সব স্তর"
+    },
+    {
+      "id": 69,
+      "file": "pages/deadlines.astro",
+      "line": 173,
+      "type": "markup",
+      "text": "সব জেলা"
+    },
+    {
+      "id": 70,
+      "file": "pages/exams.astro",
+      "line": 52,
+      "type": "markup",
+      "text": "পরীক্ষার রুটিন"
+    },
+    {
+      "id": 71,
+      "file": "pages/exams.astro",
+      "line": 53,
+      "type": "markup",
+      "text": "সব পরীক্ষার রুটিন ও তারিখ — এক জায়গায়।"
+    },
+    {
+      "id": 72,
+      "file": "pages/exams.astro",
+      "line": 56,
+      "type": "markup",
+      "text": "এখনো কোনো পরীক্ষার রুটিন যোগ করা হয়নি।"
+    },
+    {
+      "id": 73,
+      "file": "pages/exams.astro",
+      "line": 64,
+      "type": "markup",
+      "text": "পরীক্ষার রুটিন"
+    },
+    {
+      "id": 74,
+      "file": "pages/fact-check/[id].astro",
+      "line": 186,
+      "type": "markup",
+      "text": "সূত্র"
+    },
+    {
+      "id": 75,
+      "file": "pages/fact-check/[id].astro",
+      "line": 208,
+      "type": "markup",
+      "text": "সম্পর্কিত সংবাদ:"
+    },
+    {
+      "id": 76,
+      "file": "pages/fact-check/[id].astro",
+      "line": 218,
+      "type": "markup",
+      "text": "আমাদের জানান"
+    },
+    {
+      "id": 77,
+      "file": "pages/gpa.astro",
+      "line": 61,
+      "type": "markup",
+      "text": "জিপিএ ক্যালকুলেটর"
+    },
+    {
+      "id": 78,
+      "file": "pages/gpa.astro",
+      "line": 75,
+      "type": "markup",
+      "text": "হিসাবের নিয়ম"
+    },
+    {
+      "id": 79,
+      "file": "pages/gpa.astro",
+      "line": 77,
+      "type": "markup",
+      "text": "জিপিএ ="
+    },
+    {
+      "id": 80,
+      "file": "pages/gpa.astro",
+      "line": 77,
+      "type": "markup",
+      "text": "মূল বিষয়গুলোর গ্রেড পয়েন্টের যোগফল ÷ মূল বিষয়ের সংখ্যা"
+    },
+    {
+      "id": 81,
+      "file": "pages/gpa.astro",
+      "line": 84,
+      "type": "markup",
+      "text": "কোনো মূল বিষয়ে এফ"
+    },
+    {
+      "id": 82,
+      "file": "pages/gpa.astro",
+      "line": 84,
+      "type": "markup",
+      "text": "(৩৩-এর কম) থাকলে পুরো জিপিএ"
+    },
+    {
+      "id": 83,
+      "file": "pages/gpa.astro",
+      "line": 84,
+      "type": "markup",
+      "text": "০.০০"
+    },
+    {
+      "id": 84,
+      "file": "pages/gpa.astro",
+      "line": 85,
+      "type": "markup",
+      "text": "ঐচ্ছিক বিষয়ে এফ থাকলে ফলাফল খারাপ হয় না — শুধু বোনাস পাওয়া যায় না।"
+    },
+    {
+      "id": 85,
+      "file": "pages/gpa.astro",
+      "line": 93,
+      "type": "markup",
+      "text": "বিষয়"
+    },
+    {
+      "id": 86,
+      "file": "pages/gpa.astro",
+      "line": 94,
+      "type": "markup",
+      "text": "প্রাপ্ত নম্বর"
+    },
+    {
+      "id": 87,
+      "file": "pages/gpa.astro",
+      "line": 95,
+      "type": "markup",
+      "text": "গ্রেড"
+    },
+    {
+      "id": 88,
+      "file": "pages/gpa.astro",
+      "line": 96,
+      "type": "markup",
+      "text": "ঐচ্ছিক"
+    },
+    {
+      "id": 89,
+      "file": "pages/gpa.astro",
+      "line": 108,
+      "type": "markup",
+      "text": "আপনার জিপিএ"
+    },
+    {
+      "id": 90,
+      "file": "pages/gpa.astro",
+      "line": 116,
+      "type": "markup",
+      "text": "গ্রেড সারণি"
+    },
+    {
+      "id": 91,
+      "file": "pages/gpa.astro",
+      "line": 120,
+      "type": "markup",
+      "text": "নম্বর (%)"
+    },
+    {
+      "id": 92,
+      "file": "pages/gpa.astro",
+      "line": 121,
+      "type": "markup",
+      "text": "গ্রেড"
+    },
+    {
+      "id": 93,
+      "file": "pages/gpa.astro",
+      "line": 122,
+      "type": "markup",
+      "text": "পয়েন্ট"
+    },
+    {
+      "id": 94,
+      "file": "pages/gpa.astro",
+      "line": 183,
+      "type": "markup",
+      "text": "/১০০"
+    },
+    {
+      "id": 95,
+      "file": "pages/gpa.astro",
+      "line": 184,
+      "type": "markup",
+      "text": "/২০০"
+    },
+    {
+      "id": 96,
+      "file": "pages/institutions/[slug].astro",
+      "line": 156,
+      "type": "markup",
+      "text": "✓ যাচাইকৃত"
+    },
+    {
+      "id": 97,
+      "file": "pages/institutions/[slug].astro",
+      "line": 157,
+      "type": "markup",
+      "text": "যাচাই করা হয়নি"
+    },
+    {
+      "id": 98,
+      "file": "pages/institutions/[slug].astro",
+      "line": 166,
+      "type": "markup",
+      "text": "তথ্য"
+    },
+    {
+      "id": 99,
+      "file": "pages/institutions/[slug].astro",
+      "line": 168,
+      "type": "markup",
+      "text": "জেলা:"
+    },
+    {
+      "id": 100,
+      "file": "pages/institutions/[slug].astro",
+      "line": 169,
+      "type": "markup",
+      "text": "প্রতিষ্ঠা:"
+    },
+    {
+      "id": 101,
+      "file": "pages/institutions/[slug].astro",
+      "line": 170,
+      "type": "markup",
+      "text": "শ্রেণি:"
+    },
+    {
+      "id": 102,
+      "file": "pages/institutions/[slug].astro",
+      "line": 172,
+      "type": "markup",
+      "text": "ওয়েবসাইট:"
+    },
+    {
+      "id": 103,
+      "file": "pages/institutions/[slug].astro",
+      "line": 180,
+      "type": "markup",
+      "text": "যোগাযোগ"
+    },
+    {
+      "id": 104,
+      "file": "pages/institutions/[slug].astro",
+      "line": 182,
+      "type": "markup",
+      "text": "ঠিকানা:"
+    },
+    {
+      "id": 105,
+      "file": "pages/institutions/[slug].astro",
+      "line": 183,
+      "type": "markup",
+      "text": "ফোন:"
+    },
+    {
+      "id": 106,
+      "file": "pages/institutions/[slug].astro",
+      "line": 184,
+      "type": "markup",
+      "text": "ইমেইল:"
+    },
+    {
+      "id": 107,
+      "file": "pages/institutions/[slug].astro",
+      "line": 186,
+      "type": "markup",
+      "text": "মানচিত্রে দেখুন"
+    },
+    {
+      "id": 108,
+      "file": "pages/institutions/[slug].astro",
+      "line": 197,
+      "type": "markup",
+      "text": "অনুষদ ও বিভাগ"
+    },
+    {
+      "id": 109,
+      "file": "pages/institutions/[slug].astro",
+      "line": 227,
+      "type": "markup",
+      "text": "ভর্তি তথ্য"
+    },
+    {
+      "id": 110,
+      "file": "pages/institutions/[slug].astro",
+      "line": 238,
+      "type": "markup",
+      "text": "ভর্তি পাতায় যান →"
+    },
+    {
+      "id": 111,
+      "file": "pages/institutions/[slug].astro",
+      "line": 247,
+      "type": "markup",
+      "text": "টিউশন ফি"
+    },
+    {
+      "id": 112,
+      "file": "pages/institutions/[slug].astro",
+      "line": 252,
+      "type": "markup",
+      "text": "প্রোগ্রাম"
+    },
+    {
+      "id": 113,
+      "file": "pages/institutions/[slug].astro",
+      "line": 253,
+      "type": "markup",
+      "text": "পরিমাণ"
+    },
+    {
+      "id": 114,
+      "file": "pages/institutions/[slug].astro",
+      "line": 254,
+      "type": "markup",
+      "text": "শিক্ষাবর্ষ"
+    },
+    {
+      "id": 115,
+      "file": "pages/institutions/[slug].astro",
+      "line": 255,
+      "type": "markup",
+      "text": "সর্বশেষ যাচাই"
+    },
+    {
+      "id": 116,
+      "file": "pages/institutions/[slug].astro",
+      "line": 273,
+      "type": "markup",
+      "text": "সূত্র"
+    },
+    {
+      "id": 117,
+      "file": "pages/institutions/[slug].astro",
+      "line": 289,
+      "type": "markup",
+      "text": "গুরুত্বপূর্ণ লিংক"
+    },
+    {
+      "id": 118,
+      "file": "pages/institutions/[slug].astro",
+      "line": 302,
+      "type": "markup",
+      "text": "এই প্রতিষ্ঠান নিয়ে সংবাদ"
+    },
+    {
+      "id": 119,
+      "file": "pages/institutions/index.astro",
+      "line": 112,
+      "type": "markup",
+      "text": "শিক্ষা প্রতিষ্ঠান"
+    },
+    {
+      "id": 120,
+      "file": "pages/institutions/index.astro",
+      "line": 165,
+      "type": "markup",
+      "text": "✓ যাচাইকৃত"
+    },
+    {
+      "id": 121,
+      "file": "pages/latest/[...path].astro",
+      "line": 151,
+      "type": "markup",
+      "text": "সর্বশেষ খবরের তালিকা"
+    },
+    {
+      "id": 122,
+      "file": "pages/live/[slug].astro",
+      "line": 114,
+      "type": "markup",
+      "text": "লাইভ"
+    },
+    {
+      "id": 123,
+      "file": "pages/live-tv.astro",
+      "line": 87,
+      "type": "markup",
+      "text": "লাইভ টিভি"
+    },
+    {
+      "id": 124,
+      "file": "pages/live-tv.astro",
+      "line": 131,
+      "type": "markup",
+      "text": "এখন কোনো সম্প্রচার নেই"
+    },
+    {
+      "id": 125,
+      "file": "pages/live-tv.astro",
+      "line": 142,
+      "type": "markup",
+      "text": "আসছে"
+    },
+    {
+      "id": 126,
+      "file": "pages/login.astro",
+      "line": 85,
+      "type": "markup",
+      "text": "মন্তব্যে যাচাই করা পরিচয় যুক্ত হয়।"
+    },
+    {
+      "id": 127,
+      "file": "pages/login.astro",
+      "line": 86,
+      "type": "markup",
+      "text": "বুকমার্ক এক ডিভাইস থেকে অন্য ডিভাইসে পাওয়া যায়।"
+    },
+    {
+      "id": 128,
+      "file": "pages/privacy-policy.astro",
+      "line": 162,
+      "type": "markup",
+      "text": "আমাদের"
+    },
+    {
+      "id": 129,
+      "file": "pages/privacy-policy.astro",
+      "line": 162,
+      "type": "markup",
+      "text": "যোগাযোগ"
+    },
+    {
+      "id": 130,
+      "file": "pages/privacy-policy.astro",
+      "line": 162,
+      "type": "markup",
+      "text": "পাতার ঠিকানায়"
+    },
+    {
+      "id": 131,
+      "file": "pages/quiz/[id].astro",
+      "line": 75,
+      "type": "markup",
+      "text": "কুইজ"
+    },
+    {
+      "id": 132,
+      "file": "pages/quiz/index.astro",
+      "line": 59,
+      "type": "markup",
+      "text": "কুইজ"
+    },
+    {
+      "id": 133,
+      "file": "pages/quiz/index.astro",
+      "line": 74,
+      "type": "markup",
+      "text": "আজকের কুইজ"
+    },
+    {
+      "id": 134,
+      "file": "pages/quiz/index.astro",
+      "line": 91,
+      "type": "markup",
+      "text": "এখনো কোনো কুইজ প্রকাশিত হয়নি।"
+    },
+    {
+      "id": 135,
+      "file": "pages/reporters/[slug].astro",
+      "line": 277,
+      "type": "markup",
+      "text": "পরিচয়পত্র"
+    },
+    {
+      "id": 136,
+      "file": "pages/results/index.astro",
+      "line": 40,
+      "type": "markup",
+      "text": "ফলাফল ও মেধাতালিকা"
+    },
+    {
+      "id": 137,
+      "file": "pages/results/index.astro",
+      "line": 41,
+      "type": "markup",
+      "text": "পরীক্ষার ফলাফল ও মেধাতালিকার লিংক — কিভাবে দেখবেন তার নির্দেশনা সহ।"
+    },
+    {
+      "id": 138,
+      "file": "pages/results/index.astro",
+      "line": 44,
+      "type": "markup",
+      "text": "এখনো কোনো ফলাফল যোগ করা হয়নি।"
+    },
+    {
+      "id": 139,
+      "file": "pages/results/index.astro",
+      "line": 56,
+      "type": "markup",
+      "text": "ফলাফল দেখুন →"
+    },
+    {
+      "id": 140,
+      "file": "pages/results/index.astro",
+      "line": 57,
+      "type": "markup",
+      "text": "মেধাতালিকা →"
+    },
+    {
+      "id": 141,
+      "file": "pages/study-abroad/[slug].astro",
+      "line": 50,
+      "type": "markup",
+      "text": "বিশেষ"
+    },
+    {
+      "id": 142,
+      "file": "pages/study-abroad/[slug].astro",
+      "line": 52,
+      "type": "markup",
+      "text": "বিদেশে পড়াশোনার সম্ভাবনা — ভিসা, খরচ ও আবেদনের ধাপ।"
+    },
+    {
+      "id": 143,
+      "file": "pages/study-abroad/[slug].astro",
+      "line": 58,
+      "type": "markup",
+      "text": "টিউশন ফি"
+    },
+    {
+      "id": 144,
+      "file": "pages/study-abroad/[slug].astro",
+      "line": 64,
+      "type": "markup",
+      "text": "জীবনযাত্রার খরচ"
+    },
+    {
+      "id": 145,
+      "file": "pages/study-abroad/[slug].astro",
+      "line": 70,
+      "type": "markup",
+      "text": "ভর্তির সময়"
+    },
+    {
+      "id": 146,
+      "file": "pages/study-abroad/[slug].astro",
+      "line": 78,
+      "type": "markup",
+      "text": "ভিসার শর্ত"
+    },
+    {
+      "id": 147,
+      "file": "pages/study-abroad/[slug].astro",
+      "line": 85,
+      "type": "markup",
+      "text": "আবেদনের ধাপ"
+    },
+    {
+      "id": 148,
+      "file": "pages/study-abroad/[slug].astro",
+      "line": 92,
+      "type": "markup",
+      "text": "বৃত্তির তথ্য"
+    },
+    {
+      "id": 149,
+      "file": "pages/study-abroad/index.astro",
+      "line": 33,
+      "type": "markup",
+      "text": "বিদেশে পড়াশোনা"
+    },
+    {
+      "id": 150,
+      "file": "pages/study-abroad/index.astro",
+      "line": 34,
+      "type": "markup",
+      "text": "প্রতিটি দেশের জন্য ভিসা, খরচ, ইনটেক ও আবেদনের ধাপ।"
+    },
+    {
+      "id": 151,
+      "file": "pages/study-abroad/index.astro",
+      "line": 37,
+      "type": "markup",
+      "text": "এখনো কোনো গাইড যোগ করা হয়নি।"
+    },
+    {
+      "id": 152,
+      "file": "pages/study-abroad/index.astro",
+      "line": 43,
+      "type": "markup",
+      "text": "বিশেষ"
+    },
+    {
+      "id": 153,
+      "file": "pages/terms-of-use.astro",
+      "line": 146,
+      "type": "markup",
+      "text": "যোগাযোগ"
+    },
+    {
+      "id": 154,
+      "file": "pages/verify/[reporterId].astro",
+      "line": 111,
+      "type": "markup",
+      "text": "পরিচয়পত্র যাচাই"
+    },
+    {
+      "id": 155,
+      "file": "pages/verify/[reporterId].astro",
+      "line": 124,
+      "type": "markup",
+      "text": "যাচাই করা যায়নি"
+    },
+    {
+      "id": 156,
+      "file": "pages/verify/[reporterId].astro",
+      "line": 164,
+      "type": "markup",
+      "text": "প্রতিবেদক আইডি"
+    },
+    {
+      "id": 157,
+      "file": "pages/verify/[reporterId].astro",
+      "line": 171,
+      "type": "markup",
+      "text": "প্রেস কার্ড নম্বর"
+    },
+    {
+      "id": 158,
+      "file": "pages/verify/[reporterId].astro",
+      "line": 177,
+      "type": "markup",
+      "text": "মেয়াদ শেষ"
+    },
+    {
+      "id": 159,
+      "file": "pages/verify/[reporterId].astro",
+      "line": 215,
+      "type": "markup",
+      "text": "যোগাযোগ"
+    }
+  ]
+}

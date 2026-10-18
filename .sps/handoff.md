@@ -2543,3 +2543,41 @@ and a codepoint strip then over-removed, mangling নেভিগেশন into 
 matching on codepoints rather than literal strings, then auditing BOTH docs for
 wrong-script glyphs, orphaned vowel signs, and Latin-inside-Bengali — all clean.
 Lesson: when editing Bengali, assert on codepoints, never on hand-typed glyphs.
+
+### 2026-10-18 ~09:30 — T-46: site+ CMS copy rewrite kit (prompt + JSON manifest)
+
+Owner asked for either an Antigravity prompt or a JSON file they rewrite and
+hand back. Investigated the real copy inventory first instead of guessing, and
+the numbers changed the answer:
+
+- CMS copy = 405 `{ en, bn }` label pairs across 35 files. Every `en` is already
+  English (T-38 complete) — so the CMS is NOT broken, it is structured.
+- Storefront copy = 915 Bengali-containing occurrences across 110 files. Only
+  ~159 are visible prose in .astro templates; the rest are data tables and
+  logic strings.
+- There is NO i18n layer: `cms/src/i18n/` is an empty leftover from the deleted
+  bn.ts. Copy is hardcoded inline on both sides.
+- `frontend/src/data/` holds only `faqs.seed.json` — no UI string catalogue.
+
+DECISION: 915 strings cannot be hand-round-tripped through JSON, and four files
+are data/logic rather than copy (`lib/weather-codes.ts` WMO code map,
+`lib/bangla-date.ts` বঙ্গাব্দ math, `lib/hijri-date.ts` Hijri math, `lib/cms.ts`
+content layer). Rewriting those would corrupt output while looking harmless.
+
+DELIVERED BOTH, because each covers a different need:
+1. `docs/antigravity-site-copy-prompt.md` — the primary path. Six gated steps
+   (home/header/footer → news pages → tools → legal → rest → the 405 CMS bn
+   labels), an explicit never-touch table naming the four functional files,
+   the banned-word list, the terms that must stay English, and a hard rule that
+   facts/numbers/IDs/CSS classes never change. Requires `pnpm run build` per
+   step, a before/after sample of >=10 rewrites, and a "suspected, untouched"
+   list.
+2. `docs/copy-manifest-bn.json` — 159 visible storefront strings with
+   file+line, valid JSON, `_readme` explaining that only `text` should be
+   edited and blanks mean "leave unchanged" — so the owner's offered workflow
+   (rewrite JSON, hand back) actually works.
+
+Audited both: zero wrong-script glyphs, zero orphaned vowel signs, zero
+Latin-inside-Bengali, zero leaks from the functional files (the single grep hit
+was the _readme line documenting the exclusion). No line numbers drift because
+the manifest is regenerable via the same walk.
