@@ -2665,3 +2665,35 @@ still 92% white, confirming the deliberate no-dark-variant decision. Preview:
 `docs/assets/article-placeholder-design.png` (+ the HTML it was rendered from).
 
 Sizes chosen: hero logo 96px, stacked card 56px, row card 32px.
+
+### 2026-10-18 ~17:45 — Placeholder: font corrected, panel-border flaw fixed
+
+**Font correction (owner asked for Kalpurush; that is not what the site uses).**
+`global.css` `--font-body`/`--font-headline` are `SolaimanLipi` +
+`SolaimanLipi Fallback`, and the only Bengali files shipped are
+`public/fonts/solaimanlipi-{400,700}.woff2`. "Kalpurush" appears in this repo
+exactly once — `docs/competitive-analysis.md:140`, a reference-only general-news
+artifact. The design preview was embedding a *generic* system stack, so it was
+not faithful; it now embeds the real `solaimanlipi-400/700.woff2` bytes **and**
+the metrics-matched `SolaimanLipi Fallback` @font-face with global.css's exact
+overrides (ascent 95.3125%, descent 28.418%, line-gap 8.9844%, size-adjust
+99.2%), so preview line-wrapping matches production.
+
+Proven rather than assumed: `document.fonts` reported `SL:loaded`, and a
+glyph-level diff showed SolaimanLipi rendering **4,710 ink pixels vs the
+fallback's 4,976** with the differing region at x11–316 — i.e. the real face is
+painting, not silently falling back (the two had identical *advance widths* on
+this headless box because it has no Bengali system font, which is exactly why a
+width check alone would have been a false pass).
+
+**Panel-visibility flaw found by pixel-verifying the render (not visible by eye
+in code review).** The card wrapper behind the placeholder is
+`bg-surface-raised` (light grey) and the placeholder painted plain `bg-white`, so
+the plate's edges **vanished** — measured pure white at every boundary pixel of
+the 88px row-card, leaving the logo floating with no panel. Fixed by insetting
+the white plate proportionally (`p-[4%]`) and adding a **literal** 1px
+`#e4e4e4` border. Literal, not a token: the brief is white in both themes, and a
+theme token would have flipped to `dark-rule` (#333) in dark mode. Verified in
+the re-render: hero border 3,472 px (x53–1186, y190–827), row-card 228 px at
+x=68/155, dark-section 1,234 px with a pure-white (255,255,255) interior.
+Build green, border present in `dist/` output.

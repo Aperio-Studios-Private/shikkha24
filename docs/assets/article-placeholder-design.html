@@ -4,6 +4,18 @@
 <meta charset="utf-8">
 <title>লেখার ভিজ্যুয়াল টেমপ্লেট — নকশা</title>
 <style>
+  /* Real SolaimanLipi, copied from frontend/public/fonts/ — the same bytes the site serves.
+     Kalpurush is NOT used by this site; see global.css --font-body. */
+  @font-face{font-family:'SolaimanLipi';src:url('solaimanlipi-400.woff2') format('woff2');font-weight:400;font-display:swap}
+  @font-face{font-family:'SolaimanLipi';src:url('solaimanlipi-700.woff2') format('woff2');font-weight:700;font-display:swap}
+  /* Metrics-matched fallback, copied verbatim from global.css so the preview wraps identically. */
+  @font-face{
+    font-family:'SolaimanLipi Fallback';
+    src:local('Arial'),local('Liberation Sans'),local('Helvetica'),local('DejaVu Sans'),local('Segoe UI');
+    ascent-override:95.3125%;descent-override:28.418%;line-gap-override:8.9844%;size-adjust:99.2%;
+  }
+</style>
+<style>
   /* Tokens copied from frontend/src/styles/global.css so the preview is faithful. */
   :root{
     --brand-red:#da1c25; --charcoal:#1f1f1f; --ink:#1f1f1f; --ink-muted:#5a5a5a;
@@ -11,7 +23,7 @@
     --dark-ink:#e8e8e8; --rule:#e5e5e5; --dark-rule:#333;
   }
   *{box-sizing:border-box}
-  body{margin:0;padding:32px;background:#eee;font-family:-apple-system,"Segoe UI",Roboto,"Noto Sans Bengali",sans-serif;color:var(--ink)}
+  body{margin:0;padding:32px;background:#eee;font-family:'SolaimanLipi','SolaimanLipi Fallback',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--ink)}
   h1{font-size:22px;margin:0 0 6px}
   .lede{color:var(--ink-muted);font-size:14px;margin:0 0 28px}
   .grid{display:grid;gap:28px;max-width:1180px;margin:0 auto}
@@ -20,13 +32,13 @@
   .panel p.note{font-size:13px;color:var(--ink-muted);margin:0 0 16px}
 
   /* ── the placeholder itself, exactly as the component renders ── */
-  .ph{display:flex;align-items:center;justify-content:center;background:#fff}
+  .ph{display:flex;align-items:center;justify-content:center;background:#fff;padding:4%;border:1px solid #e4e4e4}
   .ph img{height:auto;width:auto;max-width:70%;object-fit:contain}
-  .ph .wordmark{font-weight:700;white-space:nowrap;color:var(--charcoal)}
-  .hero{border-radius:10px;overflow:hidden;border:1px solid var(--rule)}
+  .ph .wordmark{font-family:'SolaimanLipi','SolaimanLipi Fallback',sans-serif;font-weight:700;white-space:nowrap;color:var(--charcoal)}
+  .hero{border-radius:10px;overflow:hidden}
   .hero.ph{aspect-ratio:16/9}
   .card-stack.ph{aspect-ratio:16/9;width:100%}
-  .card-row.ph{aspect-ratio:1/1;width:88px;border-radius:6px;flex:0 0 auto}
+  .card-row.ph{aspect-ratio:1/1;width:88px;border-radius:6px;flex:0 0 auto;padding:8%}
 
   .row{display:flex;gap:16px;align-items:center}
   .card{display:flex;gap:12px;align-items:center;padding:14px;border:1px solid var(--rule);border-radius:10px;background:#fff;max-width:460px}

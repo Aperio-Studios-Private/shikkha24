@@ -80,14 +80,27 @@ const showName = !logoSrc || showNameWithLogo !== false
  * before load (CLS). The CMS gives real dimensions; a fallback square matches
  * the usual mark shape for uploads that predate the dimension probe.
  */
+/**
+ * The white plate is inset and hairline-bordered rather than filling the box.
+ *
+ * Why: the card wrapper behind it is `bg-surface-raised` (a light grey). A plain
+ * `bg-white` panel on that surface is **invisible at the edges** — measured on
+ * the rendered row-card, every boundary pixel was pure white, so the logo simply
+ * floated with no panel around it. An inset plate with a 1px rule reads as a
+ * deliberate brand panel at every size, on light and dark surfaces alike.
+ *
+ * The inset is proportional (`4%`) so it scales with the box instead of looking
+ * heavy on a 32px card and thin on a 96px hero.
+ */
 const markWidth = logo?.width ?? 200
 const markHeightAttr = logo?.height ?? 200
 const width = Math.round((markWidth / markHeightAttr) * markHeight)
 ---
 
 <div
-  class:list={['flex items-center justify-center bg-white', className]}
+  class:list={['flex items-center justify-center bg-white p-[4%]', className]}
   role="presentation"
+  style="border:1px solid #e4e4e4"
 >
   {
     logoSrc ? (
