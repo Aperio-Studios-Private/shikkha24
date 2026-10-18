@@ -24,13 +24,31 @@
  * it *is* the photo. This is what YouTube, Spotify and Apple TV do for
  * mismatched artwork, and it is the reason they never show bars.
  *
- * ## Why CSS only, and why that matters here
+ * ## Why the fill is a *tiny* optimized variant, not the original
  *
- * The background layer is a second `<img>` with the same `src`, so the browser
- * reuses the **already-downloaded** file — one request, one decode, no extra
- * bytes. There is no server-side blur, no generated asset, no new dependency, and
- * no change to the CMS media pipeline. That keeps it inside the cost guard
- * (rule 7) and means it works on a host that cannot run sharp (T-07).
+ * The background layer was originally a second `<img>` with the same `src`, on
+ * the reasoning that the browser would reuse the already-downloaded file. **That
+ * reasoning was wrong, and CI caught it.** The front photo goes through
+ * `CmsImage`, which emits an AVIF/WebP `<picture>` — so the browser never fetched
+ * the original at all. The fill layer was the *only* thing requesting the raw
+ * 1376px JPEG, and because it is blurred to `blur(24px)` the extra resolution was
+ * thrown away. Lighthouse, run after the copy fixes, named it exactly:
+ *
+ *   modern-image-formats  save 80KB of 153KB  .../01-admission-policy-2027.jpg
+ *   uses-responsive-images save 117KB of 153KB .../01-admission-policy-2027.jpg
+ *
+ * with performance at **0.90** against the 0.95 gate. The fix is to let Astro
+ * produce a 64px-wide WebP for the fill — a few hundred bytes — via `getImage`.
+ * The blur cannot show the difference, and the page no longer downloads the
+ * original at all.
+ *
+ * ## Why this stays cheap
+ *
+ * Astro caches remote-image transforms, so each fill variant is encoded once per
+ * build (not per page, not per publish). No server-side blur, no new dependency,
+ * no CMS change — which keeps it inside the cost guard (rule 7) and means it
+ * still works on a host without sharp (T-07), because this encodes at *build*
+ * time in CI.
  *
  * ## Accessibility
  *
@@ -57,6 +75,7 @@ interface Props {
 }
 
 import CmsImage from './CmsImage.astro'
+import { getImage } from 'astro:assets'
 
 const {
   src,
@@ -77,15 +96,36 @@ const {
  * heavy blur averages toward mid-grey and reads as murky next to a crisp photo.
  */
 const FILL_STYLE = 'filter:blur(24px) saturate(1.3) brightness(0.95);transform:scale(1.15)'
+
+/**
+ * The fill only ever renders through a 24px blur, so a 64px-wide source is more
+ * than it can resolve — anything larger is downloaded and discarded. Astro mangles
+ * the name with the transform hash, so the cache is keyed per source+width.
+ *
+ * Remote CMS URLs go through `getImage`; anything else (a local dev path that the
+ * CMS is not serving) falls back to the original `src` so a dev build without a
+ * reachable CMS still renders rather than throwing.
+ */
+const isRemote = /^https?:\/\//i.test(src)
+let fillSrc = src
+if (isRemote) {
+  try {
+    fillSrc = (await getImage({ src, width: 64, height: Math.max(1, Math.round((64 * height) / width)), format: 'webp' })).src
+  } catch {
+    // A transform failure must not take the page down: fall back to the original.
+    fillSrc = src
+  }
+}
 ---
 
 <div class:list={['relative overflow-hidden', className]}>
   {/*
-    Decorative fill. Same `src`, so this is a second *reference* to a file the
-    browser has already fetched — not a second download.
+    Decorative fill. Deliberately a ~64px WebP: it is blurred to the point where
+    the resolution is invisible, and pointing it at the original JPEG made this
+    layer the only reason the full-size file was ever downloaded.
   */}
   <img
-    src={src}
+    src={fillSrc}
     alt=""
     aria-hidden="true"
     class="absolute inset-0 h-full w-full object-cover"
