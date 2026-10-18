@@ -3076,3 +3076,36 @@ writing it, found and fixed an in-flight Phase-4 regression that had left the
 repo unbuildable (imports from a non-existent `lib/formatters` module) plus a
 hardcoded site name rejected by verify:site-name. Build/verifiers green after
 the fix (commit c92ea32). See handoff 2026-10-18 ~16:50.
+
+### T-50 — 🔴 OPEN (registered 2026-10-18): article photos ship as full-size JPEG, not WebP
+
+Owner asked why we use `.png`/`.jpg` instead of modern formats. Measured answer:
+
+- The 6 real article photos are **JPEG, 88–237 KB each, all 1376x768**, stored
+  as uploaded. A page showing three of them = **~603 KB per view**.
+- The media library holds only 18 documents; the 6 JPEGs are the entire
+  article-photo set. The `demo-plate-*.webp` files (10–13 KB) are seeded demo
+  plates, not editorial uploads — which is why the library *looks* WebP-heavy.
+- The delivered response for `06-ju-...jpg` is `content-type: image/jpeg`,
+  `sizes: NONE` — no WebP derivative exists and none is generated.
+
+**Root cause:** `Media.ts` has no `formatOptions`, `resizeOptions` or
+`imageSizes`, because sharp is deliberately unset in `payload.config.ts`. Those
+three keys are the only thing that makes Payload construct sharp, so uploads are
+stored byte-for-byte.
+
+**The stated reason is withdrawn and its restore condition is MET.** The comment
+blamed a hard host limit on threads; that was wrong. `GET /api/photocard/28.png`
+returns **HTTP 200 with a 507 KB PNG** *today* — a pure libvips/sharp route,
+verified live. DianaHost raised NPROC 100 -> 200 and
+`TOKIO_WORKER_THREADS=2` / `UV_THREADPOOL_SIZE=4` are set.
+
+**Not yet done, and not free:** re-enabling sharp regenerates every derivative at
+upload time and is a deploy-time change to the CMS, so it needs an owner-approved
+window. Two risks to check first: (1) sharp's memory ceiling on a shared 2 GB
+host; (2) whether existing uploads get backfilled or only new ones.
+
+**Cheaper interim option:** Astro's build-time image pipeline already emits
+AVIF+WebP for the *local* archetype assets (`src/assets/categories/*.jpg` go
+through it — that is why the `_astro/` output has `.avif`/`.webp`). CMS images
+bypass it because they are remote. No action taken; awaiting owner direction.
