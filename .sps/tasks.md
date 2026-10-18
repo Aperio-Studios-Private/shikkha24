@@ -3109,3 +3109,54 @@ host; (2) whether existing uploads get backfilled or only new ones.
 AVIF+WebP for the *local* archetype assets (`src/assets/categories/*.jpg` go
 through it — that is why the `_astro/` output has `.avif`/`.webp`). CMS images
 bypass it because they are remote. No action taken; awaiting owner direction.
+
+### T-51 — 🔴 OPEN (2026-10-18): GitHub Actions budget exhausted — every workflow now fails in ~3s
+
+Owner asked how to avoid the Actions budget problem. Measured, not assumed:
+
+**It is already happening, and it is worse than "minutes are tight".** Every recent
+run dies in 3–4 seconds with a GitHub annotation:
+
+> "The job was not started because an Actions budget is preventing further use."
+
+So nothing has deployed or been verified by CI since the budget ran out. The
+symptom is easy to misread as a code failure because the runs show `failure`, not
+"skipped".
+
+**The numbers:**
+- Repo `SHAHID8142/shikkha24` is **private** -> Actions minutes are billed. A
+  public repo would be free and unlimited, which is the single highest-leverage
+  fact here.
+- 200 workflow runs recorded in Oct 2026 alone: 106 Deploy (Cloudflare),
+  92 CI, 2 Backup. 966 runs on record overall.
+- Each run bills a **whole minute minimum**, so 200 runs is already >=200 minutes
+  of billed time before any step's real duration is counted.
+- Free tier is 2,000 min/month for private repos; the plan reports as unset/None
+  on the API, consistent with the free tier.
+
+**Why the earlier plan underestimated this:** `docs/hosting-and-deployment.md`
+§3.3 budgets "one build per publish" (900/month, ~450 min) and calls it
+comfortable. That model counts only publish-triggered builds. It misses CI on
+**every push** plus every deploy dispatch, which is where the 200 runs came from.
+
+**Compounding factor:** the owner has no international card (rule 7), so paid
+minutes are not purchasable. Budget must be *reduced*, not increased.
+
+**Levers, cheapest first (none applied yet — needs owner direction):**
+1. Make the repo **public** -> unlimited free Actions. Blocked by the owner's
+   standing rule that the repo is never public. This is the only free unlimited
+   fix and therefore the one worth revisiting with the owner.
+2. **Stop CI on every push**; run it on pull_request + a nightly schedule. This
+   removes the 92 CI runs/month.
+3. **Drop the per-publish deploy workflow** in favour of a scheduled deploy
+   (e.g. every 15 min if dirty) — no, cron needs a runner too; better: batch
+   publishes into one dispatch per window. The debounce already helps; the
+   trigger itself can also be rate-limited.
+4. Remove the redundant `wait-for-ci` job hop if it bills separately.
+5. Self-host the build: the 52.4 s cold build measured locally would cost nothing
+   on the DianaHost box — but Astro 7 / Vite 8 cannot run on the host's Node
+   20.18.2 (`docs/hosting-and-deployment.md` §5). Revisit only if the host's Node
+   is upgradable, because that would remove GitHub from the publish path entirely.
+
+**Not investigated yet:** the exact reset date of the billing cycle, and whether
+any of the 966 historical runs are still consuming the current window.
