@@ -45,6 +45,7 @@ import {
   getVideoArticles,
   PAGE_SIZE,
 } from '../../lib/cms'
+import { toBnDigits } from '../../lib/bangla-date'
 import { resolveCmsImage } from '../../lib/media'
 import { videoEmbedProps } from '../../lib/video'
 
@@ -113,7 +114,7 @@ const jsonLd = {
 ---
 
 <Layout
-  title={page > 1 ? `ভিডিও সংবাদ — পেজ ${page}` : 'ভিডিও সংবাদ'}
+  title={page > 1 ? `ভিডিও সংবাদ: পৃষ্ঠা ${toBnDigits(page)}` : 'ভিডিও সংবাদ'}
   description={`${settings.siteName}-এর ভিডিও সংবাদ ও প্রতিবেদন।`}
   canonical={canonical}
   settings={settings}
@@ -129,7 +130,7 @@ const jsonLd = {
         ভিডিও সংবাদ
       </h1>
       <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
-        {result.totalDocs} টি ভিডিও
+        {toBnDigits(result.totalDocs)}টি ভিডিও
       </p>
     </header>
 
@@ -160,7 +161,7 @@ const jsonLd = {
       emptyMessage={
         featured && featuredEmbed
           ? 'আর কোনো ভিডিও নেই।'
-          : 'এখনো কোনো ভিডিও সংবাদ প্রকাশিত হয়নি।'
+          : 'এখনো কোনো ভিডিও সংবাদ প্রকাশিত হয়নি।'
       }
     />
 

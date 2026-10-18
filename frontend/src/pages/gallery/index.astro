@@ -21,6 +21,7 @@ import Layout from '../../layouts/Layout.astro'
 import Breadcrumbs from '../../components/Breadcrumbs.astro'
 import { resolveCmsImage } from '../../lib/media'
 import { getGalleries, resolveGalleryImages } from '../../lib/engagement'
+import { toBnDigits } from '../../lib/bangla-date'
 import { isEnabled } from '../../lib/feature-flags'
 import {
   getSiteSettings,
@@ -42,7 +43,7 @@ const enabled = isEnabled('gallery')
 
 <Layout
   title="ছবির গ্যালারি"
-  description={`${settings.siteName}-এর ছবির গ্যালারি — শিক্ষা, ভর্তি, পরীক্ষা ও ক্যাম্পাসের ছবি।`}
+  description={`${settings.siteName}-এর ছবির গ্যালারি: শিক্ষা, ভর্তি, পরীক্ষা ও শিক্ষাঙ্গনের বিশেষ সব ছবি।`}
   settings={settings}
   categories={categories}
   footerPages={footerPages}
@@ -57,7 +58,7 @@ const enabled = isEnabled('gallery')
     {
       !enabled || galleries.length === 0 ? (
         <p class="mt-4 text-base text-ink-muted dark:text-dark-ink-muted">
-          এখনো কোনো গ্যালারি প্রকাশিত হয়নি।
+          এখনো কোনো ছবির গ্যালারি যুক্ত করা হয়নি।
         </p>
       ) : (
         <ul class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -87,7 +88,7 @@ const enabled = isEnabled('gallery')
                     )}
                     {images.length > 0 && (
                       <span class="absolute bottom-2 right-2 rounded bg-black/70 px-2 py-0.5 text-xs font-medium text-white">
-                        {images.length} ছবি
+                        {toBnDigits(images.length)}টি ছবি
                       </span>
                     )}
                   </div>
