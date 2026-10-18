@@ -10,7 +10,7 @@ output on 2026-10-18.
 
 1. `git pull` on `/Volumes/SSD/CODES/NewsPortal` (GitHub `SHAHID8142/shikkha24`,
    now **PUBLIC** — unlimited free Actions minutes; budget problem T-51 is dead).
-2. Check the two runs for commit `91c1cee`-or-later (the pipefail probe fix —
+2. Check the two runs for commit `0dee0b2`-or-later (the pipefail probe fix —
    the last commit this session pushed):
    `gh run list --limit 4 --json workflowName,status,conclusion,headSha`.
    - **CI (verify)** is expected green — it was green on 3 consecutive commits
