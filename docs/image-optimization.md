@@ -180,8 +180,13 @@ describes is gone. The current, verified reality:
   upload-time pipeline is parked as **T-58**, gated on the T-31 CMS
   clean-cycle proving the runtime healthy first.
 - Unchanged: the per-article photocard fallback
-  (`/api/photocard/:id.png`, 1200×1200) for articles without a photo, and the
-  site-wide `/og-default.png`.
+  (`/api/photocard/:id.png`, 1200×1200) for articles without a photo.
+- **Site-wide share image rebuilt 2026-10-18 (T-59, owner approved).**
+  `/og-default.png` is no longer the full-bleed red plate — it is now the
+  T-57 stacked design (white background, logo above, name below) at 1200×630,
+  all content inside the central square-safe zone. Generator:
+  `docs/assets/og-thumb-samples/build-og-default.mjs` (re-run it to
+  regenerate; the old red PNG stays recoverable from git history).
 
 ---
 

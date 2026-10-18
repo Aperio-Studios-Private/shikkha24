@@ -3213,6 +3213,17 @@ build-emitted 1200px **JPEG** variant (scraper-safe format) of the same photo
 instead of the raw 1376×768 CMS JPEG — implemented in the code commit that
 follows this record, verified against the built output.
 
+### T-59 — ✅ DONE (2026-10-18, ~23:59): homepage/fallback share image replaced with the T-57 white stacked design
+
+Owner noticed the homepage `og:image` still showed the old full-bleed red
+`/og-default.png` (T-50-C only rebuilt article-page share images) and
+approved the replace. `docs/assets/og-thumb-samples/build-og-default.mjs`
+regenerates `frontend/public/og-default.png`: 1200×630, white, logo above,
+name below, content inside the central square-safe zone. Verified: PIL dims
+1200×630, white ratio 94%, ink bbox (306,113)-(893,553) ⊂ safe zone, 34,132
+bytes (old red plate 27,514 bytes remains in git history). Live verification
+recorded in the handoff after deploy.
+
 ### T-58 — 🔴 PARKED (registered 2026-10-18 রাত; start only with owner approval AND a green T-31 cycle): Payload upload-time sharp/WebP
 
 Option A from the T-50 packet, parked not dropped. Gated on: (1) the T-31 CMS
