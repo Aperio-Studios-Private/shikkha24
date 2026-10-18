@@ -13,9 +13,15 @@
  *   2. **Their contact details are not public.** The CMS restricts
  *      `reporterEmail` and `reporterPhone` to authenticated users at the field
  *      level, so an editor sees them and a reader never can.
- *   3. **A photo can carry location data.** Uploaded media is re-encoded and
- *      stripped of EXIF by the media pipeline, but the page says to avoid
- *      sending anything they would not want identified.
+ *   3. **A photo can carry location data — and nothing strips it.** This note
+ *      used to say the media pipeline "re-encodes and strips EXIF". It does not.
+ *      `sharp` is deliberately unset in `payload.config.ts` and `Media.ts`
+ *      declares no `formatOptions`, `resizeOptions` or `imageSizes`, so an upload
+ *      is stored **byte-identical** — the same fact the `Media` admin description
+ *      was corrected to state in T-70. Re-enabling the pipeline is T-58's call,
+ *      not a comment's. Until then the reader-facing warning on this page ("do not
+ *      send a photo you would not want identified") is the actual and only
+ *      protection, which is why it is worded that way rather than reassuringly.
  *
  * ## Self-hiding
  *
@@ -210,8 +216,10 @@ const renderable = Boolean(cmsOrigin) && isEnabled('citizen')
 
           <p class="mt-3 text-xs leading-relaxed text-ink-subtle dark:text-dark-ink-muted">
             জমা দেওয়া তথ্য স্বয়ংক্রিয়ভাবে প্রকাশিত হয় না। সম্পাদক যাচাই করে সিদ্ধান্ত নেন।
-            আপনার ইমেইল ও ফোন নম্বর কখনো প্রকাশ করা হয় না। ছবি পাঠালে সেটি থেকে অবস্থানের তথ্য
-            মুছে ফেলা হয়।
+            আপনার ইমেইল ও ফোন নম্বর কখনো প্রকাশ করা হয় না। <strong class="font-medium"
+              >ছবি পাঠানোর আগে সাবধান হন:</strong
+            > ছবিতে অবস্থানের তথ্য (GPS) বা অন্য ব্যক্তিগত তথ্য থাকতে পারে, যা আমরা স্বয়ংক্রিয়ভাবে
+            মুছে ফেলি না — তাই এমন ছবি পাঠাবেন না যা আপনি প্রকাশ করতে চান না।
           </p>
         </form>
       )

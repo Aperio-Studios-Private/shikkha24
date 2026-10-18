@@ -3603,13 +3603,38 @@ assertions fail on unmodified code. Also relevant because **T-58 is gated on thi
 no-sharp contract flipping**, and a broken cleanup there will bite whoever picks T-58 up. (The 6
 orphaned rows created during tonight's runs were deleted; the library is back to its 8 real docs.)
 
-### T-76 — 🔴 OPEN (Low, honesty): two more live-code comments repeat the "WebP conversion" claim
+### T-76 — ✅ DONE (2026-10-19): false media claims corrected — one was a reader-facing privacy promise
 Found while closing T-70 but outside its file ownership: `cms/src/globals/SiteSettings.ts:26` and
 `frontend/src/pages/citizen.astro:17` both state that uploads are re-encoded to WebP / stripped of
 EXIF. Neither is true (see T-70). Same class as the Bengali string T-70 fixed, but in code comments
 rather than operator text. Stale copies also sit in `cms/src/verify/media.ts:6-16` (header only —
 its assertions are correct), `docs/security-audit-2026-10-01.md:244`, `.sps/content-model.md:122`,
 `.sps/plan.md:102`. Small, but it is the exact failure mode the audit flagged.
+
+**The comment was the smaller half of this.** The stale comment in `citizen.astro` said the media
+pipeline "re-encodes and strips EXIF". Checking against the authoritative source rather than the prose:
+`Media.ts` declares **no** `formatOptions`, `resizeOptions` or `imageSizes`, and `payload.config.ts`
+leaves `sharp` deliberately unset — so an upload is stored **byte-identical** and **EXIF is not stripped**.
+
+That means the **reader-facing** paragraph on the same page was making a false privacy promise, in
+Bengali, to real readers: *"ছবি পাঠালে সেটি থেকে অবস্থানের তথ্য মুছে ফেলা হয়"* — "if you send a photo,
+location information is removed from it". Nothing removes it. A reader could send a photo carrying the
+GPS coordinates of their home on the strength of that sentence. The comment had drifted from the code;
+the promise had drifted from reality, and only one of those can hurt someone.
+
+**Fixed:** the comment now states the real behaviour and points at T-58 for the decision that would
+change it; the reader-facing sentence is replaced with an honest warning — photos may carry GPS or other
+personal data, we do not strip it automatically, so do not send what you would not want published. The
+strongest protection available while the pipeline is off is telling the truth, which is exactly what the
+page now does. Checked the rest of the codebase and `privacy-policy.astro`: no other instance of this
+claim, so the false promise existed only here.
+
+**Note for the reviewer:** this is the second time a comment-correctness finding turned out to have a
+**reader-visible** half (T-70 was the first, via the Media admin description). Treat "stale comment"
+findings as potentially user-facing until checked.
+
+**Verified:** build exit 0 (114 pages); the honest warning is present in `dist/citizen/index.html` and
+the false sentence is gone (grep count 0).
 
 ### T-77 — 🔴 OPEN (Low, process): scratch files left in `cms/src/` by parallel agents
 `cms/src/verify-tmp-t63.ts` (15.7 KB) and earlier `cms/src/verify/_t60-sched.ts` /
