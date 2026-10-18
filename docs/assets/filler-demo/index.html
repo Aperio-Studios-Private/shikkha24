@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<title>ভুল মাপের ছবি — ফাঁক ভরার পদ্ধতি</title>
+<style>
+  @font-face{font-family:'SolaimanLipi';src:url('solaimanlipi-400.woff2') format('woff2');font-weight:400;font-display:swap}
+  @font-face{font-family:'SolaimanLipi';src:url('solaimanlipi-700.woff2') format('woff2');font-weight:700;font-display:swap}
+  :root{--red:#da1c25;--charcoal:#1f1f1f;--muted:#5a5a5a;--rule:#e4e4e4;--raised:#f7f7f7}
+  *{box-sizing:border-box}
+  body{margin:0;padding:30px;background:#eef0f2;
+       font-family:'SolaimanLipi',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--charcoal)}
+  h1{font-size:22px;margin:0 0 6px}
+  .lede{color:var(--muted);font-size:14px;margin:0 0 26px;max-width:900px;line-height:1.7}
+  .wrap{max-width:1200px;margin:0 auto;display:grid;gap:22px}
+  .panel{background:#fff;border:1px solid var(--rule);border-radius:12px;padding:18px 20px 22px}
+  .panel h2{font-size:16px;margin:0 0 2px}
+  .panel .sub{font-size:13px;color:var(--muted);margin:0 0 14px}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;background:var(--raised);border:1px solid var(--rule);color:var(--muted);margin-left:8px;vertical-align:2px}
+  .tag.bad{background:#fdecec;border-color:#f5c2c2;color:#a11}
+  .tag.good{background:#eaf7ee;border-color:#bfe3c9;color:#186a34}
+  .case{display:grid;grid-template-columns:190px minmax(0,460px);gap:18px;align-items:start;margin-bottom:20px}
+  .case:last-child{margin-bottom:0}
+  .label{font-size:12px;color:var(--muted);line-height:1.6}
+  .label b{color:var(--charcoal);display:block;font-size:13px;margin-bottom:3px}
+  .frame{width:460px;max-width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;border:1px solid var(--rule);background:var(--raised);position:relative}
+
+  /* ── 1. today: object-cover — crops the image away ── */
+  .fit-cover img{width:100%;height:100%;object-fit:cover;display:block}
+
+  /* ── 2. object-contain — whole image, but dead bars ── */
+  .fit-contain img{width:100%;height:100%;object-fit:contain;display:block;background:#fff}
+
+  /* ── 3. THE FILLER SYSTEM — blurred self-fill + whole image on top ── */
+  .fit-filler{position:relative;background:#000}
+  .fit-filler .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+                  filter:blur(22px) saturate(1.25) brightness(.92);transform:scale(1.14)}
+  .fit-filler .fg{position:relative;width:100%;height:100%;object-fit:contain;display:block}
+
+  /* ── 4. brand filler — same, but the gaps are brand red, not the photo ── */
+  .fit-brand{background:var(--red)}
+  .fit-brand .bg{display:none}
+  .fit-brand .fg{position:relative;width:100%;height:100%;object-fit:contain;display:block}
+
+  /* the source, drawn to scale so the mismatch is obvious */
+  .src{width:190px;margin-top:8px}
+  .src div{border:1px solid var(--rule);border-radius:6px;background:
+      repeating-linear-gradient(45deg,#dfe3e8 0 8px,#eef1f4 8px 16px);
+      display:flex;align-items:center;justify-content:center;font-size:11px;color:#556}
+  .tall{height:253px}   /* 3:4 portrait */
+  .wide{height:107px}   /* 16:9 */
+  .sq{height:190px}     /* 1:1 */
+  .verdict{font-size:12.5px;line-height:1.65;margin:6px 0 0;padding:8px 10px;border-radius:6px;background:var(--raised);border-left:3px solid var(--rule)}
+  .verdict.no{border-left-color:#e08a8a}
+  .verdict.yes{border-left-color:#5ac07a}
+</style>
+</head>
+<body>
+<h1>ভুল মাপের ছবি — ফাঁক কীভাবে ভরবেন</h1>
+<p class="lede">
+  অ্যাডমিন ৩:৪ (খাড়া) ছবি আপলোড করলেন, কিন্তু কার্ডের বাক্স ১৬:৯ (চওড়া)। নিচে চারটি পদ্ধতি,
+  একই ছবি দিয়ে। প্রথম তিনটি আজকের অবস্থা, চতুর্থটি আপনার চাওয়া "ফিলার সিস্টেম"।
+</p>
+
+<div class="wrap">
+
+  <!-- ═══ 1 ═══ -->
+  <section class="panel">
+    <h2>১. আজ যা হয় <span class="tag bad">ছবি কেটে যায়</span></h2>
+    <p class="sub"><code>object-fit: cover</code> — বাক্স ভরে, কিন্তু ছবির অংশবিশেষ কেটে বাদ পড়ে।</p>
+
+    <div class="case">
+      <div class="label"><b>খাড়া ছবি (৩:৪)</b> ছবির ৪৫% কাটা পড়ে — মাথা বা পা হারিয়ে যেতে পারে।
+        <div class="src"><div class="tall">৩:৪</div></div></div>
+      <div>
+        <div class="frame fit-cover"><img src="sample.svg" alt=""></div>
+        <p class="verdict no">রিপোর্টার যেটুকু দেখাতে চেয়েছিলেন, সেটুকুই হারায়। মুখ কাটা পড়লে ছবিটি অর্থহীন।</p>
+      </div>
+    </div>
+
+    <div class="case">
+      <div class="label"><b>চওড়া ছবি (১৬:৯)</b> কোনো অংশ কাটে না — কারণ মাপ মিলে যায়।
+        <div class="src"><div class="wide">১৬:৯</div></div></div>
+      <div>
+        <div class="frame fit-cover"><img src="sample.svg" alt=""></div>
+        <p class="verdict yes">এটি সমস্যা নয় — মাপ মিললে cover নিখুঁত।</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 2 ═══ -->
+  <section class="panel">
+    <h2>২. শুধু <code>contain</code> করলে <span class="tag bad">সাদা ফাঁকা বার</span></h2>
+    <p class="sub">পুরো ছবি দেখা যায়, কিন্তু দুই পাশে মৃত সাদা বার — দেখতে ভাঙা লাগে।</p>
+    <div class="case">
+      <div class="label"><b>খাড়া ছবি (৩:৪)</b> ছবি অটুট, কিন্তু পাশে ফাঁকা।
+        <div class="src"><div class="tall">৩:৪</div></div></div>
+      <div>
+        <div class="frame fit-contain"><img src="sample.svg" alt=""></div>
+        <p class="verdict no">ছবি বাঁচে, কিন্তু ফাঁকা বার "লোড হয়নি" বা "ভাঙা" মনে হয়।</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 3 ═══ -->
+  <section class="panel">
+    <h2>৩. ফিলার সিস্টেম <span class="tag good">সুপারিশ</span></h2>
+    <p class="sub">
+      ভরা অংশে <b>একই ছবির ঝাপসা সংস্করণ</b> বসে, উপরে পুরো ছবি অটুট থাকে। এটিই ইউটিউব, স্পটিফাই ও অ্যাপল টিভি যেভাবে করে।
+    </p>
+    <div class="case">
+      <div class="label"><b>খাড়া ছবি (৩:৪)</b> পাশের ফাঁক ছবির নিজের রঙে ভরে যায়।
+        <div class="src"><div class="tall">৩:৪</div></div></div>
+      <div>
+        <div class="frame fit-filler">
+          <img class="bg" src="sample.svg" alt="" aria-hidden="true">
+          <img class="fg" src="sample.svg" alt="">
+        </div>
+        <p class="verdict yes">ছবি অটুট, ফাঁকা নেই, চোখে ভাঙা লাগে না। ফাঁকা বার দেখানোর বদলে ছবিটিই বাক্সটি ধারণ করে।</p>
+      </div>
+    </div>
+
+    <div class="case">
+      <div class="label"><b>খুব সরু ছবি</b> চরম অবস্থাতেও ভদ্র দেখায়।
+        <div class="src"><div style="height:150px;width:80px;margin:auto">৯:১৬</div></div></div>
+      <div>
+        <div class="frame fit-filler">
+          <img class="bg" src="sample.svg" alt="" aria-hidden="true">
+          <img class="fg" src="sample.svg" alt="">
+        </div>
+        <p class="verdict yes">ঝাপসা স্তর এখানেই সবচেয়ে বেশি কাজে লাগে।</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 4 ═══ -->
+  <section class="panel">
+    <h2>৪. ব্র্যান্ড-লাল ফিলার <span class="tag">বিকল্প</span></h2>
+    <p class="sub">ঝাপসা ছবির বদলে ফাঁকা অংশে সোজা ব্র্যান্ড রঙ। আরও পরিষ্কার ও হালকা, কিন্তু ছবির সঙ্গে মেলে না।</p>
+    <div class="case">
+      <div class="label"><b>খাড়া ছবি (৩:৪)</b> ফাঁক লাল।
+        <div class="src"><div class="tall">৩:৪</div></div></div>
+      <div>
+        <div class="frame fit-brand"><img class="fg" src="sample.svg" alt=""></div>
+        <p class="verdict">স্পষ্ট ও ব্র্যান্ড-সচেতন, কিন্তু ছবি ও ফাঁকের মাঝে কড়া দাগ দেখা যায়।</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

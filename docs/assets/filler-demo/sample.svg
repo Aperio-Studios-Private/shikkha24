@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7fb8e6"/><stop offset="1" stop-color="#dceaf5"/>
+    </linearGradient>
+  </defs>
+  <rect width="300" height="400" fill="url(#sky)"/>
+  <!-- a building: the "subject" that must not be cropped off -->
+  <rect x="90" y="150" width="120" height="250" fill="#c9a27a"/>
+  <rect x="105" y="175" width="26" height="34" fill="#5b7a94"/>
+  <rect x="169" y="175" width="26" height="34" fill="#5b7a94"/>
+  <rect x="105" y="235" width="26" height="34" fill="#5b7a94"/>
+  <rect x="169" y="235" width="26" height="34" fill="#5b7a94"/>
+  <rect x="137" y="320" width="26" height="80" fill="#6b4f33"/>
+  <!-- the flag at the very top: the first thing cover() throws away -->
+  <rect x="148" y="40" width="3" height="110" fill="#444"/>
+  <rect x="151" y="42" width="60" height="38" fill="#da1c25"/>
+  <!-- ground -->
+  <rect y="380" width="300" height="20" fill="#6d8b52"/>
+  <text x="150" y="392" font-size="13" fill="#fff" text-anchor="middle">3:4 খাড়া ছবি</text>
+</svg>

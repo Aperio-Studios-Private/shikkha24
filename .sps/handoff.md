@@ -2714,3 +2714,63 @@ Two pre-existing defects found on the way and fixed in ba86b50:
   tree) because its regex reported a phantom `sunken` for `dark:bg-dark-sunken`.
   Patched, with a negative control proving it still catches a real undefined
   token. Now 9 passed, 0 failed.
+
+### 2026-10-18 ~17:57 — SESSION PAUSED (owner restarting the computer). Resume here.
+
+Tree clean, HEAD `118d5a2` pushed to **both** GitHub and GitLab (verified by
+`ls-remote`, not assumed). Build green (117 pages). Nothing at risk.
+
+**DONE this session**
+- T-47 `docs/bengali-style.md` — the written Bengali standard (voice, banned
+  bureaucratic words, the em-dash/ellipsis rule, Bangla Academy orthography
+  corrections, numerals, terms that stay English, never-change list, verifiers).
+  Em dashes are kept in `<title>`/meta (Layout.astro:76 builds `title — siteName`
+  by design) and in logic sentinels (`term.term === '—'`); only prose loses them.
+- T-46 Phase 4 COMPLETE — the previous agent stopped mid-phase leaving 22 files
+  uncommitted. Verified complete, then committed (c74f299).
+- T-48/T-49 `ArticlePlaceholder.astro` — the no-cover brand visual: white plate,
+  centred CMS logo, inset with a hairline border, white in both themes, wired
+  into the card grid and the article hero.
+- Fixed two pre-existing defects: the `surface-sunken` token never existed so the
+  demo-ad honesty badge rendered **transparent** (my own T-43 regression), and
+  `verify:dark-tokens` failed on HEAD via a phantom `sunken` name. Both fixed;
+  gate is 9 passed / 0 failed, with a negative control proving it still bites.
+
+**IN PROGRESS — the filler system (owner's live question, NOT finished)**
+
+Goal: an admin uploads a wrongly-proportioned image; the *whole* image must show
+(`object-fit: contain`) and the leftover gaps must be filled with something that
+matches the image rather than dead bars.
+
+Current site behaviour, measured, not assumed:
+- Cards use `object-cover` + `aspect-16/9` / `aspect-square`; the hero uses
+  `object-cover` in `aspect-16/9`.
+- **`object-cover` destroys content.** Measured: a 3:4 source with the subject at
+  the top edge lost it completely (0 flag pixels surviving) when forced into 16:9.
+- The CMS already stores `focalPoint: true` on Media, so a focal point is
+  available to bias the crop — nothing in the storefront reads it yet.
+
+Demo built at `docs/assets/filler-demo/` (index.html + sample.svg + the two real
+fonts + filler-comparison.png). It renders four strategies over one 3:4 source in
+a 16:9 box. Measured results: cover = subject LOST; contain = subject lost *and*
+no white bars observed (still unexplained — see next); blurred-self filler =
+subject SURVIVES (228 flag px, 84 blur rows); brand-red filler = subject
+survives.
+
+⚠️ **UNRESOLVED when the session paused:** in the demo, `object-fit: contain`
+preserved neither the flag nor visible white bars, which contradicts its expected
+behaviour and means the demo's frame 2 is not yet trustworthy. Also note the demo
+needed an explicit `width`/`height` on the SVG (a viewBox-only SVG gave Chrome a
+113x150 default and broke the geometry) — that was a demo bug, not a site bug.
+**Do not act on frame 2's numbers until this is re-measured.**
+
+**NEXT STEP on resume:** resolve the frame-2 anomaly, then decide the strategy
+with the owner. My recommendation remains the **blurred-self filler** (fill the
+gaps with a blurred, scaled copy of the same image, whole image on top) because
+it needs no new asset, never shows dead bars, and matches the image's own colours.
+It can be implemented as CSS-only on the existing wrapper — no CMS or pipeline
+change, no new dependency, so it stays inside the budget rule.
+
+**Also still open (unchanged):** T-44 font subsetting (needs owner approval);
+T-42 EditorialSnippets collection built but not shipped; the filler system must be
+applied at all three aspect boxes (16:9 card, square row-card, 16:9 hero).
