@@ -128,13 +128,50 @@ fi
 echo "→ Lighthouse gate: serving $DIST and measuring 3 templates (median of 3)"
 [ -n "${CHROME_PATH:-}" ] && echo "  using Chrome at $CHROME_PATH"
 
+# ── The article fixture must come from the build, not from a hardcoded id ─────
+# `lighthouserc.json` pins a third template at `/admission/23/admission-policy-2027/`.
+# That URL is a PRODUCTION article id. CI does not build against production data:
+# `with-cms.sh` boots a seeded CMS whose articles are `demo-*` slugs with their
+# own ids, so the pinned URL 404s and Lighthouse dies with "unable to reliably
+# load the page" (measured 2026-10-18 — the gate failed on exactly this while the
+# same command passed locally, because locally the production CMS was reachable).
+# A build-fixture mismatch would keep failing on every future content change, so
+# the article template is now resolved from the built `sitemap.xml`: whatever
+# article the build actually produced is the one measured.
+cfg="$(mktemp)"
+smoke=""
+
+trap 'rm -f "$cfg" "$smoke" 2>/dev/null' EXIT
+
+node -e '
+const fs = require("fs")
+const cfgPath = "lighthouserc.json"
+const sitemapPath = "frontend/dist/sitemap.xml"
+const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"))
+try {
+  const xml = fs.readFileSync(sitemapPath, "utf8")
+  const article = [...xml.matchAll(/<loc>(https?:\/\/[^<]+)<\/loc>/g)]
+    .map((m) => new URL(m[1]).pathname)
+    .find((p) => /^\/[a-z0-9-]+\/\d+\/[a-z0-9-]+\/?$/.test(p))
+  if (article) {
+    cfg.ci.collect.url[2] = "http://localhost" + article
+    console.log("  article template: " + article)
+  } else {
+    console.log("note  no article URL in sitemap.xml — keeping the configured fixture")
+  }
+} catch {
+  console.log("note  no sitemap.xml — keeping the configured fixture")
+}
+fs.writeFileSync(process.argv[1], JSON.stringify(cfg))
+' "$cfg"
+
 # Reports are machine output; keep them out of the working tree.
 rm -rf .lighthouseci .lighthouseci-report
 
 # `set -e` would abort here on a non-zero exit before `$?` could be read, and the
 # failure message would never print. `|| status=$?` captures it instead.
 status=0
-pnpm exec lhci autorun --config=lighthouserc.json || status=$?
+pnpm exec lhci autorun --config="$cfg" || status=$?
 
 # `diagnose_layout_shifts` is defined below; shell functions must exist before the
 # call site executes, and the whole file is parsed first, so ordering is safe.
@@ -167,7 +204,6 @@ echo
 echo "→ Self-test: confirming the gate can actually fail"
 
 smoke="$(mktemp)"
-trap 'rm -f "$smoke"' EXIT
 
 # `categories:performance` is a real audit key in the reports just collected, so
 # demanding 1.0 (nothing scores 1.0 consistently) must fail.
