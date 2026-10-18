@@ -2449,3 +2449,20 @@ CSP strict, switch the beacon OFF at the dashboard — no repo change.
 ALTERNATIVE (repo-side, NOT chosen): adding `no-transform` to the HTML
 Cache-Control would also stop injection, but that is a cache-behaviour change
 for the whole site to solve a cosmetic analytics toggle — wrong trade.
+
+### 2026-10-18 ~09:10 — O-4 CLOSED: owner disabled Web Analytics; console clean, BP 100
+
+Owner used the corrected path (Web Analytics → Manage site → Disable). Verified
+with evidence:
+- Beacon injection gone: 0 occurrences across `/`, `/latest`, `/deadlines`,
+  `/tag/scholarship` (first post-toggle fetch still served a stale cached copy
+  with the beacon; cache-busted fetches returned 0).
+- Lighthouse 12 mobile, live: performance 97, accessibility 100,
+  best-practices 100 (was 93 → exactly the predicted +4), seo 100,
+  LCP 2.5s, TBT 0ms, CLS 0.
+- errors-in-console PASS, inspector-issues PASS — console fully clean.
+- color-contrast PASS, label-content-name-mismatch PASS (our T-43 code fixes).
+
+Only remaining audit note: uses-long-cache-ttl on the CMS-hosted logo SVG
+(7-day TTL, ~2.3KB) — cosmetic, site assets are immutable-hashed. All four
+page-level Lighthouse gates from rule 9 now pass with room to spare.

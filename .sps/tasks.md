@@ -2986,3 +2986,13 @@ icon reads as a white tile) and `docs/assets/logo-brandred-proposal.svg`
 **Pending (owner, then agent):** owner uploads Logo_Official LOGO.svg as Site
 Settings → logo and apple-touch-icon.png (or the .ico) as favicon in the CMS
 admin; agent then rebuilds+deploys so the storefront picks up the new URLs.
+
+### T-43 — ✅ DONE (2026-10-18 ~09:10): PageSpeed audit round (owner shared PSI link)
+
+Local Lighthouse 12 (PSI API was quota-blocked). Fixed two real a11y defects in
+our code: DemoAd contrast (3 muted-on-raised labels failed 4.5:1) and the
+weather button's accessible name (aria-label did not contain visible text).
+Owner disabled Cloudflare's auto-injected Web Analytics beacon (O-4) after I
+corrected my wrong dashboard path. Final mobile: perf 97 / a11y 100 / BP 100 /
+SEO 100, LCP 2.5s, TBT 0ms, CLS 0, console clean. Commits: 23ea439 (code),
+b34613f (guidance correction), this entry.
