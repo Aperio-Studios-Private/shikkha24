@@ -61,8 +61,7 @@ export function formatHijriDate(date: Date = new Date()): string {
     year: 'numeric',
     timeZone: 'Asia/Dhaka',
   }).formatToParts(date)
-  const value = (type: string): number =>
-    Number(parts.find((part) => part.type === type)?.value)
+  const value = (type: string): number => Number(parts.find((part) => part.type === type)?.value)
   const day = value('day')
   const month = value('month')
   const year = value('year')

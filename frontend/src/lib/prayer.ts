@@ -87,7 +87,7 @@ export function getNextPrayer(
       return {
         name,
         label: PRAYER_LABELS_BN[name],
-        time: times[name]!,
+        time: times[name] ?? '',
         minutesUntil: minutes - nowMinutes,
         isTomorrow: false,
       }
@@ -101,7 +101,7 @@ export function getNextPrayer(
   return {
     name: 'fajr',
     label: PRAYER_LABELS_BN.fajr,
-    time: (tomorrowFajr ?? times.fajr)!,
+    time: tomorrowFajr ?? times.fajr ?? '',
     minutesUntil: 24 * 60 - nowMinutes + fajr,
     isTomorrow: true,
   }

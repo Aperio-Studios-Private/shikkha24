@@ -40,7 +40,7 @@
  * be inspectable before it is fired.
  */
 
-import { readFileSync, readdirSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -67,7 +67,7 @@ function findKey() {
 }
 
 /** Every `<loc>` in the built sitemap, which is the authoritative URL list. */
-function sitemapUrls(site) {
+function sitemapUrls(_site) {
   const xml = readFileSync(path.join(ROOT, 'frontend', 'dist', 'sitemap.xml'), 'utf8')
   return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim())
 }
@@ -114,5 +114,7 @@ const hint =
         ? ' — rate limited; try again later'
         : ''
 
-console.log(`  ${ok ? 'OK' : 'FAILED'}  HTTP ${res.status}${res.status === 202 ? ' (accepted, key pending validation)' : ''}${hint}`)
+console.log(
+  `  ${ok ? 'OK' : 'FAILED'}  HTTP ${res.status}${res.status === 202 ? ' (accepted, key pending validation)' : ''}${hint}`,
+)
 process.exit(ok ? 0 : 1)

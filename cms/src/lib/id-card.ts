@@ -258,7 +258,7 @@ export async function fitHeadline(
 }
 
 /** The real pixel height of a rendered text layer, for collision-free stacking. */
-async function layerHeight(layer: Buffer): Promise<number> {
+async function _layerHeight(layer: Buffer): Promise<number> {
   const { info } = await sharp(layer).toBuffer({ resolveWithObject: true })
   return info.height
 }

@@ -44,8 +44,14 @@ const ADMIN_ROLE = 'superAdmin'
  */
 export async function ensureBootstrapAdmin(payload: {
   logger?: { info: (m: string) => void; error: (m: string) => void }
-  find: (args: any) => Promise<any>
-  update: (args: any) => Promise<any>
+  // Payload's local API takes a query object and returns documents whose shape
+  // depends on the collection, so this declares only the fields this module
+  // actually reads rather than casting to a fake full type. Keeping the param
+  // as `Record<string, unknown>` (not `any`) means a wrong key is caught here.
+  find: (args: Record<string, unknown>) => Promise<{
+    docs?: { id: number | string; roles?: unknown }[]
+  }>
+  update: (args: Record<string, unknown>) => Promise<unknown>
 }): Promise<void> {
   const email = process.env.PAYLOAD_BOOTSTRAP_ADMIN_EMAIL?.trim()
   if (!email) return

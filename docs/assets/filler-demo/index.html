@@ -29,7 +29,8 @@
   .fit-cover img{width:100%;height:100%;object-fit:cover;display:block}
 
   /* ── 2. object-contain — whole image, but dead bars ── */
-  .fit-contain img{width:100%;height:100%;object-fit:contain;display:block;background:#fff}
+  .fit-contain{background:#ff00ff}
+  .fit-contain img{width:100%;height:100%;object-fit:contain;display:block}
 
   /* ── 3. THE FILLER SYSTEM — blurred self-fill + whole image on top ── */
   .fit-filler{position:relative;background:#000}
@@ -91,7 +92,7 @@
   <!-- ═══ 2 ═══ -->
   <section class="panel">
     <h2>২. শুধু <code>contain</code> করলে <span class="tag bad">সাদা ফাঁকা বার</span></h2>
-    <p class="sub">পুরো ছবি দেখা যায়, কিন্তু দুই পাশে মৃত সাদা বার — দেখতে ভাঙা লাগে।</p>
+    <p class="sub">পুরো ছবি দেখা যায়, কিন্তু <b>প্রায় ৫৮% প্রস্থ বৃথা যায়</b>। এখানে ফাঁকা অংশ বেগুনি করে দেখানো হলো, যাতে বোঝা যায় কতটা জায়গা নষ্ট হচ্ছে।</p>
     <div class="case">
       <div class="label"><b>খাড়া ছবি (৩:৪)</b> ছবি অটুট, কিন্তু পাশে ফাঁকা।
         <div class="src"><div class="tall">৩:৪</div></div></div>

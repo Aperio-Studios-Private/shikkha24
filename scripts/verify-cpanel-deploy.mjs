@@ -1429,7 +1429,11 @@ async function main() {
     // and a restatement of itself.
     if (cronGlob && ciName) {
       const cronExt = cronGlob[1].replace('frontend-*.', '')
-      const ciExt = ciName[1].replace('frontend-${runId}.', '')
+      // A literal, not a template: this strips the *placeholder text*
+      // `frontend-${runId}.` that appears in the workflow source, which is why
+      // the `$`/`{` must stay un-interpolated here.
+      const RUN_ID_PLACEHOLDER = ['frontend-', '$', '{runId}.'].join('')
+      const ciExt = ciName[1].replace(RUN_ID_PLACEHOLDER, '')
       check(
         `the cron's frontend-*.${cronExt} glob matches CI's frontend-<run>.${ciExt} name`,
         cronExt === ciExt,

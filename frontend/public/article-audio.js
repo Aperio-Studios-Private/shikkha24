@@ -31,7 +31,7 @@
   var articleText = ''
   try {
     articleText = JSON.parse(data.textContent || '""')
-  } catch (error) {
+  } catch (_error) {
     return
   }
   if (!articleText) return

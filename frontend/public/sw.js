@@ -81,7 +81,7 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
-  const target = event.notification.data && event.notification.data.url
+  const target = event.notification.data?.url
   const url = typeof target === 'string' && target.startsWith('/') ? target : '/'
 
   event.waitUntil(

@@ -263,7 +263,9 @@ function checkBuiltArtifact() {
   try {
     files = readdirSync(distDir).filter((f) => f.startsWith('HeaderWidgets') && f.endsWith('.js'))
   } catch {
-    notes.push('frontend/dist/_astro not found — skipped the built-artifact check (run a build to enable it)')
+    notes.push(
+      'frontend/dist/_astro not found — skipped the built-artifact check (run a build to enable it)',
+    )
     return
   }
 

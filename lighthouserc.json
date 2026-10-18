@@ -17,12 +17,7 @@
           "deviceScaleFactor": 1.75
         },
         "throttlingMethod": "simulate",
-        "onlyCategories": [
-          "performance",
-          "accessibility",
-          "seo",
-          "best-practices"
-        ]
+        "onlyCategories": ["performance", "accessibility", "seo", "best-practices"]
       }
     },
     "assert": {

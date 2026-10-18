@@ -79,7 +79,12 @@ const DEFAULT_INDEX = 0 // Dhaka
 const LOCATION_TTL_MS = 24 * 60 * 60 * 1000
 
 export function getDefaultLocation(): Location {
-  return { ...CITIES[DEFAULT_INDEX]!, source: 'default' }
+  // `CITIES` is a non-empty literal and DEFAULT_INDEX is a valid index into it,
+  // so this cannot be undefined; the fallback keeps it total without a
+  // non-null assertion, which would hide a future edit that empties the list.
+  const city = CITIES[DEFAULT_INDEX]
+  if (!city) throw new Error('CITIES is empty — no default location can be resolved')
+  return { ...city, source: 'default' }
 }
 
 /**

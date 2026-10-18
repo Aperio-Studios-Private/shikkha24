@@ -174,7 +174,7 @@ async function uploadCover(_article) {
   const file = resolve(HERE, '../editorial/assets-batch-1/final', _article.image)
   const bytes = await readFile(file)
   const form = new FormData()
-  form.append('file', new Blob([bytes], { type: 'image/jpeg' }), _article.slug + '.jpg')
+  form.append('file', new Blob([bytes], { type: 'image/jpeg' }), `${_article.slug}.jpg`)
   form.append('alt', _article.imageAlt)
   form.append('credit', 'চিত্র: AI')
   const created = await api('/api/media', { method: 'POST', token, form })

@@ -72,7 +72,7 @@ export interface AladhanDate {
  * @returns e.g. `"২৩ রবিউস সানি ১৪৪৮"`, or `''` when the payload has no day —
  *          the header omits the line rather than printing something wrong.
  */
-export function formatHijri(date: AladhanDate | undefined, offsetDays: number): string {
+export function formatHijri(date: AladhanDate | undefined, _offsetDays: number): string {
   const hijri = date?.hijri
   if (!hijri?.day) return ''
   const monthEn = hijri.month?.en ?? ''

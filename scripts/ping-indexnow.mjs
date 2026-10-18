@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+
 /**
  * IndexNow ping (T-40) — submits every URL in the built sitemap to Bing/Yandex
  * etc. via api.indexnow.org. Free protocol, no account, no card (budget rule 7).
@@ -27,4 +28,7 @@ const res = await fetch('https://api.indexnow.org/indexnow', {
   headers: { 'Content-Type': 'application/json; charset=utf-8' },
   body: JSON.stringify(body),
 })
-console.log(`IndexNow: submitted ${urls.length} URLs → HTTP ${res.status}`, res.status === 200 || res.status === 202 ? '✓' : '(non-200, check key)')
+console.log(
+  `IndexNow: submitted ${urls.length} URLs → HTTP ${res.status}`,
+  res.status === 200 || res.status === 202 ? '✓' : '(non-200, check key)',
+)

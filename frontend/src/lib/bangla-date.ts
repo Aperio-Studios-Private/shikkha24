@@ -89,23 +89,23 @@ export function toBanglaDate(date: Date = new Date()): BanglaDate {
   if (isGregorianLeap(startYear + 1)) days[10] = 31
 
   let monthIndex = 0
-  while (monthIndex < 11 && remaining > days[monthIndex]!) {
-    remaining -= days[monthIndex]!
+  while (monthIndex < 11 && remaining > (days[monthIndex] ?? 0)) {
+    remaining -= days[monthIndex] ?? 0
     monthIndex++
   }
 
   return {
     year: banglaYear,
-    monthName: BN_MONTH_NAMES[monthIndex]!,
+    monthName: BN_MONTH_NAMES[monthIndex] ?? BN_MONTH_NAMES[0] ?? '',
     day: remaining,
-    weekday: BN_WEEKDAYS[today.getDay()]!,
+    weekday: BN_WEEKDAYS[today.getDay()] ?? '',
   }
 }
 
 /** Latin → Bengali digits. */
 export function toBnDigits(value: string | number): string {
   const digits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯']
-  return String(value).replace(/\d/g, (d) => digits[Number(d)]!)
+  return String(value).replace(/\d/g, (d) => digits[Number(d)] ?? d)
 }
 
 /**

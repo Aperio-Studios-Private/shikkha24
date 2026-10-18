@@ -3,8 +3,15 @@
   "primaryGoal": "Increase organic traffic",
   "domain": "https://shikkha24.com",
   "primaryKeywords": [
-    "শিক্ষা সংবাদ", "ভর্তি তথ্য", "পরীক্ষার রুটিন", "ফলাফল প্রকাশ",
-    "বৃত্তি", "এইচএসসি", "এসএসসি", "সরকারি চাকরি", "শিক্ষা ক্যালেন্ডার"
+    "শিক্ষা সংবাদ",
+    "ভর্তি তথ্য",
+    "পরীক্ষার রুটিন",
+    "ফলাফল প্রকাশ",
+    "বৃত্তি",
+    "এইচএসসি",
+    "এসএসসি",
+    "সরকারি চাকরি",
+    "শিক্ষা ক্যালেন্ডার"
   ],
   "geo": "Specific country: Bangladesh (bn-BD)",
   "audience": "Students / learners, and their parents",
@@ -21,8 +28,12 @@
   "aiSearch": "Yes — enable AI citation (llms.txt shipped)",
   "coreWebVitals": "Critical",
   "schemaTypes": [
-    "Organization", "WebSite", "NewsArticle", "FAQPage",
-    "BreadcrumbList", "LiveBlogPosting"
+    "Organization",
+    "WebSite",
+    "NewsArticle",
+    "FAQPage",
+    "BreadcrumbList",
+    "LiveBlogPosting"
   ],
   "faqSchema": "Yes — CMS-editable FAQ collection feeding /faq",
   "metaDescriptions": "Yes — generated from page content",

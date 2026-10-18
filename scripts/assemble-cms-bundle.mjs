@@ -39,7 +39,7 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 
@@ -76,7 +76,11 @@ console.log('  ✓ 1  entry point at cms/.next/standalone/cms/server.js')
 
 // ── Step 2 — static assets ───────────────────────────────────────────────────
 const staticSrc = path.resolve(process.cwd(), 'cms/.next/static')
-assert(existsSync(staticSrc), '2', `no built static assets at ${staticSrc} — run the CMS build first`)
+assert(
+  existsSync(staticSrc),
+  '2',
+  `no built static assets at ${staticSrc} — run the CMS build first`,
+)
 mkdirSync(path.join(BUNDLE, '.next', 'static'), { recursive: true })
 cpSync(staticSrc, path.join(BUNDLE, '.next', 'static'), { recursive: true })
 console.log('  ✓ 2  .next/static copied (the admin 404s without it)')
@@ -125,9 +129,16 @@ assert(
 console.log('  ✓ 4  migrations copied (the host runs `payload migrate`)')
 
 // ── Step 5 — pnpm hoisted fallback ───────────────────────────────────────────
-execFileSync('node', [path.resolve(process.cwd(), 'scripts/promote-pnpm-fallback.mjs'), path.join(ROOT, 'node_modules')], {
-  stdio: 'inherit',
-})
+execFileSync(
+  'node',
+  [
+    path.resolve(process.cwd(), 'scripts/promote-pnpm-fallback.mjs'),
+    path.join(ROOT, 'node_modules'),
+  ],
+  {
+    stdio: 'inherit',
+  },
+)
 assert(
   existsSync(path.join(ROOT, 'node_modules', '@libsql', 'core')),
   '5',

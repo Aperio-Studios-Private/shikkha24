@@ -67,7 +67,7 @@ const COMPRESSIBLE = new Set(['.html', '.css', '.js', '.json', '.svg', '.txt', '
 createServer(async (req, res) => {
   try {
     let p = decodeURIComponent(req.url.split('?')[0])
-    if (!extname(p)) p = p.replace(/\/$/, '') + '/index.html'
+    if (!extname(p)) p = `${p.replace(/\/$/, '')}/index.html`
     const file = join(ROOT, normalize(p).replace(/^(\.\.[/\\])+/, ''))
     const buf = await readFile(file)
     const ext = extname(file)
@@ -90,7 +90,7 @@ createServer(async (req, res) => {
     }
     if (enc) {
       h['Content-Encoding'] = enc
-      h['Vary'] = 'Accept-Encoding'
+      h.Vary = 'Accept-Encoding'
     }
     res.writeHead(200, h)
     res.end(out)
