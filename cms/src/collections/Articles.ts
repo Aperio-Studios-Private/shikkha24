@@ -1,12 +1,11 @@
 import type { CollectionConfig } from 'payload'
 
 import {
-  editorInChiefField,
-  hasRole,
-  isEditorial,
-  isSuperAdminOrEditorInChief,
-  publishedOrEditor,
-} from '../access/roles'
+  authorField,
+  deleteArticleOrEditorInChief,
+  updateOwnArticlesOrEditor,
+} from '../access/articles'
+import { editorInChiefField, hasRole, isEditorial, publishedOrEditor } from '../access/roles'
 import { articleBodyEditor } from '../blocks/editors'
 import { guardPublishStatus } from '../hooks/publish'
 
@@ -36,11 +35,20 @@ const REVIEW_LABELS: Record<ReviewStatus, string> = {
  * adds the review queue on top. Publishing itself is `_status: published`.
  *
  * ⚠️ **The collection `update` access does NOT restrict publishing.** It cannot:
- * it is `isEditorial`, which must include reporters so they can save their own
- * drafts. Until 2026-09-18 this comment claimed otherwise and nothing enforced
- * it, so a reporter could publish their own unreviewed story with a single
- * `PATCH`. `guardPublishStatus` (see `hooks/publish.ts`) is what actually
- * enforces it now, and `verify:reporter` is the check that proves it.
+ * it has to include reporters so they can save their own drafts. Until 2026-09-18
+ * this comment claimed otherwise and nothing enforced it, so a reporter could
+ * publish their own unreviewed story with a single `PATCH`. `guardPublishStatus`
+ * (see `hooks/publish.ts`) is what actually enforces it now, and `verify:reporter`
+ * is the check that proves it.
+ *
+ * ## Who may touch which article (T-60)
+ *
+ * The rule above is a *role* question and reporters pass it; `update` therefore
+ * adds the *ownership* half on top — a reporter reaches only the rows whose
+ * `author` is their own `Users.authorProfile`. The `author` field is restricted
+ * the same way, so a reporter can set a byline only to their own profile and can
+ * never move a row into or out of their scope. The desk is unrestricted on all of
+ * it. See `access/articles.ts`.
  *
  * ## Field-level restrictions
  *
@@ -71,8 +79,21 @@ export const Articles: CollectionConfig = {
     // Anyone can read published articles; editors additionally see drafts.
     read: publishedOrEditor,
     create: isEditorial,
-    update: isEditorial,
-    delete: isSuperAdminOrEditorInChief,
+    /*
+     * ⚠️ `update` is **not** `isEditorial`, and T-60 is why: that rule has to
+     * include reporters so they can save their own drafts, but it also let any
+     * reporter edit any colleague's article — including one already published.
+     * Editors stay unrestricted; a reporter is scoped to the rows carrying their
+     * own byline. See `access/articles.ts` for why ownership is the `author`
+     * relationship and not a `createdBy` stamp.
+     */
+    update: updateOwnArticlesOrEditor,
+    /*
+     * Delete stays with the desk's top two roles — T-60 asked whether it was as
+     * loose as `update` and it was not; see `deleteArticleOrEditorInChief` for why
+     * scoping it to ownership would have been a widening, not a fix.
+     */
+    delete: deleteArticleOrEditorInChief,
   },
   versions: {
     drafts: {
@@ -306,6 +327,10 @@ export const Articles: CollectionConfig = {
       index: true,
       label: { en: 'Author', bn: 'লেখক' },
       admin: { position: 'sidebar' },
+      // A byline is an attribution of responsibility and must not be forgeable
+      // by the person being attributed — same rule `endpoints/reporter.ts`
+      // enforces by ignoring `author` in the request body. See `authorField`.
+      access: { create: authorField, update: authorField },
     },
     {
       name: 'reviewStatus',

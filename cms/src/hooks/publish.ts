@@ -29,14 +29,26 @@ import { isEditorUser } from '../access/roles'
  * the rule, and a reporter cannot mistake a stripped write for a successful one.
  * So this throws, with a Bengali message.
  *
- * ## Only the transition INTO `published` is blocked
+ * ## Two things are guarded here, not one
  *
- * `beforeChange` receives the incoming data **merged with the existing
- * document**, so `data._status` is `'published'` on *every* later save of an
- * already-published article — including a reporter fixing a typo. Comparing
- * against `originalDoc` means the guard fires only on the actual transition,
- * which is the action being forbidden. (Whether a reporter should be able to
- * edit a live article at all is a separate, pre-existing question.)
+ * 1. **The transition INTO `published`.** `beforeChange` receives the incoming
+ *    data **merged with the existing document**, so `data._status` is
+ *    `'published'` on *every* later save of an already-published article —
+ *    including a reporter fixing a typo. Comparing against `originalDoc` means
+ *    the guard fires only on the actual transition, which is the action being
+ *    forbidden.
+ *
+ * 2. **Any edit at all to an article that is already `published`** (T-60).
+ *    Blocking only the transition left the live row editable: a reporter who
+ *    published something before 2026-09-18's guard landed, or whose story was
+ *    published by an editor, could still rewrite the text, swap the image or
+ *    retitle a story the public is currently reading — with no review and no
+ *    visible trace. "Published" has to mean frozen for the people who cannot
+ *    publish, or the review step protects only the first version of a story.
+ *    The desk is exempt via `isEditorUser` above: correcting a live article,
+ *    adding a correction notice and updating the publish time are the editor's
+ *    job, and freezing them would break the site rather than protect it. See the
+ *    note on the scheduled-publish window below.
  */
 /**
  * The `context` key that marks a write as **programmatic** — the seed, a cron
@@ -59,6 +71,7 @@ export const PROGRAMMATIC_CONTEXT = 'shikkhaProgrammaticWrite' as const
 
 export const guardPublishStatus: CollectionBeforeChangeHook = async ({
   data,
+  operation,
   originalDoc,
   req,
 }) => {
@@ -70,13 +83,44 @@ export const guardPublishStatus: CollectionBeforeChangeHook = async ({
   // publish, so CI could never build a real site.
   if (req.context?.[PROGRAMMATIC_CONTEXT]) return data
 
-  // Editors and above may publish; that is the review step.
+  // Editors and above may publish; that is the review step — and it is also what
+  // lets them correct a live article. Everything below applies to reporters only.
   if (isEditorUser(req.user)) return data
 
   const next = (data as { _status?: string })._status
   const previous = (originalDoc as { _status?: string } | undefined)?._status
 
-  if (next === 'published' && previous !== 'published') {
+  /*
+   * A create cannot be a mutation of a live article, so only the transition rule
+   * applies to it.
+   *
+   * This branch exists because `versions.drafts.schedulePublish` is enabled on
+   * the collection. Payload's scheduler re-enters through `req.payload.update()`
+   * (`payload@3.90.2`, `versions/schedule/job.js`) carrying `_status: 'published'`
+   * and running as the user who scheduled it — so that write arrives here as an
+   * ordinary update with `originalDoc` still the draft, and the rule below sees a
+   * genuine transition and allows it. Narrowing on `operation` keeps create and
+   * update explicit rather than depending on `originalDoc` being absent for every
+   * create path.
+   */
+  if (operation === 'create') {
+    if (next === 'published') {
+      throw new APIError('সংবাদ প্রকাশ করা যায় শুধু সম্পাদকের অনুমোদনের পর।', 403)
+    }
+    return data
+  }
+
+  // Any write at all to an article the public can already read. This is the
+  // broader of the two rules, so it is checked first; its message is also the
+  // accurate one for a save that leaves `_status` alone.
+  if (previous === 'published') {
+    throw new APIError(
+      'প্রকাশিত সংবাদ শুধু সম্পাদক সম্পাদনা করতে পারেন। সংশোধনের জন্য সম্পাদকের সাথে যোগাযোগ করুন।',
+      403,
+    )
+  }
+
+  if (next === 'published') {
     throw new APIError('সংবাদ প্রকাশ করা যায় শুধু সম্পাদকের অনুমোদনের পর।', 403)
   }
 

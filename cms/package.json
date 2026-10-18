@@ -35,6 +35,7 @@
     "verify:oauth": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/oauth.ts",
     "verify:rebuild": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/rebuild-trigger.ts",
     "verify:reporter": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/reporter.ts",
+    "verify:reporter-access": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/reporter-access.ts",
     "verify:id-card": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/id-card.ts",
     "verify:reactions": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/reactions.ts",
     "verify:social": "cross-env NODE_OPTIONS=--no-deprecation payload run src/verify/social-url.ts",
