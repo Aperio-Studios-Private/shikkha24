@@ -28,6 +28,18 @@ CMS→watcher→Actions cycle is proven end-to-end **without** DEPLOY_WEBHOOK_UR
   the pending T-31 CMS bundle deploy.
 
 ### Fresh facts tonight (command-proven, keep for the next session)
+- **org-private re-validated as a fallback (owner evidence 2026-10-18 রাত).**
+  My chat claim "org-এ নিলে মিনিট বাড়ে না" was WRONG in what matters: minutes
+  do not pool across accounts, so the owner's org
+  `Aperio-Studios-Private` (GitHub Free) carries its **own fresh 2,000-min
+  monthly allowance for private repos** (owner screenshot: 1 min used / 2,000
+  included, resets 1 Nov) at $0 and no card — rule-7-safe. The trade-off
+  stands that burn must fit 2,000/month (T-51 measured 200 runs in one month),
+  so org-private + the T-51 reducers (CI on PR/nightly instead of every push)
+  is a viable private-repo path. Staying public (unlimited) remains the
+  zero-management option. Transfer mechanics when/if chosen: update the
+  publish-watcher's GITHUB_REPO env + PAT scope, local remotes, and the tag
+  workflows; repo secrets move with the repo.
 - **GitLab mirror is DROPPED (owner instruction, 2026-10-18 রাত: "আমরা GitLab
   ব্যবহার করব না").** All future pushes are `origin`-only; the local `gitlab`
   remote was removed so nothing can push there by accident. Deleting the

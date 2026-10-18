@@ -3177,6 +3177,30 @@ AVIF+WebP for the *local* archetype assets (`src/assets/categories/*.jpg` go
 through it — that is why the `_astro/` output has `.avif`/`.webp`). CMS images
 bypass it because they are remote. No action taken; awaiting owner direction.
 
+#### T-50 সিদ্ধান্ত-প্যাকেট (2026-10-18 রাত) — owner decides (⚠️ supersedes the interim note above)
+
+That "CMS images bypass the pipeline" note is now **stale**: `CmsImage.astro`
+already runs REMOTE CMS images through Astro's build pipeline (verified live
+tonight on `/admission/23/admission-policy-2027`: the covers serve as
+`/_astro/01-…_2qQIyI.avif 412w` + WebP fallback). What still ships full-size
+tonight — verified on the live page — is the **raw 1376×768 CMS JPEG as
+`og:image`, `twitter:image` and JSON-LD `NewsArticle.image`** (88–242 KB each),
+plus the CMS admin previews and anyone hotlinking media URLs. The CMS itself
+still stores uploads byte-for-byte (`payload.config.ts` leaves sharp unset;
+`Media.ts` has no `imageSizes`).
+
+| Option | What changes | Gains | Cost / risk |
+|---|---|---|---|
+| **A — Payload upload-time sharp** | Add `formatOptions`/`resizeOptions`/`imageSizes` back to `Media.ts`, drop the disable comment in `payload.config.ts` | Variants recorded in DB for admin, hotlinks, any future consumer; upload-time WebP/AVIF/storage sanity | Must ride the T-31 clean-cycle (deploy-window risk), `cms/src/verify/media.ts` no-sharp contract must flip, backfill decision for ~10 existing photos, shared-host memory (mitigations exist: NPROC 200, photocard/libvips already 200 live) |
+| **B — close T-50 as solved-for-readers** | No code; document that the reader path is already AVIF/WebP at true output sizes; fix stale `docs/image-optimization.md` §4 (dated 2026-10-04, contradicts CmsImage) | Zero risk | og/social embeds keep pulling the raw JPEG; admin/hotlinks unchanged |
+| **C — build-side og variant (new, storefront-only)** | At build time emit one small shared-size og/JSON-LD image per article (from the CMS source) and point `og:image`/`twitter:image`/JSON-LD `image` at it | Social/embed payload ↓ heavily (est. 88–242 KB → ~20–40 KB), no CMS deploy, any push ships it | A plan amendment (frontend change; rule 13: docs first, owner approval), one extra build step; og URL changes are safe (no per-URL dependencies known) |
+
+**Agent recommendation:** B (close + doc fix) + C (og variant) now; A deferred
+until after the T-31 clean-cycle proves the CMS runtime healthy. A alone does
+NOT fix og (variants exist but og still points wherever the template says) —
+the og URL choice is C's job regardless.
+Decision recorded here when the owner picks.
+
 ### T-53 — ✅ DONE (2026-10-18): two CI gates that had never run green again
 
 The budget unblock (T-52) exposed the real state of the tree: **two gates were
@@ -3334,6 +3358,24 @@ a verification table whose easiest green signal is the admin notice flipping
 from ⚠️ to the "সাইট নিজে থেকে নতুন হবে" line, rollback, trap list, and
 tonight's evidence table). Prerequisites (1) and (2) above are owner-gated
 work items, not guide-blockers.
+
+### T-57 — 🔴 OPEN (registered 2026-10-18 রাত, owner-reported): reusable thumbnail design — logo & text cut when used at 1:1
+
+Owner: "the design of the template/reusable thumbnail image we are using has an
+issue when this design is used on 1:1 ratio — the logo and text are not showing
+fully. If you did not understand, do not assume."
+
+Facts gathered, NOT yet an interpretation:
+- The CMS photocard (`/api/photocard/:id.png`, `cms/src/lib/id-card.ts`) is
+  **by design already 1200×1200 (1:1)** — "square, 1200×1200, built for
+  Facebook" — with measured clear margins and drawn-on logo/text, and passes
+  the photocard safety checks in `cms/src/verify/id-card.ts`.
+- The LIVE article page's `og:image`/`twitter:image`/JSON-LD image point at
+  the **raw 16:9 CMS JPEG**, which social platforms crop to square — logo/text
+  burnt into a 16:9 design would clip there (NOT verified that this is what
+  the owner means).
+- Category archetypes (the reusable category thumbnails) are 16:9 by design.
+Surface/meaning awaiting owner's answer; do not build until confirmed.
 
 ### Session ledger 2026-10-18 (evening) — commits pushed to BOTH remotes
 
