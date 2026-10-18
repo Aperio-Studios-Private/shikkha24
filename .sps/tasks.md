@@ -3311,7 +3311,7 @@ Owner priority 1 of tonight. Every fact re-proven this session, not carried:
 - Cross-checked §3/§4 IndexNow claims live: both key files 200 (`FB079B…` 32 B,
   `91fbd1…` 33 B) — no contradiction found, nothing changed.
 
-### T-56 — 🔄 DOING (registered 2026-10-18 রাত): arm DEPLOY_WEBHOOK_URL — Bengali cPanel guide for the owner
+### T-56 — ✅ DONE (2026-10-18 রাত): arm DEPLOY_WEBHOOK_URL — Bengali cPanel guide for the owner
 
 Owner priority 3 of tonight. The webhook should point at the publish-watcher's
 `POST /run-tick` — the dispatch adapter that already works — because pointing
@@ -3327,7 +3327,13 @@ verifying; both are owner-gated, not guide-blockers:
    hardened watcher wants `X-Tick-Secret` — a ~2-line change that must ride
    the pending T-31 CMS bundle deploy.
 Graceful degradation holds either way: a refused webhook is a caught no-op and
-the ≤5-min cron still rebuilds. The guide file lands in the next commit.
+the ≤5-min cron still rebuilds.
+**Delivered:** `docs/cpanel-deploy-webhook-bn.md` — Bengali, cPanel
+step-by-step (UI env-var path + `.env`-file path with backup steps, restart,
+a verification table whose easiest green signal is the admin notice flipping
+from ⚠️ to the "সাইট নিজে থেকে নতুন হবে" line, rollback, trap list, and
+tonight's evidence table). Prerequisites (1) and (2) above are owner-gated
+work items, not guide-blockers.
 
 ### Session ledger 2026-10-18 (evening) — commits pushed to BOTH remotes
 

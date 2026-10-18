@@ -18,8 +18,11 @@ CMS→watcher→Actions cycle is proven end-to-end **without** DEPLOY_WEBHOOK_UR
   stale workers + re-probe; the `0.0.0.0:3000` leak proves the running
   process doesn't match the deployed source). The old "runtime 3.89.0 /
   T-31 bundle still pending / FAQs 404 by design" block is now corrected.
-- **T-56 — DEPLOY_WEBHOOK_URL cPanel guide**: 🔄 in progress, lands in the
-  next commit; two owner-gated prerequisites discovered on the way (below).
+- **T-56 — DEPLOY_WEBHOOK_URL cPanel guide**: ✅ DONE —
+  `docs/cpanel-deploy-webhook-bn.md` (Bengali; UI env-var path + `.env`-file
+  path, restart, verification table, rollback, traps). The two owner-gated
+  prerequisites are described below (watcher hardening deploy; X-Tick-Secret
+  header change riding the T-31 cycle).
 - **T-50 — sharp/WebP decision packet** added to its `.sps/tasks.md` entry:
   options, costs, risks, recommendation. Owner picks; whatever is chosen rides
   the pending T-31 CMS bundle deploy.
