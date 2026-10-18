@@ -3225,3 +3225,25 @@ change, no new dependency, so it stays inside the budget rule.
 **Also still open (unchanged):** T-44 font subsetting (needs owner approval);
 T-42 EditorialSnippets collection built but not shipped; the filler system must be
 applied at all three aspect boxes (16:9 card, square row-card, 16:9 hero).
+
+### ✅ Cleared 2026-10-19: the "Upcoming change to GitHub App installation token format" notice does NOT affect this repo
+GitHub shows a platform notice on the Actions tab: installation tokens will move to a stateless
+`ghs_...` format and may become ~520 chars, potentially breaking apps that assume a fixed length. The
+owner asked about it twice, so it is recorded here as investigated rather than left ambiguous.
+
+**Verdict: no action needed, nothing can break.** Checked by command, not by assumption:
+- The repo uses **no GitHub App tokens** — no `create-github-app-token`, no `app-id`, no `private-key`,
+  no `ghs_` string anywhere in `.github/workflows/`.
+- The only actions used are `actions/checkout@v7`, `actions/setup-node@v7`, `actions/upload-artifact@v7`
+  and `pnpm/action-setup@v6` — none of which parse token lengths.
+- The three files that reference a token (`deploy.yml:156`, `deploy-cloudflare.yml:99`,
+  `scripts/wait-for-ci.mjs:44`) only pass `secrets.GITHUB_TOKEN` into an `Authorization: Bearer` header
+  (`wait-for-ci.mjs:66`). An opaque string in a header has no length contract to break. It is also the
+  *automatic workflow* token, not a GitHub App installation token, so the announced change does not
+  apply to it.
+- The only `.length` check in `scripts/` is `verify-dark-tokens.mjs:151`, which counts **CSS design
+  tokens** — an unrelated meaning of the word.
+
+**Do not confuse this with T-78.** The billing lock is a different, real failure: jobs refuse to start
+in 3–4 s with *"your account is locked due to a billing issue."* The token notice is a forward-looking
+deprecation advisory shown to every repository; it produces no red account state and stops no job.
