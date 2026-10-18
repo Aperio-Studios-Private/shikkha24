@@ -3113,6 +3113,37 @@ is documented here instead of rewritten.
 Demo assets: `docs/assets/filler-demo/` (four strategies over one 3:4 source in a
 16:9 box, plus `filler-comparison.png` and `verify.png`).
 
+### T-52 — ✅ DONE (2026-10-18): repo made public; Actions budget restored
+
+Owner instruction: "make the project public".
+
+**Safety gate first, because publishing history is irreversible.** The repo's
+entire history was scanned before the switch, since a secret committed once and
+deleted later still leaks:
+- files ever committed matching `.env`/`secret`/`.pem`/`.key`/`credential`:
+  **none** (only `.example` files are tracked, and they hold placeholders).
+- all 5,861 objects in history grepped for `ghp_`, `github_pat_`, `sk-`,
+  `AKIA`, and `-----BEGIN ... PRIVATE KEY-----`: **no matches**.
+- current tree grepped for hardcoded `password|secret|api_key|token = "..."`:
+  **no matches**.
+Only `.example` files are tracked; the real `cms/.env`, `cms/.env.local` and
+`frontend/.env` are git-ignored, which is what rule 11 requires.
+
+**Done:** `gh repo edit --visibility public`. Verified `{"isPrivate":false}`.
+
+**Result — the budget block is gone.** Before: every run died in ~3 s with "The
+job was not started because an Actions budget is preventing further use."
+After: a dispatched run went `in_progress` and completed. Public repos get
+unlimited free Actions minutes, which removes the 2,000 min/month ceiling that
+T-51 tracked.
+
+**Noted for the owner, not acted on:** the tracked docs contain two real personal
+Gmail addresses (`.sps/handoff.md`, `.sps/tasks.md`, `HANDOVER.md` and several
+`docs/*.md`). They are now publicly readable and scrapeable. The role addresses
+(`news@`, `editor@`, `ads@shikkha24.com`) are fine and should stay. Replacing the
+personal ones with a role address is a one-line-per-file edit — left to the owner
+because it changes who is documented as the contact.
+
 ### T-50 — 🔴 OPEN (registered 2026-10-18): article photos ship as full-size JPEG, not WebP
 
 Owner asked why we use `.png`/`.jpg` instead of modern formats. Measured answer:
