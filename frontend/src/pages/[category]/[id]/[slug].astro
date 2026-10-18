@@ -40,6 +40,7 @@ import MediaEmbed from '../../../components/MediaEmbed.astro'
 import { countParagraphs, lexicalToHtml, lexicalToPlainText, splitHtmlAtParagraph } from '../../../lib/richtext'
 import { mediaUrl, resolveCmsImage } from '../../../lib/media'
 import CmsImage from '../../../components/CmsImage.astro'
+import { getImage } from 'astro:assets'
 import { getPublicCmsOrigin } from '../../../lib/interactive'
 import { getApprovedComments } from '../../../lib/engagement'
 import { articleUrl } from '../../../lib/url'
@@ -155,26 +156,46 @@ const category =
 const photo = resolveCmsImage(article.featuredImage, article.title)
 
 /**
- * The social preview image — the featured photo when there is one, otherwise this
- * article's own branded card.
+ * The social preview image — og:image, twitter:image and JSON-LD `image`.
  *
- * ⚠️ **Why the card is the fallback, not the default.** `Layout` already falls
- * back to the site-wide `/og-default.png`, so an article with no featured image
- * used to share as the same generic picture as every other one. S14's photocard is
- * a per-article 1200×1200 image — the featured photo darkened, with the headline,
- * category and site name over it — and `lib/id-card.ts` calls it "built for
- * Facebook" because the sharer scrapes this very tag.
+ * ⚠️ **Why an emitted variant, not the CMS URL.** The CMS stores uploads
+ * byte-for-byte (T-50), so `photo.src` is the raw 1376×768 JPEG (88–242 KB)
+ * that every share scraper and Google News had to fetch. At build time the same
+ * file is re-encoded — 1200px wide, `jpeg` (some `og:image` consumers ignore
+ * WebP/AVIF), content-hashed under `/_astro` — and the metadata points there.
+ * This is T-50 option C and it keeps every rule in `docs/image-optimization.md`
+ * that says source width must match what is served.
  *
- * The featured photo still wins when it exists: it is the real journalism, and the
- * card is a composite of it anyway.
- *
- * ⚠️ **`cmsOrigin` is what makes this safe.** Without it the URL would be a
- * same-origin `/api/…` path, and the static host serves no `/api/` — the exact
- * defect that shipped in the S14 share links and only surfaced in CI. `null` here
- * means the page keeps the working `/og-default.png`.
+ * When there is no featured photo the chain falls back to the per-article
+ * branded photocard (`/api/photocard/:id.png`, 1200×1200, square-safe) — the
+ * S14 card that the sharer scrapes. `cmsOrigin` is what makes that URL safe:
+ * without it the address would be a same-origin `/api/…` path, and the static
+ * host serves no `/api/` (the exact defect that shipped in the S14 share
+ * links and only surfaced in CI). `undefined` lets `Layout` emit
+ * `/og-default.png`.
  */
-const socialImage =
-  photo?.src ?? (cmsOrigin ? `${cmsOrigin}/api/photocard/${article.id}.png` : undefined)
+let socialImage: string | undefined
+if (photo?.src && /^https?:\/\//i.test(photo.src)) {
+  try {
+    const og = await getImage({
+      src: photo.src,
+      // The sps-seo standard share size: 1200×630. Cover-crop trims the
+      // tallest sliver of a 16:9 source; the share preview is not the artwork.
+      width: 1200,
+      height: 630,
+      fit: 'cover',
+      format: 'jpeg',
+      quality: 75,
+    })
+    socialImage = new URL(og.src, Astro.site ?? Astro.url).href
+  } catch {
+    // A failed encode must never break the build — the raw URL is the fallback.
+    socialImage = photo.src
+  }
+}
+if (!socialImage) {
+  socialImage = cmsOrigin ? `${cmsOrigin}/api/photocard/${article.id}.png` : undefined
+}
 
 const published = article.publishedAt
   ? formatBnBd(article.publishedAt, { day: 'numeric', month: 'long', year: 'numeric' })
@@ -220,12 +241,12 @@ const jsonLd = {
   // ⚠️ Use `socialImage`, not `photo?.src`. The schema used to emit `image` only
   // when the article had a featured photo, so an article without one carried **no
   // `image` property at all** — and Google News treats `image` as required for
-  // `NewsArticle`. Since the CMS media files are currently unreadable on the host
-  // (T-25), that was *every* article. `socialImage` already resolves the correct
-  // chain (featured photo → this article's branded photocard → nothing, and
-  // `Layout` supplies `/og-default.png`), and its photocard branch is verified
-  // live: `GET /api/photocard/23.png` → 200, 80,860 bytes. The schema now
-  // agrees with the `og:image` tag instead of silently disagreeing with it.
+  // `NewsArticle`. Since CMS media files were unreachable from the build at the
+  // time (T-25), that was *every* article. `socialImage` already resolves the
+  // correct chain (build-emitted photo variant / featured photo → this
+  // article's branded photocard → nothing, and `Layout` supplies
+  // `/og-default.png`), so the schema now agrees with the `og:image` tag
+  // instead of silently disagreeing with it.
   image: socialImage ? [socialImage] : undefined,
   datePublished: article.publishedAt ?? undefined,
   dateModified: article.updatedAt ?? article.publishedAt ?? undefined,

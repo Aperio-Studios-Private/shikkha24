@@ -28,6 +28,26 @@ CMS→watcher→Actions cycle is proven end-to-end **without** DEPLOY_WEBHOOK_UR
   the pending T-31 CMS bundle deploy.
 
 ### Fresh facts tonight (command-proven, keep for the next session)
+- **T-50 option C is IMPLEMENTED (same evening, commit follows this block).**
+  `frontend/src/pages/[category]/[id]/[slug].astro` now emits a build-time
+  og variant: `getImage({ width: 1200, height: 630, fit: 'cover',
+  format: 'jpeg', quality: 75 })` over the featured photo; og/twitter/JSON-LD
+  all point at the absolute `/_astro/<hash>.jpeg` URL. Evidence on the built
+  output: article 23 og = 1200×630 JPEG, **79,104 bytes vs the raw CMS JPEG's
+  157,116 bytes (−50%)**; article 32 (no photo) still shares the photocard
+  `https://cms.shikkha24.com/api/photocard/32.png`; build exit 0. Fallbacks:
+  encode failure → raw URL; no photo → photocard; `Layout` supplies
+  `/og-default.png` last. Note: the /sps-seo advisory audit engine
+  (`framework/sps2/tools/seo_audit.py`) is not present in this skill install
+  (file missing), so tonight's gates were build + dist greps + live checks —
+  no audit claims are made.
+- **T-57 is CLOSED (owner pick: S3 stacked).** Final deliverable
+  `docs/assets/og-thumb-samples/thumbnail-final-1200x1200.png` (48,280 bytes,
+  content bbox (161,337)-(1039,905), no edge contact; PIL-verified). Samples,
+  defect demo and the generator (`build-samples.mjs`, librsvg/Pango shaping
+  proven: ক্ষা 338px vs 919px unshaped sum) all live in the same folder,
+  commits `314d937`/`b87c7f9`. The owner uploads the PNG via the CMS admin
+  wherever wanted; no code consumes it.
 - **org-private re-validated as a fallback (owner evidence 2026-10-18 রাত).**
   My chat claim "org-এ নিলে মিনিট বাড়ে না" was WRONG in what matters: minutes
   do not pool across accounts, so the owner's org
