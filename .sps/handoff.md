@@ -2620,3 +2620,32 @@ LESSON for the ledger: a copy-only pass is not automatically safe. Language
 edits still touch imports and CMS-bound strings, and neither biome nor typecheck
 catches a module path that was invented. `pnpm run build` after every copy phase
 is the only guard.
+
+### 2026-10-18 ~17:20 — OWNER RULE CHANGE: no-cover articles get a brand visual
+
+The owner reversed the 2026-10-16 rule ("an article without its own cover renders
+as a text-only card — no category archetype, no placeholder visuals"), which was
+implemented in TWO places and is now superseded:
+
+- `frontend/src/components/ArticleCard.astro:150`
+- `frontend/src/pages/[category]/[id]/[slug].astro:426`
+
+NEW RULE (owner, 2026-10-18): an article without a cover renders a **brand
+visual — white background, site logo centred**. Design decisions taken from that
+brief and the existing architecture:
+
+1. The logo comes from `SiteSettings.logo` (CMS media id 24) via the same
+   resolution `Logo.astro` already uses, so an admin change reaches every
+   placeholder. Never a hardcoded image path.
+2. **White in both themes**, per "white background" — the placeholder does not
+   follow dark mode. Recorded explicitly because every other surface in this
+   design system has a dark variant.
+3. Same 16:9 box as a real cover so the LCP/CLS reservation is identical; the
+   layout does not shift depending on whether a cover exists.
+4. `alt` is empty and the wrapper is `role="presentation"`: the visual carries no
+   information, so announcing it would only add noise for screen readers. This is
+   the distinction from a real cover photo.
+
+NOT yet implemented at the time of writing — component + both call sites are the
+next step. The category archetype assets (`src/assets/categories/*.jpg`) stay in
+place; they are still used by the homepage card fallback via `getCategoryImage`.
