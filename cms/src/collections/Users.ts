@@ -120,6 +120,25 @@ export const Users: CollectionConfig = {
       type: 'relationship',
       relationTo: 'authors',
       label: { en: 'Author profile', bn: 'লেখক প্রোফাইল' },
+      /*
+       * ⚠️ Privilege-escalation guard (T-61). This field decides **which
+       * articles a reporter may edit** — `access/articles.ts` scopes a
+       * reporter's writes to rows whose `author` equals their own
+       * `authorProfile`. Left writable, a reporter could point it at a
+       * colleague's author record and so inherit write access to every article
+       * that colleague owns, including published ones: T-60's hole reopened
+       * through a different door. It therefore gets the same treatment as
+       * `email` and `roles` above — Super Admin only.
+       *
+       * Nothing legitimate breaks. This is an administrative link the desk sets
+       * when a reporter is onboarded; `endpoints/reporter.ts` only ever *reads*
+       * it to resolve a byline, and the seed writes through the local API with
+       * `overrideAccess`, which bypasses field access entirely.
+       */
+      access: {
+        create: ({ req }) => hasRole(req.user, 'superAdmin'),
+        update: ({ req }) => hasRole(req.user, 'superAdmin'),
+      },
       admin: {
         description: 'এই অ্যাকাউন্টের সাথে যুক্ত লেখক প্রোফাইল — বাইলাইনের জন্য।',
       },

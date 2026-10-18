@@ -68,21 +68,29 @@ type RuleFn = (args: { req: { user: unknown }; siblingData?: unknown }) => unkno
 
 const failures: string[] = []
 
-function ruleOf(kind: 'collection' | 'field', name: string): RuleFn {
-  const articles = payload.config.collections.find((c) => c.slug === 'articles') as CollectionConfig
-  if (!articles) throw new Error('articles collection is not registered in payload.config')
+/**
+ * Read a rule from the live config — never from a copy.
+ *
+ * `slug` is the collection and `field` the field within it (omit `field` for a
+ * collection-level rule). Reading the registered config is the point: a rule that
+ * is correct in isolation but never attached to anything fails here, which is
+ * exactly how T-60's `delete` entry was caught after being written but not wired.
+ */
+function ruleOf(slug: string, name: string, field?: string): RuleFn {
+  const collection = payload.config.collections.find((c) => c.slug === slug) as CollectionConfig
+  if (!collection) throw new Error(`${slug} collection is not registered in payload.config`)
 
-  if (kind === 'collection') {
-    const rule = articles.access?.[name as keyof typeof articles.access] as Access | undefined
-    if (!rule) throw new Error(`articles.access.${name} is not defined`)
+  if (!field) {
+    const rule = collection.access?.[name as keyof typeof collection.access] as Access | undefined
+    if (!rule) throw new Error(`${slug}.access.${name} is not defined`)
     return rule as unknown as RuleFn
   }
 
-  const field = (articles.fields as { name?: string; access?: Record<string, FieldAccess> }[]).find(
-    (f) => f.name === 'author',
-  )
-  const rule = field?.access?.[name]
-  if (!rule) throw new Error(`articles.author.access.${name} is not defined`)
+  const found = (
+    collection.fields as { name?: string; access?: Record<string, FieldAccess> }[]
+  ).find((f) => f.name === field)
+  const rule = found?.access?.[name]
+  if (!rule) throw new Error(`${slug}.${field}.access.${name} is not defined`)
   return rule as unknown as RuleFn
 }
 
@@ -122,10 +130,10 @@ function expect(
   )
 }
 
-const update = ruleOf('collection', 'update')
-const del = ruleOf('collection', 'delete')
-const authorCreate = ruleOf('field', 'create')
-const authorUpdate = ruleOf('field', 'update')
+const update = ruleOf('articles', 'update')
+const del = ruleOf('articles', 'delete')
+const authorCreate = ruleOf('articles', 'create', 'author')
+const authorUpdate = ruleOf('articles', 'update', 'author')
 
 console.log('\n=== articles.update — reporters are scoped to their own byline ===')
 // The finding itself: a reporter must never get an unscoped `true`.
@@ -183,6 +191,30 @@ for (const [op, fn] of [
   expect(op, fn, 'superAdmin', true, { author: 99 })
   expect(op, fn, 'reader', false, { author: 5 })
   expect(op, fn, 'anonymous', false, { author: 5 })
+}
+
+console.log('\n=== users.authorProfile — the ownership link is not self-service (T-61) ===')
+/*
+ * The rule above scopes a reporter to rows whose `author` equals their own
+ * `authorProfile`. If a reporter could *repoint* that link, they could aim it at
+ * a colleague's author record and inherit write access to that colleague's
+ * articles — T-60's hole reopened through a different door. So this field is
+ * asserted separately, and only Super Admin may write it.
+ */
+const profileCreate = ruleOf('users', 'create', 'authorProfile')
+const profileUpdate = ruleOf('users', 'update', 'authorProfile')
+for (const [op, fn] of [
+  ['users.authorProfile.create', profileCreate],
+  ['users.authorProfile.update', profileUpdate],
+] as const) {
+  expect(op, fn, 'reporterOwn', false)
+  expect(op, fn, 'reporterOther', false)
+  expect(op, fn, 'sectionEditor', false)
+  expect(op, fn, 'editorInChief', false)
+  expect(op, fn, 'superAdmin', true)
+  expect(op, fn, 'adManager', false)
+  expect(op, fn, 'reader', false)
+  expect(op, fn, 'anonymous', false)
 }
 
 if (failures.length > 0) {
