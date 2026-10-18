@@ -38,6 +38,23 @@
  * self-correcting rather than a list someone has to maintain. See
  * `overwrittenPaths`.
  *
+ * ## ⚠️ …and that removal is a *hold*, not a delete (T-67)
+ *
+ * Deleting first and asking the host afterwards is what made this the most
+ * dangerous script in the repository: the clear set contains
+ * `.next/required-server-files.json`, `BUILD_ID` and `routes-manifest.json` —
+ * the files Next boots from — so an extract that no-ops (which is this host's
+ * measured behaviour) or an archive that never lands leaves the app with no
+ * chunk map at all, and nothing but a human with a File Manager can put it
+ * back.
+ *
+ * Every cleared path is therefore **moved** into `~/shikkha24-cms-hold/`,
+ * outside the app directory so the extract cannot overwrite it, and is moved
+ * back if `DEPLOYED_COMMIT` does not confirm the new build. The ordering
+ * guarantee is: **nothing is destroyed before the extract is confirmed to have
+ * landed, and the old release is restorable until the moment it is.** See
+ * `scripts/lib/deploy-recovery.mjs`.
+ *
  * ## Dry run by default
  *
  * `DEPLOY_DRY_RUN=true` prints the plan and makes no mutating call.
@@ -52,12 +69,21 @@ import {
   deletePath,
   extractArchive,
   listFiles,
+  makeDirectory,
+  movePath,
   readTextFile,
   uploadFile,
   writeTextFile,
 } from './cpanel-client.mjs'
 import { buildManifest } from './deploy-manifest.mjs'
 import { summary as report } from './deploy-summary.mjs'
+import {
+  backupRemoteTree,
+  discardHold,
+  holdPaths,
+  recoveryMessage,
+  restorePaths,
+} from './lib/deploy-recovery.mjs'
 
 // ⚠️ `||`, never `??`. GitHub Actions sets an env var to an EMPTY STRING when the
 // expression that produces it resolves to nothing, and `'' ?? 'fallback'` is `''`,
@@ -68,6 +94,17 @@ import { summary as report } from './deploy-summary.mjs'
 const CMS_ROOT = process.env.DEPLOY_CMS_ROOT || 'shikkha24-cms'
 const CMS_DIST = process.env.DEPLOY_CMS_DIST || 'cms-dist'
 const CMS_URL = process.env.CMS_URL || 'https://cms.shikkha24.com'
+
+/**
+ * Where cleared files wait while the new build is proved.
+ *
+ * ⚠️ **Outside `CMS_ROOT`, and that is the whole point.** A hold inside the app
+ * directory would be walked over by the same extract whose failure it exists to
+ * undo; outside it, the extract cannot reach it. It sits in the account home
+ * next to the app, which also means the operator can see it in File Manager
+ * without changing directory.
+ */
+const CMS_HOLD = process.env.DEPLOY_CMS_HOLD || 'shikkha24-cms-hold'
 
 /**
  * Paths under the live app directory a deploy must never delete.
@@ -398,75 +435,164 @@ async function main() {
   const remoteName = remoteArchiveName()
   const remoteZip = await uploadFile(cfg, CMS_ROOT, zip, remoteName)
 
-  // ⚠️ Clear the bundle's own paths *before* extracting. `fileop` skips a file
-  // that already exists, so without this the CMS keeps the previous build's
-  // stable-named manifests and boots the old chunk map while the new chunks sit
-  // on disk unreachable. See `overwrittenPaths` — the set is derived from what
-  // the build produced, so a path the bundle does not supply is never removed.
+  // ⚠️ Take the bundle's own paths out of the app directory *before* extracting —
+  // but hold them, never delete them. `fileop` skips a file that already exists,
+  // so without this the CMS keeps the previous build's stable-named manifests and
+  // boots the old chunk map while the new chunks sit on disk unreachable. See
+  // `overwrittenPaths` — the set is derived from what the build produced, so a
+  // path the bundle does not supply is never touched.
   const current = await buildManifest(CMS_DIST)
   const stale = await overwrittenPaths({ cfg, current })
-  if (stale.length) {
-    for (const path of stale) {
-      await deletePath(cfg, `${CMS_ROOT}/${path}`)
-    }
+
+  // The net under the net: the hold below covers the files this deploy *moves*,
+  // but the extract also overwrites files in place, and no move can undo that.
+  // Taken before the first mutating step, and best-effort — see
+  // `backupRemoteTree` for why a backup that cannot be taken must not block.
+  const copy = await backupRemoteTree({
+    from: CMS_ROOT,
+    to: `${CMS_ROOT}-predeploy.tar.gz`,
+    localPath: join(work, 'cms-predeploy.tar.gz'),
+    exclude: [...CMS_PROTECTED],
+    makeDir: (_, dir) => makeDirectory(cfg, dir),
+    pack: async (dir) =>
+      execFileSync('tar', ['-czf', join(work, 'cms-predeploy.tar.gz'), '-C', dir, '.']),
+    upload: (dir) =>
+      uploadFile(cfg, dir, join(work, 'cms-predeploy.tar.gz'), 'cms-predeploy.tar.gz'),
+    del: (path) => deletePath(cfg, path, true),
+  })
+  say(
+    copy.ok
+      ? `Pre-deploy copy of ~/${CMS_ROOT} (minus data/, .env, node_modules) saved on the host.`
+      : `⚠️ Could not take a pre-deploy copy: ${copy.message} — continuing; the hold below is what makes this deploy reversible.`,
+  )
+
+  // ⚠️ **Nothing is destroyed by the loop below** — every path is moved into
+  // `CMS_HOLD`, outside the app directory, so the extract cannot reach it and a
+  // crash mid-loop still leaves every file on disk. That is the ordering
+  // guarantee this whole fix rests on: *a failed deploy cannot leave production
+  // without a working, known-good release*, because the old release is intact in
+  // the hold until `DEPLOYED_COMMIT` proves the new one is in place.
+  const held = await holdPaths({
+    cfg,
+    paths: stale.map((path) => `${CMS_ROOT}/${path}`),
+    holdRoot: CMS_HOLD,
+    makeDir: (_, dir) => makeDirectory(cfg, dir),
+    move: (_, path, destination) => movePath(cfg, path, destination),
+  })
+  if (held.length) {
     say(
-      `Cleared ${stale.length} file(s) the extract would have skipped (fileop does not overwrite).`,
+      `Cleared ${held.length} file(s) the extract would have skipped (fileop does not overwrite).`,
     )
   }
 
-  const { via } = await extractArchive(cfg, remoteZip, CMS_ROOT)
+  try {
+    const { via } = await extractArchive(cfg, remoteZip, CMS_ROOT)
 
-  // ⚠️ Did the extract actually change the host? Ask the host, not the site.
-  //
-  // `verifyCms` below probes `$CMS_URL/api/articles`. When the extract silently
-  // does nothing, the *previous* build is still running and answers 200 — so that
-  // probe certifies a deploy that changed nothing at all. On 2026-10-10 every CMS
-  // deploy passed it while the host kept serving four-day-old code, because the
-  // bundle was being extracted one directory too high.
-  //
-  // The build writes `DEPLOYED_COMMIT` into the bundle. Reading it back answers
-  // the only question that matters: is the code on the host the code we built?
-  //
-  // Skipped in a dry run, and when the caller is not from CI, because there is no
-  // commit to compare against there.
-  const expectedCommit = process.env.GITHUB_SHA
-  if (!cfg.dryRun && expectedCommit) {
-    const landed = (await readTextFile(cfg, CMS_ROOT, 'DEPLOYED_COMMIT')).trim()
-    if (landed !== expectedCommit) {
-      throw new Error(
-        `The extract did not land. The host reports DEPLOYED_COMMIT="${landed || '(missing)'}" ` +
-          `but this run built "${expectedCommit}". The archive uploaded but the files on the ` +
-          'host are not the ones in it — so the running CMS is still the previous build and a ' +
-          '200 from the site proves nothing. Do not trust this deploy; investigate the extract ' +
-          'before deploying again.',
-      )
+    // ⚠️ Did the extract actually change the host? Ask the host, not the site.
+    //
+    // `verifyCms` below probes `$CMS_URL/api/articles`. When the extract silently
+    // does nothing, the *previous* build is still running and answers 200 — so that
+    // probe certifies a deploy that changed nothing at all. On 2026-10-10 every CMS
+    // deploy passed it while the host kept serving four-day-old code, because the
+    // bundle was being extracted one directory too high.
+    //
+    // The build writes `DEPLOYED_COMMIT` into the bundle. Reading it back answers
+    // the only question that matters: is the code on the host the code we built?
+    //
+    // Skipped in a dry run, and when the caller is not from CI, because there is no
+    // commit to compare against there.
+    const expectedCommit = process.env.GITHUB_SHA
+    if (!cfg.dryRun && expectedCommit) {
+      const landed = (await readTextFile(cfg, CMS_ROOT, 'DEPLOYED_COMMIT')).trim()
+      if (landed !== expectedCommit) {
+        throw new Error(
+          `The extract did not land. The host reports DEPLOYED_COMMIT="${landed || '(missing)'}" ` +
+            `but this run built "${expectedCommit}". The archive uploaded but the files on the ` +
+            'host are not the ones in it — so the running CMS would be left without the chunk map ' +
+            'it boots from. The previous release is being put back now.',
+        )
+      }
+      say(`Verified DEPLOYED_COMMIT ${landed.slice(0, 7)} is on the host.`)
     }
-    say(`Verified DEPLOYED_COMMIT ${landed.slice(0, 7)} is on the host.`)
+
+    await deletePath(cfg, `${CMS_ROOT}/${remoteName}`)
+    // Best-effort sweep of archives older runs left behind. These are inert once
+    // extracted, but each is ~20 MB in a 5 GB account, and one that lingers is also
+    // a trap for anyone re-running the deploy by hand with the old fixed name.
+    for (const leftover of await listFiles(cfg, CMS_ROOT)) {
+      if (/^cms-deploy.*\.zip$/.test(leftover.name)) {
+        await deletePath(cfg, `${CMS_ROOT}/${leftover.name}`)
+      }
+    }
+    say(`Extracted via ${via}.`)
+
+    // Touching tmp/restart.txt is the documented Phusion restart and the only
+    // headless one available — cPanel's WebApp::restart needs cPanel 138 and this
+    // host runs 134. The write is throttled to ~10s by PassengerStatThrottleRate.
+    await writeTextFile(cfg, `${CMS_ROOT}/tmp`, 'restart.txt', '')
+    say('Restart requested; Passenger will pick it up within ~10s. Cold start is 5–15s.')
+
+    await verifyCms()
+  } catch (error) {
+    // ⚠️ The recovery, and the reason the paths above were *moved*. Everything
+    // taken out of the app directory goes straight back, so the CMS that was
+    // serving before this run is the CMS that serves after it. The extract may
+    // have overwritten files in place in the meantime — that is what the
+    // pre-deploy copy is for, and it is named in the failure text.
+    const failed = await restorePaths({
+      cfg,
+      held,
+      move: (_, path, destination) => movePath(cfg, path, destination),
+    })
+    for (const line of recoveryMessage({
+      // Named with the count rather than described as "the release". The clear set
+      // is a subset of the app directory, and an operator told "the release was
+      // put back" while the extract had overwritten other files in place would be
+      // told something this run has not established.
+      what: `the ${held.length} file(s) this run cleared`,
+      restored: true,
+      holdRoot: CMS_HOLD,
+      failed,
+    })) {
+      say(line)
+    }
+    // The restart goes last, so Passenger boots the restored tree rather than a
+    // half-extracted one. Best-effort: a failure here must not replace the real
+    // error with its own.
+    try {
+      await writeTextFile(cfg, `${CMS_ROOT}/tmp`, 'restart.txt', '')
+      say('Restart requested so the restored release is the one serving.')
+    } catch {
+      // The next deploy, or any traffic, restarts it anyway.
+    }
+    say(
+      '',
+      'What to do next (no credentials needed, no shell):',
+      `  1. The CMS is back on the release it was serving before this run — check ${CMS_URL}/admin.`,
+      `  2. A pre-deploy copy of the app directory is at ~/${CMS_ROOT}-predeploy.tar.gz if you`,
+      '     need to compare or go further back.',
+      '  3. Read the error above before deploying again: this deploy has failed the same way',
+      '     twice or more now if the extract is the cause, and re-running will not fix it.',
+    )
+    throw error
   }
 
-  await deletePath(cfg, `${CMS_ROOT}/${remoteName}`)
-  // Best-effort sweep of archives older runs left behind. These are inert once
-  // extracted, but each is ~20 MB in a 5 GB account, and one that lingers is also
-  // a trap for anyone re-running the deploy by hand with the old fixed name.
-  for (const leftover of await listFiles(cfg, CMS_ROOT)) {
-    if (/^cms-deploy.*\.zip$/.test(leftover.name)) {
-      await deletePath(cfg, `${CMS_ROOT}/${leftover.name}`)
-    }
-  }
-  say(`Extracted via ${via}.`)
-
-  // Touching tmp/restart.txt is the documented Phusion restart and the only
-  // headless one available — cPanel's WebApp::restart needs cPanel 138 and this
-  // host runs 134. The write is throttled to ~10s by PassengerStatThrottleRate.
-  await writeTextFile(cfg, `${CMS_ROOT}/tmp`, 'restart.txt', '')
-  say('Restart requested; Passenger will pick it up within ~10s. Cold start is 5–15s.')
-
-  await verifyCms()
+  // Only now — with the new build proven on the host — is the old release
+  // released. A failure to discard is reported, never fatal: the deploy has
+  // succeeded and a stale hold is a disk-space note, not a site problem.
+  const undiscarded = await discardHold({
+    cfg,
+    held,
+    holdRoot: CMS_HOLD,
+    del: (_, path) => deletePath(cfg, path, true),
+  })
+  if (undiscarded.length) say(`⚠️ Could not remove the hold: ${undiscarded.join('; ')}`)
 
   summary.push(
     '',
     `Extraction mechanism: \`${via}\``,
-    `- **Cleared before extract:** ${stale.length} file(s) (fileop does not overwrite)`,
+    `- **Cleared before extract:** ${stale.length} file(s) held in \`${CMS_HOLD}/\`, restored on any failure`,
+    `- **Pre-deploy copy:** ${copy.ok ? `\`~/${CMS_ROOT}-predeploy.tar.gz\`` : `not taken — ${copy.message}`}`,
     '',
     `✅ ${CMS_URL} verified after restart.`,
   )

@@ -80,7 +80,10 @@ export function config() {
     token: process.env.CPANEL_TOKEN,
     // Every mutating helper honours this. A dry run must be impossible to
     // mistake for a real one, so it is a property of the client rather than a
-    // check each caller has to remember.
+    // check each caller has to remember. `movePath()` and `makeDirectory()` are
+    // deliberately in that set: they are the recovery primitives, and a dry run
+    // that moved a production directory aside would be the worst way for the
+    // "a dry run changes nothing" rule to fail.
     dryRun: process.env.DEPLOY_DRY_RUN === 'true',
   }
 }
@@ -505,6 +508,77 @@ export async function deletePath(cfg, path, recursive = false) {
     source: `${dir === '.' ? '' : `${dir}/`}${file}`,
     path: dir,
   })
+}
+
+/**
+ * Move a file or directory, which is the undelete this host actually has.
+ *
+ * ## Why this is not `deletePath`, and why that matters
+ *
+ * `Fileman` offers no copy and no atomic rename, so `deletePath` is the only
+ * removal primitive the deploy scripts had — and it is final. `fileop op=move`
+ * is a real rename: the source stops existing at its old path and everything
+ * under it comes along, byte-for-byte, symlinks included. Holding a path there
+ * and moving it back is therefore an exact undo.
+ *
+ * This is not a guess about the API. It is how this project's own runbooks
+ * re-arrange archival buckets by hand (`docs/` §archive-buckets), and it is the
+ * one mechanism that makes a failed deploy recoverable on a host with no copy.
+ *
+ * ⚠️ **A host that cannot move can therefore not remove safely.** This throws
+ * on a missing function rather than falling back to deleting: a deploy that
+ * cannot undo a removal must not perform one. See `scripts/lib/deploy-recovery.mjs`.
+ *
+ * ## The `newfile` contract, which is cPanel's and is not obvious
+ *
+ * The destination is `newfile`, and cPanel resolves a trailing `/` as "keep the
+ * name, put it in this directory". That is what lets a caller restore a path
+ * whose parent directory no longer exists:
+ *
+ *     newfile=<dir>/        ->  <dir>/<source name>, creating <dir>
+ *     newfile=<dir>/<name>  ->  exactly that path
+ *
+ * Passing `newfile=<dir>/<name>/` would create `<dir>/<name>/<name>`, so no
+ * caller here ever appends a slash.
+ *
+ * @param {ReturnType<typeof config>} cfg
+ * @param {string} path Path to move, relative to home.
+ * @param {string} newName Destination path, relative to home.
+ * @returns {Promise<void>}
+ */
+export async function movePath(cfg, path, newName) {
+  if (cfg.dryRun) return
+  // API 2.0, not UAPI: this host has no `Fileman::move_file`, and `fileop` is
+  // where every other mutating Fileman operation in this file already lands
+  // (`delete_file` and `extract_files` are both absent here too — measured
+  // 2026-10-08).
+  await api2(cfg, 'Fileman', 'fileop', { op: 'move', source: path, newfile: newName })
+}
+
+/**
+ * Create a directory, tolerating one that already exists.
+ *
+ * ⚠️ `mkdir` is **not recursive** on this host, so a caller creating a nested
+ * path must create every level in order. It also reports an existing directory
+ * as an error, which is a success for every caller here — the hold directory is
+ * created on each run and must not fail the second one. There is no `mkdir` in
+ * UAPI, which is why this — like `fileop` — is one of the two API 2.0 calls
+ * this file still needs.
+ *
+ * @param {ReturnType<typeof config>} cfg
+ * @param {string} dir Directory to create, relative to home.
+ * @returns {Promise<void>}
+ */
+export async function makeDirectory(cfg, dir) {
+  if (cfg.dryRun) return
+  try {
+    await api2(cfg, 'Fileman', 'mkdir', { path: dir })
+  } catch (error) {
+    // "already exists" is the ordinary case from the second run onwards. Any
+    // other failure is real and must surface, or the caller would go on to move
+    // a file into a directory that is not there.
+    if (!/exist/i.test(error.message)) throw error
+  }
 }
 
 /**

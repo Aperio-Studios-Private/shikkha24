@@ -43,16 +43,28 @@ import {
   extractArchive,
   listFiles,
   MISSING_FUNCTION,
+  makeDirectory,
+  movePath,
   readTextFile,
   uploadFile,
   writeTextFile,
 } from './cpanel-client.mjs'
 import { buildManifest, planDeletes, serializeManifest } from './deploy-manifest.mjs'
 import { summary as report } from './deploy-summary.mjs'
+import { discardHold, holdPaths, recoveryMessage, restorePaths } from './lib/deploy-recovery.mjs'
 
 /** Directories on the host, relative to the account home. */
 const DOCROOT = process.env.DEPLOY_DOCROOT ?? 'public_html'
 const STAGING = process.env.DEPLOY_STAGING ?? 'shikkha24-deploy'
+/**
+ * Where stale paths wait while the new build is proved.
+ *
+ * ⚠️ **Outside the docroot, and that is load-bearing.** The extract expands the
+ * archive over `DOCROOT`, so a hold inside it would be overwritten by the very
+ * failure it exists to undo. Outside, the extract cannot reach it and an
+ * operator finds it in File Manager next to `public_html` rather than in it.
+ */
+const HOLD = process.env.DEPLOY_HOLD ?? 'shikkha24-hold'
 
 /** Local build output and the public URL it will be served from. */
 const DIST = process.env.DEPLOY_DIST ?? 'frontend/dist'
@@ -310,9 +322,45 @@ async function main() {
   // the probe archive has always been named.
   const archiveName = `frontend-${runId}.tar.gz`
   const remoteArchive = await uploadFile(cfg, target, archive, archiveName)
+
+  // ⚠️ **The hold goes before the extract, and that ordering is the guarantee.**
+  //
+  // This used to be `deletePath` for every stale path, and it sat *after* the
+  // extract — so on this host, where the extract is known to report success while
+  // writing nothing, the measured outcome of a failed run was: the extract
+  // overwrote whatever it felt like, pages the build no longer ships were gone,
+  // and nothing took their place. The site served a mixture no deploy had ever
+  // produced (audit T-67).
+  //
+  // Two things are fixed by the position, not just the mechanism:
+  //
+  // 1. **Nothing destructive can run before the hold exists.** `move` is the
+  //    recovery primitive; if the host refuses it the run stops here, with the
+  //    live release untouched and no extract attempted — see section 10f of
+  //    `verify-cpanel-deploy.mjs`. Deleting first and discovering the undo was
+  //    unavailable would be the worst of both.
+  // 2. **The hold is not what the build replaces.** Every held path is out of the
+  //    docroot before the archive expands, so the extract cannot overwrite the
+  //    copy that a rollback depends on.
+  //
+  // A hold is the same removal the old code performed, with an undo: `fileop
+  // op=move` puts the path in `HOLD`, outside the docroot, and `restorePaths`
+  // below moves it back if the extract is not confirmed. The set is unchanged —
+  // `plan.delete` is exactly what it always was, so the resulting site is
+  // byte-identical to what the old code produced on success. What is new is that
+  // a failure is reversible without a human.
+  const held = await holdPaths({
+    cfg,
+    paths: plan.delete.map((path) => `${DOCROOT}/${path}`),
+    holdRoot: HOLD,
+    makeDir: (_, dir) => makeDirectory(cfg, dir),
+    move: (_, path, destination) => movePath(cfg, path, destination),
+  })
+  if (held.length > 0) say(`Held ${held.length} stale path(s) aside — restorable until verified.`)
+
   // The destination is the docroot either way. Only the *source* of the archive
-  // differs: with a destination parameter the archive stays in staging, without one
-  // it must already be inside the docroot for `fileop` to expand it.
+  // differs: with a destination parameter the archive stays in staging, without
+  // one it must already be inside the docroot for `fileop` to expand it.
   const { via } = await extractArchive(cfg, remoteArchive, DOCROOT)
   say(`Extracted via ${via}.`)
 
@@ -353,11 +401,6 @@ async function main() {
     say('Wrote .htaccess explicitly (extract does not overwrite an existing file).')
   }
 
-  for (const path of plan.delete) {
-    await deletePath(cfg, `${DOCROOT}/${path}`, true)
-  }
-  if (plan.delete.length > 0) say(`Deleted ${plan.delete.length} stale path(s).`)
-
   // ⚠️ **The extraction is not trusted, and this check exists because it must not
   // be.** `Fileman::fileop op=extract` — the only mechanism this host offers —
   // returns success while writing nothing. Measured 2026-10-12: the run below
@@ -385,55 +428,112 @@ async function main() {
   // cleanup below reads it — and that cleanup must run for every live deploy,
   // not only the ones with something new to land.
   let handedToCron = false
-  if (plan.added.length > 0) {
-    const probe = plan.added[plan.added.length - 1]
-    const parent = probe.includes('/') ? probe.slice(0, probe.lastIndexOf('/')) : ''
-    const wanted = probe.includes('/') ? probe.slice(probe.lastIndexOf('/') + 1) : probe
-    let landed = false
-    try {
-      const entries = await listFiles(cfg, parent ? `${DOCROOT}/${parent}` : DOCROOT)
-      landed = entries.some((e) => e.name === wanted)
-    } catch (error) {
-      say(`Could not list ${parent || DOCROOT} to confirm the extract: ${error.message}`)
-    }
-
-    // ⚠️ **The host cron extractor is the fallback, and only a live one counts.**
-    //
-    // When the API extract no-ops — this host's measured behaviour — the
-    // host-side cron (`scripts/host-extract.sh`) is what actually publishes the
-    // build. So instead of failing immediately, CI asks one question: is that
-    // cron alive and able to extract? The answer comes only from a *fresh
-    // heartbeat*, which the cron writes after confirming `tar` exists. If it
-    // is fresh, CI waits for the cron to publish a page that is new in this
-    // build and goes green the moment a reader could actually see it. If the
-    // heartbeat is absent, stale or unparseable — including a host with no
-    // `tar`, which never heartbeats — CI falls straight through to the loud
-    // failure below, unchanged. That is what keeps this fail-safe: the
-    // automation is inert until the cron is genuinely working, and it can never
-    // report a green deploy on a stale site.
-    if (!landed && (await cronExtractorAlive(cfg))) {
-      say(
-        'The API extract reported success but wrote nothing (known on this host). ' +
-          'A live cron extractor is present — waiting for it to publish the build.',
-      )
-      landed = await waitForCronPublish(probe)
-      handedToCron = landed
-      if (landed) {
-        say(`Cron extractor published ${pathToUrl(probe)} — the new build is live.`)
+  // Everything below — the arithmetic that decides whether the extract landed, the
+  // probe for it, and the post-deploy liveness check — is inside the recovery
+  // boundary. Any failure in it means the new release is not proven, and the hold
+  // taken above is the previous release, so it goes back.
+  try {
+    if (plan.added.length > 0) {
+      const probe = plan.added[plan.added.length - 1]
+      const parent = probe.includes('/') ? probe.slice(0, probe.lastIndexOf('/')) : ''
+      const wanted = probe.includes('/') ? probe.slice(probe.lastIndexOf('/') + 1) : probe
+      let landed = false
+      try {
+        const entries = await listFiles(cfg, parent ? `${DOCROOT}/${parent}` : DOCROOT)
+        landed = entries.some((e) => e.name === wanted)
+      } catch (error) {
+        say(`Could not list ${parent || DOCROOT} to confirm the extract: ${error.message}`)
       }
+
+      // ⚠️ **The host cron extractor is the fallback, and only a live one counts.**
+      //
+      // When the API extract no-ops — this host's measured behaviour — the
+      // host-side cron (`scripts/host-extract.sh`) is what actually publishes the
+      // build. So instead of failing immediately, CI asks one question: is that
+      // cron alive and able to extract? The answer comes only from a *fresh
+      // heartbeat*, which the cron writes after confirming `tar` exists. If it
+      // is fresh, CI waits for the cron to publish a page that is new in this
+      // build and goes green the moment a reader could actually see it. If the
+      // heartbeat is absent, stale or unparseable — including a host with no
+      // `tar`, which never heartbeats — CI falls straight through to the loud
+      // failure below, unchanged. That is what keeps this fail-safe: the
+      // automation is inert until the cron is genuinely working, and it can never
+      // report a green deploy on a stale site.
+      //
+      // ⚠️ The hold is what makes waiting here safe. If the cron never picks the
+      // archive up the site must keep serving the *previous* build, and it can
+      // only do that if the paths this run held aside go back — which is exactly
+      // what the `catch` below does with them.
+      if (!landed && (await cronExtractorAlive(cfg))) {
+        say(
+          'The API extract reported success but wrote nothing (known on this host). ' +
+            'A live cron extractor is present — waiting for it to publish the build.',
+        )
+        landed = await waitForCronPublish(probe)
+        handedToCron = landed
+        if (landed) {
+          say(`Cron extractor published ${pathToUrl(probe)} — the new build is live.`)
+        }
+      }
+
+      if (!landed) {
+        throw new Error(
+          `Extraction reported success via ${via}, but ${probe} is not on the host.\n` +
+            `  ${via === 'api2-fileop' ? 'This host answers fileop op=extract with success and writes nothing — a known and measured behaviour, not a transient failure.' : 'The extract reported a different mechanism, so treat this as a real extraction failure.'}\n` +
+            '  No live cron extractor answered either (see scripts/host-extract.sh and the extract-heartbeat.txt it writes).\n' +
+            `  The archive is still on the host at ${target}/${archiveName} — extract it in cPanel File Manager into ${DOCROOT}, overwriting everything, if you would rather land this build than keep the old one.`,
+        )
+      }
+      if (!handedToCron) say(`Extraction confirmed on the host — ${probe} is present.`)
     }
 
-    if (!landed) {
-      throw new Error(
-        `Extraction reported success via ${via}, but ${probe} is not on the host.\n` +
-          `  ${via === 'api2-fileop' ? 'This host answers fileop op=extract with success and writes nothing — a known and measured behaviour, not a transient failure.' : 'The extract reported a different mechanism, so treat this as a real extraction failure.'}\n` +
-          '  No live cron extractor answered either (see scripts/host-extract.sh and the extract-heartbeat.txt it writes).\n' +
-          `  The archive is still on the host at ${target}/${archiveName}. Extract it by hand in cPanel File Manager into ${DOCROOT}, overwriting everything.\n` +
-          '  Nothing was rolled back: the deletions above were correct for the files this run replaced.',
-      )
+    await verifyLive()
+  } catch (error) {
+    // ⚠️ **The recovery, and the reason the paths above were *moved*.** Every
+    // stale path this run held aside is moved back, so the site returns to the
+    // release that was live before the run — a whole, known-good site rather than
+    // a mixture of the old build and whatever the failed extract managed to write.
+    //
+    // This runs before the error is re-thrown, so the operator's message and the
+    // non-zero exit both carry the recovery outcome. The archive is deliberately
+    // left where it is: the hold has just put the old build back, and deleting the
+    // archive would remove the only copy of the new one.
+    const failed = await restorePaths({
+      cfg,
+      held,
+      move: (_, path, destination) => movePath(cfg, path, destination),
+    })
+    for (const line of recoveryMessage({
+      what: `the ${held.length} stale path(s)`,
+      restored: true,
+      holdRoot: HOLD,
+      failed,
+    })) {
+      say(line)
     }
-    if (!handedToCron) say(`Extraction confirmed on the host — ${probe} is present.`)
+    say(
+      '',
+      'What to do next (no credentials needed, no shell):',
+      `  1. ${SITE_URL} is serving the release that was live before this run, so readers are fine.`,
+      '  2. Read the error above. If it says the extract wrote nothing, that is a host problem,',
+      '     not a code problem — re-running the deploy will fail the same way until it is fixed.',
+      `  3. If the hold could not be fully restored, the files are unchanged under ~/${HOLD}/.`,
+    )
+    throw error
   }
+
+  // ⚠️ Only now — with the new build confirmed live — is the old one released.
+  // Discarding it before this line would recreate the exact defect this fix
+  // closes: a failed deploy with nothing left to restore from. A failure here is
+  // reported, never fatal: the deploy has succeeded and a leftover hold in the
+  // account home is a disk-space note, not a site problem.
+  const undiscarded = await discardHold({
+    cfg,
+    held,
+    holdRoot: HOLD,
+    del: (_, path) => deletePath(cfg, path, true),
+  })
+  if (undiscarded.length > 0) say(`⚠️ Could not remove the hold: ${undiscarded.join('; ')}`)
 
   // The archive is removed only now — after the extract has been confirmed to
   // have landed. Deleting it earlier meant a silent no-op left the operator with
@@ -457,9 +557,14 @@ async function main() {
   }
 
   await writeTextFile(cfg, STAGING, 'frontend-manifest.txt', serializeManifest(current))
-  await verifyLive()
 
-  summary.push('', `Extraction mechanism: \`${via}\``, '', `✅ ${SITE_URL} verified after deploy.`)
+  summary.push(
+    '',
+    `Extraction mechanism: \`${via}\``,
+    `- **Stale paths:** ${plan.delete.length} held in \`${HOLD}/\`, restored automatically on any failure`,
+    '',
+    `✅ ${SITE_URL} verified after deploy.`,
+  )
   report(summary)
 }
 

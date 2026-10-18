@@ -127,6 +127,16 @@ async function startFakeCpanel({
   // every site path is always 200 (the pre-cron behaviour, where a stale site
   // answers the homepage).
   siteNewPage = null,
+  // Extra host files `get_file_content` can serve, keyed by filename. Used by
+  // section 10e to hand the static deploy a previous-deploy manifest, which is
+  // what decides its delete set — without one, `planDeletes` sees a first deploy
+  // and correctly deletes nothing, so the section would assert on an empty set.
+  files = {},
+  // When set, API 2.0 `fileop op=move` answers `status: 0` with this error, as a
+  // cPanel build without a working rename would. Section 10f needs it: the whole
+  // recovery design rests on `move` being available, and the failure mode that
+  // matters is a host that refuses it — a deploy must then stop, not delete.
+  moveFails = null,
 } = {}) {
   const calls = []
   // ⚠️ POST bodies, recorded separately from `calls`. See the collector below.
@@ -335,6 +345,14 @@ async function startFakeCpanel({
             data: { content: heartbeat },
           })
         }
+        if (Object.hasOwn(files, file)) {
+          return send({
+            module: 'Fileman',
+            func: 'get_file_content',
+            status: 1,
+            data: { content: files[file] },
+          })
+        }
         return send({ module: 'Fileman', func: 'get_file_content', status: 1, data: {} })
       }
       return send({
@@ -351,6 +369,22 @@ async function startFakeCpanel({
     const module = url.searchParams.get('cpanel_jsonapi_module')
     const func = url.searchParams.get('cpanel_jsonapi_func')
     if (module === 'Fileman' && func === 'fileop') {
+      // A host whose `move` is refused. Real cPanel answers an unavailable or
+      // rejected fileop with HTTP 200 and `status: 0` plus `errors`, which is the
+      // shape reproduced here — the client throws on it, and the deploy must
+      // stop rather than reach for the delete it *can* do.
+      if (moveFails && url.searchParams.get('op') === 'move') {
+        return send({
+          cpanelresult: {
+            apiversion: 2,
+            module: 'Fileman',
+            func: 'fileop',
+            errors: [moveFails],
+            postevent: { result: 0 },
+            event: { result: 0 },
+          },
+        })
+      }
       // ⚠️ The default below is the REAL host's envelope, not the documented one.
       //
       // DianaHost answers API 2.0 with `cpanelresult` — the UAPI envelope with
@@ -910,6 +944,23 @@ async function main() {
       /Extract it by hand|cPanel File Manager/.test(output),
       output.slice(-400),
     )
+    // ⚠️ T-67 added the rollback, and the rollback changes what the operator is
+    // told. Before it, a failed extract left the site *modified* — stale paths
+    // deleted, nothing replacing them — so hand-extracting the archive was the
+    // only way back and had to be the headline instruction. Now the deploy puts
+    // the previous release back by itself, so the report must say so: an operator
+    // who hand-extracts on top of a restored site would be re-running the very
+    // deploy that just failed, on a site that is currently fine.
+    check(
+      'and it says the previous release was put back, not that nothing was rolled back',
+      /RECOVERY: nothing was lost/i.test(output) && /moved back exactly as it was/i.test(output),
+      output.slice(-600),
+    )
+    check(
+      'and it no longer claims the deletions were left as they were',
+      !/Nothing was rolled back/.test(output),
+      output.slice(-600),
+    )
 
     // ⚠️ This server was leaked. The suite printed "79 passed" and then hung
     // indefinitely, because a listening socket keeps the Node event loop alive
@@ -1387,6 +1438,213 @@ async function main() {
       )
       await server.close()
     }
+  }
+
+  console.log('\n10e. ⚠️ T-67 — a failed deploy holds the old release aside and puts it back')
+  {
+    // The defect: both deploys removed the previous release *before* confirming
+    // the new one had landed, and on this host the extract has been measured
+    // returning success while writing nothing. So the failure mode was not "the
+    // deploy did nothing" — it was "the deploy deleted things and did nothing",
+    // which needs a human with a File Manager to undo.
+    //
+    // What is asserted here is the property the fix exists for, stated as an
+    // outcome rather than as a code path: **no delete call reaches the host, and
+    // the paths the run took away are moved back.** The fake records every call,
+    // so both halves are read off the wire.
+    const dist = mkdtempSync(join(tmpdir(), 'hold-dist-'))
+    mkdirSync(join(dist, 'education-news'), { recursive: true })
+    writeFileSync(join(dist, 'index.html'), '<!doctype html>')
+    // The page the verification probes for. The fake's `education-news/` listing
+    // is empty, so the extract reports success and the file is never found — the
+    // exact silent no-op, reproduced.
+    writeFileSync(join(dist, 'education-news', '27.html'), '<!doctype html>')
+    // A stale path: recorded in the manifest this run reads, absent from the
+    // build. It is what the old code would have deleted outright.
+    const STALE = 'old-story'
+
+    // ⚠️ The probed file is `plan.added`'s **last** entry, and `planDeletes`
+    // sorts, so it is `index.html` here — not the nested page. That is what makes
+    // the root listing load-bearing: `index.html` must be absent from it, or the
+    // deploy reads its own stale build as proof that the extract landed. The
+    // listing below is therefore a docroot that does *not* yet contain this
+    // build's files, which is exactly the state a silent no-op leaves behind.
+    //
+    // `siteNewPage` is the second half of the same guard. The fake serves HTTP
+    // 200 for *every* site path by default, so a cron-handoff wait would
+    // "succeed" on its first poll and the deploy would go green without the
+    // extract having done anything. Pinning the probed path to 404 means the
+    // deferral cannot resolve, which is what a host with no working cron looks
+    // like. The heartbeat stays unset for the same reason: a live cron would be
+    // allowed to publish this build, and this section is about the case where
+    // nothing does.
+    const PROBED = '/education-news/27.html'
+
+    const server = await startFakeCpanel({
+      uapiExtract: false,
+      siteNewPage: PROBED,
+      listFiles: (dir) => (dir === 'public_html' ? [{ file: 'education-news', type: 'dir' }] : []),
+      // The manifest the previous deploy left — one path that no longer exists
+      // in this build.
+      files: { 'frontend-manifest.txt': `${STALE}\n` },
+    })
+
+    const output = await execFileAsync(process.execPath, [join(scriptDir, 'deploy-static.mjs')], {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        CPANEL_BASE: server.base,
+        CPANEL_HOST: 'fake',
+        CPANEL_USER: 'shikkhac',
+        CPANEL_TOKEN: 'test-token-not-real',
+        DEPLOY_DRY_RUN: 'false',
+        DEPLOY_DIST: dist,
+        SITE_URL: server.base,
+      },
+    })
+      .then(({ stdout }) => stdout)
+      .catch((error) => `${error.stdout ?? ''}${error.stderr ?? ''}`)
+
+    check(
+      'a deploy that cannot confirm its extract still exits non-zero',
+      /is not on the host/.test(output),
+      output.slice(-300),
+    )
+    // ⚠️ The load-bearing one. `unlink` is how *anything* is removed, so this
+    // asks the question the fix is about: did the run destroy part of the live
+    // release? Two unlinks are legitimate and pre-existing — the sweep of the
+    // fixed-name archives older deploys left in the docroot, and the discard of
+    // the hold *after* a confirmed deploy. Neither exists on this path: the run
+    // fails, so the hold must not be discarded, and the archive sweep targets
+    // `frontend.zip`/`frontend.tar.gz` under `public_html` only.
+    //
+    // Filtering by exactly those two names is the point. A looser filter ("any
+    // unlink is fine") would pass while a future edit deleted the release again.
+    const deletions = server.calls
+      .filter((call) => call.includes('op=unlink'))
+      .filter((call) => !/source=public_html%2Ffrontend\.(zip|tar\.gz)&/.test(call))
+    check(
+      'it destroyed nothing of the live release — no delete reached the host',
+      deletions.length === 0,
+      deletions.join(', '),
+    )
+    const moves = server.calls.filter((call) => call.includes('op=move'))
+    check(
+      'it moved the stale path aside instead',
+      moves.some((call) => call.includes(STALE)),
+      moves.join(', '),
+    )
+    // Hold first, restore second — and the restore is what makes the guarantee.
+    // Asserting the pair in order proves the run did not simply move the path
+    // away and leave it there, which would be a *different* way to lose the
+    // release.
+    const holdIndex = moves.findIndex(
+      (call) => call.includes('newfile=shikkha24-hold') && !call.includes('source=shikkha24-hold'),
+    )
+    const restoreIndex = moves.findIndex((call) => call.includes('source=shikkha24-hold'))
+    check(
+      'and it moved it back, to the path it came from',
+      holdIndex !== -1 && restoreIndex > holdIndex,
+      `hold@${holdIndex} restore@${restoreIndex} — ${moves.join(', ')}`,
+    )
+    check(
+      'the restore put it back under public_html, not in the hold',
+      /newfile=public_html%2F[^&]*old-story/.test(moves[restoreIndex] ?? ''),
+      moves[restoreIndex] ?? '(none)',
+    )
+    check(
+      'the report tells the operator the old release is back',
+      // Both halves matter. The banner is the thing an operator sees first, and
+      // the second sentence is the one that answers the only question they have:
+      // *is the site broken right now?* A banner without it would announce a
+      // recovery that the operator cannot act on or trust.
+      /RECOVERY: nothing was lost/i.test(output) && /moved back exactly as it was/i.test(output),
+      output.slice(-500),
+    )
+    check(
+      'and it does not tell them to hand-extract over a site that is already whole',
+      !/Nothing was rolled back/.test(output),
+      output.slice(-500),
+    )
+    await server.close()
+  }
+
+  console.log('\n10f. ⚠️ A host with no working move FAILS the deploy rather than deleting')
+  {
+    // `move` is the entire recovery primitive, so the one outcome that must never
+    // happen is a deploy that cannot move falling back to `deletePath` — it would
+    // destroy the release with the undo removed, which is strictly worse than the
+    // pre-fix code (that at least deleted a set it had already computed as stale).
+    //
+    // `fileop op=move` is not a function this repo has ever exercised against the
+    // live host. It is this project's documented File Manager workflow for the
+    // archival buckets, not a measured API response, so "the host refuses it" is
+    // a live possibility rather than a hypothetical — and this is the check that
+    // decides the deploy stops rather than guesses.
+    const dist = mkdtempSync(join(tmpdir(), 'nomove-dist-'))
+    writeFileSync(join(dist, 'index.html'), '<!doctype html>')
+    const STALE = 'old-story'
+
+    const server = await startFakeCpanel({
+      uapiExtract: false,
+      moveFails: 'The system could not find the function “fileop” in the module “Fileman”.',
+      listFiles: (dir) => (dir === 'public_html' ? [{ file: 'education-news', type: 'dir' }] : []),
+      files: { 'frontend-manifest.txt': `${STALE}\n` },
+    })
+
+    const output = await execFileAsync(process.execPath, [join(scriptDir, 'deploy-static.mjs')], {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        CPANEL_BASE: server.base,
+        CPANEL_HOST: 'fake',
+        CPANEL_USER: 'shikkhac',
+        CPANEL_TOKEN: 'test-token-not-real',
+        DEPLOY_DRY_RUN: 'false',
+        DEPLOY_DIST: dist,
+        SITE_URL: server.base,
+      },
+    })
+      .then(({ stdout }) => stdout)
+      .catch((error) => `${error.stdout ?? ''}${error.stderr ?? ''}`)
+
+    check(
+      'a host that refuses move exits non-zero',
+      /::error::/.test(output) || /could not find the function/.test(output),
+      output.slice(-300),
+    )
+    const deletions = server.calls
+      .filter((call) => call.includes('op=unlink'))
+      // ⚠️ The stale-archive sweep is pre-existing, legitimate, and predates the
+      // hold by three commits: it removes `frontend.zip`/`frontend.tar.gz` —
+      // archives an *older* deploy left at a guessable public URL — and it targets
+      // nothing this build produced. Excluding it by exact name is what keeps this
+      // assertion about the release rather than about "no deletes at all", which
+      // would be false the moment the sweep ran.
+      .filter((call) => !/source=public_html%2Ffrontend\.(zip|tar\.gz)&/.test(call))
+    check(
+      'and it deleted NOTHING of the release — no silent fallback to the destructive path',
+      deletions.length === 0,
+      deletions.join(', '),
+    )
+    // ⚠️ Scoped to the *deploy* archive, not every extract call. Two extracts are
+    // expected and harmless: the one-file capability probe (`probe-*.tar.gz`) and
+    // the upload of this run's build. What must not happen is a `move` failure
+    // turning into "carry on and extract over the live release anyway" — that is
+    // the mixed state the hold exists to prevent, and the extract below is what
+    // would create it.
+    const releaseExtracts = server.calls.filter((call) => call.includes('frontend-local.tar.gz'))
+    check(
+      'and the release was never extracted over, so it was never in a mixed state',
+      releaseExtracts.length === 0,
+      releaseExtracts.join(', '),
+    )
+    check(
+      'and it says where the release is, so the operator can act without guessing',
+      /shikkha24-hold|move/i.test(output),
+      output.slice(-300),
+    )
+    await server.close()
   }
 
   console.log('\n10d. ⚠️ CI and the host cron agree on the archive name and format')
