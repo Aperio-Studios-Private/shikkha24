@@ -2521,3 +2521,25 @@ tiers, and per-OS screenshot instructions.
 
 Verified: 14 sections and 14 matching nav anchors, no broken/orphan anchors,
 balanced tables/details, headless DOM render probe OK, prints cleanly.
+
+### 2026-10-18 ~09:30 — T-45b: Antigravity prompt for natural-Bengali rewrite
+
+Owner: my Bengali reads robotic/translated. Correct — the guide was written in
+a formal register while the audience is a non-technical client who needs a
+colleague-at-the-desk tone. Delivered docs/antigravity-bangla-prompt.md for
+Antigravity (Gemini-based) to rewrite the language only.
+
+The prompt carries three things that matter: (1) an explicit editor persona and
+target voice, (2) a banned-word list (উক্ত/প্রয়োজনীয়/নিম্নলিখিত/অবগত…) plus the
+machine-translation sentence shapes, (3) the terms that MUST stay English
+(Articles/Publish/Tags/Alt text/hear the client sees them in the CMS) — and a
+hard structural contract: HTML/CSS/ids/anchors untouched, 14 sections <-> 14 nav
+links, no new external requests, no facts added or removed.
+
+Self-inflicted derail worth recording: my own prompt file carried stray
+Devanagari (U+0916, U+0935) and a Cyrillic-led example line. My first repair
+passes FAILED silently because the combining marks differed from what I typed,
+and a codepoint strip then over-removed, mangling নেভিগেশন into নািগেশন. Fixed by
+matching on codepoints rather than literal strings, then auditing BOTH docs for
+wrong-script glyphs, orphaned vowel signs, and Latin-inside-Bengali — all clean.
+Lesson: when editing Bengali, assert on codepoints, never on hand-typed glyphs.
