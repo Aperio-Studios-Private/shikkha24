@@ -3040,8 +3040,19 @@ Refining and naturalizing Bengali copy across the site to eliminate rigid, machi
   - Verification: `pnpm run build` green (111 pages built), `verify:site-name` PASS, `verify:bengali-spacing` PASS, `verify:prayer-times` PASS, `verify:build-output` PASS.
   - User approved Phase 1 ("go ahead").
 
-- **Phase 2 (News Pages):** 🔄 DOING.
-  - Scope: `[category]/[id]/[slug].astro`, `latest/[...path].astro`, `category/[...path].astro`, `archive/[...path].astro`, `author/[...path].astro`, `tag/[...path].astro`.
-  - Child components in scope: `ArticleAudio.astro`, `ArticleCard.astro`, `BookmarkButton.astro`, `CommentSection.astro`, `CorrectionNotice.astro`, `ShareRow.astro`, `SponsoredLabel.astro`.
+- **Phase 2 (News Pages):** ✅ DONE 2026-10-18.
+  - Files modified: `frontend/src/pages/[category]/[id]/[slug].astro`, `frontend/src/pages/latest/[...path].astro`, `frontend/src/pages/category/[...path].astro`, `frontend/src/pages/archive/[...path].astro`, `frontend/src/pages/author/[...path].astro`, `frontend/src/pages/tag/[...path].astro`, `frontend/src/components/ArticleAudio.astro`, `frontend/src/components/ArticleCard.astro`, `frontend/src/components/CommentSection.astro`, `frontend/src/components/ShareRow.astro`, `frontend/src/components/SponsoredLabel.astro`, `frontend/src/components/KeyTakeaways.astro`.
+  - Fixes:
+    - Bengali numerals applied to all counts and reading times with `toBnDigits` (e.g. `৮টি খবর`, `৩ মিনিট`, `পৃষ্ঠা ২`).
+    - Orthography & spacing: Eliminated space before Bengali classifier 'টি' (`{count} টি খবর` -> `{toBnDigits(count)}টি খবর`).
+    - Standard Promito phrasing: "পেজ N" -> "পৃষ্ঠা N", "সংবাদ তালিকা" -> "খবরের তালিকা", "ট্যাগে প্রকাশিত সংবাদ" -> "ট্যাগ বিষয়ক সব খবর", "সংশোধনী" & "একনজরে" established.
+    - AI anti-slop: Eliminated all AI em dashes (`—`) in sponsor notices, headings, and comment notices (`বিজ্ঞাপন: ${sponsor}`, `সৌজন্যে প্রকাশিত`).
+    - Replaced English calques: "এই লেখাটি স্পনসর করা" -> "বিজ্ঞাপনদাতার সৌজন্যে প্রকাশিত", "ডিভাইসের ভয়েস ব্যবহার করে পড়া হবে" -> "ডিভাইসের স্বয়ংক্রিয় কণ্ঠে পাঠ", "সোশ্যাল কার্ড" -> "ফটোকার্ড".
+    - Human passive -> active/reassuring: `(প্রকাশ করা হবে না)` -> `(গোপন থাকবে)`.
+  - Verification: `pnpm run build` green (111 pages built), `verify:site-name` PASS, `verify:bengali-spacing` PASS, `verify:build-output` PASS ("Build output is deployable").
+
+- **Phase 3 (Tool & Service Pages):** ⏳ PENDING APPROVAL.
+  - Scope: `cgpa.astro`, `gpa.astro`, `deadlines.astro`, `results/index.astro`, `search.astro`, `faq.astro`.
+
 
 

@@ -28,14 +28,14 @@ interface Props {
 const { sponsorName, variant = 'badge' } = Astro.props
 
 const sponsor = sponsorName?.trim()
-const short = sponsor ? `বিজ্ঞাপন — ${sponsor}` : 'বিজ্ঞাপন'
+const short = sponsor ? `বিজ্ঞাপন: ${sponsor}` : 'বিজ্ঞাপন'
 ---
 
 {
   variant === 'banner' ? (
     <p class="mb-3 rounded-md border border-rule bg-surface-raised px-3 py-2 text-sm text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
       <span class="font-semibold text-ink dark:text-dark-ink">বিজ্ঞাপন</span>
-      {sponsor ? ` — এই লেখাটি ${sponsor}-এর পক্ষ থেকে প্রকাশিত` : ' — এই লেখাটি স্পনসর করা'}
+      {sponsor ? `: এই প্রতিবেদনটি ${sponsor}-এর সৌজন্যে প্রকাশিত` : ': এই প্রতিবেদনটি বিজ্ঞাপনদাতার সৌজন্যে প্রকাশিত'}
     </p>
   ) : (
     <span class="rounded border border-rule bg-surface-raised px-1.5 py-0.5 font-medium text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">

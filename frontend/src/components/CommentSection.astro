@@ -113,7 +113,7 @@ function bnDate(value: string): string {
               for="comment-email"
               class="block text-sm font-semibold text-ink dark:text-dark-ink"
             >
-              ইমেইল <span class="font-normal text-ink-subtle">(প্রকাশ করা হবে না)</span>
+              ইমেইল <span class="font-normal text-ink-subtle">(গোপন থাকবে)</span>
             </label>
             <input
               id="comment-email"
@@ -170,7 +170,7 @@ function bnDate(value: string): string {
         </div>
 
         <p class="mt-2 text-xs leading-relaxed text-ink-subtle dark:text-dark-ink-muted">
-          মন্তব্য সম্পাদকের অনুমোদনের পর প্রকাশিত হয়। আপনার ইমেইল কখনো প্রকাশ করা হয় না।
+          মন্তব্য সম্পাদকের অনুমোদনের পর প্রকাশিত হয়। আপনার ইমেইল ঠিকানা গোপন থাকবে।
         </p>
       </form>
     </section>
@@ -233,7 +233,7 @@ function bnDate(value: string): string {
 
         if (response.ok) {
           form.reset()
-          setStatus('ধন্যবাদ — অনুমোদনের পর আপনার মন্তব্য প্রকাশিত হবে।')
+          setStatus('ধন্যবাদ, অনুমোদনের পর আপনার মন্তব্য প্রকাশ করা হবে।')
         } else if (response.status === 429) {
           setStatus('অনেকবার মন্তব্য পাঠানো হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।')
         } else {

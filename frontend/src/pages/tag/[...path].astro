@@ -26,6 +26,7 @@ import Layout from '../../layouts/Layout.astro'
 import Breadcrumbs from '../../components/Breadcrumbs.astro'
 import ArticleGrid from '../../components/ArticleGrid.astro'
 import Pagination from '../../components/Pagination.astro'
+import { toBnDigits } from '../../lib/bangla-date'
 import { articleUrl } from '../../lib/url'
 import {
   getSiteSettings,
@@ -134,8 +135,8 @@ const jsonLd = {
 ---
 
 <Layout
-  title={page > 1 ? `${displayName} — পেজ ${page}` : displayName}
-  description={`${displayName} ট্যাগে প্রকাশিত সংবাদ — ${settings.siteName}।`}
+  title={page > 1 ? `${displayName} — পৃষ্ঠা ${toBnDigits(page)}` : displayName}
+  description={`${displayName} বিষয়ক সব খবর: ${settings.siteName}।`}
   canonical={canonical}
   settings={settings}
   categories={categories}
@@ -157,10 +158,10 @@ const jsonLd = {
       <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
         {displayName}
       </h1>
-      <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">{result.totalDocs} টি খবর</p>
+      <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">{toBnDigits(result.totalDocs)}টি খবর</p>
     </header>
 
-    <ArticleGrid articles={result.docs} emptyMessage="এই ট্যাগে এখনো কোনো খবর নেই।" />
+    <ArticleGrid articles={result.docs} emptyMessage="এই বিষয়ে এখনো কোনো খবর প্রকাশিত হয়নি।" />
 
     <Pagination page={result.page} totalPages={result.totalPages} basePath={basePath} />
   </div>

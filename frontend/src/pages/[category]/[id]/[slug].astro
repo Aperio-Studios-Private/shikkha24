@@ -353,7 +353,7 @@ const imageGalleryLd =
     <div class="grid-12">
       <div class="col-span-4 sm:col-span-8 lg:col-span-8">
         {/* Breadcrumb */}
-        <nav aria-label="breadcrumb" class="mb-3">
+        <nav aria-label="পৃষ্ঠার অবস্থান" class="mb-3">
           <ol class="flex flex-wrap items-center gap-1.5 text-xs text-ink-subtle dark:text-dark-ink-muted">
             <li><a href="/" class="hover:text-brand-red">হোম</a></li>
             {
@@ -403,7 +403,7 @@ const imageGalleryLd =
             article.readingTimeMinutes ? (
               <>
                 <span aria-hidden="true">·</span>
-                <span>{article.readingTimeMinutes} মিনিট</span>
+                <span>{toBnDigits(article.readingTimeMinutes)} মিনিট</span>
               </>
             ) : null
           }

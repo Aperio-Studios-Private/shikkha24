@@ -14,6 +14,7 @@ import Breadcrumbs from '../../components/Breadcrumbs.astro'
 import ArticleGrid from '../../components/ArticleGrid.astro'
 import Pagination from '../../components/Pagination.astro'
 import AdSlot from '../../components/AdSlot.astro'
+import { toBnDigits } from '../../lib/bangla-date'
 import { articleUrl } from '../../lib/url'
 import {
   getSiteSettings,
@@ -121,7 +122,7 @@ const jsonLd = {
 ---
 
 <Layout
-  title={category ? `${category.nameBn}${page > 1 ? ` — পেজ ${page}` : ''}` : slug}
+  title={category ? `${category.nameBn}${page > 1 ? ` — পৃষ্ঠা ${toBnDigits(page)}` : ''}` : slug}
   description={category?.description ?? undefined}
   canonical={canonical}
   settings={settings}
@@ -145,7 +146,7 @@ const jsonLd = {
         <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">{category.description}</p>
       )}
       <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
-        {result.totalDocs} টি খবর
+        {toBnDigits(result.totalDocs)}টি খবর
       </p>
     </header>
 
@@ -179,7 +180,7 @@ const jsonLd = {
         failed `heading-order` (WCAG 1.3.1). An sr-only h2 supplies the level with
         no visual change. Same fix as /latest. */}
     <section aria-labelledby="category-feed-heading">
-      <h2 id="category-feed-heading" class="sr-only">{category?.nameBn ?? 'সংবাদ তালিকা'}</h2>
+      <h2 id="category-feed-heading" class="sr-only">{category?.nameBn ?? 'খবরের তালিকা'}</h2>
       <ArticleGrid articles={result.docs} />
     </section>
 

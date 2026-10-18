@@ -31,6 +31,7 @@ import Layout from '../../layouts/Layout.astro'
 import Breadcrumbs from '../../components/Breadcrumbs.astro'
 import ArticleGrid from '../../components/ArticleGrid.astro'
 import Pagination from '../../components/Pagination.astro'
+import { toBnDigits } from '../../lib/bangla-date'
 import { archiveMonthSegment, articleUrl } from '../../lib/url'
 import {
   getSiteSettings,
@@ -180,7 +181,7 @@ const jsonLd = {
       <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
         {displayName}
       </h1>
-      {!isIndex && <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">{result.totalDocs} টি খবর</p>}
+      {!isIndex && <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">{toBnDigits(result.totalDocs)}টি খবর</p>}
     </header>
 
     {
@@ -193,7 +194,7 @@ const jsonLd = {
                 class="flex items-baseline justify-between rounded-lg border border-rule px-4 py-3 text-ink hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
               >
                 <span class="font-medium">{bucket.label}</span>
-                <span class="text-xs text-ink-subtle dark:text-dark-ink-muted">{bucket.count}</span>
+                <span class="text-xs text-ink-subtle dark:text-dark-ink-muted">{toBnDigits(bucket.count)}টি খবর</span>
               </a>
             </li>
           ))}
@@ -203,7 +204,7 @@ const jsonLd = {
 
     {
       isIndex && buckets.length === 0 && (
-        <p class="text-sm text-ink-muted dark:text-dark-ink-muted">এখনো কোনো সংবাদ প্রকাশিত হয়নি।</p>
+        <p class="text-sm text-ink-muted dark:text-dark-ink-muted">এখনো কোনো খবর প্রকাশিত হয়নি।</p>
       )
     }
 

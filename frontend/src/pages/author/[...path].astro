@@ -23,6 +23,7 @@ import Layout from '../../layouts/Layout.astro'
 import Breadcrumbs from '../../components/Breadcrumbs.astro'
 import ArticleGrid from '../../components/ArticleGrid.astro'
 import Pagination from '../../components/Pagination.astro'
+import { toBnDigits } from '../../lib/bangla-date'
 import { articleUrl } from '../../lib/url'
 import {
   getSiteSettings,
@@ -180,7 +181,7 @@ const jsonLd = {
           )
         }
         <p class="mt-2 text-xs text-ink-subtle dark:text-dark-ink-muted">
-          {result.totalDocs} টি প্রতিবেদন
+          {toBnDigits(result.totalDocs)}টি প্রতিবেদন
         </p>
       </div>
     </header>
@@ -188,8 +189,8 @@ const jsonLd = {
     {/* Same heading-order fix as /latest and /category: the grid's cards are
         <h3>s, so the page needs an <h2> between the <h1> and them. */}
     <section aria-labelledby="author-feed-heading">
-      <h2 id="author-feed-heading" class="sr-only">লেখকের প্রতিবেদন তালিকা</h2>
-      <ArticleGrid articles={result.docs} emptyMessage="এই লেখকের এখনো কোনো প্রতিবেদন নেই।" />
+      <h2 id="author-feed-heading" class="sr-only">লেখকের সব প্রতিবেদন</h2>
+      <ArticleGrid articles={result.docs} emptyMessage="এই লেখকের এখনো কোনো খবর প্রকাশিত হয়নি।" />
     </section>
 
     <Pagination page={result.page} totalPages={result.totalPages} basePath={basePath} />

@@ -33,6 +33,7 @@ import Layout from '../../layouts/Layout.astro'
 import Breadcrumbs from '../../components/Breadcrumbs.astro'
 import ArticleGrid from '../../components/ArticleGrid.astro'
 import Pagination from '../../components/Pagination.astro'
+import { toBnDigits } from '../../lib/bangla-date'
 import {
   getSiteSettings,
   getCategories,
@@ -131,7 +132,7 @@ const jsonLd = {
         সর্বশেষ খবর
       </h1>
       <div class="mt-1 flex flex-wrap items-center justify-between gap-2">
-        <p class="text-xs text-ink-subtle dark:text-dark-ink-muted">{result.totalDocs} টি খবর</p>
+        <p class="text-xs text-ink-subtle dark:text-dark-ink-muted">{toBnDigits(result.totalDocs)}টি খবর</p>
         {/* The feed is chronological and unbounded; the archive is the same
             content browsable by month. Linking it here is what keeps
             `/archive` from being a page nothing points at. */}
@@ -148,7 +149,7 @@ const jsonLd = {
         repeat it — `sr-only` supplies the missing level to the accessibility
         tree with zero change to the rendered design. */}
     <section aria-labelledby="latest-feed-heading">
-      <h2 id="latest-feed-heading" class="sr-only">সর্বশেষ খবরের তালিকা</h2>
+      <h2 id="latest-feed-heading" class="sr-only">সর্বশেষ সব খবর</h2>
       <ArticleGrid articles={result.docs} emptyMessage="এখনো কোনো খবর প্রকাশিত হয়নি।" />
     </section>
 

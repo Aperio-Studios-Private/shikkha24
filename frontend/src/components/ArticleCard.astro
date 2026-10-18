@@ -45,7 +45,7 @@
 import type { CmsArticle } from '../lib/cms'
 import { resolveCmsImage } from '../lib/media'
 import { articleUrl } from '../lib/url'
-import { formatBnBd } from '../lib/bangla-date'
+import { formatBnBd, toBnDigits } from '../lib/bangla-date'
 import CmsImage from './CmsImage.astro'
 import SponsoredLabel from './SponsoredLabel.astro'
 
@@ -243,7 +243,7 @@ const imageSizes = sizes ?? (isStacked ? '(min-width: 1024px) 800px, 100vw' : '9
           article.readingTimeMinutes ? (
             <>
               {published && <span aria-hidden="true">·</span>}
-              <span>{article.readingTimeMinutes} মিনিট</span>
+              <span>{toBnDigits(article.readingTimeMinutes)} মিনিট</span>
             </>
           ) : null
         }
