@@ -2420,3 +2420,32 @@ NOT ours / not fixable in code:
    own _astro assets are immutable-hashed.
 
 CSP parity re-verified after the change: 83 checks OK. Deployed 828398bc.
+
+### 2026-10-18 ~08:55 — O-4 guidance CORRECTED (my "Speed → Web Analytics" path was wrong)
+
+Owner flagged my Cloudflare instruction as inaccurate. Verified against
+Cloudflare's live docs (developers.cloudflare.com/web-analytics/get-started/)
+and against our own edge responses:
+
+WHAT I GOT WRONG: I said "Speed → Web Analytics" and added a vague "or RUM".
+Web Analytics is NOT under Speed. It is its own top-level dashboard page:
+https://dash.cloudflare.com/?to=/:account/web-analytics . "Speed" is a separate
+product area. Correct control = the site card's **Manage site** → **Disable**.
+
+WHY THE BEACON IS THERE (docs-confirmed): for zones proxied through Cloudflare,
+automatic Web Analytics setup is **enabled by default** (inherited from Browser
+Insights). Confirmed on our edge: `server: cloudflare`, `cf-ray` present,
+`cache-control: public, max-age=0, must-revalidate` — no `no-transform`, so
+Cloudflare is free to rewrite the payload and inject
+static.cloudflareinsights.com/beacon.min.js. Verified the injection is real:
+a browser-UA request returns the beacon string (count 1), while my earlier
+plain-curl grep missed it and my `--compressed` grep matched binary brotli.
+
+NET EFFECT (unchanged from O-4): our CSP blocks that script, so it collects
+nothing while logging a CSP console error on every page and costing 4
+best-practices points. Owner's earlier decision stands and is right: keep the
+CSP strict, switch the beacon OFF at the dashboard — no repo change.
+
+ALTERNATIVE (repo-side, NOT chosen): adding `no-transform` to the HTML
+Cache-Control would also stop injection, but that is a cache-behaviour change
+for the whole site to solve a cosmetic analytics toggle — wrong trade.
