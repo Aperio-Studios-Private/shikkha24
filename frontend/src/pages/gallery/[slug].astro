@@ -94,8 +94,8 @@ const jsonLd = {
 ---
 
 <Layout
-  title={`${gallery.title} — ছবির গ্যালারি`}
-  description={gallery.description ?? `${gallery.title} — ${settings.siteName}-এর ছবির গ্যালারি।`}
+  title={`${gallery.title} | ছবির গ্যালারি`}
+  description={gallery.description ?? `${gallery.title}: ${settings.siteName}-এর ছবির গ্যালারি।`}
   canonical={canonical}
   ogImage={images[0]?.url ?? undefined}
   jsonLd={jsonLd}
@@ -126,7 +126,7 @@ const jsonLd = {
     {
       images.length === 0 ? (
         <p class="mt-6 text-base text-ink-muted dark:text-dark-ink-muted">
-          এই গ্যালারিতে এখনো কোনো ছবি যোগ করা হয়নি।
+          এই গ্যালারিতে এখনো কোনো ছবি যুক্ত করা হয়নি।
         </p>
       ) : (
         <ul class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -176,7 +176,7 @@ const jsonLd = {
 
     <p class="mt-8">
       <a href="/gallery" class="text-sm font-medium text-brand-red hover:underline">
-        ← সব গ্যালারি
+        ← সব ছবির গ্যালারি
       </a>
     </p>
   </div>

@@ -64,7 +64,7 @@ const renderable = Boolean(cmsOrigin) && enabled && isEnabled('newsletter')
         for="newsletter-email"
         class="block text-sm font-semibold text-ink dark:text-dark-ink"
       >
-        নিউজলেটার — নতুন সুযোগ ও সময়সীমা সরাসরি ইমেইলে
+        নিউজলেটার: নতুন সুযোগ ও সময়সীমা সরাসরি ইমেইলে
       </label>
 
       <div class="mt-2 flex flex-wrap gap-2">
@@ -108,7 +108,7 @@ const renderable = Boolean(cmsOrigin) && enabled && isEnabled('newsletter')
       </p>
 
       <p class="mt-1 text-xs leading-relaxed text-ink-subtle dark:text-dark-ink-muted">
-        সাবস্ক্রাইব করলে একটি নিশ্চিতকরণ ইমেইল যাবে — লিংকে ক্লিক করার পরই তালিকাভুক্ত হবেন।
+        সাবস্ক্রাইব করলে একটি নিশ্চিতকরণ ইমেইল যাবে। লিংকে ক্লিক করার পরই তালিকাভুক্ত হবেন।
         যেকোনো সময় বাতিল করতে পারবেন।
       </p>
     </form>
@@ -146,7 +146,7 @@ const renderable = Boolean(cmsOrigin) && enabled && isEnabled('newsletter')
       }
 
       submit.disabled = true
-      setStatus('পাঠানো হচ্ছে…')
+      setStatus('পাঠানো হচ্ছে')
 
       try {
         const response = await fetch(`${origin}/api/newsletter/subscribe`, {

@@ -39,7 +39,7 @@ const legalRows = [
 
 <Layout
   title="আমাদের সম্পর্কে"
-  description={`${settings.siteName} — ${settings.tagline || 'দেশ-বিদেশের শিক্ষার সর্বশেষ খবর ও সুযোগ'}।`}
+  description={`${settings.siteName}: ${settings.tagline || 'দেশ-বিদেশের শিক্ষার সর্বশেষ খবর ও সুযোগ'}।`}
   settings={settings}
   categories={categories}
   footerPages={footerPages}
@@ -53,13 +53,13 @@ const legalRows = [
 
     <div class="mt-4 max-w-3xl space-y-4 text-base leading-relaxed text-ink dark:text-dark-ink">
       <p>
-        <strong class="font-semibold">{settings.siteName}</strong> একটি শিক্ষা সংবাদমাধ্যম।
-        {settings.tagline ? ` ${settings.tagline} — এই লক্ষ্যেই আমরা কাজ করি।` : ''}
+        <strong class="font-semibold">{settings.siteName}</strong> একটি স্বাধীন শিক্ষাবিষয়ক সংবাদমাধ্যম।
+        {settings.tagline ? ` ${settings.tagline}: এই লক্ষ্যেই আমাদের কাজ।` : ''}
       </p>
       <p>
         শিক্ষার্থী, অভিভাবক ও শিক্ষকদের জন্য ভর্তি, পরীক্ষা, ফলাফল, বৃত্তি, উচ্চশিক্ষা ও
-        শিক্ষানীতির খবর এক জায়গায় পাওয়া যায়। আমরা প্রতিটি খবর যাচাই করার চেষ্টা করি এবং
-        কোনো ভুল হলে দ্রুত সংশোধন করি।
+        শিক্ষানীতির নির্ভরযোগ্য তথ্য পৌঁছে দেওয়াই আমাদের লক্ষ্য। প্রতিটি সংবাদ দায়িত্বের সাথে
+        যাচাই করে প্রকাশ করা হয় এবং কোনো ভুল নজরে এলে দ্রুত তা সংশোধন করা হয়।
       </p>
     </div>
 
@@ -70,7 +70,7 @@ const legalRows = [
             id="about-coverage"
             class="font-headline text-lg font-bold text-ink dark:text-dark-ink"
           >
-            আমরা যা যা কভার করি
+            আমাদের খবরের ক্ষেত্রসমূহ
           </h2>
           <ul class="mt-3 flex flex-wrap gap-2">
             {categories.map((category) => (
@@ -107,9 +107,9 @@ const legalRows = [
           </dl>
         ) : (
           <p class="mt-3 max-w-3xl rounded-lg border border-rule bg-surface p-4 text-base leading-relaxed text-ink-muted dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink-muted">
-            মালিকানা ও নিবন্ধন সংক্রান্ত তথ্য (ট্রেড লাইসেন্স, টিআইএন, তথ্য মন্ত্রণালয় নিবন্ধন)
-            এখনো যোগ করা হয়নি। সাইট সেটিংসে (প্রশাসন → সাইট সেটিংস → আইনি তথ্য) এই তথ্য দিলে
-            এই পাতায় ও ফুটারে স্বয়ংক্রিয়ভাবে প্রকাশিত হবে।
+            মালিকানা ও নিবন্ধনসংক্রান্ত তথ্য (ট্রেড লাইসেন্স, টিআইএন, তথ্য মন্ত্রণালয় নিবন্ধন)
+            এখনো যুক্ত করা হয়নি। সাইট সেটিংসে (প্রশাসন → সাইট সেটিংস → আইনি তথ্য) এই তথ্য দিলে
+            তা স্বয়ংক্রিয়ভাবে এই পাতায় ও ফুটারে প্রদর্শিত হবে।
           </p>
         )
       }
@@ -118,10 +118,10 @@ const legalRows = [
     <section class="mt-8 border-t border-rule pt-6 dark:border-dark-rule">
       <h2 class="font-headline text-lg font-bold text-ink dark:text-dark-ink">যোগাযোগ</h2>
       <p class="mt-2 max-w-2xl text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted">
-        আমাদের ঠিকানা, ফোন ও ইমেইল জানতে{' '}
+        আমাদের ঠিকানা, ফোন নম্বর ও ইমেইল জানতে{' '}
         <a href="/contact" class="text-brand-red hover:underline">যোগাযোগ</a> পাতাটি দেখুন।
-        কোনো খবর বা তথ্য পাঠাতে চাইলে{' '}
-        <a href="/citizen" class="text-brand-red hover:underline">খবর পাঠান</a> পাতা ব্যবহার করুন।
+        কোনো সংবাদ বা তথ্য জানাতে চাইলে{' '}
+        <a href="/citizen" class="text-brand-red hover:underline">খবর পাঠান</a> পাতা ব্যবহার করতে পারেন।
       </p>
     </section>
   </div>

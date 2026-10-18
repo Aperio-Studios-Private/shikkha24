@@ -89,14 +89,14 @@ const { endpoint, heading, intro, action, success } = Astro.props
     }
 
     if (!token) {
-      setStatus('লিংকটি অসম্পূর্ণ — ইমেইলের লিংকটি সম্পূর্ণ কপি করে আবার চেষ্টা করুন।')
+      setStatus('লিংকটি অসম্পূর্ণ। ইমেইলের লিংকটি সম্পূর্ণ কপি করে আবার চেষ্টা করুন।')
       if (button) button.disabled = true
       continue
     }
 
     const run = async (): Promise<void> => {
       if (button) button.disabled = true
-      setStatus('একটু অপেক্ষা করুন…')
+      setStatus('একটু অপেক্ষা করুন')
 
       try {
         const response = await fetch(endpoint, {

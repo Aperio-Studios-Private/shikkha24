@@ -106,7 +106,7 @@ const renderable = Boolean(cmsOrigin) && isEnabled('citizen')
               class="mt-1 w-full rounded-md border border-rule bg-white px-3 py-2 text-base leading-relaxed text-ink dark:border-dark-rule dark:bg-dark-base dark:text-dark-ink"
             ></textarea>
             <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
-              কোথায়, কখন, কে — এই তথ্যগুলো থাকলে যাচাই করা সহজ হয়।
+              কোথায়, কখন, কে: এই তথ্যগুলো থাকলে যাচাই করা সহজ হয়।
             </p>
           </div>
 
@@ -209,7 +209,7 @@ const renderable = Boolean(cmsOrigin) && isEnabled('citizen')
           </div>
 
           <p class="mt-3 text-xs leading-relaxed text-ink-subtle dark:text-dark-ink-muted">
-            জমা দেওয়া তথ্য স্বয়ংক্রিয়ভাবে প্রকাশিত হয় না — সম্পাদক যাচাই করে সিদ্ধান্ত নেন।
+            জমা দেওয়া তথ্য স্বয়ংক্রিয়ভাবে প্রকাশিত হয় না। সম্পাদক যাচাই করে সিদ্ধান্ত নেন।
             আপনার ইমেইল ও ফোন নম্বর কখনো প্রকাশ করা হয় না। ছবি পাঠালে সেটি থেকে অবস্থানের তথ্য
             মুছে ফেলা হয়।
           </p>
@@ -257,7 +257,7 @@ const renderable = Boolean(cmsOrigin) && isEnabled('citizen')
       const reporterPhone = String(data.get('reporterPhone') ?? '').trim()
 
       submit.disabled = true
-      setStatus('পাঠানো হচ্ছে…')
+      setStatus('পাঠানো হচ্ছে')
 
       try {
         const response = await fetch(`${origin}/api/citizen/submit`, {

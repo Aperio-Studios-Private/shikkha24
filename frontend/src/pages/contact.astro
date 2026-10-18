@@ -31,17 +31,17 @@ const [settings, categories, footerPages] = await Promise.all([
 const contact = settings.contact ?? {}
 const socialEntries = Object.entries(settings.social ?? {}).filter(([, url]) => !!url)
 const emails = [
-  { key: contact.email, label: 'ইমেইল (সাধারণ)', desc: 'সাধারণ যোগাযোগের জন্য' },
-  { key: contact.newsEmail, label: 'খবর জমা দিন', desc: 'পাঠকের পাঠানো খবর ও তথ্যের জন্য' },
-  { key: contact.editorEmail, label: 'সম্পাদকীয়', desc: 'সম্পাদকীয় দলের সাথে যোগাযোগ' },
-  { key: contact.adsEmail, label: 'বিজ্ঞাপন', desc: 'বিজ্ঞাপন ও স্পন্সরশিপ সংক্রান্ত' },
+  { key: contact.email, label: 'সাধারণ যোগাযোগ', desc: 'যেকোনো সাধারণ তথ্যের জন্য' },
+  { key: contact.newsEmail, label: 'বার্তা বিভাগ', desc: 'সংবাদ ও তথ্য পাঠানোর জন্য' },
+  { key: contact.editorEmail, label: 'সম্পাদকীয় বিভাগ', desc: 'সম্পাদকীয় দলের সাথে যোগাযোগ' },
+  { key: contact.adsEmail, label: 'বিজ্ঞাপন বিভাগ', desc: 'বিজ্ঞাপন ও বিপণন সংক্রান্ত' },
 ].filter((e) => !!e.key)
 const hasContact = Boolean(contact.email || contact.newsEmail || contact.editorEmail || contact.adsEmail || contact.phone || contact.address)
 ---
 
 <Layout
   title="যোগাযোগ"
-  description={`${settings.siteName}-এর সাথে যোগাযোগ — ফোন, ইমেইল ও ঠিকানা।`}
+  description={`${settings.siteName}-এর সাথে যোগাযোগের ঠিকানা, ফোন নম্বর ও ইমেইল।`}
   settings={settings}
   categories={categories}
   footerPages={footerPages}
@@ -54,15 +54,15 @@ const hasContact = Boolean(contact.email || contact.newsEmail || contact.editorE
     </h1>
 
     <p class="mt-2 max-w-2xl text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted">
-      যেকোনো প্রশ্ন, ভুল সংশোধনের অনুরোধ বা প্রতিবেদনের জন্য নিচের মাধ্যমগুলোতে যোগাযোগ করতে
+      যেকোনো জিজ্ঞাসা, তথ্য সংশোধন বা মতামতের জন্য নিচের মাধ্যমে আমাদের সাথে যোগাযোগ করতে
       পারেন।
     </p>
 
     {
       !hasContact ? (
         <p class="mt-6 rounded-lg border border-rule bg-surface p-4 text-base leading-relaxed text-ink-muted dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink-muted">
-          যোগাযোগের তথ্য এখনো যোগ করা হয়নি। সাইট সেটিংসে (প্রশাসন → সাইট সেটিংস) ইমেইল, ফোন ও
-          ঠিকানা দিলে এই পাতায় স্বয়ংক্রিয়ভাবে দেখা যাবে।
+          যোগাযোগের তথ্য এখনো যুক্ত করা হয়নি। সাইট সেটিংসে (প্রশাসন → সাইট সেটিংস) ইমেইল, ফোন ও
+          ঠিকানা দিলে তা স্বয়ংক্রিয়ভাবে এই পাতায় প্রদর্শিত হবে।
         </p>
       ) : (
         <dl class="mt-6 grid gap-4 sm:grid-cols-2">
@@ -80,7 +80,7 @@ const hasContact = Boolean(contact.email || contact.newsEmail || contact.editorE
 
           {contact.phone && (
             <div class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
-              <dt class="text-sm font-medium text-ink-muted dark:text-dark-ink-muted">ফোন</dt>
+              <dt class="text-sm font-medium text-ink-muted dark:text-dark-ink-muted">ফোন নম্বর</dt>
               <dd class="mt-1 text-base">
                 <a
                   href={`tel:${contact.phone.replace(/\s+/g, '')}`}
@@ -108,7 +108,7 @@ const hasContact = Boolean(contact.email || contact.newsEmail || contact.editorE
       socialEntries.length > 0 && (
         <section class="mt-8" aria-labelledby="contact-social">
           <h2 id="contact-social" class="font-headline text-lg font-bold text-ink dark:text-dark-ink">
-            সোশ্যাল মাধ্যম
+            সামাজিক যোগাযোগমাধ্যম
           </h2>
           <ul class="mt-3 flex flex-wrap gap-3">
             {socialEntries.map(([name, url]) => (
@@ -128,10 +128,10 @@ const hasContact = Boolean(contact.email || contact.newsEmail || contact.editorE
     }
 
     <section class="mt-8 border-t border-rule pt-6 dark:border-dark-rule">
-      <h2 class="font-headline text-lg font-bold text-ink dark:text-dark-ink">খবর পাঠাতে চান?</h2>
+      <h2 class="font-headline text-lg font-bold text-ink dark:text-dark-ink">সংবাদ পাঠাতে চান?</h2>
       <p class="mt-2 max-w-2xl text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted">
-        আপনার এলাকার শিক্ষা সংক্রান্ত খবর, ছবি বা তথ্য থাকলে সরাসরি পাঠাতে পারেন —{' '}
-        <a href="/citizen" class="text-brand-red hover:underline">খবর পাঠান</a> পাতা ব্যবহার করুন।
+        আপনার শিক্ষাপ্রতিষ্ঠান বা এলাকার খবর, ছবি বা তথ্য সরাসরি পাঠাতে পারেন।{' '}
+        <a href="/citizen" class="text-brand-red hover:underline">খবর পাঠান</a> পাতা ব্যবহার করতে পারেন।
       </p>
     </section>
   </div>

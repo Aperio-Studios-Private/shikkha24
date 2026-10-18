@@ -63,9 +63,9 @@ const [settings, categories, footerPages, reporter] = await Promise.all([
 ])
 
 const BEAT_LABELS: Record<string, string> = {
-  school: 'স্কুল',
+  school: 'বিদ্যালয়',
   college: 'কলেজ',
-  university: 'বিশ্ববিদ্যালয়',
+  university: 'বিশ্ববিদ্যালয়',
   madrasa: 'মাদ্রাসা',
   exam: 'পরীক্ষা',
   scholarship: 'বৃত্তি',
@@ -117,10 +117,10 @@ const cardImageUrl =
 ---
 
 <Layout
-  title={reporter ? `${reporter.nameBn} — যাচাইকৃত প্রতিবেদক` : 'প্রতিবেদক'}
+  title={reporter ? `${reporter.nameBn} | যাচাইকৃত প্রতিবেদক` : 'প্রতিবেদক'}
   description={
     reporter
-      ? `${reporter.nameBn} — ${settings.siteName}-এর ${reporter.designation ?? 'প্রতিবেদক'}। আইডি ${reporter.reporterId ?? ''}।`
+      ? `${reporter.nameBn}: ${settings.siteName}-এর ${reporter.designation ?? 'প্রতিবেদক'}। পরিচিতি নম্বর ${reporter.reporterId ?? ''}।`
       : 'প্রতিবেদক প্রোফাইল।'
   }
   settings={settings}
@@ -140,10 +140,10 @@ const cardImageUrl =
       !reporter ? (
         <div class="rounded-lg border border-rule bg-surface-raised p-8 text-center dark:border-dark-rule dark:bg-dark-raised">
           <h1 class="font-headline text-xl font-bold text-ink dark:text-dark-ink">
-            প্রতিবেদকের তথ্য পাওয়া যায়নি
+            প্রতিবেদকের তথ্য পাওয়া যায়নি
           </h1>
           <p class="mt-2 text-sm text-ink-muted dark:text-dark-ink-muted">
-            এই ঠিকানায় কোনো প্রতিবেদকের প্রোফাইল নেই। তালিকা থেকে খুঁজে দেখুন।
+            এই ঠিকানায় কোনো প্রতিবেদকের প্রোফাইল পাওয়া যায়নি। তালিকা থেকে খুঁজে দেখতে পারেন।
           </p>
           <a
             href="/reporters"

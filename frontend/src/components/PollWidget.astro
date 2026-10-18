@@ -261,7 +261,7 @@ const renderable = Boolean(cmsOrigin) && options.length >= 2
 
       const optionIndex = Number(chosen.value)
       submit.disabled = true
-      setStatus('পাঠানো হচ্ছে…')
+      setStatus('পাঠানো হচ্ছে')
 
       try {
         const response = await fetch(`${origin}/api/polls/${encodeURIComponent(pollId)}/vote`, {

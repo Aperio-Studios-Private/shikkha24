@@ -216,7 +216,7 @@ function bnDate(value: string): string {
       }
 
       submit.disabled = true
-      setStatus('পাঠানো হচ্ছে…')
+      setStatus('পাঠানো হচ্ছে')
 
       try {
         const response = await fetch(`${origin}/api/comments/submit`, {

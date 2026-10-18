@@ -55,9 +55,9 @@ const [settings, categories, footerPages, reporters] = await Promise.all([
 
 /** Bengali labels for the `beat` select, mirroring the CMS options. */
 const BEAT_LABELS: Record<string, string> = {
-  school: 'স্কুল',
+  school: 'বিদ্যালয়',
   college: 'কলেজ',
-  university: 'বিশ্ববিদ্যালয়',
+  university: 'বিশ্ববিদ্যালয়',
   madrasa: 'মাদ্রাসা',
   exam: 'পরীক্ষা',
   scholarship: 'বৃত্তি',
@@ -86,8 +86,8 @@ const cards = reporters.map((r) => {
 ---
 
 <Layout
-  title="সম্পাদকীয় দল — যাচাইকৃত প্রতিবেদক"
-  description={`${settings.siteName}-এর যাচাইকৃত প্রতিবেদকদের তালিকা — আইডি নম্বর, বিট ও কার্যক্ষেত্রসহ।`}
+  title="সম্পাদকীয় দল | যাচাইকৃত প্রতিবেদক"
+  description={`${settings.siteName}-এর যাচাইকৃত প্রতিবেদকদের তালিকা: পরিচিতি নম্বর, বিট ও কর্মক্ষেত্রসহ।`}
   settings={settings}
   categories={categories}
   footerPages={footerPages}
@@ -100,15 +100,15 @@ const cards = reporters.map((r) => {
         সম্পাদকীয় দল
       </h1>
       <p class="mt-2 max-w-2xl text-sm text-ink-muted dark:text-dark-ink-muted">
-        {settings.siteName}-এর যাচাইকৃত প্রতিবেদকেরা এখানে তালিকাভুক্ত। প্রত্যেকের একটি স্থায়ী আইডি নম্বর
-        রয়েছে, যা তাঁদের পরিচয়পত্রে থাকা QR কোড দিয়ে যাচাই করা যায়।
+        {settings.siteName}-এর নিবন্ধিত ও অনুমোদিত প্রতিবেদকদের তালিকা। প্রত্যেকের নিজস্ব পরিচিতি নম্বর (আইডি)
+        রয়েছে, যা পরিচয়পত্রে থাকা কিউআর কোড স্ক্যান করে সরাসরি যাচাই করা যায়।
       </p>
     </header>
 
     {
       cards.length === 0 ? (
         <p class="rounded-lg border border-rule bg-surface-raised p-6 text-center text-sm text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
-          এখনো কোনো যাচাইকৃত প্রতিবেদক তালিকাভুক্ত হননি।
+          এখনো কোনো প্রতিবেদকের তথ্য তালিকাভুক্ত করা হয়নি।
         </p>
       ) : (
         <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
