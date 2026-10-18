@@ -3226,24 +3226,40 @@ change, no new dependency, so it stays inside the budget rule.
 T-42 EditorialSnippets collection built but not shipped; the filler system must be
 applied at all three aspect boxes (16:9 card, square row-card, 16:9 hero).
 
-### ✅ Cleared 2026-10-19: the "Upcoming change to GitHub App installation token format" notice does NOT affect this repo
-GitHub shows a platform notice on the Actions tab: installation tokens will move to a stateless
-`ghs_...` format and may become ~520 chars, potentially breaking apps that assume a fixed length. The
-owner asked about it twice, so it is recorded here as investigated rather than left ambiguous.
+### ✅ Cleared 2026-10-19: the GitHub App installation-token format change does NOT affect this repo
+GitHub shows a platform notice on the Actions tab: installation tokens are moving to a stateless
+`ghs_`-prefixed JWT format, ~520 characters with two dots, replacing the short opaque string. The owner
+raised it three times and supplied the changelog, so it is answered here properly rather than by
+pattern-matching.
 
-**Verdict: no action needed, nothing can break.** Checked by command, not by assumption:
-- The repo uses **no GitHub App tokens** — no `create-github-app-token`, no `app-id`, no `private-key`,
-  no `ghs_` string anywhere in `.github/workflows/`.
-- The only actions used are `actions/checkout@v7`, `actions/setup-node@v7`, `actions/upload-artifact@v7`
-  and `pnpm/action-setup@v6` — none of which parse token lengths.
-- The three files that reference a token (`deploy.yml:156`, `deploy-cloudflare.yml:99`,
-  `scripts/wait-for-ci.mjs:44`) only pass `secrets.GITHUB_TOKEN` into an `Authorization: Bearer` header
-  (`wait-for-ci.mjs:66`). An opaque string in a header has no length contract to break. It is also the
-  *automatic workflow* token, not a GitHub App installation token, so the announced change does not
-  apply to it.
-- The only `.length` check in `scripts/` is `verify-dark-tokens.mjs:151`, which counts **CSS design
-  tokens** — an unrelated meaning of the word.
+**⚠️ One earlier statement in this file was WRONG and is corrected here.** I first wrote that the change
+"does not apply, because the repo uses the automatic `secrets.GITHUB_TOKEN` rather than a GitHub App
+installation token." The changelog explicitly contradicts that:
 
-**Do not confuse this with T-78.** The billing lock is a different, real failure: jobs refuse to start
-in 3–4 s with *"your account is locked due to a billing issue."* The token notice is a forward-looking
-deprecation advisory shown to every repository; it produces no red account state and stops no job.
+> "Upcoming rollouts will apply the new token format only to GitHub App installation server-to-server
+> tokens, **including Actions GITHUB_TOKEN**."
+
+So `GITHUB_TOKEN` **is** in scope. My reasoning was wrong even though the final conclusion happens to
+hold. Corrected rather than quietly dropped, because a future agent repeating that argument would be
+reasoning from a false premise.
+
+**Verdict: still no action needed, now on the four checks the changelog itself specifies.**
+
+| changelog's check | this repo | evidence |
+|---|---|---|
+| No hardcoded token length assumptions | **pass** | No `.length`/`substring`/`slice` on a token in `scripts/` or `.github/`. The one `.length` hit is `verify-dark-tokens.mjs:151`, counting **CSS design tokens** — unrelated. |
+| Any token regex updated for `ghs_[A-Za-z0-9\.\-_]{36,}` | **pass** | No `ghs_`/`ghp_`/`gho_`/`ghu_` pattern exists anywhere in `scripts/` or `.github/`. There is no validation code to update. |
+| Storage accepts ≥520 chars | **pass (n/a)** | The token is never stored. It is read once into `const TOKEN` (`wait-for-ci.mjs:44`) and used only inside an `Authorization: Bearer` header (`:66`). Nothing persists it to a database column, file or cache. |
+| Treats `ghs_` tokens as opaque | **pass** | It is interpolated straight into a header and never inspected. Opaque by construction. |
+
+No `create-github-app-token`, `app-id`, `private-key` or `installation-id` anywhere; the only actions
+referenced are `checkout`, `setup-node`, `upload-artifact` and `pnpm/action-setup`, none of which parse
+token lengths. **So there is nothing to test with the `X-GitHub-Stateless-S2S-Token` override header** —
+that header is for apps *minting* installation tokens via the API, and this repo never calls that
+endpoint. Doing nothing is the correct response; the changelog's own guidance is to remove the header
+once validated, and we never added one.
+
+**Do not confuse this with T-78.** The billing lock is a different, real failure: jobs refuse to start in
+3–4 s with *"your account is locked due to a billing issue."* The token notice is a forward-looking
+deprecation advisory; it produces no red account state and stops no job. If jobs start failing in a new
+way *after* the billing lock clears, revisit this entry — not before.
