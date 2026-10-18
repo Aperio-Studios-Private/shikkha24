@@ -3698,13 +3698,29 @@ findings as potentially user-facing until checked.
 **Verified:** build exit 0 (114 pages); the honest warning is present in `dist/citizen/index.html` and
 the false sentence is gone (grep count 0).
 
-### T-77 — 🔴 OPEN (Low, process): scratch files left in `cms/src/` by parallel agents
+### T-77 — ✅ DONE (2026-10-19): scratch files cleaned up and the rule recorded where agents read it
 `cms/src/verify-tmp-t63.ts` (15.7 KB) and earlier `cms/src/verify/_t60-sched.ts` /
 `_probe-t60.ts` were written as throwaway harnesses. Two were cleaned up by their own agents; the
 T-63 one is still present and must be removed or promoted before any commit that includes
 `cms/src`. **Rule for future parallel work:** a temporary file must be named, listed in the task,
 and deleted by the agent that created it, or it will end up committed by whoever stages a
 directory.
+
+**Cleanup verified, and the rule now lives where it will be seen.** `git status cms/` is empty and
+`cms/src/` contains only `payload.config.ts` and `payload-types.ts` — no `verify-tmp-*`, no `_probe*`,
+no `_sched*`. All three throwaway harnesses created during the parallel-agent work are gone.
+
+**The rule** is recorded in `cms/AGENTS.md` under "Never commit a scratch file", alongside the root
+mirrors rather than inside them (the three root mirrors have to stay byte-identical, and this is a
+workspace-local convention, not a project-wide rule). It states: name scratch files so they cannot be
+mistaken for product code, list them in the task before creating them, **the creating agent deletes
+them in the same session before staging anything**, and either promote a keeper into
+`cms/src/verify/` with a `verify:*` script or delete it and record the proof in the commit message.
+
+That last point is why this mattered: the throwaway fault-injection rig that proved the four
+fail-visible-operations fixes (17/17 on fixed code, 13/17 on the originals) was legitimately deleted,
+and its evidence lives in the commit message. The rule makes the difference between that and an
+accidentally-committed file a matter of following a written convention rather than luck.
 
 ### T-59 — ✅ DONE (2026-10-18, ~23:59): homepage/fallback share image replaced with the T-57 white stacked design
 
