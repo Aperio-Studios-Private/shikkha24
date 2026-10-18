@@ -25,6 +25,47 @@ a **real Lighthouse run**, each run and passing. That is real evidence, but it i
 it must not be described as "CI green". **Owner action:** clear the billing issue on `SHAHID8142`
 (Settings → Billing), then `gh run rerun 39157954190` and `gh run rerun 39157954320`.
 
+### 🆕 ROUND 3 — 2026-10-19 02:0x (+06:00). Read this before the wrap-up below.
+
+**Four more commits, and the LCP mystery is now solved well enough to act on.** Local HEAD is
+`d49c9ab`; everything is pushed.
+
+| Commit | What | Evidence |
+|---|---|---|
+| `7744a7a` | **T-80 investigation** — four LCP causes disproven, round-trip cause validated | numbers below |
+| `b268a6d` | **T-82 ✅** bookmark button's accessible name contains its visible label | `label-content-name-mismatch` 0 → **1**; a11y **100/100/100** |
+| `d49c9ab` | **T-76 ✅** a false **reader-facing privacy promise** about photo GPS removed | build exit 0; promise gone from `dist/` |
+
+**⭐ The LCP story, settled (T-80).** Five candidate causes were tested by patching the built output.
+**Four are disproven with numbers** — do not retry them: hero-image `fetchpriority` (already correct),
+the dual font preload (worth only ~150 ms; removing it makes FCP *worse*, keep it), render-blocking CSS
+(making it non-blocking changed **nothing**: identical 2632/2480/2854), and style/layout CPU cost (only
+264–338 ms of a 2.3–2.6 s render delay; TBT is 0 ms). The real structure is a **critical chain of depth 3
+(HTML → CSS + fonts) under a simulated 250 ms RTT**, so LCP is floored by *serialised round trips*, which
+is why every single-resource experiment moved it by only ~150 ms.
+
+**Validated:** inlining the stylesheet removes one round trip and is the **first change to move LCP at
+all** — article 2855 → **2704 ms**, homepage 2637 → **2483 ms**, reproducible across repeats
+(2704/2706). Still ~1000 ms short of the 1500 ms gate, so it is a first step, not the fix. The next
+levers are ordered in T-80.
+
+**Three method corrections future sessions must not re-learn the hard way:**
+1. **Always measure through `lhci`'s own server** (`npx lhci collect --staticDistDir=…`). A bare
+   `python3 -m http.server` sends **no compression** and inflates FCP by ~900 ms (2254 vs 1364),
+   which silently invalidates any comparison made with it. Two hours went into this.
+2. **The LCP element is template-dependent** — homepage = the lead card's excerpt `<p>`, /latest/ = a
+   card `<h3>`, article = the hero `<img>`. An earlier note generalised "the LCP element is text" from
+   one page; that is wrong for the article. Measure all three.
+3. **A "stale comment" finding can have a reader-visible half.** Both T-70 and now T-76 turned out to
+   include a sentence shown to real readers — T-76's was a false privacy promise about GPS data. Check
+   the live string, not just the comment.
+
+**Remaining open work, in priority order:** T-80 (LCP, above) → T-81 (the Lighthouse gate asserts neither
+LCP nor the rule's CLS — owner-gated) → T-83 (unreproduced CI CLS 0.0436) → T-84 (data-saver absent,
+owner-gated) → T-85 (48px touch targets, owner-gated) → T-75/T-77 (small tooling/process). **T-78
+(GitHub Actions billing lock) is still the top blocker and is still confirmed failing** — the code is on
+`origin` but nothing has been CI-verified since 19:15:43Z.
+
 ### 📋 SESSION WRAP-UP 2026-10-19 01:43 (+06:00) — the owner restarted here
 
 **State: every commit below is pushed; working tree is clean except this file and `.sps/tasks.md`.**
