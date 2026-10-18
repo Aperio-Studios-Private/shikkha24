@@ -65,36 +65,36 @@ const scaleTables = CGPA_SCALES.map((scale) => ({
 }))
 ---
 
-<Layout title="সিজিপিএ ক্যালকুলেটর" description="বিশ্ববিদ্যালয়ের সিজিপিএ ক্যালকুলেটর — ক্রেডিট ও গ্রেড থেকে সিজিপিএ।"
+<Layout title="সিজিপিএ ক্যালকুলেটর" description="বিশ্ববিদ্যালয়ের সিজিপিএ ক্যালকুলেটর: কোর্সের ক্রেডিট ও গ্রেড থেকে সিজিপিএ হিসাব করার সহজ মাধ্যম।"
   settings={settings} categories={categories} footerPages={footerPages}>
   <div class="container-page py-6">
     <Breadcrumbs items={[{ label: 'সিজিপিএ ক্যালকুলেটর', href: '/cgpa' }]} />
 
     <nav class="mb-4 flex flex-wrap gap-2 text-sm" aria-label="ক্যালকুলেটর">
       <a href="/gpa" class="rounded-md border border-rule px-3 py-1.5 text-ink-muted hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink-muted">
-        জিপিএ — এসএসসি/এইচএসসি
+        জিপিএ: এসএসসি ও এইচএসসি
       </a>
       <span class="rounded-md border border-brand-red px-3 py-1.5 font-medium text-brand-red" aria-current="page">
-        সিজিপিএ — বিশ্ববিদ্যালয়
+        সিজিপিএ: বিশ্ববিদ্যালয়
       </span>
     </nav>
 
     <header class="mb-6 border-b-2 border-brand-red pb-3">
       <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">সিজিপিএ ক্যালকুলেটর</h1>
       <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">
-        প্রতিটি কোর্সের ক্রেডিট ও গ্রেড দিন — সেমিস্টার জিপিএ ও সিজিপিএ দেখুন।
+        প্রতিটি কোর্সের ক্রেডিট ও গ্রেড বসালেই সেমিস্টার জিপিএ এবং সার্বিক সিজিপিএ হিসাব হবে।
       </p>
     </header>
 
     <noscript>
       <p class="rounded-md border border-rule bg-surface-raised p-4 text-center text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
-        এই ক্যালকুলেটরটি ব্যবহার করতে জাভাস্ক্রিপ্ট প্রয়োজন।
+        ক্যালকুলেটরটি ব্যবহারের জন্য ব্রাউজারে জাভাস্ক্রিপ্ট চালু থাকা প্রয়োজন।
       </p>
     </noscript>
 
     <div id="cgpa-calc" class="hidden">
       <fieldset class="mb-4 rounded-lg border border-rule bg-surface-raised p-4 dark:border-dark-rule dark:bg-dark-raised">
-        <legend class="px-1 text-sm font-semibold text-ink dark:text-dark-ink">আপনার বিশ্ববিদ্যালয়ের গ্রেডিং স্কেল</legend>
+        <legend class="px-1 text-sm font-semibold text-ink dark:text-dark-ink">বিশ্ববিদ্যালয়ের গ্রেডিং স্কেল</legend>
         <div class="flex flex-col gap-2 sm:flex-row sm:gap-6">
           {scaleTables.map((scale, index) => (
             <label class="flex items-start gap-2 text-sm text-ink dark:text-dark-ink">
@@ -113,20 +113,20 @@ const scaleTables = CGPA_SCALES.map((scale) => ({
       </fieldset>
 
       <div class="mb-4 rounded-lg border border-rule bg-surface-raised p-4 text-sm leading-relaxed text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
-        <p class="font-semibold text-ink dark:text-dark-ink">হিসাবের নিয়ম</p>
+        <p class="font-semibold text-ink dark:text-dark-ink">হিসাবের নিয়ম</p>
         <ul class="mt-2 list-disc space-y-1 pl-5">
           <li>
-            সিজিপিএ = <strong>Σ (গ্রেড পয়েন্ট × ক্রেডিট) ÷ Σ (ক্রেডিট)</strong> — অর্থাৎ ক্রেডিটভিত্তিক
-            গড়, সাধারণ গড় নয়। ৪ ক্রেডিটের কোর্স ২ ক্রেডিটের কোর্সের দ্বিগুণ হিসাব পায়।
+            সিজিপিএ = <strong>Σ (গ্রেড পয়েন্ট × ক্রেডিট) ÷ Σ (মোট ক্রেডিট)</strong>। অর্থাৎ এটি ক্রেডিটভিত্তিক
+            গড়, সাধারণ গড় নয়। ৪ ক্রেডিটের কোর্সের গুরুত্ব ২ ক্রেডিটের কোর্সের দ্বিগুণ।
           </li>
           <li>
-            <strong>এফ গ্রেড বাদ পড়ে না।</strong> ০.০০ হিসেবে যোগ হয় এবং কোর্সের ক্রেডিট হর-এ থেকে যায় —
-            তাই একটি এফ সিজিপিএ অনেকটা নামিয়ে দেয়, কিন্তু শূন্য করে না।
+            <strong>এফ গ্রেড বাদ পড়ে না:</strong> ০.০০ হিসেবে যোগ হয় এবং কোর্সের মোট ক্রেডিটের মধ্যে থাকে।
+            ফলে একটি কোর্সে এফ পেলে সিজিপিএ বেশ কমে যায়, তবে ফলাফল শূন্য হয় না।
           </li>
-          <li>সেমিস্টার/বর্ষ আলাদা করলে প্রতিটির জিপিএ দেখা যাবে; সব মিলিয়ে সিজিপিএ।</li>
+          <li>সেমিস্টার বা বর্ষ আলাদা করে লিখলে প্রতিটির জিপিএ এবং সব মিলিয়ে সার্বিক সিজিপিএ পাওয়া যাবে।</li>
           <li>
-            শিক্ষা বোর্ডের এসএসসি/এইচএসসি পদ্ধতি আলাদা — সেখানে ৫.০০ স্কেল এবং একটি এফ পুরো ফলাফল
-            শূন্য করে। সেটির জন্য <a href="/gpa" class="text-brand-red hover:underline">জিপিএ ক্যালকুলেটর</a> ব্যবহার করুন।
+            শিক্ষা বোর্ডের এসএসসি ও এইচএসসি পরীক্ষার গ্রেডিং পদ্ধতি আলাদা। সেখানে ৫.০০ স্কেল প্রযোজ্য এবং একটিতে এফ পেলে পুরো ফলাফল
+            শূন্য হয়। সেটির জন্য <a href="/gpa" class="text-brand-red hover:underline">জিপিএ ক্যালকুলেটর</a> ব্যবহার করুন।
           </li>
         </ul>
       </div>
@@ -160,7 +160,7 @@ const scaleTables = CGPA_SCALES.map((scale) => ({
       {scaleTables.map((scale) => (
         <details class="cgpa-scale-table mt-4 text-sm" data-scale={scale.id} open={scale.id === scaleTables[0]?.id}>
           <summary class="cursor-pointer text-ink-muted dark:text-dark-ink-muted">
-            গ্রেড সারণি — {scale.labelBn}
+            গ্রেড তালিকা: {scale.labelBn}
           </summary>
           <table class="mt-3 w-full border-collapse text-sm">
             <thead>
@@ -182,10 +182,10 @@ const scaleTables = CGPA_SCALES.map((scale) => ({
           </table>
           <p class="mt-2 text-xs text-ink-subtle dark:text-dark-ink-muted">{scale.sourceBn}</p>
           <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
-            শ্রেণি: {scale.classes.map((entry) => `${entry.range} — ${entry.labelBn}`).join(' · ')}
+            শ্রেণি: {scale.classes.map((entry) => `${entry.range}: ${entry.labelBn}`).join(' · ')}
           </p>
           <p class="mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted">
-            আই (অসম্পূর্ণ) ও ডব্লিউ (প্রত্যাহার) গ্রেড সিজিপিএ-তে ধরা হয় না — ওই কোর্সগুলো যোগ করবেন না।
+            আই (অসম্পূর্ণ) ও ডব্লিউ (প্রত্যাহারকৃত) গ্রেড সিজিপিএ গণনায় আসে না, তাই ওই কোর্সগুলো যোগ করবেন না।
           </p>
         </details>
       ))}
@@ -302,7 +302,7 @@ const scaleTables = CGPA_SCALES.map((scale) => ({
         outcome.terms
           .map(
             (term) =>
-              `<li>${term.term === '—' ? 'অন্যান্য' : `সেমিস্টার ${term.term}`} — জিপিএ ` +
+              `<li>${term.term === '—' ? 'অন্যান্য' : `সেমিস্টার ${term.term}`}: জিপিএ ` +
               `${toBnDigits(term.gpa.toFixed(2))} <span class="text-xs text-ink-muted dark:text-dark-ink-muted">` +
               `(${toBnDigits(term.credits.toFixed(2))} ক্রেডিট)</span></li>`,
           )
@@ -314,8 +314,7 @@ const scaleTables = CGPA_SCALES.map((scale) => ({
 
     if (outcome.failedCourses > 0) {
       failBox.textContent =
-        `${toBnDigits(outcome.failedCourses)}টি কোর্সে এফ আছে — ০.০০ পয়েন্ট হিসেবে ধরা হয়েছে, ` +
-        'কিন্তু কোর্সটি ক্লিয়ার করতে আবার পরীক্ষা দিতে হবে।'
+        `${toBnDigits(outcome.failedCourses)}টি কোর্সে এফ রয়েছে (০.০০ পয়েন্ট)। কোর্স সম্পন্ন করতে পুনরায় পরীক্ষা দিতে হবে।`
       failBox.classList.remove('hidden')
     } else {
       failBox.classList.add('hidden')
@@ -327,7 +326,7 @@ const scaleTables = CGPA_SCALES.map((scale) => ({
   for (const radio of document.querySelectorAll<HTMLInputElement>('input.cgpa-scale')) {
     radio.addEventListener('change', () => {
       const scale = currentScale()
-      sourceNote.textContent = `ব্যবহৃত স্কেল: ${scale.labelBn} — ${scale.sourceBn}`
+      sourceNote.textContent = `ব্যবহৃত স্কেল: ${scale.labelBn} (${scale.sourceBn})`
 
       // Show the matching band table, hide the other.
       for (const table of document.querySelectorAll<HTMLDetailsElement>('.cgpa-scale-table')) {
@@ -345,7 +344,7 @@ const scaleTables = CGPA_SCALES.map((scale) => ({
       }
       if (cleared > 0) {
         sourceNote.textContent +=
-          ` — নতুন স্কেলে না থাকায় ${toBnDigits(cleared)}টি গ্রেড মুছে গেছে, আবার বেছে নিন।`
+          ` (নতুন স্কেলে না থাকায় ${toBnDigits(cleared)}টি গ্রেড বাদ পড়েছে, পুনরায় নির্বাচন করুন)`
       }
       recalc()
     })
@@ -355,6 +354,6 @@ const scaleTables = CGPA_SCALES.map((scale) => ({
 
   // Paint the source note for the default scale on load.
   const initial = currentScale()
-  sourceNote.textContent = `ব্যবহৃত স্কেল: ${initial.labelBn} — ${initial.sourceBn}`
+  sourceNote.textContent = `ব্যবহৃত স্কেল: ${initial.labelBn} (${initial.sourceBn})`
   recalc()
 </script>

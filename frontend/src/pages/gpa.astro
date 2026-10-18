@@ -43,46 +43,46 @@ const scale = GRADES.map((grade) => ({
 }))
 ---
 
-<Layout title="জিপিএ ক্যালকুলেটর" description="এসএসসি/এইচএসসি জিপিএ ক্যালকুলেটর — নম্বর থেকে গ্রেড পয়েন্ট।"
+<Layout title="জিপিএ ক্যালকুলেটর" description="এসএসসি ও এইচএসসি জিপিএ ক্যালকুলেটর: প্রাপ্ত নম্বর থেকে গ্রেড পয়েন্ট ও মোট জিপিএ হিসাব করার সহজ উপায়।"
   settings={settings} categories={categories} footerPages={footerPages}>
   <div class="container-page py-6">
     <Breadcrumbs items={[{ label: 'জিপিএ ক্যালকুলেটর', href: '/gpa' }]} />
 
     <nav class="mb-4 flex flex-wrap gap-2 text-sm" aria-label="ক্যালকুলেটর">
       <span class="rounded-md border border-brand-red px-3 py-1.5 font-medium text-brand-red" aria-current="page">
-        জিপিএ — এসএসসি/এইচএসসি
+        জিপিএ: এসএসসি ও এইচএসসি
       </span>
       <a href="/cgpa" class="rounded-md border border-rule px-3 py-1.5 text-ink-muted hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink-muted">
-        সিজিপিএ — বিশ্ববিদ্যালয়
+        সিজিপিএ: বিশ্ববিদ্যালয়
       </a>
     </nav>
 
     <header class="mb-6 border-b-2 border-brand-red pb-3">
       <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">জিপিএ ক্যালকুলেটর</h1>
       <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">
-        প্রতিটি বিষয়ের নম্বর দিন — গ্রেড পয়েন্ট ও জিপিএ দেখুন।
+        প্রতিটি বিষয়ের প্রাপ্ত নম্বর লিখলেই স্বয়ংক্রিয়ভাবে গ্রেড পয়েন্ট ও মোট জিপিএ দেখা যাবে।
       </p>
     </header>
 
     <noscript>
       <p class="rounded-md border border-rule bg-surface-raised p-4 text-center text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
-        এই ক্যালকুলেটরটি ব্যবহার করতে জাভাস্ক্রিপ্ট প্রয়োজন।
+        ক্যালকুলেটরটি ব্যবহারের জন্য ব্রাউজারে জাভাস্ক্রিপ্ট চালু থাকা প্রয়োজন।
       </p>
     </noscript>
 
     <div id="gpa-calc" class="hidden">
       <div class="mb-4 rounded-lg border border-rule bg-surface-raised p-4 text-sm leading-relaxed text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
-        <p class="font-semibold text-ink dark:text-dark-ink">হিসাবের নিয়ম</p>
+        <p class="font-semibold text-ink dark:text-dark-ink">হিসাবের নিয়ম</p>
         <ul class="mt-2 list-disc space-y-1 pl-5">
-          <li>জিপিএ = <strong>মূল বিষয়গুলোর গ্রেড পয়েন্টের যোগফল ÷ মূল বিষয়ের সংখ্যা</strong>।</li>
+          <li>জিপিএ = <strong>আবশ্যিক বিষয়গুলোর মোট গ্রেড পয়েন্ট ÷ আবশ্যিক বিষয়ের সংখ্যা</strong>।</li>
           <li>
-            ঐচ্ছিক (৪র্থ) বিষয় ভাগে ধরা হয় না — শুধু
-            <strong>{toBnDigits(OPTIONAL_THRESHOLD.toFixed(2))}-এর বেশি</strong> অংশটুকু বোনাস হিসেবে যোগ হয়
-            (সর্বোচ্চ {toBnDigits((GPA_CAP - OPTIONAL_THRESHOLD).toFixed(2))}, কারণ সর্বোচ্চ গ্রেড পয়েন্ট{' '}
+            ঐচ্ছিক (৪র্থ) বিষয় মোট বিষয়ের ভাগে যুক্ত হয় না। শুধু
+            <strong>{toBnDigits(OPTIONAL_THRESHOLD.toFixed(2))}-এর বেশি</strong> পাওয়া অংশটুকু বোনাস হিসেবে যোগ হয়
+            (সর্বোচ্চ {toBnDigits((GPA_CAP - OPTIONAL_THRESHOLD).toFixed(2))} পয়েন্ট পর্যন্ত, কারণ সর্বোচ্চ জিপিএ{' '}
             {toBnDigits(GPA_CAP.toFixed(2))})।
           </li>
-          <li><strong>কোনো মূল বিষয়ে এফ</strong> (৩৩-এর কম) থাকলে পুরো জিপিএ <strong>০.০০</strong>।</li>
-          <li>ঐচ্ছিক বিষয়ে এফ থাকলে ফলাফল খারাপ হয় না — শুধু বোনাস পাওয়া যায় না।</li>
+          <li><strong>যেকোনো আবশ্যিক বিষয়ে এফ গ্রেড</strong> (৩৩ নম্বরের কম) পেলে সামগ্রিক ফল <strong>০.০০ (অকৃতকার্য)</strong> হবে।</li>
+          <li>ঐচ্ছিক বিষয়ে এফ পেলে মূল ফলাফলে কোনো প্রভাব পড়ে না, শুধু কোনো অতিরিক্ত বোনাস পাওয়া যায় না।</li>
           <li>সর্বোচ্চ জিপিএ {toBnDigits(GPA_CAP.toFixed(2))}।</li>
         </ul>
       </div>
@@ -113,7 +113,7 @@ const scale = GRADES.map((grade) => ({
       </div>
 
       <details class="mt-4 text-sm">
-        <summary class="cursor-pointer text-ink-muted dark:text-dark-ink-muted">গ্রেড সারণি</summary>
+        <summary class="cursor-pointer text-ink-muted dark:text-dark-ink-muted">গ্রেড তালিকা</summary>
         <table class="mt-3 w-full border-collapse text-sm">
           <thead>
             <tr class="border-b border-rule dark:border-dark-rule">
@@ -133,7 +133,7 @@ const scale = GRADES.map((grade) => ({
           </tbody>
         </table>
         <p class="mt-2 text-xs text-ink-subtle dark:text-dark-ink-muted">
-          বাংলা ও ইংরেজি দুটি পত্র মিলিয়ে ২০০ নম্বরের — "মোট নম্বর" ২০০ করে মিলিত নম্বরটিই লিখুন।
+          বাংলা ও ইংরেজি দুটি পত্র মিলিয়ে মোট ২০০ নম্বরের পরীক্ষা হয়। সেক্ষেত্রে "মোট নম্বর" ২০০ নির্বাচন করে দুই পত্রের মিলিত নম্বর লিখুন।
         </p>
       </details>
     </div>
@@ -256,11 +256,11 @@ const scale = GRADES.map((grade) => ({
     gradeLabel.textContent = `গ্রেড: ${outcome.grade.bn}`
 
     const parts = [
-      `মূল বিষয় ${toBnDigits(outcome.compulsoryCount)}টি`,
-      `পয়েন্ট ${toBnDigits(outcome.compulsoryPoints.toFixed(2))}`,
+      `আবশ্যিক বিষয় ${toBnDigits(outcome.compulsoryCount)}টি`,
+      `মোট পয়েন্ট ${toBnDigits(outcome.compulsoryPoints.toFixed(2))}`,
     ]
     if (outcome.bonus > 0) {
-      parts.push(`৪র্থ বিষয়ের বোনাস ${toBnDigits(outcome.bonus.toFixed(2))}`)
+      parts.push(`চতুর্থ বিষয়ের বোনাস ${toBnDigits(outcome.bonus.toFixed(2))}`)
     }
     // The unrounded value is shown whenever rounding moved it, because the sources
     // disagree about whether the board rounds or truncates (`lib/gpa.ts` header).
@@ -273,7 +273,7 @@ const scale = GRADES.map((grade) => ({
 
     if (outcome.failed) {
       failBox.textContent =
-        'কোনো একটি মূল বিষয়ে এফ থাকায় জিপিএ ০.০০ — ফলাফল অকৃতকার্য। ওই বিষয়ে উত্তীর্ণ হয়ে আবার পরীক্ষা দিতে হবে।'
+        'আবশ্যিক বিষয়ের একটিতে এফ গ্রেড থাকায় সামগ্রিক জিপিএ ০.০০ (অকৃতকার্য)। ওই বিষয়ে উত্তীর্ণ হতে পুনরায় পরীক্ষা দিতে হবে।'
       failBox.classList.remove('hidden')
     } else {
       failBox.classList.add('hidden')

@@ -92,7 +92,7 @@ const renderable = isEnabled('bookmarks')
     button.setAttribute('aria-pressed', saved ? 'true' : 'false')
     button.setAttribute(
       'aria-label',
-      saved ? 'সংরক্ষিত তালিকা থেকে সরান' : 'সংরক্ষিত তালিকায় যোগ করুন',
+      saved ? 'সংরক্ষিত তালিকা থেকে সরান' : 'সংরক্ষিত তালিকায় যোগ করুন',
     )
     if (icon) icon.textContent = saved ? '★' : '☆'
     if (label) label.textContent = saved ? SAVED_LABEL : UNSAVED_LABEL

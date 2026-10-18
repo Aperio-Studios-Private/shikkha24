@@ -32,16 +32,16 @@ const jsonLd = results.length > 0 ? {
 } : undefined
 ---
 
-<Layout title="ফলাফল ও মেধাতালিকা" description="পরীক্ষার ফলাফল ও মেধাতালিকার লিংক — কিভাবে দেখবেন সহ।"
+<Layout title="ফলাফল ও মেধাতালিকা" description="বোর্ড ও শিক্ষাপ্রতিষ্ঠানের পরীক্ষার ফলাফল, মেধাতালিকা এবং অনলাইনে ফলাফল দেখার সঠিক নিয়ম।"
   settings={settings} categories={categories} footerPages={footerPages} jsonLd={jsonLd}>
   <div class="container-page py-6">
     <Breadcrumbs items={[{ label: 'ফলাফল', href: '/results' }]} />
     <header class="mb-6 border-b-2 border-brand-red pb-3">
       <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">ফলাফল ও মেধাতালিকা</h1>
-      <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">পরীক্ষার ফলাফল ও মেধাতালিকার লিংক — কিভাবে দেখবেন তার নির্দেশনা সহ।</p>
+      <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">বোর্ড ও শিক্ষাপ্রতিষ্ঠানের পরীক্ষার ফলাফল, মেধাতালিকা এবং অনলাইনে ফলাফল দেখার সঠিক নিয়ম।</p>
     </header>
     {results.length === 0 ? (
-      <p class="rounded-md border border-rule bg-surface-raised p-6 text-center text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">এখনো কোনো ফলাফল যোগ করা হয়নি।</p>
+      <p class="rounded-md border border-rule bg-surface-raised p-6 text-center text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">বর্তমানে কোনো ফলাফল বা মেধাতালিকা নেই।</p>
     ) : (
       <ul class="flex flex-col gap-3">
         {results.map((r) => (
@@ -54,7 +54,7 @@ const jsonLd = results.length > 0 ? {
             </div>
             <div class="mt-3 flex flex-wrap items-center gap-3">
               <a href={r.officialUrl} rel="noopener noreferrer nofollow" class="text-sm font-semibold text-brand-red hover:underline">ফলাফল দেখুন →</a>
-              {r.meritListUrl && <a href={r.meritListUrl} rel="noopener noreferrer nofollow" class="text-sm font-semibold text-blue-700 hover:underline dark:text-blue-300">মেধাতালিকা →</a>}
+              {r.meritListUrl && <a href={r.meritListUrl} rel="noopener noreferrer nofollow" class="text-sm font-semibold text-blue-700 hover:underline dark:text-blue-300">মেধাতালিকা দেখুন →</a>}
             </div>
           </li>
         ))}

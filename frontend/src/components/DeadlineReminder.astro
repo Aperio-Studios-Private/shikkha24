@@ -87,7 +87,7 @@ const renderable = isEnabled('push') && pushConfigured() && Boolean(cmsOrigin) &
         class="inline-flex min-h-12 items-center gap-1.5 rounded-md border border-rule bg-white px-3 text-sm font-medium text-ink-muted transition-colors hover:text-brand-red dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted"
       >
         <span aria-hidden="true">🔔</span>
-        <span data-reminder-label>মনে করিয়ে দিন</span>
+        <span data-reminder-label>মনে করিয়ে দিন</span>
       </button>
 
       <p
@@ -181,26 +181,26 @@ const renderable = isEnabled('push') && pushConfigured() && Boolean(cmsOrigin) &
 
       button.addEventListener('click', async () => {
         button.disabled = true
-        setStatus(root, 'অনুমতি চাওয়া হচ্ছে…')
+        setStatus(root, 'অনুমতি চাওয়া হচ্ছে...')
 
         try {
           const permission = await Notification.requestPermission()
           if (permission !== 'granted') {
-            setStatus(root, 'অনুমতি দেওয়া হয়নি — ব্রাউজার সেটিংস থেকে চালু করতে হবে।')
+            setStatus(root, 'অনুমতি পাওয়া যায়নি। ব্রাউজার সেটিংস থেকে নোটিফিকেশন চালু করুন।')
             return
           }
 
-          setStatus(root, 'সংরক্ষণ করা হচ্ছে…')
+          setStatus(root, 'সংরক্ষণ করা হচ্ছে...')
           const ok = await subscribe(root, registration)
 
           if (ok) {
-            setLabel(root, 'মনে করানো চালু')
-            setStatus(root, 'সময়সীমার আগের দিন সকালে জানানো হবে।')
+            setLabel(root, 'বিজ্ঞপ্তি চালু')
+            setStatus(root, 'সময়সীমার আগের দিন সকালে মনে করিয়ে দেওয়া হবে।')
           } else {
-            setStatus(root, 'রিমাইন্ডার চালু করা যায়নি। আবার চেষ্টা করুন।')
+            setStatus(root, 'বিজ্ঞপ্তি চালু করা যায়নি। আবার চেষ্টা করুন।')
           }
         } catch {
-          setStatus(root, 'রিমাইন্ডার চালু করা যায়নি। আবার চেষ্টা করুন।')
+          setStatus(root, 'বিজ্ঞপ্তি চালু করা যায়নি। আবার চেষ্টা করুন।')
         } finally {
           button.disabled = false
         }

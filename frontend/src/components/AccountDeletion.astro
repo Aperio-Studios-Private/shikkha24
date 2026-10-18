@@ -43,8 +43,7 @@ const enabled = isEnabled('socialLogin') && getPublicCmsOrigin() !== null
         অ্যাকাউন্ট ও তথ্য মুছে ফেলা
       </h2>
       <p class="mt-2 text-sm leading-relaxed text-ink-muted dark:text-dark-ink-muted">
-        আপনার অ্যাকাউন্ট, সংরক্ষিত তালিকা, সময়সীমা ও পুশ সাবস্ক্রিপশন মুছে যাবে। আপনার দেওয়া
-        মন্তব্যগুলো থেকে যাবে, তবে আপনার নাম ও ইমেইল সরিয়ে ফেলা হবে।
+        আপনার অ্যাকাউন্ট, সংরক্ষিত খবরের তালিকা ও নোটিফিকেশন সাবস্ক্রিপশন মুছে যাবে। তবে জনস্বার্থে আপনার করা মন্তব্যগুলো সংরক্ষিত থাকবে এবং সেখান থেকে নাম ও ইমেইল ঠিকানা গোপন করা হবে।
       </p>
 
       <div class="mt-3 flex flex-wrap items-center gap-3">
@@ -53,7 +52,7 @@ const enabled = isEnabled('socialLogin') && getPublicCmsOrigin() !== null
           data-account-delete-start
           class="min-h-12 rounded-md border border-brand-red px-4 text-sm font-semibold text-brand-red"
         >
-          আমার অ্যাকাউন্ট মুছুন
+          অ্যাকাউন্ট মুছে ফেলুন
         </button>
 
         <span data-account-delete-confirm hidden class="flex flex-wrap items-center gap-3">
@@ -124,7 +123,7 @@ const enabled = isEnabled('socialLogin') && getPublicCmsOrigin() !== null
     yes?.addEventListener('click', async () => {
       if (yes.disabled) return
       yes.disabled = true
-      if (status) status.textContent = 'মুছে ফেলা হচ্ছে…'
+      if (status) status.textContent = 'মুছে ফেলা হচ্ছে...'
 
       try {
         const response = await fetch(`${origin}/api/readers/delete-account`, {
@@ -136,7 +135,7 @@ const enabled = isEnabled('socialLogin') && getPublicCmsOrigin() !== null
         })
 
         if (!response.ok) {
-          if (status) status.textContent = 'মুছে ফেলা যায়নি। আবার চেষ্টা করুন।'
+          if (status) status.textContent = 'অ্যাকাউন্ট মোছা সম্ভব হয়নি। আবার চেষ্টা করুন।'
           yes.disabled = false
           return
         }
@@ -148,10 +147,10 @@ const enabled = isEnabled('socialLogin') && getPublicCmsOrigin() !== null
          */
         clearBookmarks()
         forgetBookmarkSync()
-        if (status) status.textContent = 'আপনার তথ্য মুছে ফেলা হয়েছে।'
+        if (status) status.textContent = 'আপনার অ্যাকাউন্ট ও সংশ্লিষ্ট তথ্য মুছে ফেলা হয়েছে।'
         window.setTimeout(() => window.location.assign('/'), 1200)
       } catch {
-        if (status) status.textContent = 'মুছে ফেলা যায়নি। আবার চেষ্টা করুন।'
+        if (status) status.textContent = 'অ্যাকাউন্ট মোছা সম্ভব হয়নি। আবার চেষ্টা করুন।'
         yes.disabled = false
       }
     })

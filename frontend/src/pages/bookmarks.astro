@@ -46,8 +46,8 @@ const enabled = isEnabled('bookmarks')
 ---
 
 <Layout
-  title="সংরক্ষিত"
-  description="আপনার সংরক্ষিত সংবাদ ও সময়সীমার তালিকা।"
+  title="সংরক্ষিত খবর"
+  description="আপনার পছন্দের সংরক্ষিত খবর ও সময়সীমার তালিকা।"
   settings={settings}
   categories={categories}
   footerPages={footerPages}
@@ -57,28 +57,26 @@ const enabled = isEnabled('bookmarks')
   </Fragment>
 
   <div class="container-page py-6">
-    <Breadcrumbs items={[{ label: 'সংরক্ষিত' }]} />
+    <Breadcrumbs items={[{ label: 'সংরক্ষিত খবর' }]} />
 
     <h1 class="font-headline text-2xl font-bold text-ink sm:text-3xl dark:text-dark-ink">
-      সংরক্ষিত
+      সংরক্ষিত খবর
     </h1>
 
     {
       !enabled ? (
         <p class="mt-4 text-base text-ink-muted dark:text-dark-ink-muted">
-          এই সুবিধাটি এই মুহূর্তে বন্ধ রয়েছে।
+          এই সেবাটি বর্তমানে বন্ধ রয়েছে।
         </p>
       ) : (
         <>
           <p class="mt-2 max-w-2xl text-sm leading-relaxed text-ink-muted dark:text-dark-ink-muted">
-            আপনার সংরক্ষিত তালিকা এই ব্রাউজারেই রাখা হয় — কোনো অ্যাকাউন্ট লাগে না, এবং আমরা এটি
-            কোথাও পাঠাই না। ব্রাউজারের ডেটা মুছে ফেললে তালিকাটিও মুছে যাবে।
+            আপনার সংরক্ষিত তালিকা এই ব্রাউজারেই থাকে। এর জন্য কোনো অ্যাকাউন্টের প্রয়োজন নেই এবং কোনো তথ্য কোথাও পাঠানো হয় না। ব্রাউজারের হিস্ট্রি বা ডেটা মুছে ফেললে এই তালিকাও মুছে যাবে।
           </p>
 
           <noscript>
             <p class="mt-4 rounded-md border border-rule bg-surface-raised p-3 text-sm text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
-              সংরক্ষিত তালিকা দেখতে জাভাস্ক্রিপ্ট চালু করুন। আপনার সংরক্ষিত আইটেমগুলো ব্রাউজারেই
-              সংরক্ষিত আছে — চালু করলে আবার দেখা যাবে।
+              সংরক্ষিত তালিকা দেখতে ব্রাউজারে জাভাস্ক্রিপ্ট চালু করুন। আপনার পছন্দের খবরগুলো ব্রাউজারেই সংরক্ষিত আছে, চালু করলেই দেখতে পাবেন।
             </p>
           </noscript>
 
@@ -95,7 +93,7 @@ const enabled = isEnabled('bookmarks')
             data-bookmark-empty
             class="mt-2 hidden text-base text-ink-muted dark:text-dark-ink-muted"
           >
-            এখনো কিছু সংরক্ষণ করা হয়নি। যেকোনো সংবাদের পাশে ☆ চিহ্নে চাপ দিয়ে সংরক্ষণ করুন।
+            বর্তমানে কোনো খবর সংরক্ষিত নেই। যেকোনো খবরের পাশে ☆ চিহ্নে চাপ দিয়ে পছন্দের খবর সংরক্ষণ করতে পারেন।
           </p>
 
           {/*
@@ -190,7 +188,7 @@ const enabled = isEnabled('bookmarks')
 
       const meta = document.createElement('p')
       meta.className = 'mt-1 text-xs text-ink-subtle dark:text-dark-ink-muted'
-      meta.textContent = [entry.kind === 'article' ? 'সংবাদ' : 'সময়সীমা', bnDate(entry.savedAt)]
+      meta.textContent = [entry.kind === 'article' ? 'খবর' : 'সময়সীমা', bnDate(entry.savedAt)]
         .filter(Boolean)
         .join(' · ')
 
@@ -205,7 +203,7 @@ const enabled = isEnabled('bookmarks')
 
   clear?.addEventListener('click', () => {
     clearBookmarks()
-    if (status) status.textContent = 'সব সংরক্ষিত আইটেম মুছে ফেলা হয়েছে।'
+    if (status) status.textContent = 'সংরক্ষিত সব খবর মুছে ফেলা হয়েছে।'
   })
 
   document.addEventListener(BOOKMARKS_CHANGED_EVENT, render)

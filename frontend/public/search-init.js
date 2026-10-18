@@ -44,18 +44,18 @@ window.addEventListener('DOMContentLoaded', function () {
     showEmptyFilters: false,
     // Bengali UI strings — Pagefind ships English defaults only.
     translations: {
-      placeholder: 'অনুসন্ধান...',
+      placeholder: 'খবর বা তথ্য খুঁজুন',
       clear_search: 'মুছুন',
       load_more: 'আরও ফলাফল',
-      search_label: 'সাইট অনুসন্ধান',
+      search_label: 'সাইটে অনুসন্ধান',
       filters_label: 'ফিল্টার',
-      filter_selected_one: '[COUNT] টি নির্বাচিত',
-      filter_selected_many: '[COUNT] টি নির্বাচিত',
-      zero_results: '“[SEARCH_TERM]” এর জন্য কোনো ফলাফল পাওয়া যায়নি',
-      many_results: '“[SEARCH_TERM]” এর জন্য [COUNT] টি ফলাফল',
-      one_result: '“[SEARCH_TERM]” এর জন্য ১ টি ফলাফল',
-      alt_search: '“[SEARCH_TERM]” এর জন্য কোনো ফলাফল নেই। “[DIFFERENT_TERM]” দেখানো হচ্ছে।',
-      searching: '“[SEARCH_TERM]” অনুসন্ধান করা হচ্ছে...',
+      filter_selected_one: '[COUNT]টি নির্বাচিত',
+      filter_selected_many: '[COUNT]টি নির্বাচিত',
+      zero_results: '“[SEARCH_TERM]” বিষয়ে কোনো তথ্য মেলেনি',
+      many_results: '“[SEARCH_TERM]” বিষয়ে [COUNT]টি ফলাফল পাওয়া গেছে',
+      one_result: '“[SEARCH_TERM]” বিষয়ে ১টি ফলাফল পাওয়া গেছে',
+      alt_search: '“[SEARCH_TERM]” বিষয়ে কোনো তথ্য মেলেনি। সম্পর্কিত “[DIFFERENT_TERM]” দেখানো হচ্ছে।',
+      searching: 'খোঁজা হচ্ছে...',
     },
   })
 

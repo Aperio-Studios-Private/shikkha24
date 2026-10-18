@@ -103,6 +103,8 @@ const divisions = [...byDivision.entries()].sort((a, b) => a[0].localeCompare(b[
 </section>
 
 <script>
+  import { toBnDigits } from '../lib/bangla-date'
+
   (function () {
     const STORAGE_KEY = 'shikkha24-district'
 
@@ -142,7 +144,7 @@ const divisions = [...byDivision.entries()].sort((a, b) => a[0].localeCompare(b[
 
       if (status) {
         status.textContent = activeLevel || activeDistrict
-          ? `${visible} টি খবর দেখানো হচ্ছে`
+          ? `${toBnDigits(visible)}টি খবর দেখানো হচ্ছে`
           : ''
       }
     }

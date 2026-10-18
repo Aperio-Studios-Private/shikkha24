@@ -3051,8 +3051,20 @@ Refining and naturalizing Bengali copy across the site to eliminate rigid, machi
     - Human passive -> active/reassuring: `(প্রকাশ করা হবে না)` -> `(গোপন থাকবে)`.
   - Verification: `pnpm run build` green (111 pages built), `verify:site-name` PASS, `verify:bengali-spacing` PASS, `verify:build-output` PASS ("Build output is deployable").
 
-- **Phase 3 (Tool & Service Pages):** ⏳ PENDING APPROVAL.
-  - Scope: `cgpa.astro`, `gpa.astro`, `deadlines.astro`, `results/index.astro`, `search.astro`, `faq.astro`.
+- **Phase 3 (Tool & Service Pages):** ✅ DONE 2026-10-18.
+  - Files modified: `frontend/src/pages/cgpa.astro`, `frontend/src/pages/gpa.astro`, `frontend/src/pages/deadlines.astro`, `frontend/src/pages/results/index.astro`, `frontend/src/pages/search.astro`, `frontend/public/search-init.js`, `frontend/src/pages/faq.astro`, `frontend/src/pages/bookmarks.astro`, `frontend/src/components/DeadlineReminder.astro`, `frontend/src/components/DeadlineStrip.astro`, `frontend/src/components/FilterBar.astro`, `frontend/src/components/BookmarkButton.astro`, `frontend/src/components/AccountDeletion.astro`.
+  - Fixes:
+    - Calculators: Eliminated all AI em dashes (`—`) from navs, rules, descriptions, and dynamic breakdowns (`জিপিএ: এসএসসি ও এইচএসসি`, `সিজিপিএ: বিশ্ববিদ্যালয়`). Replaced bureaucratic wording ("মূল বিষয়" -> "আবশ্যিক বিষয়", "হিসাবের নিয়ম" -> "হিসাবের নিয়ম"). Preserved all element IDs, classes, and calculation test contracts.
+    - Deadlines: Removed em dashes; naturalized empty state ("বর্তমানে কোনো সময়সীমা বা ডেডলাইন নেই"); improved filter aria-labels; standard Promito spelling (`বৃত্তির সময়সীমা`).
+    - DeadlineReminder & DeadlineStrip: Replaced machine translations with human phrasing ("ডানে-বামে টেনে দেখুন", "মনে করিয়ে দিন", "বিজ্ঞপ্তি চালু"); eliminated em dashes in browser permission warnings.
+    - Results: Fixed "কিভাবে" -> "কীভাবে"/সঠিক নিয়ম; streamlined descriptions; improved merit list link copy ("মেধাতালিকা দেখুন →").
+    - Search: Naturalized placeholder in `search-init.js` ("খবর বা তথ্য খুঁজুন", no trailing ellipsis); removed space before Bengali classifier 'টি' in filter counters (`[COUNT]টি নির্বাচিত`); Promito spelling (`পাওয়া যায়নি`).
+    - FAQ: Replaced bureaucratic group headers ("ফলাফল সংক্রান্ত" -> "ফলাফল বিষয়ক", "সাধারণ" -> "সাধারণ প্রশ্ন"); naturalized subheader without em dashes.
+    - Bookmarks & Deletion: Updated to "সংরক্ষিত খবর"; warm, reassuring active voice for browser storage privacy; clear, human account deletion warning copy.
+  - Verification: `verify:gpa` PASS, `verify:cgpa` PASS, `verify:search-init` PASS, `verify:site-name` PASS, `verify:bengali-spacing` PASS, `frontend typecheck` PASS, `frontend build` PASS (111 pages built in 5.99s), `verify:build-output` PASS ("Build output is deployable").
+
+- **Phase 4 (Legal, Institutional & Static Info Pages):** ⏳ QUEUED (awaiting user approval).
+  - Scope: `about.astro`, `about-us.astro`, `contact.astro`, `privacy-policy.astro`, `terms-of-use.astro`, `gallery.astro`, `video.astro`, `live-tv.astro`, `reporters.astro`, `citizen.astro`, `login.astro`, `404.astro`.
 
 
 

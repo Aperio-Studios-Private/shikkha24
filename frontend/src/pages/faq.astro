@@ -38,10 +38,10 @@ const [settings, categories, footerPages, faqs] = await Promise.all([
  * questions rather than rendering an empty heading.
  */
 const GROUP_SECTIONS: Array<{ id: CmsFaq['group']; label: string }> = [
-  { id: 'results', label: 'ফলাফল সংক্রান্ত' },
-  { id: 'admission', label: 'ভর্তি সংক্রান্ত' },
-  { id: 'scholarship', label: 'বৃত্তি সংক্রান্ত' },
-  { id: 'general', label: 'সাধারণ' },
+  { id: 'results', label: 'ফলাফল বিষয়ক' },
+  { id: 'admission', label: 'ভর্তি বিষয়ক' },
+  { id: 'scholarship', label: 'বৃত্তি বিষয়ক' },
+  { id: 'general', label: 'সাধারণ প্রশ্ন' },
 ]
 
 // Group in one pass, then render in the fixed display order above.
@@ -76,7 +76,7 @@ const jsonLd =
 
 <Layout
   title="সাধারণ জিজ্ঞাসা"
-  description="শিক্ষা২৪.কম সম্পর্কে সাধারণ জিজ্ঞাসা — ফলাফল, ভর্তি, বৃত্তি, বিজ্ঞাপন ও যোগাযোগ সংক্রান্ত প্রশ্নের উত্তর এক পাতায়।"
+  description="শিক্ষা২৪.কম নিয়ে সাধারণ জিজ্ঞাসা: ফলাফল, ভর্তি, বৃত্তি, বিজ্ঞাপন ও যোগাযোগ সম্পর্কিত গুরুত্বপূর্ণ প্রশ্নের উত্তর।"
   canonical={canonical}
   settings={settings}
   categories={categories}
@@ -91,7 +91,7 @@ const jsonLd =
     </h1>
 
     <p class="mt-2 max-w-2xl text-base leading-relaxed text-ink-muted dark:text-dark-ink-muted">
-      পাঠকদের সবচেয়ে ঘন ঘন করা প্রশ্নের উত্তর — ফলাফল, ভর্তি, বৃত্তি ও যোগাযোগ এক পাতায়।
+      পাঠকদের বহুল জিজ্ঞাসিত নানা প্রশ্নের উত্তর: ফলাফল, ভর্তি, বৃত্তি ও যোগাযোগের প্রয়োজনীয় তথ্য।
     </p>
 
     {

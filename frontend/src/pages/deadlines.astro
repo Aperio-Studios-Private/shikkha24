@@ -43,7 +43,7 @@ const TYPE_LABELS: Record<string, string> = {
   admission: 'ভর্তি',
   result: 'ফলাফল',
   examRoutine: 'পরীক্ষার রুটিন',
-  scholarshipDeadline: 'বৃত্তির সময়সীমা',
+  scholarshipDeadline: 'বৃত্তির সময়সীমা',
   holiday: 'ছুটি',
   circular: 'বিজ্ঞপ্তি',
 }
@@ -54,7 +54,7 @@ const TYPE_FILTERS = [
   { value: 'admission', label: 'ভর্তি' },
   { value: 'result', label: 'ফলাফল' },
   { value: 'examRoutine', label: 'পরীক্ষার রুটিন' },
-  { value: 'scholarshipDeadline', label: 'বৃত্তির সময়সীমা' },
+  { value: 'scholarshipDeadline', label: 'বৃত্তির সময়সীমা' },
   { value: 'holiday', label: 'ছুটি' },
   { value: 'circular', label: 'বিজ্ঞপ্তি' },
 ]
@@ -122,7 +122,7 @@ function formatDate(date: string | null | undefined): string {
 
 <Layout
   title="শিক্ষা ক্যালেন্ডার ও ডেডলাইন"
-  description="বৃত্তি, ভর্তি, পরীক্ষা ও ফলাফলের সব গুরুত্বপূর্ণ তারিখ এক জায়গায়।"
+  description="বৃত্তি, ভর্তি, পরীক্ষা ও ফলাফলের সব গুরুত্বপূর্ণ তারিখ ও সময়সূচি একনজরে।"
   settings={settings}
   categories={categories}
   footerPages={footerPages}
@@ -135,14 +135,14 @@ function formatDate(date: string | null | undefined): string {
         শিক্ষা ক্যালেন্ডার ও ডেডলাইন
       </h1>
       <p class="mt-2 text-base text-ink-muted dark:text-dark-ink-muted">
-        বৃত্তির আবেদন, ভর্তির সময়সীমা, পরীক্ষার রুটিন ও ফলাফলের তারিখ — সব এক জায়গায়।
+        বৃত্তির আবেদন, ভর্তির সময়সীমা, পরীক্ষার রুটিন ও ফলাফলের তারিখ একনজরে জেনে নিন।
       </p>
     </header>
 
     {
       deadlines.length === 0 ? (
         <p class="rounded-md border border-rule bg-surface-raised p-6 text-center text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
-          এখনো কোনো ডেডলাইন যোগ করা হয়নি।
+          বর্তমানে কোনো সময়সীমা বা ডেডলাইন নেই।
         </p>
       ) : (
         <>
@@ -161,7 +161,7 @@ function formatDate(date: string | null | undefined): string {
               ))}
             </div>
             {levelOptions.size > 0 && (
-              <select data-level-filter class="h-8 rounded-md border border-rule bg-surface px-2 text-xs text-ink dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink" aria-label="স্তর ফিল্টার">
+              <select data-level-filter class="h-8 rounded-md border border-rule bg-surface px-2 text-xs text-ink dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink" aria-label="শিক্ষার স্তর নির্বাচন করুন">
                 <option value="">সব স্তর</option>
                 {[...levelOptions.entries()].map(([slug, name]) => (
                   <option value={slug}>{name}</option>
@@ -169,7 +169,7 @@ function formatDate(date: string | null | undefined): string {
               </select>
             )}
             {districtOptions.size > 0 && (
-              <select data-district-filter class="h-8 rounded-md border border-rule bg-surface px-2 text-xs text-ink dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink" aria-label="জেলা ফিল্টার">
+              <select data-district-filter class="h-8 rounded-md border border-rule bg-surface px-2 text-xs text-ink dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink" aria-label="জেলা নির্বাচন করুন">
                 <option value="">সব জেলা</option>
                 {[...districtOptions.entries()].map(([slug, name]) => (
                   <option value={slug}>{name}</option>
@@ -243,7 +243,7 @@ function formatDate(date: string | null | undefined): string {
 
           {/* No-results message — shown by the script when all items are hidden */}
           <p id="no-results" class="mt-4 hidden rounded-md border border-rule bg-surface-raised p-6 text-center text-ink-muted dark:border-dark-rule dark:bg-dark-raised dark:text-dark-ink-muted">
-            এই ফিল্টারে কোনো ডেডলাইন নেই।
+            এই বিভাগে বর্তমানে কোনো ডেডলাইন পাওয়া যায়নি।
           </p>
         </>
       )
