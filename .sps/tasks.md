@@ -3077,6 +3077,42 @@ repo unbuildable (imports from a non-existent `lib/formatters` module) plus a
 hardcoded site name rejected by verify:site-name. Build/verifiers green after
 the fix (commit c92ea32). See handoff 2026-10-18 ~16:50.
 
+### T-49 — ✅ DONE (2026-10-18): filler system for wrongly-proportioned uploads
+
+Owner ask: if an admin uploads an image of the wrong shape, how is the gap filled
+without wrecking the photo?
+
+**Shipped as `frontend/src/components/FramedImage.astro`** and wired into both
+image call sites (`ArticleCard.astro`, `[category]/[id]/[slug].astro`).
+
+The design: the same photo is drawn twice. Behind, an `object-cover` copy,
+heavily blurred (`blur(24px) saturate(1.3) brightness(0.95)`, `scale(1.15)`),
+`aria-hidden` with an empty alt. In front, the real photo at `object-contain`.
+The browser reuses the single downloaded file for both layers, so the fill costs
+**one request and no generated asset** — no server-side blur, no new dependency,
+no CMS change. That is what makes it legal on a host without sharp (T-07).
+
+Chosen over the two obvious alternatives, both of which the demo disproves:
+`object-cover` alone **destroys the subject** (frame 1/2 of the demo), and
+`contain` alone leaves **56.8% of a 16:9 box dead** (frame 3), which reads as a
+broken page.
+
+**Verified in the built output, not just in source:** 43 blurred fill layers
+across 18 built pages. Earlier "0 found" readings were my own bad greps — the
+`style` attribute is minified and reordered, so matching on a fixed attribute
+order missed it; matching the `blur(24px)` substring finds it. The category page
+that first looked empty genuinely had no photo articles (3 cards, 2 with photos).
+
+**Bookkeeping defect, recorded rather than hidden:** the files landed in commit
+`67b57f5`, which is labelled as the T-46 copy commit. The filler had its own
+commit prepared but the copy sweep staged `-A` and absorbed it. The code is
+correct and complete; only the commit label is wrong. Splitting history at this
+point would rewrite pushed commits on two remotes for a message-only gain, so it
+is documented here instead of rewritten.
+
+Demo assets: `docs/assets/filler-demo/` (four strategies over one 3:4 source in a
+16:9 box, plus `filler-comparison.png` and `verify.png`).
+
 ### T-50 — 🔴 OPEN (registered 2026-10-18): article photos ship as full-size JPEG, not WebP
 
 Owner asked why we use `.png`/`.jpg` instead of modern formats. Measured answer:
