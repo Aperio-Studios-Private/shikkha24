@@ -2581,3 +2581,42 @@ Audited both: zero wrong-script glyphs, zero orphaned vowel signs, zero
 Latin-inside-Bengali, zero leaks from the functional files (the single grep hit
 was the _readme line documenting the exclusion). No line numbers drift because
 the manifest is regenerable via the same walk.
+
+### 2026-10-18 ~16:50 — T-47: Bengali style standard written; BLOCKING BUILD BUG found and fixed
+
+Owner asked whether I can adopt humanized Bengali and Bangla Academy প্রমিত
+রীতি. Answer: yes, but the work was already in flight (T-46 / Antigravity,
+Phases 1-3 done, Phase 4 running), so writing a competing rewrite would have
+collided. Instead I wrote the missing STANDARD.
+
+`docs/bengali-style.md` records what T-46 actually established, so every agent
+writes to one spec: voice and address, banned bureaucratic words, the
+em-dash/trailing-ellipsis rule as a writer-laziness marker, the orthography
+corrections already applied (কিভাবে→কীভাবে, শর্তাবলী→শর্ত, সনাক্ত→বর্তমান অবস্থান,
+দ্বৈত অতিশয় rejection), Bengali numerals with joined classifiers
+({toBnDigits(n)}টি), the terms that must stay English so the client guide matches
+the CMS, the never-change list (facts/numbers/ids/classes), the four automated
+verifiers, and a lessons section.
+
+⚠️ TWO REAL DEFECTS FOUND WHILE WRITING IT (both from in-flight Phase 4, not
+introduced by me — verified by `git diff` showing them as added lines):
+
+1. `frontend/src/pages/video/[...path].astro` and `gallery/index.astro`
+   imported `toBnDigits` from `'../../lib/formatters'` — **a module that has
+   never existed in this repo** (`git log --all -- frontend/src/lib/formatters.ts`
+   is empty; the directory has no formatters file). `pnpm run build` failed with
+   Module not found. Repointed to `lib/bangla-date`, the canonical helper already
+   used by 40 files.
+2. `terms-of-use.astro` hardcoded the Bengali display name in a prose string,
+   which `verify:site-name` rejects by design (the name is a CMS value so an
+   owner rename propagates). Reworded to "সাইটের নাম".
+
+Verified after fixing: build exit 0 · verify:bengali-spacing OK (100 .astro
+files, 0 fused words) · verify:site-name OK. Committed c92ea32, deliberately
+including the three Phase-4 files because the copy depends on the import fix —
+the tree does not build otherwise.
+
+LESSON for the ledger: a copy-only pass is not automatically safe. Language
+edits still touch imports and CMS-bound strings, and neither biome nor typecheck
+catches a module path that was invented. `pnpm run build` after every copy phase
+is the only guard.

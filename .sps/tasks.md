@@ -3063,8 +3063,16 @@ Refining and naturalizing Bengali copy across the site to eliminate rigid, machi
     - Bookmarks & Deletion: Updated to "সংরক্ষিত খবর"; warm, reassuring active voice for browser storage privacy; clear, human account deletion warning copy.
   - Verification: `verify:gpa` PASS, `verify:cgpa` PASS, `verify:search-init` PASS, `verify:site-name` PASS, `verify:bengali-spacing` PASS, `frontend typecheck` PASS, `frontend build` PASS (111 pages built in 5.99s), `verify:build-output` PASS ("Build output is deployable").
 
-- **Phase 4 (Legal, Institutional & Static Info Pages):** ⏳ QUEUED (awaiting user approval).
+- **Phase 4 (Legal, Institutional & Static Info Pages):** 🔄 DOING.
   - Scope: `about.astro`, `about-us.astro`, `contact.astro`, `privacy-policy.astro`, `terms-of-use.astro`, `gallery.astro`, `video.astro`, `live-tv.astro`, `reporters.astro`, `citizen.astro`, `login.astro`, `404.astro`.
 
 
 
+
+### T-47 — ✅ DONE (2026-10-18): Bengali style standard (docs/bengali-style.md)
+
+Wrote the written standard behind T-46 so all agents write to one spec. While
+writing it, found and fixed an in-flight Phase-4 regression that had left the
+repo unbuildable (imports from a non-existent `lib/formatters` module) plus a
+hardcoded site name rejected by verify:site-name. Build/verifiers green after
+the fix (commit c92ea32). See handoff 2026-10-18 ~16:50.
