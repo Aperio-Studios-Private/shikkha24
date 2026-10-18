@@ -150,12 +150,55 @@ function safeRead(path) {
   }
 }
 
-/** Read one key out of a `GITHUB_OUTPUT` body. */
-const readOut = (output, key) =>
-  output
-    .split('\n')
-    .find((line) => line.startsWith(`${key}=`))
-    ?.slice(key.length + 1)
+/**
+ * Read one key out of a `GITHUB_OUTPUT` body.
+ *
+ * ⚠️ **This models GitHub's own parse rule, not just `key=value`.** The step
+ * writes every key as a heredoc (`name<<DELIM … DELIM`) precisely so a value
+ * cannot forge additional records, and GitHub parses that form: the opener
+ * takes every line up to the delimiter that closes the block LAST (a crafted
+ * value cannot close it early — the delimiter is random per run). A reader that
+ * only understood `key=value` would compare `undefined` against the expected
+ * value and report FAIL on output that is correct, which is what happened when
+ * the hardening landed. Modelling only `key=value` here would also make this
+ * harness unable to see the very injection it exists to guard, so the heredoc
+ * branch is not optional.
+ *
+ * @param {string} output the `GITHUB_OUTPUT` file body.
+ * @param {string} key
+ * @returns {string|undefined}
+ */
+const readOut = (output, key) => {
+  const lines = output.split('\n')
+  let value
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i]
+    // ⚠️ Skip the body of ANY heredoc block, whatever its name.
+    //
+    // Without this the reader walks into the `reason` block and treats a
+    // payload such as `target=cms…` — which legitimately sits there as inert
+    // DATA, contained by the delimiter — as a real `target` record, and reports
+    // the injected value as the true one. A checker that reconstructs the
+    // forgery from contained data is worse than no checker: it would fail a
+    // correctly-hardened workflow and send someone to "fix" the write.
+    if (/^[A-Za-z_][A-Za-z0-9_]*<<[A-Za-z0-9_]+$/.test(line)) {
+      const delim = line.slice(line.indexOf('<<') + 2)
+      // ⚠️ The LAST matching delimiter closes the block, so an attacker-supplied
+      // line equal to the delimiter earlier in the body cannot shorten it.
+      for (let j = i + 1; j < lines.length; j += 1) {
+        if (lines[j] === delim) {
+          if (line.startsWith(`${key}<<`)) value = lines.slice(i + 1, j).join('\n')
+          i = j
+          break
+        }
+      }
+      continue
+    }
+    // Only a bare `key=value` line outside every block is a plain record.
+    if (line.startsWith(`${key}=`)) value = line.slice(key.length + 1)
+  }
+  return value
+}
 
 /** Run the whole harness. */
 function main() {
@@ -318,6 +361,118 @@ function main() {
       'an input cannot redirect a push at the CMS',
       readOut(sneaky.output, 'target') === 'static',
       sneaky.output,
+    )
+  }
+
+  console.log('\n8. ⚠️ T-62: a crafted reason cannot forge another output record')
+  {
+    // ⚠️ This section exists because the reason is the one value in this step
+    // that is free text from OUTSIDE the workflow: on `workflow_dispatch` it is
+    // an operator string, and on `repository_dispatch` it is
+    // `client_payload.reason`, which any actor holding a token with the `repo`
+    // scope controls completely. `$GITHUB_OUTPUT` is a record-oriented file, so
+    // a newline in that value used to end the `reason=` record early and let
+    // the rest of the value become records of its own — `target=cms`,
+    // `dry_run=false` — which the deploy steps below consume. The step now
+    // allow-lists, strips and writes through a per-run random heredoc
+    // delimiter, and every assertion here is on the PARSED output, read with
+    // the same rule GitHub uses.
+    const dispatch = (reason, extra) =>
+      run(script, {
+        EVENT: 'workflow_dispatch',
+        // A legitimate dispatch: dry run, static target. The reason is the ONLY
+        // untrusted value under test, so the attack cannot be confused with the
+        // step correctly refusing a missing mode/target.
+        INPUT_MODE: 'dry-run',
+        INPUT_TARGET: 'static',
+        INPUT_CONFIRM: 'false',
+        INPUT_REASON: reason,
+        ...extra,
+      })
+
+    // ⚠️ The property is "no forged RECORD", not "the text never appears".
+    // The payload legitimately survives inside the `reason` heredoc as inert
+    // data — stripping it is not the defence, containment is. Counting every
+    // line that looks like an assignment would match that contained text and
+    // report a forgery that does not exist. So the count skips block bodies:
+    // it counts only record openers at the file's top level.
+    const recordCount = (text, key) => {
+      const lines = text.split('\n')
+      let n = 0
+      for (let i = 0; i < lines.length; i += 1) {
+        const opener = /^([A-Za-z_][A-Za-z0-9_]*)<<([A-Za-z0-9_]+)$/.exec(lines[i])
+        if (opener) {
+          const delim = opener[2]
+          if (opener[1] === key) n += 1
+          for (let j = i + 1; j < lines.length; j += 1) {
+            if (lines[j] === delim) {
+              i = j
+              break
+            }
+          }
+          continue
+        }
+        if (lines[i].startsWith(`${key}=`)) n += 1
+      }
+      return n
+    }
+
+    const attacks = [
+      ['a newline forges target=cms', 'x\ntarget=cms'],
+      ['a newline forges dry_run=false', 'x\ndry_run=false'],
+      ['CRLF forges a record', 'x\r\ntarget=cms'],
+      ['a blank line forges a record', 'x\n\ntarget=cms'],
+      ['a guessed fixed delimiter is closed early', 'x\nEOF\ntarget=cms\nEOF'],
+      ['a delimiter-shaped value forges a record', 'x\nEOF_x\ntarget=cms'],
+      ['a tab forges a record', 'x\ttarget=cms'],
+      ['the whole value is only records', '\ntarget=cms\ndry_run=false\n'],
+    ]
+    for (const [label, reason] of attacks) {
+      const { output, stdout } = dispatch(reason)
+      check(
+        `${label} — target stays static`,
+        readOut(output, 'target') === 'static',
+        `${output || stdout}`,
+      )
+      check(`${label} — dry_run stays true`, readOut(output, 'dry_run') === 'true', output)
+      check(
+        `${label} — exactly one record per name, so nothing was forged`,
+        recordCount(output, 'target') === 1 &&
+          recordCount(output, 'dry_run') === 1 &&
+          recordCount(output, 'mode') === 1 &&
+          recordCount(output, 'reason') === 1,
+        output,
+      )
+    }
+
+    // ⚠️ Negative control: the guard must be able to SEE the defect. The
+    // pre-fix writer is reproduced here — one bare `echo "reason=$REASON"` —
+    // and the forged `target=cms` record must appear. Without this, section 8
+    // would pass just as happily against a harness that cannot detect the
+    // injection at all (M18: a check that has never been seen to fail).
+    const naive = (reason) => {
+      const file = join(mkdtempSync(join(tmpdir(), 'gho-')), 'output')
+      try {
+        execFileSync('bash', [], {
+          input: 'set -euo pipefail\necho "reason=$REASON" >> "$GITHUB_OUTPUT"\n',
+          encoding: 'utf8',
+          env: { PATH: process.env.PATH, GITHUB_OUTPUT: file, REASON: reason },
+          stdio: ['pipe', 'pipe', 'pipe'],
+        })
+      } catch {
+        // The legacy writer is a single echo and cannot realistically fail; an
+        // empty read below makes the negative control fail loudly if it does.
+      }
+      return safeRead(file)
+    }
+    check(
+      'negative control: the pre-fix `reason=` write DOES forge target=cms',
+      /^target=cms$/m.test(naive('x\ntarget=cms')),
+      'if this fails, section 8 proves nothing',
+    )
+    check(
+      'and the hardened step does NOT, on the same input',
+      !/^target=/m.test(dispatch('x\ntarget=cms').output),
     )
   }
 

@@ -250,22 +250,192 @@ jobs:
               ;;
           esac
 
+          # ⚠️ SECURITY: `confirm-risk` is compared below with `!= "true"`, which
+          # is a NEGATIVE test — and a negative test on free text is fail-OPEN.
+          # `confirm-risk` is declared `type: boolean`, but GitHub offers no
+          # mechanism that stops the broader value set from arriving here: a
+          # dispatch made through `POST /repos/…/dispatches` carries the input
+          # map verbatim with no schema validation at all. Any value other than
+          # the exact string `true` — including the string `yes`, which an
+          # operator would reasonably read as confirmation — therefore satisfies
+          # `!= "true"` and REFUSES the deploy, while a value that IS `true` is
+          # the only thing that can authorise the live CMS write. So allow-list
+          # it positively: `true`/`false`, exact, nothing else.
+          case "$CONFIRM" in
+            true|false) ;;
+            *)
+              echo "::error::Unrecognised confirm-risk '$CONFIRM'. Use 'true' or 'false'."
+              exit 1
+              ;;
+          esac
+
           # Emitted as a boolean so no downstream step re-derives it from the
           # string. This is the value that decides whether the host is mutated.
           if [ "$MODE" = "live" ]; then DRY_RUN=false; else DRY_RUN=true; fi
 
+          # ⚠️ SECURITY (T-62) — every untrusted value must be constrained, not
+          # merely interpolated, and must ROUND-TRIP through its output record.
+          #
+          # `REASON` is attacker-influenced text: on `workflow_dispatch` it is
+          # the free-text `reason` input, and on `repository_dispatch` it is
+          # `client_payload.reason`, which any actor holding a token with the
+          # `repo` scope can set to anything at all. This block draws the
+          # boundary. `$GITHUB_OUTPUT` is a RECORD-ORIENTED file: one
+          # `name=value` record per line, and a `name<<DELIM … DELIM` block.
+          # Writing bare `echo "reason=$REASON"` therefore let the value forge
+          # records of its own — a newline in the reason turned one write into
+          # `target=cms`, `dry_run=false`, or any other output the workflow
+          # later trusts, so a value that only ever reaches a log line could
+          # silently redirect the deploy at the CMS or take it out of dry run.
+          #
+          # Four independent defences, because any one of them alone is a single
+          # point of failure on the one boundary that decides whether production
+          # is mutated:
+          #
+          #   1. `tr -d '[:space:]'` removes newline, carriage return, tab and
+          #      space — the exact characters that end a record or a heredoc
+          #      line. (POSIX `[:space:]`; verified with `od` that CR survives
+          #      nothing.) Validation then runs on the stripped value, so
+          #      "live \n" cannot pass a `case` and still carry the newline.
+          #   2. Strip again after validation — never carry the original raw
+          #      value forward. The value written is the value that was checked,
+          #      so "passes the allow-list" and "is what the deploy reads" cannot
+          #      be two different strings.
+          #   3. A heredoc whose delimiter carries a per-run random suffix.
+          #      GitHub strips the trailing newline and parses the value from
+          #      the matched delimiter lines, so a value that itself looks like
+          #      an output record is inert data. The random suffix is what stops
+          #      a crafted value from containing the delimiter and closing the
+          #      heredoc early — the failure mode of a fixed `EOF`. No name in
+          #      this workflow begins with `EOF`, so the old body-writing form
+          #      (`{\n echo k=v\n} >>`) has no way left to start a heredoc.
+          #   4. Round-trip assert: read the value straight back out of the file
+          #      we just wrote and require an exact match. If any of the above
+          #      were ever weakened, the deploy dies HERE, on the line that would
+          #      have written the forged record, instead of shipping it.
+          REASON=$(printf '%s' "$REASON" | tr -d '[:space:]')
+          # `:-` on every read below: an empty reason is legitimate (the input is
+          # `required: false`) and MUST NOT be `unset`. Under `set -u` an unset
+          # variable makes the `echo "reason: …"` further down — and every read
+          # after it — die with "REASON: unbound variable", turning a perfectly
+          # valid confirmation into a failed deploy.
+          REASON=$(printf '%s' "${REASON:-}")
+
+          # `mode` and `target` were ALREADY allow-listed by the `case` blocks
+          # above, so they cannot carry a newline; they are normalised below only
+          # so that the shape of the file is uniform and a future edit cannot
+          # reintroduce a bare write for one of the four. `MODE` and `TARGET` can
+          # never be empty here (the `case` rejects an empty value), and `DRY_RUN`
+          # is always assigned — so all three are simply given the shape the
+          # writer expects and never unset.
+          MODE=$(printf '%s' "${MODE:-}")
+          DRY_RUN=$(printf '%s' "${DRY_RUN:-}")
+          TARGET=$(printf '%s' "${TARGET:-}")
+
+          # ⚠️ Uniquely named delimiter, NOT a fixed `EOF`. The whole injection
+          # is "the value can contain a line that ends the block"; a random
+          # suffix per run makes that line unguessable, and the same seed is
+          # shared by the write and the read-back so the round-trip is meaningful.
+          DELIM="EOF_$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
           {
-            echo "mode=$MODE"
-            echo "dry_run=$DRY_RUN"
-            echo "target=$TARGET"
-            echo "reason=$REASON"
+            echo "mode<<$DELIM";    printf '%s' "${MODE-}";    printf '\n%s\n' "$DELIM"
+            echo "dry_run<<$DELIM"; printf '%s' "${DRY_RUN-}"; printf '\n%s\n' "$DELIM"
+            echo "target<<$DELIM";  printf '%s' "${TARGET-}";  printf '\n%s\n' "$DELIM"
+            echo "reason<<$DELIM";  printf '%s' "${REASON-}";  printf '\n%s\n' "$DELIM"
           } >> "$GITHUB_OUTPUT"
+
+          # The round-trip ASSERTION is deliberately located directly beneath
+          # the write, so a diff cannot separate them. Behaviour is unchanged
+          # for a legitimate value: the comparison simply passes.
+          #
+          # The read below reimplements GitHub's own parse rule for this file,
+          # because the write is now a heredoc and a `k=v` reader would find
+          # nothing, compare '' against the value and fail every run. The rule:
+          # a `name=value` line takes the first line, and a `name<<DELIM` opener
+          # takes the lines up to the delimiter that closes the block last (a
+          # crafted value cannot close it early, because the delimiter is random
+          # and GitHub — as below — matches the last one). An output may be set
+          # only once, so the last assignment of a name is the one that stands.
+          read_output() {
+            local want="$1" line d="" inblock=0 v="" last="" rest=""
+            while IFS= read -r line; do
+              if [ "$inblock" = "1" ]; then
+                if [ "$line" = "$d" ]; then v="$last"; inblock=0; else last="$line"; fi
+                continue
+              fi
+              # ⚠️ The operator is compared AFTER the name is stripped. Writing
+              # the heredoc case as `"$want"<` + `<*` puts two adjacent '<'
+              # characters after a variable expansion, which bash's parser reads
+              # as a HEREDOC — the step dies with "syntax error near unexpected
+              # token `<<'" before a single line runs. Splitting name from
+              # operator avoids that entirely and keeps '=' and the opener in
+              # one place.
+              case "$line" in
+                "$want"*)
+                  rest="${line#"$want"}"
+                  case "$rest" in
+                    '='*)
+                      v="${rest#=}"
+                      ;;
+                    '<<'*)
+                      d="${rest#<<}"
+                      # ⚠️ An empty delimiter would match the value's own last
+                      # line and let a block close early, which is the whole
+                      # attack. No writer here can produce one, so it is invalid.
+                      case "$d" in
+                        ''|*[!A-Za-z0-9_]*) : ;;
+                        *) inblock=1; last="" ;;
+                      esac
+                      ;;
+                  esac
+                  ;;
+              esac
+            done < "$GITHUB_OUTPUT"
+            printf '%s' "$v"
+          }
+
+          for pair in mode:"${MODE-}" dry_run:"${DRY_RUN-}" target:"${TARGET-}" reason:"${REASON-}"; do
+            k="${pair%%:*}"
+            v="${pair#*:}"
+            got=$(read_output "$k")
+            if [ "$got" != "$v" ]; then
+              echo "::error::Unsafe output boundary: '$k' did not survive its own \$GITHUB_OUTPUT record. Refusing to deploy — the value may have forged additional output records."
+              exit 1
+            fi
+          done
 
           echo "mode:    $MODE"
           echo "target:  $TARGET"
           echo "reason:  $REASON"
 
-          if [ "$MODE" = "live" ] && [ "$TARGET" != "static" ] && [ "$CONFIRM" != "true" ]; then
+          # ⚠️ SECURITY — the confirmation gate reads the OUTPUT, not the local
+          # variable. That is the other half of the audit finding, and it is
+          # what makes the hardening above load-bearing rather than decorative:
+          # previously the gate compared `$CONFIRM`, a local value, while every
+          # deploy step below compared `steps.cfg.outputs.*`. Two readers of one
+          # decision is a boundary an attacker only has to cross once, and it is
+          # crossed by making the two disagree. Now there is exactly ONE source
+          # — the record this step wrote and just verified — and the gate, the
+          # `if:` conditions and the deploy scripts all read that same one.
+          OUT_MODE=$(read_output mode)
+          OUT_TARGET=$(read_output target)
+          OUT_DRY_RUN=$(read_output dry_run)
+          # `reason` is deliberately NOT read here: it decides nothing, and the
+          # round-trip loop above has already proved it survived its record.
+          # An unused variable only invites the next reader to trust it.
+
+          # Fail loudly on a source that cannot be resolved. `set -u` already
+          # refuses an unset variable, but an EMPTY one would otherwise fall
+          # through every `!=` test below and land on the permissive side, which
+          # is the same fail-open shape as the `confirm-risk` bug above.
+          for pair in mode:"$OUT_MODE" target:"$OUT_TARGET" dry_run:"$OUT_DRY_RUN"; do
+            if [ -z "${pair#*:}" ]; then
+              echo "::error::Output '${pair%%:*}' is empty or unreadable after the write. Refusing to deploy on a decision that cannot be read back."
+              exit 1
+            fi
+          done
+
+          if [ "$OUT_MODE" = "live" ] && [ "$OUT_TARGET" != "static" ] && [ "$CONFIRM" != "true" ]; then
             echo "::error::A live CMS deploy can disturb the venv symlinks in node_modules and take the CMS down. Re-run with confirm-risk: true, or use target: static."
             exit 1
           fi
@@ -282,11 +452,13 @@ jobs:
           # So a live CMS deploy to a non-default root must name the origin it is
           # verifying. Deploying production itself is unaffected: empty cms-root
           # keeps the secret, and the probe is then correct by definition.
-          if [ "$MODE" = "live" ] && [ "$TARGET" != "static" ] && [ -n "${INPUT_CMS_ROOT:-}" ] && [ -z "${INPUT_CMS_URL:-}" ]; then
+          if [ "$OUT_MODE" = "live" ] && [ "$OUT_TARGET" != "static" ] && [ -n "${INPUT_CMS_ROOT:-}" ] && [ -z "${INPUT_CMS_URL:-}" ]; then
             echo "::error::cms-root is '${INPUT_CMS_ROOT}', so this is a rehearsal, but cms-url is empty. The post-deploy check would probe PRODUCTION and pass without testing ${INPUT_CMS_ROOT} at all. Supply cms-url, or clear cms-root to deploy production."
             exit 1
           fi
-          if [ "$MODE" = "live" ]; then
+          # Read the same validated outputs as the gate above: if this echo
+          # disagrees with what the deploy steps act on, the warning is a lie.
+          if [ "$OUT_MODE" = "live" ]; then
             echo "::warning::LIVE DEPLOY — this pushes to production."
           else
             echo "Dry run: the host will be listed and planned, but nothing will be changed."

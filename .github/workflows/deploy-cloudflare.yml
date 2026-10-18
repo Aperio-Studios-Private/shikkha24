@@ -149,11 +149,91 @@ jobs:
           esac
           if [ "$MODE" = "live" ]; then DRY_RUN=false; else DRY_RUN=true; fi
           REASON="${PAYLOAD_REASON:-$INPUT_REASON}"
+
+          # ⚠️ SECURITY (T-62) — `REASON` is the one value here that comes from
+          # OUTSIDE this workflow: the free-text `reason` dispatch input, or
+          # `client_payload.reason`, which any actor holding a token with the
+          # `repo` scope sets to anything at all. `$GITHUB_OUTPUT` is a
+          # RECORD-ORIENTED file — one `name=value` record per line, plus
+          # `name<<DELIM … DELIM` blocks — so a bare `echo "reason=$REASON"`
+          # let the value forge records of its own: a newline turned one write
+          # into `dry_run=false`, and the deploy step below reads `dry_run` to
+          # decide between `wrangler deploy --dry-run` and `wrangler deploy`.
+          # A crafted webhook reason could therefore PUBLISH TO PRODUCTION on
+          # exactly the runs the dry-run default exists to protect.
+          #
+          # Three defences, because a single one is a single point of failure
+          # on the boundary that decides whether the site is published:
+          #   1. `tr -d '[:space:]'` strips newline, CR, tab and space — the
+          #      characters that end a record or a heredoc line. Validation runs
+          #      on the stripped value, so nothing can pass a check and still
+          #      carry a newline into the write.
+          #   2. A heredoc delimiter with a per-run random suffix, so a value
+          #      that looks like an output record is inert data and a value
+          #      cannot contain the delimiter to close the block early (the
+          #      failure mode of a fixed `EOF`).
+          #   3. Round-trip assert: read the value back out of the file that was
+          #      just written. If any of the above is ever weakened, the run dies
+          #      where the forged record would have been written.
+          REASON=$(printf '%s' "${REASON:-}" | tr -d '[:space:]')
+
+          MODE=$(printf '%s' "${MODE:-}")
+          DRY_RUN=$(printf '%s' "${DRY_RUN:-}")
+
+          # ⚠️ Uniquely named delimiter, NOT a fixed `EOF` (see 2 above). The
+          # same seed is used by the write and the read-back so the round-trip
+          # actually proves something.
+          DELIM="EOF_$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
           {
-            echo "mode=$MODE"
-            echo "dry_run=$DRY_RUN"
-            echo "reason=$REASON"
+            echo "mode<<$DELIM";    printf '%s' "${MODE-}";    printf '\n%s\n' "$DELIM"
+            echo "dry_run<<$DELIM"; printf '%s' "${DRY_RUN-}"; printf '\n%s\n' "$DELIM"
+            echo "reason<<$DELIM";  printf '%s' "${REASON-}";  printf '\n%s\n' "$DELIM"
           } >> "$GITHUB_OUTPUT"
+
+          # Reads the file with GitHub's own rule: a `name=value` line outside
+          # every block, or the body of a `name<<DELIM` block closed by the last
+          # matching delimiter. ⚠️ The block body is always SKIPPED, so payload
+          # text contained in `reason` can never be mistaken for a record.
+          read_output() {
+            local want="$1" line d="" inblock=0 v="" last="" rest=""
+            while IFS= read -r line; do
+              if [ "$inblock" = "1" ]; then
+                if [ "$line" = "$d" ]; then v="$last"; inblock=0; else last="$line"; fi
+                continue
+              fi
+              # ⚠️ The operator is compared AFTER the name is stripped. Writing
+              # the heredoc case as two adjacent '<' characters after a variable
+              # expansion makes bash read it as a HEREDOC and the step dies with
+              # "syntax error near unexpected token `<<'" before running at all.
+              case "$line" in
+                "$want"*)
+                  rest="${line#"$want"}"
+                  case "$rest" in
+                    '='*) v="${rest#=}" ;;
+                    '<<'*)
+                      d="${rest#<<}"
+                      case "$d" in
+                        ''|*[!A-Za-z0-9_]*) : ;;
+                        *) inblock=1; last="" ;;
+                      esac
+                      ;;
+                  esac
+                  ;;
+              esac
+            done < "$GITHUB_OUTPUT"
+            printf '%s' "$v"
+          }
+
+          for pair in mode:"${MODE-}" dry_run:"${DRY_RUN-}" reason:"${REASON-}"; do
+            k="${pair%%:*}"
+            v="${pair#*:}"
+            got=$(read_output "$k")
+            if [ "$got" != "$v" ]; then
+              echo "::error::Unsafe output boundary: '$k' did not survive its own \$GITHUB_OUTPUT record. Refusing to deploy — the value may have forged additional output records."
+              exit 1
+            fi
+          done
+
           if [ "$MODE" = "live" ]; then
             echo "::warning::LIVE DEPLOY — this publishes to Cloudflare Workers."
           else
