@@ -40,6 +40,9 @@ CMS→watcher→Actions cycle is proven end-to-end **without** DEPLOY_WEBHOOK_UR
   zero-management option. Transfer mechanics when/if chosen: update the
   publish-watcher's GITHUB_REPO env + PAT scope, local remotes, and the tag
   workflows; repo secrets move with the repo.
+  **Owner decision 2026-10-18 রাত: "for now do not move to the ORG"** — the
+  repo stays on `SHAHID8142/shikkha24` (public, unlimited Actions); the
+  org-private path is parked, not scheduled.
 - **GitLab mirror is DROPPED (owner instruction, 2026-10-18 রাত: "আমরা GitLab
   ব্যবহার করব না").** All future pushes are `origin`-only; the local `gitlab`
   remote was removed so nothing can push there by accident. Deleting the
