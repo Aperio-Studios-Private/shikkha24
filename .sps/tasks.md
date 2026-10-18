@@ -3348,6 +3348,109 @@ in the profile, in order of size:
 **Do not claim this is fixed until `lhci` shows LCP < 1500 ms on all three URLs.** The measurement command
 is in the report §9.
 
+
+**⚠️ ROUND 3 UPDATE (2026-10-19 02:0x) — four hypotheses tested and DISPROVEN. Read this before re-attempting T-80.**
+
+The LCP failure is real and reproducible, but the cause is **not** any of the four things that were assumed,
+including one asserted in this very task earlier. Each was tested by patching the built output and
+re-measuring on `lhci`'s own server; numbers are single-run but the *baseline* reproduced to within 6 ms
+across repeat runs, so the comparisons are sound.
+
+| hypothesis | experiment | result |
+|---|---|---|
+| LCP is an image needing `fetchpriority` | inspected the hero `<img>` | **DEAD.** The hero already ships `loading="eager" fetchpriority="high"` — correctly prioritised. Earlier notes claiming "all 7 images are `auto`" were wrong for this template. |
+| Both font weights preloaded (158 KB) are the cause | removed both preloads from all 95 pages | **DISPROVEN as the main cause.** LCP only moved 2632→2490 (home) and 2854→2708 (article) — **~150 ms**, not the 1.3 s. FCP got *worse* (1364→2415), confirming the preloads are doing their job for first paint. Keep them. |
+| Render-blocking CSS (901 ms "wasted") is the cause | made the stylesheet non-blocking (`preload`+`onload`) on all 95 pages | **DISPROVEN.** Numbers came back *identical* to baseline (FCP 1364/1134/1511, LCP 2632/2480/2854). Lighthouse's 901 ms figure is a simulation that does not reflect this page's real critical path. |
+| Style & Layout CPU cost is the cause | read `mainthread-work-breakdown` on the patched runs | **DISPROVEN as dominant.** Style & Layout is only **264–338 ms** of a **2307–2592 ms** render delay. |
+
+**What the evidence actually says.** LCP phase breakdown is consistently
+**TTFB ~452 ms (16%) + Render Delay ~2307–2592 ms (78–81%)**. The render delay is *waiting*, not
+computation — CPU work totals only a few hundred ms, and TBT is 0 ms. On a simulated 4G/4×-CPU profile
+that points at resources still arriving after first paint.
+
+**And there is no single LCP element to fix — there are three different ones:**
+
+| template | LCP element | note |
+|---|---|---|
+| homepage | `<p>` lead card excerpt | text; this is what commit `2468cc3` raised to 17px |
+| /latest/ | `<h3>` card headline | text |
+| article | `<picture> > <img>` hero | image, already `eager` + `fetchpriority="high"` |
+
+So two of the three are **text**, which is why image work kept failing to move the metric — and it also
+means any fix must be evaluated per-template. **Do not record "the LCP element is text" as a general
+fact** (an earlier handoff note did, from a single page); it is template-dependent.
+
+**Method warning that cost real time and should not be repeated.** Measuring on a bare
+`python3 -m http.server` produces numbers ~900 ms worse (FCP 2254 vs 1364) because it sends **no
+compression** — the CSS went out as 48,394 B where `lhci` serves 9,801 B. **Always measure through
+`lhci`'s own static server** (`npx lhci collect --staticDistDir=...`), never a hand-rolled one, or the
+comparison is meaningless.
+
+**What to try next, in order:** (1) `document.fonts`/glyph-coverage — check whether the LCP *text* element
+waits on the webfont for its Bengali glyphs despite `font-display: swap`, which would explain waiting
+without CPU cost; (2) reduce the number of requests before first paint (each `_astro/*.avif`/`.webp`
+candidate, the logo from `cms.shikkha24.com`, the three third-party API calls) — the article pulls an
+external CMS logo and three external APIs that a static-first page arguably should not need for first
+paint; (3) only then revisit CSS/fonts. **Do not close this without `lhci` showing LCP < 1500 ms on all
+three URLs** — and measure all three, because they have three different LCP elements.
+
+**Critical-path topology measured (the structural finding).** The critical request chain is **depth 3**:
+`HTML → (CSS + the two font WOFF2s + inline theme-init)`, and the **fonts sit at depth 2, i.e. behind the
+stylesheet** in dependency order rather than in parallel with it. Under `throttling-method: simulate`,
+Lighthouse models **RTT = 250 ms**, so the floor is roughly `3 sequential round trips × 250 ms ≈ 750 ms`
+of pure network latency *before any byte is painted*, on top of 4×-throttled CPU work on a 545–805
+element DOM. That is the shape of the 2.3–2.6 s render delay, and it is why every single-resource
+experiment (fonts, CSS, images) moved the number by only ~150 ms: no individual resource is the
+bottleneck — **the number of serialised round trips before first paint is.**
+
+**Consistency check that supports this:** on the no-preload experiment the timings collapsed to
+`FCP 2558 / LCP 2708 / SI 2558 / TTI 2708 / TBT 0` — LCP, SI and TTI all equal FCP. When LCP ≈ SI ≈ TTI ≈
+FCP, the page is not being held up by any late-rendering element; it is held up *getting to first paint*.
+
+**Consequence for the next attempt — do not repeat the resource-level guessing.** The levers that can
+actually move a serialised-round-trip floor are: (a) **serve the CSS and the HTML in one round trip**
+(inline critical CSS, which removes the depth-2→depth-1 step for the stylesheet *and* lets the font
+request start one RTT earlier); (b) **remove a dependency layer entirely** — e.g. self-host the CMS logo
+so no new origin is opened for the header; (c) reduce bytes on the depth-2 font requests so the third
+RTT is shorter. Note (a) is the only one that changes the *round-trip count* rather than the payload
+size, which is why it is the first thing to try — and note that the earlier "non-blocking CSS" test did
+**not** test (a): making a stylesheet non-blocking still downloads it in a separate round trip, so that
+experiment could never have shown a gain. Inlining is a different change.
+
+**✅ ROUND-TRIP HYPOTHESIS VALIDATED (2026-10-19 02:0x) — and it is the first change that moved the
+metric at all.** Inlining the single stylesheet into all 95 pages, and re-measuring on `lhci`'s server:
+
+| template | FCP before → after | LCP before → after | perf before → after |
+|---|---|---|---|
+| homepage | 1373 → **1365** | 2637 → **2483** (−154 ms) | 96 → **97** |
+| /latest/ | 1134 → 1209 | 2480 → 2556 | 97 → 97 |
+| article | 1511 → **1360** (−151) | 2855 → **2704** (−151) | 95 → **96** |
+
+Two of three templates gained ~150 ms on both FCP and LCP, and the article — the worst case — improved on
+both. This is the first experiment in the whole investigation to move LCP, which is why the round-trip
+count, not any individual resource, is the correct frame. **It is still ~1000 ms short of the 1500 ms
+gate**, so inlining alone is not the fix; it is the first genuine step and it shows the direction works.
+
+**How to actually ship it.** Astro does not inline a global stylesheet by default and the site has a
+single 47 KB stylesheet, so the practical path is either `build.inlineStylesheets: 'always'` in
+`astro.config.mjs` (Astro's own option — **check what it does to the 95 pages' total weight and to the
+second-load cache story before committing**, since inlining removes the stylesheet from the shared cache)
+or a critical-CSS split that inlines only above-the-fold rules. Do not inline the full 47 KB blindly:
+it removes a cacheable resource and adds bytes to every page. The measurement above used the full
+inline, so treat it as the **upper bound** of what inlining can buy.
+
+**Remaining gap to close after that:** ~1000 ms. Next candidates, in order: (1) shorten the third
+round trip by shrinking the depth-2 fonts (a subset that drops unused Latin/currency ranges, or
+preloading only 400 — worth ~150 ms per the earlier test); (2) self-host the CMS logo so the header
+opens no new origin; (3) re-measure the two external APIs — they are already behind
+`requestIdleCallback` so they should not matter, but the header layout depends on them and a CLS/late
+paint interaction has not been ruled out.
+
+**Honest status: T-80 is NOT fixed.** Five candidate causes tested, four disproven (image
+`fetchpriority`, font preloads, render-blocking CSS, style/layout CPU), and the fifth — round-trip
+serialisation — now **validated as real but insufficient on its own**. It is not blocked and there is no
+mystery left: the remaining work is mechanical, and the search space is now narrow.
+
 ### T-81 — 🔴 OPEN (High, gate integrity): the Lighthouse gate does not assert LCP, and relaxes CLS
 `lighthouserc.json` asserts only these numeric metrics:
 
