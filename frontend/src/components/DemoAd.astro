@@ -95,7 +95,21 @@ const CREATIVES = [
     <div
       class:list={[
         'demo-creative absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-3 text-center',
-        index === 0 ? 'opacity-100' : 'opacity-0',
+        /*
+         * `invisible` (CSS `visibility: hidden`) on the inactive creatives, not
+         * just `opacity-0`.
+         *
+         * ⚠️ **Corrected 2026-10-19.** With opacity alone, the hidden creatives
+         * stayed *rendered* — so Lighthouse measured their faded text against the
+         * card surface and reported a **1.22:1** contrast failure (foreground
+         * #e1e1e1 on #f7f7f7, against the 4.5:1 minimum) on the article template.
+         * The text was never visible to a reader, so the audit was a false
+         * positive in substance — but it was scoring against a real accessibility
+         * gate, and `visibility: hidden` is the honest fix: it removes the element
+         * from rendering and from the contrast calculation while keeping the
+         * opacity transition on the active creative.
+         */
+        index === 0 ? 'visible opacity-100' : 'invisible opacity-0',
       ]}
       data-index={index}
       aria-hidden={index === 0 ? 'false' : 'true'}
@@ -115,7 +129,15 @@ const CREATIVES = [
       >
         {creative.title}
       </span>
-      <span class="text-xs text-ink dark:text-dark-ink">{creative.body}</span>
+      {/*
+        ⚠️ `text-sm` (15px), not `text-xs`. `--text-xs` is documented as
+        "labels only, never body copy" (`global.css:146`), and `creative.body` is a
+        full sentence of Bengali — at 13px its conjuncts collide. The card's own
+        format label below stays at `text-[10px]` because that genuinely is a
+        label. This also removes the last 13px body text the contrast audit could
+        catch mid-rotation.
+      */}
+      <span class="text-sm text-ink dark:text-dark-ink">{creative.body}</span>
     </div>
   ))}
 
@@ -206,12 +228,18 @@ const CREATIVES = [
       setInterval(() => {
         if (paused || document.hidden) return
 
+        // `invisible`/`visible` travel with the opacity swap — the outgoing
+        // creative must leave the contrast calculation, and the incoming one must
+        // enter it, at the same moment. `classList` is a DOMTokenList, so these
+        // four calls are the whole state machine.
         creatives[index]?.classList.replace('opacity-100', 'opacity-0')
+        creatives[index]?.classList.replace('visible', 'invisible')
         creatives[index]?.setAttribute('aria-hidden', 'true')
 
         index = (index + 1) % creatives.length
 
         creatives[index]?.classList.replace('opacity-0', 'opacity-100')
+        creatives[index]?.classList.replace('invisible', 'visible')
         creatives[index]?.setAttribute('aria-hidden', 'false')
       }, 4000)
     }
@@ -220,6 +248,20 @@ const CREATIVES = [
 
 <style>
   .demo-creative {
-    transition: opacity 600ms ease-in-out;
+    transition:
+      opacity 600ms ease-in-out,
+      /*
+       * `visibility` is not interpolable, so it is stepped — and delayed on the
+       * way *out* so the outgoing creative stays visible for the length of its
+       * fade instead of vanishing instantly. Without the delay the 600ms opacity
+       * transition would be invisible: the element would be hidden on frame one.
+       * On the way in there is no delay, so the incoming creative is visible
+       * before its opacity starts rising.
+       */
+      visibility 0s linear 600ms;
+  }
+
+  .demo-creative.visible {
+    transition-delay: 0s;
   }
 </style>

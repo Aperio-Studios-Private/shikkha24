@@ -223,7 +223,17 @@ const imageSizes = sizes ?? (isStacked ? '(min-width: 1024px) 800px, 100vw' : '9
           <p
             class:list={[
               'text-ink-muted dark:text-dark-ink-muted',
-              isLead ? 'line-clamp-3 text-base sm:text-lg' : 'line-clamp-2 text-sm',
+              /*
+               * ⚠️ `text-base` (17px), not `text-sm`. This is **body copy** — full
+               * sentences of Bengali prose — and the token file is explicit that
+               * `--text-sm` (15px) is for *metadata* while `--text-base` is the
+               * "BODY FLOOR" below which conjuncts (যুক্তাক্ষর) and vowel signs
+               * (কার) collide (`global.css:146-153`, `docs/testing-and-qa.md` §3).
+               * It rendered at 15px, and on the homepage this paragraph is the
+               * **LCP element** (measured 2026-10-19) — so the smallest body text
+               * on the page was also the largest thing in the first paint.
+               */
+              isLead ? 'line-clamp-3 text-base sm:text-lg' : 'line-clamp-2 text-base',
             ]}
           >
             {article.excerpt}
