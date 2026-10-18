@@ -134,6 +134,30 @@ async function storedFor(req: PayloadRequest, readerId: number): Promise<StoredB
   return found.docs as unknown as StoredBookmark[]
 }
 
+/**
+ * The answer when any part of a sync failed.
+ *
+ * ⚠️ Three things are deliberate. The status is non-2xx so the client cannot
+ * treat it as an authoritative list. `synced` is **false**, which is what tells
+ * the client its local list is still the only complete copy. And
+ * `Retry-After`-style guidance is absent on purpose — the client already retries
+ * on its next mount; what it must not do is replace good local data with a
+ * partial server answer.
+ *
+ * The message never says what was lost, because nothing is lost: the reader row
+ * is untouched and the next sync replays the merge.
+ */
+function syncFailed(written = 0): Response {
+  return json(
+    {
+      error: 'বুকমার্ক সিঙ্ক করা যায়নি। আপনার ডিভাইসের তালিকা অপরিবর্তিত আছে — আবার চেষ্টা করুন।',
+      synced: false,
+      written,
+    },
+    503,
+  )
+}
+
 /** `StoredBookmark` → the wire shape the client stores. */
 function toWire(row: StoredBookmark): WireBookmark {
   const target = row.kind === 'article' ? row.article : row.deadline
@@ -154,12 +178,18 @@ function toWire(row: StoredBookmark): WireBookmark {
  *
  * One query per kind rather than one per bookmark: a 200-entry sync must not cost
  * 200 round trips.
+ *
+ * @returns the set of ids that exist, or `null` when the query itself failed.
+ *          ⚠️ `null` is not an empty set: an empty set means "none of these
+ *          targets exist", which is a legitimate answer that drops the entries;
+ *          `null` means "we do not know", and the caller must not drop anything
+ *          on the strength of it.
  */
 async function existingTargets(
   req: PayloadRequest,
   kind: Kind,
   ids: number[],
-): Promise<Set<number>> {
+): Promise<Set<number> | null> {
   if (ids.length === 0) return new Set()
   const found = await req.payload
     .find({
@@ -172,7 +202,8 @@ async function existingTargets(
       req,
     })
     .catch(() => null)
-  return new Set((found?.docs ?? []).map((doc) => Number(doc.id)))
+  if (!found) return null
+  return new Set(found.docs.map((doc) => Number(doc.id)))
 }
 
 /**
@@ -180,6 +211,23 @@ async function existingTargets(
  *
  * See the policy at the top of this file — the short version is that the first
  * sync merges and every sync after it takes the server's answer.
+ *
+ * ## ⚠️ `synced: true` is a claim the client acts on, so it must be earned
+ *
+ * The client treats a 2xx sync as authoritative: it **replaces** its local list
+ * with `bookmarks` and records the reader as synced. Every read and every write
+ * here therefore has to be fatal when it fails. When they were suppressed with
+ * `.catch(() => null)` the endpoint could:
+ *
+ *   - return an **empty or partial** list after a failed read — and the client
+ *     would wipe a list the reader could still see, and
+ *   - mark the reader as synced while a create had failed — after which the
+ *     merge branch is never entered again, so the bookmarks that failed to
+ *     upload were **never retried** (T-65).
+ *
+ * On failure the answer is now an error status, and the "unsynced" shape of the
+ * body (no `synced: true`) tells the client that its local list is still the
+ * only complete copy.
  */
 const bookmarkSyncEndpoint: Endpoint = {
   // Relative to the Bookmarks collection slug → `/api/bookmarks/sync`.
@@ -200,9 +248,14 @@ const bookmarkSyncEndpoint: Endpoint = {
     const reader = await req.payload
       .findByID({ collection: 'readers', id: readerId, depth: 0, overrideAccess: true, req })
       .catch(() => null)
+    // ⚠️ Still fatal-safe: `null` means either "no such reader" or "the read
+    // failed", and both must stop a sync rather than be answered with the marker
+    // logic below. A genuinely deleted reader gets a 401 either way.
     if (!reader) return json({ error: 'সাইন ইন করা নেই।' }, 401)
 
-    const stored = await storedFor(req, readerId)
+    const stored = await storedFor(req, readerId).catch(() => null)
+    if (!stored) return syncFailed()
+
     const synced = Boolean((reader as { bookmarksSyncedAt?: unknown }).bookmarksSyncedAt)
 
     /*
@@ -227,14 +280,22 @@ const bookmarkSyncEndpoint: Endpoint = {
       byKind.set(entry.kind, [...(byKind.get(entry.kind) ?? []), entry.target])
     }
     const real = new Map<Kind, Set<number>>()
-    for (const [kind, ids] of byKind) real.set(kind, await existingTargets(req, kind, ids))
+    for (const [kind, ids] of byKind) {
+      const targets = await existingTargets(req, kind, ids)
+      // A failed existence query would look like "none of these articles
+      // exist" and silently drop every bookmark the reader uploaded.
+      if (!targets) return syncFailed()
+      real.set(kind, targets)
+    }
 
+    let written = 0
     for (const entry of candidates) {
       const key = `${entry.kind}:${entry.target}`
       if (have.has(key)) continue
       if (!real.get(entry.kind)?.has(entry.target)) continue
-      have.add(key)
-      await req.payload
+      // The key is claimed only after the write succeeds, so a failed create is
+      // retried on the next sync instead of being treated as already present.
+      const created = await req.payload
         .create({
           collection: 'bookmarks',
           // Whitelisted key by key — never a spread of the body. `reader` comes
@@ -249,7 +310,11 @@ const bookmarkSyncEndpoint: Endpoint = {
           overrideAccess: true,
           req,
         })
-        .catch(() => null)
+        .then(() => true)
+        .catch(() => false)
+      if (!created) return syncFailed(written)
+      have.add(key)
+      written += 1
     }
 
     /*
@@ -258,7 +323,7 @@ const bookmarkSyncEndpoint: Endpoint = {
      * bookmarks never uploaded — and the next sync would then discard the local
      * list that still held them.
      */
-    await req.payload
+    const marked = await req.payload
       .update({
         collection: 'readers',
         id: readerId,
@@ -266,9 +331,14 @@ const bookmarkSyncEndpoint: Endpoint = {
         overrideAccess: true,
         req,
       })
-      .catch(() => null)
+      .then(() => true)
+      .catch(() => false)
+    if (!marked) return syncFailed(written)
 
-    return json({ bookmarks: (await storedFor(req, readerId)).map(toWire), synced: true })
+    const after = await storedFor(req, readerId).catch(() => null)
+    if (!after) return syncFailed(written)
+
+    return json({ bookmarks: after.map(toWire), synced: true })
   },
 }
 
@@ -295,14 +365,21 @@ const bookmarkToggleEndpoint: Endpoint = {
     const entry = readBookmark(body)
     if (!entry) return json({ error: 'বুকমার্কটি সঠিক নয়।' }, 400)
 
-    const stored = await storedFor(req, readerId)
+    const stored = await storedFor(req, readerId).catch(() => null)
+    // A failed read is not "this bookmark is not saved": answering from an empty
+    // list would create a duplicate row, or report a removal that never happened.
+    if (!stored) return syncFailed()
     const match = stored.find((row) => keyOf(row) === `${entry.kind}:${entry.target}`)
 
     if (body.saved === false) {
       if (match) {
-        await req.payload
+        const gone = await req.payload
           .delete({ collection: 'bookmarks', id: match.id, overrideAccess: true, req })
-          .catch(() => null)
+          .then(() => true)
+          .catch(() => false)
+        // `saved: false` is a claim that the row is gone; a suppressed failure
+        // here would leave it in place and the client would believe otherwise.
+        if (!gone) return syncFailed()
       }
       return json({ ok: true, saved: false })
     }
@@ -315,9 +392,10 @@ const bookmarkToggleEndpoint: Endpoint = {
     }
 
     const valid = await existingTargets(req, entry.kind, [entry.target])
+    if (!valid) return syncFailed()
     if (!valid.has(entry.target)) return json({ error: 'খুঁজে পাওয়া যায়নি।' }, 404)
 
-    await req.payload
+    const created = await req.payload
       .create({
         collection: 'bookmarks',
         data: {
@@ -330,7 +408,12 @@ const bookmarkToggleEndpoint: Endpoint = {
         overrideAccess: true,
         req,
       })
-      .catch(() => null)
+      .then(() => true)
+      .catch(() => false)
+
+    // Told the truth rather than "saved": the client's local list still holds the
+    // entry, and it will be replayed on the next toggle or sync.
+    if (!created) return syncFailed()
 
     return json({ ok: true, saved: true })
   },

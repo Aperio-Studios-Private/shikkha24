@@ -100,6 +100,11 @@ function unsubscribeUrl(token: string): string {
  *          expected condition (unconfigured transport, exhausted budget, a
  *          transport error) — those are all reported in the result instead,
  *          because a cron job has nowhere useful to put an exception.
+ *
+ * @throws when a recipient read fails. That is the one condition a result object
+ *         cannot express honestly: `{ sent: 0, done: false }` is exactly what a
+ *         finished campaign reports too, and reporting it as "nothing to do"
+ *         would mark the campaign sent with the mailing skipped (T-63).
  */
 export async function sendCampaignBatch(
   payload: Payload,
@@ -127,49 +132,88 @@ export async function sendCampaignBatch(
     return { sent: 0, remaining: 0, done: true }
   }
 
+  /*
+   * ⚠️ The two reads below are **fatal when they fail**, and must not degrade
+   * into "no recipients".
+   *
+   * The completion test for a campaign is "the next page of recipients is
+   * empty". An empty page therefore has exactly one honest meaning: every active
+   * subscriber has been mailed. A query error suppressed to `null` produces the
+   * *same* empty page, so a transient database error was indistinguishable from
+   * a finished campaign, and the sweep marked it `sent` — mailing nobody, and
+   * suppressing retry forever, because a `sent` campaign is a no-op on every
+   * later pass. That is the audit's "marks sent after a failed sub-operation"
+   * finding (T-63).
+   *
+   * So a read failure throws instead. The caller (`/api/newsletter/send`) fails
+   * visibly with a 5xx, the status stays exactly as it was — no update has run
+   * yet at this point — and the next cron tick retries from the same cursor.
+   */
   const budget = remainingSendBudget()
   const cursor = campaign.sentThroughId ?? 0
 
-  const totalActive = await payload
-    .count({
+  let totalActive: { totalDocs: number }
+  let recipients: SubscriberRow[]
+  try {
+    totalActive = await payload.count({
       collection: 'newsletter-subscribers',
       where: { isActive: { equals: true } },
       overrideAccess: true,
     })
-    .catch(() => null)
+
+    // Nothing may go out with the hour's budget spent. This read still has to
+    // succeed first, so the "remaining" it reports is a real count and not a
+    // zero that a failure would have invented.
+    if (budget > 0) {
+      const batch = await payload.find({
+        collection: 'newsletter-subscribers',
+        where: {
+          and: [{ isActive: { equals: true } }, { id: { greater_than: cursor } }],
+        },
+        sort: 'id',
+        limit: budget,
+        depth: 0,
+        overrideAccess: true,
+      })
+      recipients = batch.docs as SubscriberRow[]
+    } else {
+      recipients = []
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    // Recording it is best-effort: this write may fail for the same reason the
+    // read did, and swallowing *its* failure is safe — no status changes, so the
+    // campaign is still retryable either way.
+    await payload
+      .update({
+        collection: 'newsletter-campaigns',
+        id: campaign.id,
+        data: { status: 'sending', lastError: message.slice(0, 500) },
+        overrideAccess: true,
+      })
+      .catch(() => null)
+    throw new Error(`campaign recipient query failed: ${message}`)
+  }
 
   if (budget <= 0) {
     // Nothing may go out this hour. Report honestly rather than pretending.
     return {
       sent: 0,
-      remaining: Math.max(0, (totalActive?.totalDocs ?? 0) - (campaign.sentCount ?? 0)),
+      remaining: Math.max(0, totalActive.totalDocs - (campaign.sentCount ?? 0)),
       done: false,
     }
   }
 
-  const batch = await payload
-    .find({
-      collection: 'newsletter-subscribers',
-      where: {
-        and: [{ isActive: { equals: true } }, { id: { greater_than: cursor } }],
-      },
-      sort: 'id',
-      limit: budget,
-      depth: 0,
-      overrideAccess: true,
-    })
-    .catch(() => null)
-
-  const recipients = (batch?.docs ?? []) as SubscriberRow[]
-
   if (recipients.length === 0) {
+    // Only reachable with a successful read, so "no recipients left" here
+    // really does mean the campaign is finished.
     await payload.update({
       collection: 'newsletter-campaigns',
       id: campaign.id,
       data: {
         status: 'sent',
         sentAt: new Date().toISOString(),
-        recipientCount: campaign.recipientCount || (totalActive?.totalDocs ?? 0),
+        recipientCount: campaign.recipientCount || totalActive.totalDocs,
         deferredCount: 0,
       },
       overrideAccess: true,
@@ -229,11 +273,8 @@ export async function sendCampaignBatch(
             sentCount: (campaign.sentCount ?? 0) + sent,
             sentThroughId: lastId,
             lastError: message.slice(0, 500),
-            recipientCount: campaign.recipientCount || (totalActive?.totalDocs ?? 0),
-            deferredCount: Math.max(
-              0,
-              (totalActive?.totalDocs ?? 0) - (campaign.sentCount ?? 0) - sent,
-            ),
+            recipientCount: campaign.recipientCount || totalActive.totalDocs,
+            deferredCount: Math.max(0, totalActive.totalDocs - (campaign.sentCount ?? 0) - sent),
           },
           overrideAccess: true,
         })
@@ -246,7 +287,7 @@ export async function sendCampaignBatch(
   }
 
   const totalSent = (campaign.sentCount ?? 0) + sent
-  const audience = totalActive?.totalDocs ?? 0
+  const audience = totalActive.totalDocs
   const done = totalSent >= audience
 
   await payload.update({

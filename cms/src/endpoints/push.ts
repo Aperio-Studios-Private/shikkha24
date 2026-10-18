@@ -47,8 +47,31 @@ type StoredReminder = NonNullable<PushSubscription['reminders']>[number]
 /** Subscription writes per IP per minute. */
 const SUBSCRIBE_ATTEMPTS_PER_MINUTE = 10
 
-/** Bounded so one sweep cannot run unbounded on a 2 GB host. */
-const SWEEP_BATCH_SIZE = 200
+/**
+ * Rows read and processed per query while paging the sweep.
+ *
+ * ⚠️ **Not a ceiling on the sweep — a page size.** The sweep used to be a single
+ * `find` with `limit: 200`, which silently meant "subscriptions 201 and beyond
+ * are never swept": every cron tick re-read the same first page, so a due reminder
+ * on a later row could never be sent, no matter how often the sweep ran (T-66b).
+ * It now walks every row in pages, and dedupes the IDs it has seen so a page that
+ * fails to advance cannot loop forever.
+ */
+const SWEEP_PAGE_SIZE = 200
+
+/**
+ * Page ceiling for one sweep — the loop stops once this many pages have been read
+ * and says so in `truncated`.
+ *
+ * It exists because the sweep is a synchronous HTTP request on a **2 GB shared
+ * host**: an unbounded loop over a table that has grown to tens of thousands of
+ * rows would hold a PHP/Passenger worker open long enough to be killed
+ * mid-send, and a killed worker's response is exactly the thing this file
+ * already tries to avoid elsewhere. 50 pages × 200 = 10,000 rows per sweep is
+ * far beyond the current audience and still bounded; a larger table simply takes
+ * a second tick, because `truncated: true` is visible in the cron log.
+ */
+const SWEEP_MAX_PAGES = 50
 
 /** Does the caller hold the cron token, or an editorial session? */
 function isAuthorisedSweep(req: PayloadRequest): boolean {
@@ -214,10 +237,20 @@ const unsubscribe: Endpoint = {
 /**
  * `POST /api/push/sweep`
  *
- * Sends every reminder that is due, then marks it notified. Authorised by
- * `PUSH_SEND_TOKEN` via the `x-push-token` header — a shared secret rather than
- * a signed request because the caller is a cPanel cron job on the same host.
- * With no token configured the endpoint is **disabled**, not open.
+ * Sends every reminder that is due, then marks **only what actually sent** as
+ * notified. Authorised by `PUSH_SEND_TOKEN` via the `x-push-token` header — a
+ * shared secret rather than a signed request because the caller is a cPanel cron
+ * job on the same host. With no token configured the endpoint is **disabled**,
+ * not open.
+ *
+ * ## Two properties that are load-bearing
+ *
+ * 1. **A failed send stays pending.** `notified` is a statement that the reader
+ *    was told. Writing it after merely *attempting* a send meant one transient
+ *    provider failure ended that reminder forever — the next sweep skips anything
+ *    already marked notified, so the reader was never reminded at all (T-66a).
+ * 2. **The sweep walks the whole table.** Reads are paged; see
+ *    `SWEEP_PAGE_SIZE` / `SWEEP_MAX_PAGES` for the bound and why it exists (T-66b).
  */
 const sweep: Endpoint = {
   path: '/push/sweep',
@@ -228,107 +261,162 @@ const sweep: Endpoint = {
 
     const now = Date.now()
 
-    const found = await req.payload.find({
-      collection: 'push-subscriptions',
-      limit: SWEEP_BATCH_SIZE,
-      depth: 1,
-      overrideAccess: true,
-      req,
-    })
-
-    const subscriptions = found.docs as Array<{
-      id: number | string
-      endpoint: string
-      p256dh: string
-      auth: string
-      reminders?: Array<{
-        id?: string
-        deadline?: { id?: number; title?: string; dateEnd?: string } | number
-        remindAt?: string
-        notified?: boolean
-      }> | null
-    }>
-
     let sent = 0
     let due = 0
     let removed = 0
+    let subscriptions = 0
+    let pages = 0
+    let truncated = false
     const errors: string[] = []
 
-    for (const subscription of subscriptions) {
-      const reminders = Array.isArray(subscription.reminders) ? subscription.reminders : []
+    /*
+     * ⚠️ **Offset paging over the subscriptions table, ended by an empty page.**
+     *
+     * The old single `find` read the first 200 rows and stopped, so a due reminder
+     * on row 201 was never reached by any number of sweeps. The cursor is an
+     * offset rather than an id because the sweep *deletes* rows (a 410/404
+     * subscription is removed as it is processed), and a row-id cursor past a
+     * deleted row would skip every row below it. Rows are processed before later
+     * pages are read, so the shifting window can re-read a row — which is why
+     * every row id already handled is remembered below.
+     */
+    const seen = new Set<string>()
 
-      // Only the reminders that are due and not yet sent.
-      const pending = reminders.filter(
-        (reminder) =>
-          !reminder.notified && reminder.remindAt && new Date(reminder.remindAt).getTime() <= now,
-      )
-      if (pending.length === 0) continue
-      due += pending.length
-
-      let dead = false
-
-      for (const reminder of pending) {
-        const deadline =
-          reminder.deadline && typeof reminder.deadline === 'object' ? reminder.deadline : null
-
-        const outcome = await sendPush(
-          {
-            endpoint: subscription.endpoint,
-            keys: { p256dh: subscription.p256dh, auth: subscription.auth },
-          },
-          {
-            title: deadline?.title ?? 'সময়সীমা ঘনিয়ে এসেছে',
-            body: 'আপনার সংরক্ষিত সময়সীমার তারিখ نزدিকটে। বিস্তারিত দেখুন।',
-            // Opened from the notification; the service worker passes this on.
-            url: '/deadlines',
-          },
-        )
-
-        if (outcome.status === 'sent') {
-          sent += 1
-        } else if (outcome.status === 'gone') {
-          // Permission revoked — the row is a capability nobody can use.
-          await req.payload
-            .delete({
-              collection: 'push-subscriptions',
-              id: subscription.id,
-              overrideAccess: true,
-              req,
-            })
-            .catch(() => null)
-          removed += 1
-          dead = true
-          break
-        } else {
-          errors.push(outcome.error)
-        }
+    for (;;) {
+      if (pages >= SWEEP_MAX_PAGES) {
+        truncated = true
+        break
       }
 
-      // Mark what actually went out. `dead` skips the write entirely — the row
-      // is already gone, and updating it would recreate nothing.
-      if (dead) continue
-
-      const sentIds = new Set(pending.map((reminder) => reminder.id))
-      await req.payload
-        .update({
+      const found = await req.payload
+        .find({
           collection: 'push-subscriptions',
-          id: subscription.id,
-          data: {
-            reminders: reminders.map((reminder) =>
-              sentIds.has(reminder.id) ? { ...reminder, notified: true } : reminder,
-            ),
-          },
+          limit: SWEEP_PAGE_SIZE,
+          page: pages + 1,
+          depth: 1,
           overrideAccess: true,
           req,
         })
         .catch(() => null)
+
+      // A failed page read must not look like "no more subscriptions": that would
+      // end the sweep early and — combined with the old notified write — silently
+      // retire reminders that were never delivered.
+      if (!found) {
+        errors.push('সাবস্ক্রিপশনের তালিকা পড়া যায়নি।')
+        break
+      }
+      pages += 1
+
+      const batch = found.docs as Array<{
+        id: number | string
+        endpoint: string
+        p256dh: string
+        auth: string
+        reminders?: Array<{
+          id?: string
+          deadline?: { id?: number; title?: string; dateEnd?: string } | number
+          remindAt?: string
+          notified?: boolean
+        }> | null
+      }>
+
+      if (batch.length === 0) break
+
+      for (const subscription of batch) {
+        const rowId = String(subscription.id)
+        // Already handled in an earlier page of this same sweep. Without this a
+        // deletion-shifted window could re-send a notification it already sent.
+        if (seen.has(rowId)) continue
+        seen.add(rowId)
+        subscriptions += 1
+
+        const reminders = Array.isArray(subscription.reminders) ? subscription.reminders : []
+
+        // Only the reminders that are due and not yet sent.
+        const pending = reminders.filter(
+          (reminder) =>
+            !reminder.notified && reminder.remindAt && new Date(reminder.remindAt).getTime() <= now,
+        )
+        if (pending.length === 0) continue
+        due += pending.length
+
+        let dead = false
+        // ⚠️ `delivered` is the only thing that may be written back as notified.
+        const delivered = new Set<string | undefined>()
+
+        for (const reminder of pending) {
+          const deadline =
+            reminder.deadline && typeof reminder.deadline === 'object' ? reminder.deadline : null
+
+          const outcome = await sendPush(
+            {
+              endpoint: subscription.endpoint,
+              keys: { p256dh: subscription.p256dh, auth: subscription.auth },
+            },
+            {
+              title: deadline?.title ?? 'সময়সীমা ঘনিয়ে এসেছে',
+              body: 'আপনার সংরক্ষিত সময়সীমার তারিখ نزدিকটে। বিস্তারিত দেখুন।',
+              // Opened from the notification; the service worker passes this on.
+              url: '/deadlines',
+            },
+          )
+
+          if (outcome.status === 'sent') {
+            sent += 1
+            delivered.add(reminder.id)
+          } else if (outcome.status === 'gone') {
+            // Permission revoked — the row is a capability nobody can use.
+            await req.payload
+              .delete({
+                collection: 'push-subscriptions',
+                id: subscription.id,
+                overrideAccess: true,
+                req,
+              })
+              .catch(() => null)
+            removed += 1
+            dead = true
+            break
+          } else {
+            // Left pending on purpose: the reader has not been told, so the next
+            // sweep must try again.
+            errors.push(outcome.error)
+          }
+        }
+
+        // Mark what actually went out. `dead` skips the write entirely — the row
+        // is already gone, and updating it would recreate nothing.
+        if (dead || delivered.size === 0) continue
+
+        await req.payload
+          .update({
+            collection: 'push-subscriptions',
+            id: subscription.id,
+            data: {
+              reminders: reminders.map((reminder) =>
+                delivered.has(reminder.id) ? { ...reminder, notified: true } : reminder,
+              ),
+            },
+            overrideAccess: true,
+            req,
+          })
+          .catch(() => null)
+      }
+
+      // A short page is the last page.
+      if (batch.length < SWEEP_PAGE_SIZE) break
     }
 
     return json({
       due,
       sent,
       removed,
-      subscriptions: subscriptions.length,
+      subscriptions,
+      pages,
+      // Visible in the cron log: the sweep stopped at its page ceiling with rows
+      // still unread, so the next tick has more to do rather than nothing.
+      ...(truncated ? { truncated: true } : {}),
       ...(errors.length > 0 ? { error: errors[0] } : {}),
     })
   },
