@@ -3029,3 +3029,19 @@ links ↔ 14 ids, zero broken/orphan anchors, all tables/details balanced,
 
 Accuracy: every field name, collection, and nav group was read from the real
 CMS source (34 collections / 8 groups / Articles field list), not invented.
+
+### T-46 — 🔄 DOING (registered 2026-10-18): Naturalize Bengali language across the site (Promito Bangla & Anti-Slop)
+
+Refining and naturalizing Bengali copy across the site to eliminate rigid, machine-translated phrasing, AI slop patterns (em dashes, trailing ellipsis, redundant superlatives, abstract nouns), and establish warm, natural, human, reader-friendly Promito Bengali (national daily message editor style).
+
+- **Phase 1 (Homepage & Header/Footer):** ✅ DONE 2026-10-18.
+  - Files modified: `frontend/src/pages/index.astro`, `frontend/src/components/Header.astro`, `frontend/src/components/Footer.astro`, `frontend/src/components/HeaderWidgets.astro`.
+  - Fixes: Eliminated double-superlative grammar error ("সবচেয়ে দ্রুততম" -> "নির্ভরযোগ্য ঠিকানা"), replaced calques ("শিক্ষা সুবিধা" -> "শিক্ষা সেবা", "প্রধান নেভিগেশন" -> "প্রধান মেনু", "মোবাইল মেনু" -> "প্রধান মেনু"), corrected orthography to Bangla Academy standard ("সনাক্ত" -> "বর্তমান অবস্থান", "ব্যবহারের শর্তাবলী" -> "ব্যবহারের শর্ত"), clarified vague links ("সংরক্ষিত" -> "সংরক্ষিত খবর"), removed AI em dashes (`—`) in favor of natural punctuation (`:`, `|`), removed lazy trailing ellipsis in search placeholder ("খবর খুঁজুন").
+  - Verification: `pnpm run build` green (111 pages built), `verify:site-name` PASS, `verify:bengali-spacing` PASS, `verify:prayer-times` PASS, `verify:build-output` PASS.
+  - User approved Phase 1 ("go ahead").
+
+- **Phase 2 (News Pages):** 🔄 DOING.
+  - Scope: `[category]/[id]/[slug].astro`, `latest/[...path].astro`, `category/[...path].astro`, `archive/[...path].astro`, `author/[...path].astro`, `tag/[...path].astro`.
+  - Child components in scope: `ArticleAudio.astro`, `ArticleCard.astro`, `BookmarkButton.astro`, `CommentSection.astro`, `CorrectionNotice.astro`, `ShareRow.astro`, `SponsoredLabel.astro`.
+
+

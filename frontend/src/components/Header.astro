@@ -85,14 +85,14 @@ const hijriDate = formatHijriDate(now)
           method="get"
           class="relative flex items-center"
           role="search"
-          aria-label="সাইট অনুসন্ধান"
+          aria-label="সাইটে খুঁজুন"
         >
           <input
             type="search"
             name="q"
-            placeholder="অনুসন্ধান..."
+            placeholder="খবর খুঁজুন"
             class="h-8 w-8 rounded-md border border-transparent bg-transparent pl-8 text-sm text-ink placeholder:text-ink-subtle transition-all focus:w-40 focus:border-rule focus:bg-surface focus:outline-none sm:w-44 sm:pl-8 dark:text-dark-ink dark:focus:border-dark-rule dark:focus:bg-dark-surface"
-            aria-label="অনুসন্ধান"
+            aria-label="খুঁজুন"
           />
           <svg
             class="pointer-events-none absolute left-2 text-ink-subtle dark:text-dark-ink-muted"
@@ -134,7 +134,7 @@ const hijriDate = formatHijriDate(now)
     />
 
     {/* Main navigation — desktop */}
-    <nav class="hidden items-center gap-1 sm:flex" aria-label="প্রধান নেভিগেশন">
+    <nav class="hidden items-center gap-1 sm:flex" aria-label="প্রধান মেনু">
       <a
         href="/"
         class="inline-block px-3 py-2.5 text-sm font-medium text-ink transition-colors hover:text-brand-red dark:text-dark-ink dark:hover:text-brand-red"
@@ -203,7 +203,7 @@ const hijriDate = formatHijriDate(now)
       class="absolute right-0 top-0 h-full w-72 overflow-y-auto border-l border-rule bg-surface shadow-xl dark:border-dark-rule dark:bg-dark-surface"
       role="dialog"
       aria-modal="true"
-      aria-label="মোবাইল মেনু"
+      aria-label="প্রধান মেনু"
     >
       <div class="flex items-center justify-between border-b border-rule px-4 py-3 dark:border-dark-rule">
         <span class="font-headline text-lg font-bold">{settings.siteName}</span>
@@ -245,7 +245,7 @@ const hijriDate = formatHijriDate(now)
       {/* Education tools — the S10 specialised sections */}
       <div class="border-t border-rule px-4 py-2 dark:border-dark-rule">
         <h3 class="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-subtle dark:text-dark-ink-muted">
-          শিক্ষা সুবিধা
+          শিক্ষা সেবা
         </h3>
         <ul>
           <li><a href="/scholarships" class="block py-2 text-sm font-medium text-ink dark:text-dark-ink">বৃত্তি</a></li>
