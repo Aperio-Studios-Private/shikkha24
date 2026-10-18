@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<title>লেখার ভিজ্যুয়াল টেমপ্লেট — নকশা</title>
+<style>
+  /* Tokens copied from frontend/src/styles/global.css so the preview is faithful. */
+  :root{
+    --brand-red:#da1c25; --charcoal:#1f1f1f; --ink:#1f1f1f; --ink-muted:#5a5a5a;
+    --surface:#ffffff; --raised:#f7f7f7; --dark-surface:#1a1a1a; --dark-raised:#242424;
+    --dark-ink:#e8e8e8; --rule:#e5e5e5; --dark-rule:#333;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px;background:#eee;font-family:-apple-system,"Segoe UI",Roboto,"Noto Sans Bengali",sans-serif;color:var(--ink)}
+  h1{font-size:22px;margin:0 0 6px}
+  .lede{color:var(--ink-muted);font-size:14px;margin:0 0 28px}
+  .grid{display:grid;gap:28px;max-width:1180px;margin:0 auto}
+  .panel{background:#fff;border:1px solid var(--rule);border-radius:12px;padding:20px}
+  .panel h2{font-size:15px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-muted)}
+  .panel p.note{font-size:13px;color:var(--ink-muted);margin:0 0 16px}
+
+  /* ── the placeholder itself, exactly as the component renders ── */
+  .ph{display:flex;align-items:center;justify-content:center;background:#fff}
+  .ph img{height:auto;width:auto;max-width:70%;object-fit:contain}
+  .ph .wordmark{font-weight:700;white-space:nowrap;color:var(--charcoal)}
+  .hero{border-radius:10px;overflow:hidden;border:1px solid var(--rule)}
+  .hero.ph{aspect-ratio:16/9}
+  .card-stack.ph{aspect-ratio:16/9;width:100%}
+  .card-row.ph{aspect-ratio:1/1;width:88px;border-radius:6px;flex:0 0 auto}
+
+  .row{display:flex;gap:16px;align-items:center}
+  .card{display:flex;gap:12px;align-items:center;padding:14px;border:1px solid var(--rule);border-radius:10px;background:#fff;max-width:460px}
+  .card h3{margin:0;font-size:17px;line-height:1.5}
+  .card small{color:var(--ink-muted);font-size:12px}
+  .stage-dark{background:var(--dark-surface);border-color:var(--dark-rule);color:var(--dark-ink)}
+  .stage-dark h2{color:#9a9a9a}
+  .stage-dark p.note{color:#9a9a9a}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .grid3 .card{flex-direction:column;align-items:stretch;max-width:none;padding:0;overflow:hidden}
+  .grid3 .card .ph{border-radius:0}
+  .grid3 .card .txt{padding:10px 12px 14px}
+</style>
+</head>
+<body>
+<h1>ছবি ছাড়া লেখার জন্য ডিফল্ট ভিজ্যুয়াল</h1>
+<p class="lede">সাদা পটভূমি, মাঝখানে ব্র্যান্ড লোগো। নিচে বাস্তব আকারে দেখানো হলো।</p>
+
+<div class="grid">
+
+  <!-- HERO -->
+  <section class="panel">
+    <h2>১ — লেখার প্রধান ছবি (হিরো)</h2>
+    <p class="note">১৬:৯ অনুপাত, উচ্চতা ৯৬px লোগো। ছবি থাকলে ঠিক এই একই বাক্সে ছবিই বসবে — বিন্যাস নড়বে না।</p>
+    <div class="ph hero"><img src="logo.svg" alt="" style="max-height:96px"><span class="wordmark" style="font-size:43px;margin-left:12px">শিক্ষা২৪.কম</span></div>
+  </section>
+
+  <!-- CARDS -->
+  <section class="panel">
+    <h2>২ — কার্ডে (তালিকা ও গ্রিড)</h2>
+    <p class="note">বাঁয়ে বড় কার্ড, ডানে ছোট সারি-কার্ড। দুটিতেই একই নকশা, কেবল লোগোর আকার ছোট।</p>
+    <div class="grid3">
+      <div class="card">
+        <div class="ph card-stack"><img src="logo.svg" alt="" style="max-height:56px"><span class="wordmark" style="font-size:25px;margin-left:12px">শিক্ষা২৪.কম</span></div>
+        <div class="txt"><h3>এসএসসি ফরম পূরণের তারিখ ঘোষণা</h3><small>শিক্ষা · ৩ মিনিট পড়া</small></div>
+      </div>
+      <div class="card">
+        <div class="ph card-stack"><img src="logo.svg" alt="" style="max-height:56px"><span class="wordmark" style="font-size:25px;margin-left:12px">শিক্ষা২৪.কম</span></div>
+        <div class="txt"><h3>বৃত্তির আবেদনের শেষ তারিখ</h3><small>বৃত্তি · ২ মিনিট পড়া</small></div>
+      </div>
+      <div class="card">
+        <div class="ph card-stack"><img src="logo.svg" alt="" style="max-height:56px"><span class="wordmark" style="font-size:25px;margin-left:12px">শিক্ষা২৪.কম</span></div>
+        <div class="txt"><h3>ভর্তির বিজ্ঞপ্তি প্রকাশিত</h3><small>ভর্তি · ৪ মিনিট পড়া</small></div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:18px">
+      <div class="card">
+        <div class="ph card-row"><img src="logo.svg" alt="" style="max-height:32px"></div>
+        <div><h3>ক্যাডেট কলেজে ভর্তি, আবেদন শুরু ১ নভেম্বর</h3><small>ভর্তি · ৩ মিনিট পড়া</small></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DARK THEME -->
+  <section class="panel stage-dark">
+    <h2>৩ — ডার্ক মোডেও সাদা</h2>
+    <p class="note">আপনার নির্দেশ অনুযায়ী পটভূমি দুই মোডেই সাদা থাকে — কালো হয় না। এটিই একমাত্র জায়গা যেখানে রঙ মোড অনুযায়ী বদলায় না।</p>
+    <div class="ph hero" style="max-width:420px"><img src="logo.svg" alt="" style="max-height:72px"><span class="wordmark" style="font-size:32px;margin-left:12px">শিক্ষা২৪.কম</span></div>
+  </section>
+
+  <!-- FALLBACK -->
+  <section class="panel">
+    <h2>৪ — লোগো না থাকলে</h2>
+    <p class="note">সেটিংসে লোগো না থাকলে সাইটের নামটিই ব্র্যান্ড-চিহ্ন হিসেবে বসে। খালি বাক্স কখনো দেখাবে না।</p>
+    <div class="row">
+      <div class="card-row-standalone" style="width:88px;height:88px;border:1px solid var(--rule);border-radius:6px;display:flex;align-items:center;justify-content:center">
+        <span style="font-weight:700;color:var(--charcoal);font-size:15px">শিক্ষা২৪</span>
+      </div>
+      <div style="max-width:360px"><small style="color:var(--ink-muted)">নাম খুব লম্বা হলে ছোট ফন্টে বসে, বাক্স ছাড়িয়ে যায় না।</small></div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

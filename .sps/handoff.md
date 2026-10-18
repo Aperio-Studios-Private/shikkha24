@@ -2649,3 +2649,19 @@ brief and the existing architecture:
 NOT yet implemented at the time of writing — component + both call sites are the
 next step. The category archetype assets (`src/assets/categories/*.jpg`) stay in
 place; they are still used by the homepage card fallback via `getCategoryImage`.
+
+### 2026-10-18 ~17:35 — Placeholder visual IMPLEMENTED (T-49)
+
+`frontend/src/components/ArticlePlaceholder.astro` — white panel, centred CMS
+logo. Wired at both former text-only call sites (ArticleCard list grid, article
+hero). Build green, 117 pages; verify:bengali-spacing OK (101 files, 0 fused
+words); biome clean. Commit 83916cd.
+
+Design proven, not assumed: rendered the real component to a 1240px screenshot
+and sampled pixels. Hero panel is 98% pure white (255,255,255) with 121 distinct
+colours, i.e. the logo is painting rather than the panel being an empty box;
+1,437 brand-red pixels land in the logo's bounding box; the dark-theme panel is
+still 92% white, confirming the deliberate no-dark-variant decision. Preview:
+`docs/assets/article-placeholder-design.png` (+ the HTML it was rendered from).
+
+Sizes chosen: hero logo 96px, stacked card 56px, row card 32px.
