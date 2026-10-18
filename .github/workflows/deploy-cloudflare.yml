@@ -236,7 +236,14 @@ jobs:
           fetch_until_live() {
             local i body
             for i in $(seq 1 12); do
-              if body=$(curl -fsS "$URL" 2>/dev/null) && printf '%s' "$body" | grep -q 'শিক্ষা২৪'; then
+              # The app-body check is bash's own substring test, NOT
+              # `printf | grep -q`: this script runs under `set -o pipefail`,
+              # and grep -q exits on its first match, closing the pipe while
+              # printf still feeds 100+ KB — printf dies of SIGPIPE, pipefail
+              # turns the pipeline into a failure, and a perfectly healthy site
+              # fails the probe (run 39139133445: 12 broken-pipe attempts, all
+              # of them seeing the site while the function called it not-ready).
+              if body=$(curl -fsS "$URL" 2>/dev/null) && [[ "$body" == *'শিক্ষা২৪'* ]]; then
                 printf '%s' "$body"; return 0
               fi
               echo "  attempt $i: not ready yet — waiting 10s for edge propagation"

@@ -3206,7 +3206,33 @@ goes through CmsImage/AVIF-WebP). Fixed in `f145eed`: the fill now renders from
 a 64px WebP built by `getImage` — **157,116 B → 1,022 B (99.3%)**. Gate scores
 after: perf 0.95–0.97, a11y 1.00, seo 1.00.
 
-### T-51 — 🔴 OPEN (2026-10-18): GitHub Actions budget exhausted — every workflow now fails in ~3s
+### T-54 — 🔄 IN FLIGHT (2026-10-18 evening): Deploy workflow's last step — three failures, cause chain found
+
+`wrangler deploy` itself SUCCEEDED on every attempt this evening; the failures
+were all in the final "Verify the published Worker" probe. Independent curl
+probes during every "failure" returned the healthy site — so each failure was a
+probe bug, fixed in three steps:
+
+1. **Run 39137221447** — before this task: failed earlier (links). After the
+   digest content fix, the chain moved past build + link gate.
+2. **Run 39138526694** — probe got a 200 whose body lacked the site name
+   (+0.1s) and had no retry on the content checks. Fix `7918aee`:
+   `fetch_until_live` requires clean fetch + site name inside the retry; CSP
+   check got its own retry.
+3. **Run 39139133445** — 12 attempts, each logging `printf: write error:
+   Broken pipe`, then "never came up". Root cause: the step runs
+   `set -o pipefail`; the check was `printf '%s' "$body" | grep -q …`;
+   `grep -q` exits on first match closing the pipe, printf dies of SIGPIPE,
+   pipefail fails the pipeline even though the site WAS answering correctly
+   every time. Fix: bash substring test `[[ "$body" == *'শিক্ষা২৪'* ]]` — no
+   pipe, immune to pipefail. `verify:cloudflare` 83 checks OK after the edit.
+
+**Next session:** confirm the Deploy run for the pipefail-fix commit is green
+(it will also be the first fully-green publish of the session), then verify
+live and close this task. If green, also close T-51 (its root condition is
+gone — public repo) and flip T-49/T-52 bookkeeping if desired.
+
+### T-51 — ✅ RESOLVED 2026-10-18 evening (was: GitHub Actions budget exhausted)
 
 Owner asked how to avoid the Actions budget problem. Measured, not assumed:
 
@@ -3256,3 +3282,16 @@ minutes are not purchasable. Budget must be *reduced*, not increased.
 
 **Not investigated yet:** the exact reset date of the billing cycle, and whether
 any of the 966 historical runs are still consuming the current window.
+
+### Session ledger 2026-10-18 (evening) — commits pushed to BOTH remotes
+
+- `1ebe7a5` T-51 registered (budget exhausted, 3s failures)
+- `67b57f5` T-46 finished + (absorbed) filler files — see the T-49 note
+- `b70c4bb` T-49 closed + mislabelled-commit disclosure
+- `707c1a2` 10 lint errors cleared
+- `cf02bd4` T-52 record (repo public, budget restored)
+- `f145eed` fill-layer WebP perf fix (LCP image weight −156 KB)
+- `1b9faa5` Lighthouse article fixture from sitemap
+- `354b1bd` T-53 record
+- `7918aee` probe content-retry
+- (pending push) T-54 pipefail probe fix + this handoff refresh

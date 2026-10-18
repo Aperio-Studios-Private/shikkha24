@@ -1,6 +1,96 @@
 # SPS Handoff
 
-## ⭐ START HERE — 2026-10-17 end-of-day. Read THIS before any chronology below.
+## ⭐ START HERE — 2026-10-18 evening. This block supersedes the 10-17 block below it.
+
+Written so a fresh agent/chat can continue with zero context loss. Read this +
+`.sps/tasks.md` (T-50…T-54 are the live items). Every claim verified by command
+output on 2026-10-18.
+
+### Do this FIRST next session (in order)
+
+1. `git pull` on `/Volumes/SSD/CODES/NewsPortal` (GitHub `SHAHID8142/shikkha24`,
+   now **PUBLIC** — unlimited free Actions minutes; budget problem T-51 is dead).
+2. Check the two runs for commit `91c1cee`-or-later (the pipefail probe fix —
+   the last commit this session pushed):
+   `gh run list --limit 4 --json workflowName,status,conclusion,headSha`.
+   - **CI (verify)** is expected green — it was green on 3 consecutive commits
+     (`707c1a2`, `354b1bd`, `7918aee`).
+   - **Deploy (Cloudflare)** must go green for the FIRST time this session. The
+     previous 3 failures were all in its LAST step ("Verify the published
+     Worker") while `wrangler deploy` itself succeeded — the fix history is
+     T-54 in `.sps/tasks.md`.
+3. If Deploy is green: the site is published end-to-end. Verify with
+   `curl -s https://shikkha24-frontend.abdullahalmamunmay.workers.dev/ | grep শিক্ষা২৪`
+   and check the corrected digest
+   (`/education-news/30/weekly-digest-2026-10-17` — moushi claim gone, notice
+   present, `/admission/23/…` link fixed).
+4. Mark the appropriate tasks done in `.sps/tasks.md`; then the handover polish
+   items at the bottom of this block.
+
+### What changed this session (2026-10-18)
+
+- **Repo is PUBLIC** (`gh repo edit --visibility public`), after a full-history
+  secret scan (5,861 objects, token patterns: zero hits; only `.example` files
+  tracked). GitHub Actions now free/unlimited → the 2,000-min ceiling (T-51)
+  can no longer block publishes. NOTE for owner: two personal Gmail addresses
+  remain in tracked docs; swap for role addresses if unwanted (T-52 note).
+- **Bengali copy (T-46) DONE** — last 14 reader-facing em dashes removed
+  (commit `67b57f5`); sweep now: 21 title/desc (allowed) + 2 logic sentinels +
+  0 prose violations.
+- **10 lint errors cleared** (`707c1a2`) — incl. `bangla-date.ts` non-null
+  assertions replaced with total fallbacks, behaviour proven identical
+  (masthead `রবিবার, ৩ কার্তিক, ১৪৩৩` matches live byte-for-byte).
+- **Filler perf defect fixed** (`f145eed`) — FramedImage's blurred fill layer
+  was fetching the raw 153KB CMS JPEG; now a 64px WebP via `getImage`
+  (157,116 B → 1,022 B). Lighthouse gate: perf 0.95–0.97, a11y/seo 1.00.
+- **Lighthouse fixture made build-derived** (`1b9faa5`) — the gate now picks
+  its article URL from the built `sitemap.xml` (the old pinned /admission/23
+  URL 404s in CI, which builds a seeded `demo-*` CMS).
+- **CMS content corrected via API** — weekly digest (article 30) referenced a
+  story that was never published (moushi scholarship) and mis-categorised
+  article 23. Fixed by login→PATCH `/api/articles/30` (HTTP 200): dead
+  paragraph removed, link corrected, intro rewritten, `correctionNotice` set.
+  Deploy's `verify:links` now passes.
+- **Deploy probe hardened twice** (`7918aee`, then the pipefail fix) — see
+  T-54. Root cause of the final failure: `set -o pipefail` + `grep -q` early
+  exit ⇒ SIGPIPE ⇒ probe judged a healthy site unhealthy. Fix = bash substring
+  test, no pipe.
+
+### Architecture facts that decide everything (unchanged)
+
+| Fact | Consequence |
+|---|---|
+| Astro 7 / Vite 8 cannot run on DianaHost Node 20.18.2 | frontend builds ONLY in CI/GitHub Actions |
+| CI verifies; `deploy-cloudflare.yml` publishes (AUTO_DEPLOY=live) | every push → CI → Deploy → `wrangler deploy` |
+| CMS on DianaHost is Payload **3.89.0** runtime / 3.90.2 schema | the T-31 one-shot CMS deploy is STILL PENDING (see 10-17 block) |
+| sharp cannot run in the CMS host historically, but CAN now (T-50) | storefront pre-optimises CMS images at build time instead (CmsImage/FramedImage) |
+| Rule 7: no card, no paid services | Actions was exhausted because minutes are paid for private repos — now moot (public) |
+| `DEPLOY_WEBHOOK_URL` still UNSET on live CMS | editor publishes still need a push to deploy; the admin shows the honest warning by design |
+
+### Key URLs / identities
+
+- Live site: `https://shikkha24.com` (DNS → Cloudflare) and the Worker preview
+  `https://shikkha24-frontend.abdullahalmamunmay.workers.dev/` (what the deploy
+  probe actually verifies).
+- GitHub: `SHAHID8142/shikkha24` (public). GitLab mirror:
+  `shahidprintshop-group/shikkha24-cms-mirror` (dual-push; token via
+  `glab auth git-credential get`).
+- CMS API: `https://cms.shikkha24.com` — login via
+  `POST /api/users/login` with `cms/.env.local` credentials → JWT;
+  header `Authorization: JWT <token>`; article PATCH returned 200 for the
+  digest fix on 2026-10-18.
+
+### Handover polish (after Deploy is green)
+
+- `HANDOVER.md` §2 still says "GitHub (private)" and the accounts matrix dates
+  from 10-17 — refresh the "repo public" fact and the deployed versions line.
+- T-50 (CMS sharp/WebP at upload time) is documented and owner-decision-gated.
+- T-42 EditorialSnippets registered, not built. T-12 (media count 8→6) open.
+- Reader push key: `PUBLIC_VAPID_PUBLIC_KEY` still to verify into
+  `frontend/.env`.
+
+
+## ⭐ START HERE (previous) — 2026-10-17 end-of-day.
 
 Written so a fresh agent on ANY harness/chat can work from zero. Read this +
 `.sps/tasks.md` (the queue, T-31…T-34 are the live items); every claim below
