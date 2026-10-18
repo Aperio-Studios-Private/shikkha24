@@ -3177,6 +3177,35 @@ AVIF+WebP for the *local* archetype assets (`src/assets/categories/*.jpg` go
 through it — that is why the `_astro/` output has `.avif`/`.webp`). CMS images
 bypass it because they are remote. No action taken; awaiting owner direction.
 
+### T-53 — ✅ DONE (2026-10-18): two CI gates that had never run green again
+
+The budget unblock (T-52) exposed the real state of the tree: **two gates were
+red for reasons that predate today**, and the deploy workflow (`Deploy
+(Cloudflare)`) had been failing only because it waits for CI.
+
+**1. Lint — 10 errors.** Fixed in commit `707c1a2`. The worst was my own
+`docs/copy-manifest-bn.json` (format). The subtle ones: `noExplicitAny` on the
+Payload boundary in `cms/src/bootstrap/admin.ts` now declares the fields it
+reads (`id`, `roles`) instead of `any`; the five `noNonNullAssertion`s in
+`bangla-date.ts` became total fallbacks whose behaviour was proven unchanged —
+the rebuilt masthead reads `রবিবার, ৩ কার্তিক, ১৪৩৩`, byte-identical to live.
+
+**2. Lighthouse — the article fixture was a production id.** The gate pinned
+`/admission/23/admission-policy-2027/`, but CI builds against a seeded CMS
+(`with-cms.sh`, `demo-*` slugs), so the URL 404s and the run dies with
+"Lighthouse was unable to reliably load the page" — while the same command
+passed locally. Fixed in `1b9faa5`: the gate resolves its article template from
+the built `sitemap.xml` at run time, so it measures what the build actually
+produced.
+
+**3. Found on the way — the Lighthouse failure was also a real perf defect.**
+Before the fixture fix, the article page scored **0.90** against the 0.95 gate.
+Lighthouse named the cause: the filler's blurred background layer was pointing
+at the raw 153KB CMS JPEG (the only thing still fetching it — the photo on top
+goes through CmsImage/AVIF-WebP). Fixed in `f145eed`: the fill now renders from
+a 64px WebP built by `getImage` — **157,116 B → 1,022 B (99.3%)**. Gate scores
+after: perf 0.95–0.97, a11y 1.00, seo 1.00.
+
 ### T-51 — 🔴 OPEN (2026-10-18): GitHub Actions budget exhausted — every workflow now fails in ~3s
 
 Owner asked how to avoid the Actions budget problem. Measured, not assumed:
