@@ -1,0 +1,126 @@
+---
+/**
+ * Default article visual — the brand placeholder.
+ *
+ * ## Why this exists
+ *
+ * Reporters publish the text first and upload a cover later, so **most articles
+ * have no `featuredImage`** for some window. The owner's original rule
+ * (2026-10-16) made those render as text with no visual at all. On 2026-10-18 the
+ * owner reversed that: an article without a cover now shows **a white panel with
+ * the site logo centred**, so a cover-less story still looks intentional rather
+ * than unfinished, and the card/list grid keeps a consistent shape.
+ *
+ * ## Design decisions, and the reasoning
+ *
+ * 1. **The logo is the CMS logo, never a hardcoded file.** It resolves through
+ *    the same `SiteSettings.logo` value the header uses, so the owner changing
+ *    the logo in the admin changes it here too. A hardcoded path would be a
+ *    second source of truth that silently goes stale — the M21 failure shape.
+ * 2. **White in both themes, deliberately.** The brief was "white background".
+ *    Every other surface in this system has a dark variant; this one must not
+ *    inherit it, so the colors are literal `bg-white` rather than a token that
+ *    flips. Recorded here because that is surprising on first read.
+ * 3. **Same 16:9 box as a real cover.** The wrapper is sized by the caller so the
+ *    reserved space is identical whether or not a cover exists. That is what
+ *    keeps CLS at 0 and stops the grid from reflowing when a reporter adds a
+ *    photo later.
+ * 4. **`role="presentation"` and empty `alt`.** This visual carries no
+ *    information — it is a brand mark, not a picture of the story. Announcing it
+ *    would add noise to a screen-reader pass over a list of twenty cards. This is
+ *    the deliberate difference from a real cover, which always gets a real alt.
+ * 5. **The wordmark is not repeated when the logo already contains it.** If the
+ *    owner has set `showNameWithLogo: false` the logo is the whole brand, so
+ *    printing the name underneath would duplicate it.
+ */
+import { getSiteSettings, type CmsSiteSettings } from '../lib/cms'
+
+interface Props {
+  /**
+   * Site settings. Optional on purpose: this component is rendered from list
+   * grids (homepage, category, tag, related) that do not receive `settings`, and
+   * threading it through six callers to draw a placeholder would be a wide
+   * change for a small one. Absent, it resolves them itself — see below.
+   */
+  settings?: CmsSiteSettings | null
+  /** Layout classes from the caller (sizing, rounding, aspect box). */
+  class?: string
+  /** Logo height in px. Cards want a smaller mark than a hero. */
+  markHeight?: number
+}
+
+
+const { settings: passed, class: className = '', markHeight = 48 } = Astro.props
+
+/**
+ * `getSiteSettings()` is safe to call per instance: it caches the in-flight
+ * **promise** build-wide (`lib/cms.ts`), so a grid of twenty cover-less cards
+ * makes one request, not twenty. Calling it here is what keeps this component
+ * drop-in at every call site.
+ */
+const settings = passed ?? (await getSiteSettings())
+
+const { logo, siteName, showNameWithLogo = true } = settings
+
+const mediaBase = import.meta.env.PUBLIC_MEDIA_BASE_URL || ''
+const logoSrc = logo?.url
+  ? logo.url.startsWith('http')
+    ? logo.url
+    : `${mediaBase}${logo.url}`
+  : null
+
+/**
+ * Only show the wordmark when there is no logo to carry the brand, or when the
+ * owner has explicitly asked for both. Never render an empty brand.
+ */
+const showName = !logoSrc || showNameWithLogo !== false
+
+/**
+ * Intrinsic width/height keep the aspect ratio so the mark reserves its box
+ * before load (CLS). The CMS gives real dimensions; a fallback square matches
+ * the usual mark shape for uploads that predate the dimension probe.
+ */
+const markWidth = logo?.width ?? 200
+const markHeightAttr = logo?.height ?? 200
+const width = Math.round((markWidth / markHeightAttr) * markHeight)
+---
+
+<div
+  class:list={['flex items-center justify-center bg-white', className]}
+  role="presentation"
+>
+  {
+    logoSrc ? (
+      <img
+        src={logoSrc}
+        alt=""
+        width={width}
+        height={markHeight}
+        class="h-auto w-auto max-w-[70%] object-contain"
+        style={`max-height:${markHeight}px`}
+        decoding="async"
+        loading="lazy"
+      />
+    ) : (
+      <span
+        class="font-headline font-bold text-brand-charcoal"
+        style={`font-size:${Math.round(markHeight * 0.5)}px`}
+        aria-hidden="true"
+      >
+        {siteName}
+      </span>
+    )
+  }
+
+  {
+    logoSrc && showName && (
+      <span
+        class="ml-3 font-headline font-bold whitespace-nowrap text-brand-charcoal"
+        style={`font-size:${Math.round(markHeight * 0.45)}px`}
+        aria-hidden="true"
+      >
+        {siteName}
+      </span>
+    )
+  }
+</div>
