@@ -45,6 +45,7 @@ import { getApprovedComments } from '../../../lib/engagement'
 import { articleUrl } from '../../../lib/url'
 import { resolvePhotoFrames } from '../../../lib/photo-story'
 import ArticlePlaceholder from '../../../components/ArticlePlaceholder.astro'
+import FramedImage from '../../../components/FramedImage.astro'
 import { videoEmbedProps } from '../../../lib/video'
 import { toBnDigits, formatBnBd, getDhakaYearMonth } from '../../../lib/bangla-date'
 import {
@@ -429,7 +430,10 @@ const imageGalleryLd =
              photo case and a cover added later does not shift the layout. */
           <div class="mt-5 aspect-16/9 w-full overflow-hidden rounded-lg bg-surface-raised dark:bg-dark-raised">
             {photo ? (
-              <CmsImage
+              /* The hero is the LCP element: eager + high priority, and
+                 FramedImage so an off-ratio cover fills its own gaps rather
+                 than being cropped or letterboxed. */
+              <FramedImage
                 src={photo.src}
                 width={photo.width}
                 height={photo.height}
@@ -437,7 +441,7 @@ const imageGalleryLd =
                 sizes="(min-width: 1024px) 800px, 100vw"
                 loading="eager"
                 fetchpriority="high"
-                class="h-full w-full object-cover"
+                class="h-full w-full"
               />
             ) : (
               <ArticlePlaceholder class="h-full w-full" markHeight={96} />

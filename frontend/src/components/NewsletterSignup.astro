@@ -159,7 +159,7 @@ const renderable = Boolean(cmsOrigin) && enabled && isEnabled('newsletter')
 
         if (response.ok) {
           form.reset()
-          setStatus('ধন্যবাদ — নিশ্চিতকরণ ইমেইল পাঠানো হয়েছে। ইনবক্স দেখুন।')
+          setStatus('ধন্যবাদ, নিশ্চিতকরণ ইমেইল পাঠানো হয়েছে। ইনবক্স দেখুন।')
         } else {
           setStatus(payload.error ?? 'সাবস্ক্রিপশন সম্পন্ন হয়নি। আবার চেষ্টা করুন।')
         }

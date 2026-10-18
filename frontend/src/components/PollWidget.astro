@@ -147,7 +147,7 @@ const renderable = Boolean(cmsOrigin) && options.length >= 2
       </div>
 
       <p class="mt-3 text-xs leading-relaxed text-ink-subtle dark:text-dark-ink-muted">
-        ডুপ্লিকেট ভোট ঠেকাতে আপনার আইপি ও ব্রাউজার তথ্যের একটি ওয়ান-ওয়ে হ্যাশ সংরক্ষণ করা হয় —
+        ডুপ্লিকেট ভোট ঠেকাতে আপনার আইপি ও ব্রাউজার তথ্যের একটি ওয়ান-ওয়ে হ্যাশ সংরক্ষণ করা হয়।
         মূল তথ্য নয়, এবং কোন বিকল্পে ভোট দিয়েছেন তাও নয়।
       </p>
     </section>
@@ -281,7 +281,7 @@ const renderable = Boolean(cmsOrigin) && options.length >= 2
         if (response.ok) {
           rememberVote(pollId, optionIndex)
           showResults()
-          setStatus(payload.alreadyVoted ? 'আপনি আগেই ভোট দিয়েছেন।' : 'ধন্যবাদ — আপনার ভোট গণনা করা হয়েছে।')
+          setStatus(payload.alreadyVoted ? 'আপনি আগেই ভোট দিয়েছেন।' : 'ধন্যবাদ, আপনার ভোট গণনা করা হয়েছে।')
         } else {
           // A closed or expired poll still returns tallies, so the reader gets
           // the result rather than a bare error.

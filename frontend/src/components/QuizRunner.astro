@@ -312,7 +312,7 @@ const gradingData = questions.map((question) => ({
         if (index === questions.length - 1) {
           const percent = Math.round((score / questions.length) * 100)
           if (scoreLabel) {
-            scoreLabel.textContent = `${toBn(questions.length)}টির মধ্যে ${toBn(score)}টি সঠিক — ${toBn(percent)}%`
+            scoreLabel.textContent = `${toBn(questions.length)}টির মধ্যে ${toBn(score)}টি সঠিক: ${toBn(percent)}%`
           }
           if (bar) bar.style.width = `${percent}%`
           for (const panel of questions) panel.setAttribute('hidden', '')

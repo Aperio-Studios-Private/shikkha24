@@ -236,7 +236,7 @@ const renderable = Boolean(cmsOrigin)
             const mine = payload.mine ?? null
             select(mine)
             rememberMine(articleId, mine)
-            setStatus(mine ? 'ধন্যবাদ — আপনার প্রতিক্রিয়া গণনা করা হয়েছে।' : 'আপনার প্রতিক্রিয়া সরানো হয়েছে।')
+            setStatus(mine ? 'ধন্যবাদ, আপনার প্রতিক্রিয়া গণনা করা হয়েছে।' : 'আপনার প্রতিক্রিয়া সরানো হয়েছে।')
           } else {
             setStatus(payload.error ?? 'প্রতিক্রিয়া পাঠানো যায়নি।')
           }

@@ -51,7 +51,7 @@ const image = unit.image && typeof unit.image === 'object' ? unit.image : null
 /** Absolute, browser-reachable URL — see the note above. */
 const imageSrc = mediaUrl(image?.url)
 const isAdsense = unit.adType === 'adsense'
-const label = unit.sponsorName?.trim() ? `বিজ্ঞাপন — ${unit.sponsorName.trim()}` : 'বিজ্ঞাপন'
+const label = unit.sponsorName?.trim() ? `বিজ্ঞাপন: ${unit.sponsorName.trim()}` : 'বিজ্ঞাপন'
 ---
 
 {

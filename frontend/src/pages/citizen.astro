@@ -278,7 +278,7 @@ const renderable = Boolean(cmsOrigin) && isEnabled('citizen')
 
         if (response.ok) {
           form.reset()
-          setStatus('ধন্যবাদ — আপনার পাঠানো তথ্য সম্পাদকীয় দলের কাছে পৌঁছেছে।')
+          setStatus('ধন্যবাদ, আপনার পাঠানো তথ্য সম্পাদকীয় দলের কাছে পৌঁছেছে।')
         } else if (response.status === 429) {
           setStatus('অনেকবার জমা দেওয়া হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।')
         } else {

@@ -47,6 +47,7 @@ import { resolveCmsImage } from '../lib/media'
 import { articleUrl } from '../lib/url'
 import { formatBnBd, toBnDigits } from '../lib/bangla-date'
 import CmsImage from './CmsImage.astro'
+import FramedImage from './FramedImage.astro'
 import ArticlePlaceholder from './ArticlePlaceholder.astro'
 import SponsoredLabel from './SponsoredLabel.astro'
 
@@ -165,7 +166,10 @@ const imageSizes = sizes ?? (isStacked ? '(min-width: 1024px) 800px, 100vw' : '9
         ]}
       >
         {photo ? (
-          <CmsImage
+          /* FramedImage, not a bare CmsImage: a cover uploaded as 3:4 or 9:16
+             would otherwise be either cropped to nothing (object-cover) or
+             letterboxed with dead bars (object-contain). See the component. */
+          <FramedImage
             src={photo.src}
             width={photo.width}
             height={photo.height}
@@ -176,7 +180,7 @@ const imageSizes = sizes ?? (isStacked ? '(min-width: 1024px) 800px, 100vw' : '9
             // them all eager would fight the LCP the hero is trying to win.
             loading={isLead ? 'eager' : 'lazy'}
             fetchpriority={isLead ? 'high' : 'auto'}
-            class="h-full w-full object-cover"
+            class="h-full w-full"
           />
         ) : (
           <ArticlePlaceholder class="h-full w-full" markHeight={isStacked ? 56 : 32} />
