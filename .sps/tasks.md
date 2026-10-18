@@ -3206,7 +3206,7 @@ goes through CmsImage/AVIF-WebP). Fixed in `f145eed`: the fill now renders from
 a 64px WebP built by `getImage` — **157,116 B → 1,022 B (99.3%)**. Gate scores
 after: perf 0.95–0.97, a11y 1.00, seo 1.00.
 
-### T-54 — 🔄 IN FLIGHT (2026-10-18 evening): Deploy workflow's last step — three failures, cause chain found
+### T-54 — ✅ DONE 2026-10-18 21:33 +06 (Deploy workflow green for the first time)
 
 `wrangler deploy` itself SUCCEEDED on every attempt this evening; the failures
 were all in the final "Verify the published Worker" probe. Independent curl
@@ -3227,7 +3227,11 @@ probe bug, fixed in three steps:
    every time. Fix: bash substring test `[[ "$body" == *'শিক্ষা২৪'* ]]` — no
    pipe, immune to pipefail. `verify:cloudflare` 83 checks OK after the edit.
 
-**Next session:** confirm the Deploy run for the pipefail-fix commit is green
+**OUTCOME:** run for `576ea54` — CI success AND Deploy success (verified
+via gh run list at 21:33 +06). Live-verified independently: workers.dev serves
+the site name; `shikkha24.com` HTTP 200 in 0.42s; digest carries the corrected
+link, zero moushi references, and the correction notice. Next-session checklist
+below is kept for record.
 (it will also be the first fully-green publish of the session), then verify
 live and close this task. If green, also close T-51 (its root condition is
 gone — public repo) and flip T-49/T-52 bookkeeping if desired.
