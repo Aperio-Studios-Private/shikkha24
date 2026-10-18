@@ -155,22 +155,33 @@ declared in `astro.config.mjs`.
 image: { remotePatterns: [{ protocol: 'https', hostname: 'media.shikkha24.com' }] }
 ```
 
-**Neither the config block nor the hostname is real.** `frontend/astro.config.mjs` has no `image`
-key at all, and `media.shikkha24.com` appears nowhere in the repository. Media is served from the
+**Neither the config block nor the hostname is real.** `frontend/astro.config.mjs` has no `image` key at all, and `media.shikkha24.com` appears nowhere in the repository. Media is served from the
 CMS origin — the same host as the API — because R2 was descoped in S9. That is
 `cms.shikkha24.com`, which is what the CSP `img-src` and `media-src` in `frontend/public/.htaccess`
 already point at.
 
-To enable optimisation of CMS images, add to `frontend/astro.config.mjs`:
+**Superseded 2026-10-18 (T-50).** The above history stands, but the state it
+describes is gone. The current, verified reality:
 
-```js
-image: {
-  remotePatterns: [{ protocol: 'https', hostname: 'cms.shikkha24.com' }],
-}
-```
-
-This is **not done** — CMS images are still plain `<img>`. Record it here so the next person does
-not go looking for a config block that does not exist.
+- **Reader surfaces** (`ArticleCard` card image, the article page's
+  `FramedImage`) run the remote CMS URL through Astro's build-time pipeline via
+  `CmsImage.astro`, allowed by `image.domains: ['cms.shikkha24.com']` in
+  `frontend/astro.config.mjs` (added with T-23's covers). Verified live
+  2026-10-18: article covers serve as `/_astro/*.avif 412w` with a WebP
+  fallback and real `sizes`.
+- **Social metadata** (`og:image`, `twitter:image`, JSON-LD
+  `NewsArticle.image`) uses a build-emitted **1200px `jpeg` variant** of the
+  same photo (T-50 option C), so share previews and Google News stop pulling
+  the raw 1376×768 CMS JPEG (88–242 KB). The format is pinned to `jpeg`
+  because some scrapers ignore WebP/AVIF for `og:image`. The file lands under
+  content-hashed `/_astro` and is referenced as an absolute URL.
+- **Uploads themselves stay byte-identical on the CMS** — sharp remains
+  deliberately unset (`cms/src/payload.config.ts`). Re-enabling Payload's
+  upload-time pipeline is parked as **T-58**, gated on the T-31 CMS
+  clean-cycle proving the runtime healthy first.
+- Unchanged: the per-article photocard fallback
+  (`/api/photocard/:id.png`, 1200×1200) for articles without a photo, and the
+  site-wide `/og-default.png`.
 
 ---
 

@@ -3199,7 +3199,28 @@ still stores uploads byte-for-byte (`payload.config.ts` leaves sharp unset;
 until after the T-31 clean-cycle proves the CMS runtime healthy. A alone does
 NOT fix og (variants exist but og still points wherever the template says) —
 the og URL choice is C's job regardless.
-Decision recorded here when the owner picks.
+
+**→ OWNER PICKED (chat, tonight): B + C.** T-50 closes as DONE (see below);
+A is parked as T-58.
+
+### T-50 — ✅ DONE (2026-10-18 রাত): owner chose B+C — readers already optimised; og moved to a build-emitted JPEG variant
+
+B = the reader-facing half closes: `CmsImage` has done it since T-23 (verified
+live tonight — article covers serve as `/_astro/*.avif 412w` + WebP); the
+stale `docs/image-optimization.md` §4 was rewritten in the same change chain.
+C = `og:image`/`twitter:image`/JSON-LD `NewsArticle.image` now point at a
+build-emitted 1200px **JPEG** variant (scraper-safe format) of the same photo
+instead of the raw 1376×768 CMS JPEG — implemented in the code commit that
+follows this record, verified against the built output.
+
+### T-58 — 🔴 PARKED (registered 2026-10-18 রাত; start only with owner approval AND a green T-31 cycle): Payload upload-time sharp/WebP
+
+Option A from the T-50 packet, parked not dropped. Gated on: (1) the T-31 CMS
+clean-cycle proving the runtime healthy (`/api/payload-migrations` must stop
+leaking the bind address), (2) explicit owner approval, (3) the
+`cms/src/verify/media.ts` no-sharp contract flip and a backfill decision for
+the ~10 existing photos. Meaning of done: uploads produce DB-recorded
+variants; admin and any hotlink consumer sees right-sized files.
 
 ### T-53 — ✅ DONE (2026-10-18): two CI gates that had never run green again
 
@@ -3359,7 +3380,7 @@ from ⚠️ to the "সাইট নিজে থেকে নতুন হব�
 tonight's evidence table). Prerequisites (1) and (2) above are owner-gated
 work items, not guide-blockers.
 
-### T-57 — 🔴 OPEN (registered 2026-10-18 রাত, owner-reported): reusable thumbnail design — logo & text cut when used at 1:1
+### T-57 — 🟢 DECIDED (2026-10-18 রাত) → ✅ DONE: reusable thumbnail = S3 stacked design (owner pick)
 
 Owner: "the design of the template/reusable thumbnail image we are using has an
 issue when this design is used on 1:1 ratio — the logo and text are not showing
@@ -3375,7 +3396,17 @@ Facts gathered, NOT yet an interpretation:
   burnt into a 16:9 design would clip there (NOT verified that this is what
   the owner means).
 - Category archetypes (the reusable category thumbnails) are 16:9 by design.
-Surface/meaning awaiting owner's answer; do not build until confirmed.
+- Resolution path: the owner clarified the design in question is the
+  **white-background article-news thumbnail (logo + শিক্ষা২৪.কম) created
+  recently** — not the photocard, not og-default (which is full-bleed red).
+  Samples were generated at `docs/assets/og-thumb-samples/`
+  (commit `314d937`): the current one-row pattern's 1:1 centre crop provably
+  clips both edges (pixel-verified LEFT-TOUCH + RIGHT-TOUCH), while the
+  two-column and stacked variants keep all content inside the safe area.
+- **Owner picked S3 (stacked: logo above, name below, native 1200×1200).**
+  Final deliverable: `docs/assets/og-thumb-samples/thumbnail-final-1200x1200.png`
+  (PNG, crisp flat colours). Usage: the owner uploads it via the CMS admin as
+  the article thumbnail where wanted; no code depends on the file.
 
 ### Session ledger 2026-10-18 (evening) — commits pushed to BOTH remotes
 
