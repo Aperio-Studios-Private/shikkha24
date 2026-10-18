@@ -3287,16 +3287,34 @@ The only non-comment change is the Bengali `admin.description`, which promised W
 that never runs. Old wording preserved in a `⚠️ Correction` block. Also corrected the stale
 "host cannot run sharp" premise (its own 2026-10-16 note records NPROC was raised 100→200).
 
-### T-71 — 🟡 OWNER DECISION REQUIRED (Medium, policy): Cloudflare hosting vs root rule 7
+### T-71 — ✅ DONE (2026-10-19, owner-approved): root rule 7 amended to permit free Cloudflare Workers
 Finding 12. The live storefront IS Cloudflare (`server: cloudflare`, `cf-cache-status: HIT`)
 while `AGENTS.md`/`GEMINI.md`/`CLAUDE.md` rule 7 says "No Cloudflare services". The owner
 drove this migration (T-18 P1, 2026-10-15). Needs a recorded amendment — I will not
 silently rewrite a rule mirror, and I will not revert live production hosting.
 
-### T-72 — 🟡 OWNER DECISION REQUIRED (Medium, policy): English-first CMS admin vs Bengali-only rule 10
+**Resolved by explicit owner decision, not by a silent edit.** Finding 12 recorded a conflict between the
+rule text and live production: the rule said "No Cloudflare services", while the storefront has been served
+from free Cloudflare Workers since the owner-approved T-18 P1 migration (2026-10-15) — verified
+`server: cloudflare`, `cf-cache-status: HIT`. The owner chose to amend the rule. All three mirrors
+(`AGENTS.md`, `GEMINI.md`, `CLAUDE.md`) now carry the same replacement text, which states what the rule
+still forbids (R2, Pages, anything with a card or per-use billing), why Workers' free tier does not breach
+the no-card constraint, and that new Cloudflare services still need approval. The original intent — zero
+recurring spend, no card — is preserved; only the false claim that nothing of ours runs on Cloudflare is
+gone. Parity verified: rules 7–10 are byte-identical across the three mirrors.
+
+### T-72 — ✅ DONE (2026-10-19, owner-approved): root rule 10 scoped to reader-facing UI
 Finding 13. `cms/src/payload.config.ts:377` ships `en` as fallback; live `/admin` returns
 `lang="en"`. Rule 10 says all user-facing UI is Bengali. Needs either an amendment
 ("admin is operator UI, not reader UI") or an i18n change — owner's call.
+
+**Resolved by explicit owner decision, not by a silent edit.** Finding 13 recorded that rule 10 required
+every user-facing string to be Bengali while the CMS admin is English — which was itself a standing owner
+decision already written into code ("T-38 (owner rule, 2026-10-18): the admin language is English-first",
+`cms/src/payload.config.ts`; live `/admin` returns `lang="en"`). The owner chose to make the scope
+explicit rather than translate the panel. Rule 10 now distinguishes **reader-facing** UI (Bengali-only, no
+toggle — unchanged) from the **operator** admin panel (English-first), and keeps Bengali as the right
+choice for admin strings that are *content* rather than chrome, such as the corrected `Media` description.
 
 ### T-73 — 🟢 MOSTLY CLOSED (2026-10-19): the audit's "Unverified" dimensions are now measured
 D1–D4 + F3 → `docs/audit-measurements-a11y-responsive.md` (712 lines). F2 →
@@ -3317,6 +3335,50 @@ unverified risk), colour contrast (**not measured at all**), INP, CLS, Lighthous
 focus-visible rendering and tab order, screen-reader output, and runtime application of
 `prefers-reduced-motion`. **E2** (autoplay/asset weight) was folded into the D2/D3 findings and the
 payload numbers in the design-gates task below.
+
+### T-78 — 🔴 OPEN / BLOCKED ON OWNER (Critical, operational): GitHub Actions is LOCKED by a billing issue
+**Owner action required — no agent can fix this.**
+
+Pushing `70bf5a9…71a2fcb` at 2026-10-18T19:15:43Z produced a **3-second** failure on both `CI` and
+`Deploy (Cloudflare)`. The annotation is not a code error:
+
+```
+The job was not started because your account is locked due to a billing issue.
+```
+
+No Actions job can start, on any workflow, so **CI and Deploy are entirely non-functional right now**
+and nothing pushed can be verified through them. Onset is narrow and provable: the previous push
+(`a712a27`, 18:18:14Z) ran both workflows to **success** (CI 6m29s, Deploy 8m8s); the next push was
+refused. So the lock appeared within that ~57-minute window and is unrelated to tonight's work.
+
+**Production is NOT affected** — `https://shikkha24.com/` returns 200 in 0.26s because Cloudflare
+keeps serving the last successful deploy. The blast radius is "no new deploys and no CI verification",
+not an outage.
+
+Consequences to be honest about:
+- Every commit tonight was verified against **local gates** (build, `tsc`, `biome`, the `verify:*`
+  harnesses). Those are real and passed. But **the CI gate itself has not run** on any of them, so
+  none of tonight's work is CI-confirmed. Do not describe it as "CI green".
+- The audit's measured **23.9% CI / 15.1% Deploy** success rate predates this lock and was mostly
+  biome drift (fixed in `70bf5a9`). Once the account is unlocked, re-measure — the expected result is
+  a sharp rise, which is how we will know the lint fix genuinely worked.
+- The CMS publish chain (CMS → watcher → `repository_dispatch` → deploy) is down with it: a rebuild
+  dispatched now will fail at job start. The owner should know publishes will not reach the site
+  until this clears.
+
+**Unblock:** owner resolves the billing issue on the GitHub account (`SHAHID8142`) — Settings →
+Billing. Then re-run the failed runs (`gh run rerun 39157954190` and `39157954320`) rather than
+pushing an empty commit.
+
+### T-79 — 🔴 OPEN (Low, verification hygiene): `cms/data/ci.db` must be migrated before local harness runs
+A subagent reported this fixture as "corrupt" (2 of 7 migrations, `no such column: faqs_id`). **It is
+not corrupt — the report was a local reproduction error.** CI runs
+`pnpm --filter @shikkha24/cms db:migrate` *before* seeding and testing (`ci.yml:282`, with a comment
+explaining that `push: false` makes `db:migrate` the only thing that creates the schema there), so
+the committed `ci.db` is deliberately a *starting point* that CI migrates forward. Verified: copying
+`ci.db` and running `payload migrate` applies all 4 pending migrations cleanly (**exit 0**), after
+which the harnesses have the expected schema. Guidance for the next session: run migrations first,
+and do not "repair" `ci.db` — it is working as designed.
 
 ### T-74 — ✅ DONE (2026-10-19, commit `70bf5a9`): biome schema/CLI drift was the dominant CI failure
 `biome.json` pinned schema 2.5.13 while the installed CLI was 2.5.15, and `frontend/package.json`

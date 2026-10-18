@@ -45,7 +45,19 @@ Commands: `/sps` · `/sps audit` · `/sps sync` · `/sps doctor`
 7. **Budget guard**
    - Zero recurring software/platform fees beyond the approved DianaHost plan (2 GB PNR, ~$47/year) and the domain.
    - No paid third-party services; no limited free-tier SaaS for core infrastructure. Self-hosted/self-built preferred.
-   - **Hard constraint: the owner has no international credit or debit card.** Every service requiring a card at signup is unusable — this includes Oracle Cloud, paid SMTP relays, paid TTS APIs, paid data APIs and paid object storage. Never propose, plan or assume one. Free public APIs are available. No Cloudflare services (removed 2026-09-14 per owner decision — all data and hosting on DianaHost only).
+   - **Hard constraint: the owner has no international credit or debit card.** Every service requiring a card at signup is unusable — this includes Oracle Cloud, paid SMTP relays, paid TTS APIs, paid data APIs and paid object storage. Never propose, plan or assume one. Free public APIs are available.
+   - **Amended 2026-10-19 (owner-approved, audit finding 12).** This line used to read
+     "No Cloudflare services (removed 2026-09-14 per owner decision — all data and hosting on
+     DianaHost only)". That is **superseded**: on 2026-10-15 the owner approved migrating the
+     storefront to **free Cloudflare Workers static assets** (T-18 P1), and the live site is
+     served there today (`server: cloudflare`, `cf-cache-status: HIT`). DianaHost still runs the
+     Payload CMS, database and media; the cPanel static path is rollback-only.
+   - **What the rule now forbids, and why it still binds:** no Cloudflare **R2** (media/storage),
+     no Cloudflare **Pages**, and no Cloudflare service that requires a card or bills per use.
+     Workers' free tier is the only Cloudflare service in use, which is why this does not breach
+     the no-card constraint above. Any *new* Cloudflare service still needs explicit owner
+     approval like any other cost. The original intent — zero recurring spend and no card — is
+     unchanged; only the false statement that nothing of ours runs on Cloudflare is.
    - Anything with a cost requires explicit user approval first.
 8. **Dependency hygiene**
    - Every new package: one-line justification, exact version pinned, license confirmed, recorded in `.sps/handoff.md`.
@@ -54,7 +66,16 @@ Commands: `/sps` · `/sps audit` · `/sps sync` · `/sps doctor`
    - Lighthouse, initial payload and data-saver are **page-level** measurements. Enforce them on the page templates listed in `.sps/plan.md`; never describe them as "per feature".
    - TTFB <200ms is a hosting property. Measure it once at S12, in production, on DianaHost (no CDN) — not from S2–S11.
 10. **Bengali-first**
-    - All user-facing strings are Bengali (Bengali-only UI). English only in code, identifiers, and internal notes.
+    - All **reader-facing** strings are Bengali (Bengali-only UI). English only in code, identifiers, and internal notes.
+    - **Amended 2026-10-19 (owner-approved, audit finding 13).** The rule above used to say every user-facing
+      string, without qualification. That conflicted with a standing owner decision recorded in code:
+      "T-38 (owner rule, 2026-10-18): the admin language is English-first" (`cms/src/payload.config.ts`).
+      The live admin panel reflects it (`/admin` returns `lang="en"`).
+    - **The scope is now explicit:** the **CMS admin panel is operator UI, not reader UI, and is
+      English-first** — its chrome, field labels and validation messages. Reader-facing pages remain
+      Bengali-only with no English toggle, which is what this rule has always protected. Where an admin
+      string is *content* rather than chrome (a field description an editor reads to understand a rule),
+      Bengali is still the right choice — see the corrected `Media` description for the pattern.
 11. **Secrets safety**
     - Never commit keys, tokens, or credentials. Commit only `.env.example`; keep the real `.env` git-ignored.
 12. **Memory discipline**
