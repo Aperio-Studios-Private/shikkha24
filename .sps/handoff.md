@@ -2466,3 +2466,36 @@ with evidence:
 Only remaining audit note: uses-long-cache-ttl on the CMS-hosted logo SVG
 (7-day TTL, ~2.3KB) — cosmetic, site assets are immutable-hashed. All four
 page-level Lighthouse gates from rule 9 now pass with room to spare.
+
+### 2026-10-18 ~09:15 — T-44 (new): mobile LCP root cause = Bengali font weight
+
+Owner shared a second PSI link (mobile, id fta3lkdmj6). The stored report is a
+JS shell (1.7MB, no embedded payload) and the PSI API is quota-exhausted (429),
+so it cannot be read from here — measured locally instead, 2 runs.
+
+STABILITY: a11y 100 / BP 100 / SEO 100 on BOTH runs. performance 91 and 97,
+LCP 3.1s and 2.5s — the spread is network variance, not code. Rule 9's
+page-level gates are met; a single PSI run will vary the same way.
+
+ROOT CAUSE (Lighthouse LCP phases, throttled mobile):
+  TTFB 525ms + Load Delay 0 + Load Time 0 + RENDER DELAY 2596ms = 3.1s
+84% of LCP is render delay, and it is the FONT, not CSS/JS:
+- inline CSS only 1.4KB; 1 external stylesheet 10.5KB; 15 scripts 24.5KB, all
+  `type="module"` (deferred, non-blocking). theme-init.js is intentionally
+  render-blocking and tiny.
+- fonts = 155.9KB of 226KB total page weight = 69%.
+  solaimanlipi-400.woff2 = 69,912B · solaimanlipi-700.woff2 = 87,820B.
+  Both `immutable`, 1-year cache, cf-cache-status HIT; both preloaded.
+- @font-face already declares a NARROW unicode-range (U+980-9FF Bengali +
+  punctuation/symbols) — a correct subset DECLARATION, but the FILES on disk
+  are the FULL fonts. The 88KB bold file must land before a bold Bengali
+  headline (the LCP element) can paint, at 230ms RTT.
+- Already excellent and NOT to be blamed: font-display:swap, preload hints,
+  metrics-matched "SolaimanLipi Fallback" (ascent/descent-override) — which is
+  exactly why CLS is 0 despite swap.
+
+T-44 = SUBSET the two woff2 files to the declared unicode-range (or per-script
+range), keeping the metrics overrides intact. NOT started: needs fonttools
+(not installed), is a real typography-rendering change, and rule 8/6 apply.
+Expected: ~156KB → roughly 25-45KB, cutting most of the 2.6s render delay and
+lifting mobile LCP toward the <1.5s target. Needs owner approval per rule 2.

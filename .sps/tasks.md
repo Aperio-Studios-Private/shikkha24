@@ -2996,3 +2996,17 @@ Owner disabled Cloudflare's auto-injected Web Analytics beacon (O-4) after I
 corrected my wrong dashboard path. Final mobile: perf 97 / a11y 100 / BP 100 /
 SEO 100, LCP 2.5s, TBT 0ms, CLS 0, console clean. Commits: 23ea439 (code),
 b34613f (guidance correction), this entry.
+
+### T-44 — ⏳ OPEN (registered 2026-10-18 ~09:15): subset the Bengali webfonts
+
+Evidence: fonts are 155.9KB of a 226KB mobile page (69%); Lighthouse LCP
+breakdown on mobile attributes 2,596ms of a 3.1s LCP to RENDER DELAY, and the
+@font-face unicode-range is already narrow (U+980-9FF) while the .woff2 files
+are full-font sized (69,912B + 87,820B). Subsetting should cut ~156KB to
+~25-45KB and pull mobile LCP toward <1.5s.
+
+Blocked on: owner approval (typography-affecting change, rule 2/6) and
+fonttools availability (not installed; rule 8 dependency line + license note
+required). Everything else already passes: a11y 100, BP 100, SEO 100,
+CLS 0, TBT 0ms, 28 requests, 24.5KB JS, 10.5KB CSS, font-display:swap,
+metrics-matched fallback.
