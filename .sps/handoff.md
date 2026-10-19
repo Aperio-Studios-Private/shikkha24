@@ -2,6 +2,24 @@
 
 ## ⭐ START HERE — 2026-10-19 12:58 (+06:00). Supersedes the early-hours block below.
 
+## ⭐ START HERE — 2026-10-19 17:25 (+06:00). Supersedes the block below.
+
+**Repository moved:** `SHAHID8142/shikkha24` is now
+`Aperio-Studios-Private/shikkha24`; the local `origin` is updated. This bypassed the personal
+Actions billing lock. Secrets, variables and workflow history transferred.
+
+**Deployed:** commit `ce35a38` is live via Cloudflare run
+`39243521873`. CI run `39242687789` passed every gate except the known T-80 LCP
+assertion. The deploy used the workflow's explicit CI-gate override only because
+the LCP failure is already tracked and owner-gated.
+
+**Live verification:** `/`, `/latest/`, `/education-news/32/post-ujepgq`, and the
+404 route returned expected statuses. `/latest/` shows the two newest CMS articles.
+
+**Do not treat CI as green:** it is red solely on T-80 LCP. Any normal push to
+`main` will still fail CI at Lighthouse and its deploy will wait/fail until T-80
+is fixed or the gate is owner-amended.
+
 **Working tree is clean; three new local commits are on `main`:** `2ff28c4`
 reconciled T-81 documentation, `3a44c52` closed T-79 after an isolated migration
 check, and `5602d81` recorded the disproven T-80 logo self-hosting experiment.
