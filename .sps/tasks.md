@@ -3416,6 +3416,11 @@ button system. Evidence: CMS `typecheck`, `lint`, and production `build` pass; l
 compact 255px cards and a 44px emerald CTA; mobile lays the quick-link out in one column with no
 horizontal overflow; Impeccable detector remains clean at both viewports.
 
+**C1c3 completed locally (not pushed/deployed).** Collection-list "Create New" is now a consistent
+emerald primary CTA; secondary controls such as "Bulk Upload" remain quiet. Evidence: CMS
+`typecheck`, `lint`, and production `build` pass; live Articles and Media list CTAs are 44px
+`rgb(4, 120, 87)`; Impeccable detector on the Articles list is clean.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own

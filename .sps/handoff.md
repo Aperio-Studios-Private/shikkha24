@@ -30,6 +30,9 @@ CTAs consistent.
 and the My Work quick-link now uses the semantic emerald primary system. CMS typecheck/lint/build
 pass; desktop/mobile browser checks pass with no horizontal overflow; detector remains clean. Next:
 make collection-list primary CTAs consistent and reduce editor-page visual noise.
+**T-89 C1c3 is complete locally pending owner review.** Collection-list Create New is a consistent
+44px emerald primary CTA. CMS typecheck/lint/build pass; live Articles/Media verify; detector clean.
+Next: reduce editor-page noise and improve form hierarchy.
 
 **T-89 C0 is complete; no UI code has changed.** The read-only inventory is
 `.sps/cms-ux-inventory.md`. It found 34 registered collections, one global, five roles, existing
