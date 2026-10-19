@@ -70,16 +70,17 @@
     color: var(--shikkha-neutral-0);
   }
 
+  .nav-group__toggle:focus-visible {
+    outline: 3px solid var(--shikkha-focus);
+    outline-offset: -3px;
+  }
+
   .nav__link {
     min-height: 36px;
     color: var(--shikkha-ink);
     font-size: 13px;
     line-height: 1.25;
     border-bottom: 1px solid var(--shikkha-neutral-100);
-  }
-
-  .nav__link:hover {
-    background-color: var(--shikkha-neutral-50);
   }
 
   .nav__link:focus-visible {
@@ -176,21 +177,31 @@
   }
 
   .card--has-onclick:hover {
-    border-color: var(--shikkha-border-strong);
-    background-color: var(--shikkha-neutral-50);
+    border-color: var(--shikkha-border);
+    background-color: var(--shikkha-surface);
     color: var(--shikkha-ink);
     box-shadow: none;
+  }
+
+  .card__actions .btn__icon:hover {
+    border-color: var(--shikkha-border);
+    background-color: var(--shikkha-surface);
+    color: currentColor;
+    box-shadow: none;
+  }
+
+  .nav__log-out:hover g {
+    transform: none;
+  }
+
+  .nav a.nav__link:hover {
+    text-decoration: none;
   }
 
   .card__title {
     color: var(--shikkha-ink);
     font-size: 14px;
     font-weight: 700;
-  }
-
-  .card--has-onclick:hover .card__title,
-  .card--has-onclick:focus-within .card__title {
-    color: var(--shikkha-ink);
   }
 
   .reporter-quicklink {
@@ -233,11 +244,6 @@
   .collections__card-list .card__title {
     font-size: 0.875rem;
     line-height: 1.35;
-  }
-
-  .collections__card-list .card--has-onclick:hover {
-    border-color: var(--shikkha-border-strong);
-    background-color: var(--shikkha-neutral-50);
   }
 
   .login__form {

@@ -3526,3 +3526,26 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Verified dashboard/list/editor controls with measured top/bottom text offsets, including 48px
   mobile targets and no overflow. Detector is clean at 1280×800 and 390×844; CMS lint/typecheck/build
   pass. No push/deploy.
+
+### 2026-10-19 — T-89 C1c7 deploy-readiness audit fixes
+
+- Owner rule reinforced: every deploy-readiness claim now requires independent report-only agent
+  audits before Codex approval. Goose failed twice with a local model-server 500; two OpenCode
+  models completed report-only audits. Codex reviewed and accepted only validated findings.
+- Fixed the Unpublished Articles KPA to count `_status: draft` and open the matching filtered list.
+  Reporter draft/returned-article links now carry the same author scope as their counts. A reporter
+  without `authorProfile` is fail-closed to an impossible ID instead of seeing all drafts.
+- Closed the surfaced article-read leak: reporters now read published articles plus their own drafts;
+  editors retain full read access. Ad managers no longer receive reporter-labelled editorial cards.
+- Made attention counts preserve unknown state instead of reporting zero on query failure, and made
+  recent-work `<time>` values use ISO datetimes. Restored white nav-group hover/focus text, added a
+  nav focus ring, and kept persistent link underlines for non-colour affordance.
+- Added targeted neutralizers for Payload hover rules on cards, icon buttons, nav transforms, nav
+  underlines, and list/bulk buttons. Live checks show the dashboard card and icon button unchanged
+  on hover and zero animated elements. This is not yet a proof that every one of Payload's 199
+  compiled hover rules is visually inert; that exhaustive hover-property inventory remains open.
+- Closed the Impeccable live helper, archived its stale session, removed injection, and restored the
+  dev-only CSP change. `.impeccable/` is ignored as one directory.
+- Verification: CMS lint, typecheck, and production build pass; `git diff --check` clean; Impeccable
+  detector returns `[]` at 1280×800 and 390×844; live editor dashboard reports assignments 0,
+  unpublished 5, attention 0, and 3 recent rows; the draft URL returns 5 rows. No push/deploy.

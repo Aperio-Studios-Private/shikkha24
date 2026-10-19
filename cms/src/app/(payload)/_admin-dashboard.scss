@@ -74,11 +74,6 @@
     text-decoration: none;
   }
 
-  .dashboard-greeting__action:hover {
-    border-color: var(--shikkha-brand-border);
-    background-color: var(--shikkha-brand-bg-muted);
-  }
-
   .dashboard-greeting__action:focus-visible,
   .dashboard-workbench__card:focus-visible,
   .dashboard-workbench__browse:focus-visible,
@@ -144,25 +139,8 @@
     color: var(--shikkha-ink);
   }
 
-  .dashboard .collections__card-list .card:hover,
-  .dashboard .collections__card-list .card:focus-within {
-    border-color: var(--shikkha-border-strong);
-    background-color: var(--shikkha-surface);
-    color: var(--shikkha-ink);
-  }
-
-  .dashboard .collections__card-list .card:hover .card__title,
-  .dashboard .collections__card-list .card:focus-within .card__title {
-    color: var(--shikkha-ink);
-  }
-
   .dashboard .collections__card-list .card__actions .btn {
     color: var(--shikkha-info-fg);
-  }
-
-  .dashboard .collections__card-list .card:hover .card__actions .btn,
-  .dashboard .collections__card-list .card:focus-within .card__actions .btn {
-    color: var(--shikkha-info-emphasis);
   }
 
   .dashboard-workbench h2 {
@@ -284,11 +262,6 @@
     font-size: 13px;
     font-weight: 700;
     text-decoration: none;
-  }
-
-  .dashboard-workbench__browse:hover {
-    border-color: var(--shikkha-info-border);
-    background-color: var(--shikkha-info-bg);
   }
 
   .dashboard-workbench__recent ul {

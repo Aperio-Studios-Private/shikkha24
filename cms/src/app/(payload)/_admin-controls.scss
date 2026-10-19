@@ -2,7 +2,7 @@
  * T-89 C1b — flat semantic controls.
  *
  * Primary actions commit; secondary and dashed actions navigate or add; subtle
- * actions cancel; delete is danger-colored. Hover changes color only.
+ * actions cancel; delete is danger-colored. Hover preserves resting styles.
  */
 
 @layer payload-default {
@@ -29,6 +29,15 @@
     border-radius: var(--shikkha-radius-s);
     box-shadow: none;
     transition: none;
+  }
+
+  .btn:not(.btn--disabled):hover {
+    --hover-bg: var(--bg-color, transparent);
+    --hover-color: var(--color, currentColor);
+    --hover-btn-border: var(--btn-border, none);
+    background-color: var(--bg-color, transparent);
+    color: var(--color, currentColor);
+    box-shadow: none;
   }
 
   .btn,
@@ -111,6 +120,7 @@
   .btn--style-tab:not(.btn--disabled) {
     --color: var(--shikkha-ink-muted);
     --bg-color: transparent;
+    --btn-border: none;
     --hover-bg: var(--shikkha-control);
     --hover-color: var(--shikkha-ink);
     color: var(--shikkha-ink-muted);
@@ -119,6 +129,7 @@
   .btn--style-icon-label:not(.btn--disabled) {
     --color: var(--shikkha-info-fg);
     --bg-color: transparent;
+    --btn-border: 1px solid transparent;
     --hover-bg: var(--shikkha-info-bg);
     --hover-color: var(--shikkha-info-fg);
     color: var(--shikkha-info-fg);
@@ -163,20 +174,22 @@
     transition: none;
   }
 
-  .delete-document__toggle:hover {
-    border-color: var(--shikkha-danger-emphasis);
-    background-color: var(--shikkha-danger-emphasis);
-    color: var(--shikkha-danger-on-emphasis);
+  .delete-document__toggle:hover:not(:focus):not(:focus-within) {
+    border-color: var(--shikkha-danger-border);
+    background-color: var(--shikkha-danger-bg);
+    color: var(--shikkha-danger-fg);
   }
 
   main a:not(.btn):not(.pill):not(.nav-group__toggle):not(.app-header__account) {
     color: var(--shikkha-info-emphasis);
-    text-decoration: none;
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 
-  main a:not(.btn):not(.pill):not(.nav-group__toggle):not(.app-header__account):hover {
-    color: var(--shikkha-info-fg);
-    text-decoration: underline;
+  .collection-list__list-selection .btn:hover,
+  .bulk-upload--actions-bar__controls .btn:hover {
+    background-color: var(--theme-elevation-100);
+    color: var(--theme-text);
   }
 
   main a:not(.btn):not(.pill):not(.nav-group__toggle):not(.app-header__account):focus-visible {

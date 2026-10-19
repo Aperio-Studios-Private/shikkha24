@@ -1,4 +1,4 @@
-import type { Access, FieldAccess } from 'payload'
+import type { Access, FieldAccess, Where } from 'payload'
 
 import { hasRole, isEditorUser, relationId } from './roles'
 
@@ -70,6 +70,27 @@ export const updateOwnArticlesOrEditor: Access = ({ req }) => {
 }
 
 /**
+ * Read access for `articles` — editors see the newsroom; reporters see their own
+ * drafts plus published work. The legacy `publishedOrEditor` rule treated
+ * reporters as editors for reads and exposed colleagues' drafts.
+ */
+export const readOwnArticlesOrEditor: Access = ({ req }) => {
+  const publishedOnly: Where = { _status: { equals: 'published' } }
+  if (!req.user) return publishedOnly
+  if (isEditorUser(req.user)) return true
+
+  const authorId = relationId((req.user as { authorProfile?: unknown }).authorProfile)
+  if (authorId === null || !hasRole(req.user, 'reporter')) {
+    return publishedOnly
+  }
+
+  const ownDraftsOrPublished: Where = {
+    or: [{ _status: { equals: 'published' } }, { author: { equals: authorId } }],
+  }
+  return ownDraftsOrPublished
+}
+
+/**
  * Delete access for `articles` — Super Admin and Editor-in-Chief only.
  *
  * ## Why this is a flat denial and not the ownership scope `update` uses
@@ -91,13 +112,8 @@ export const updateOwnArticlesOrEditor: Access = ({ req }) => {
  * Kept as a named export rather than deleted outright so the collection's access
  * block states all four rules, which `verify:access` requires of every collection.
  *
- * ⚠️ **Open conflict, flagged 2026-10-19:** an uncommitted harness added during
- * T-60, `verify/reporter-access.ts`, expects a reporter to be **scoped** here
- * (`{ author: { equals: N } }`) rather than denied. The two cannot both hold. This
- * rule follows `verify:access` — the older, committed contract — and leaves the
- * harness's delete row as the one that must move. Whoever owns that file should
- * either relax it to `false` or record the policy decision to widen delete, and
- * `verify/access.ts:266` must change in the same commit if it is widened.
+ * `verify/reporter-access.ts` asserts the final rule: delete is denied for
+ * reporters, including owners, and allowed for Super Admin/Editor-in-Chief.
  */
 export const deleteArticleOrEditorInChief: Access = ({ req }) =>
   hasRole(req.user, 'superAdmin', 'editorInChief')

@@ -1,8 +1,9 @@
 import { headers as getHeaders } from 'next/headers.js'
 import Link from 'next/link'
+import type { Where } from 'payload'
 import { getPayload } from 'payload'
 
-import { isEditorUser, relationId } from '../../access/roles'
+import { hasRole, isEditorUser, relationId } from '../../access/roles'
 import config from '../../payload.config'
 import {
   collectionPath,
@@ -27,6 +28,8 @@ export async function DashboardWorkbench() {
   if (!user) return null
 
   const editor = isEditorUser(user)
+  if (hasRole(user, 'adManager')) return null
+
   const userDoc = editor
     ? null
     : await payload
@@ -40,7 +43,11 @@ export async function DashboardWorkbench() {
         .catch(() => null)
 
   const authorId = relationId((userDoc as { authorProfile?: unknown } | null)?.authorProfile)
-  const ownArticles = authorId === null ? null : { author: { equals: authorId } }
+  const ownArticles: Where | null = editor
+    ? null
+    : authorId === null
+      ? { id: { equals: '__unlinked__' } }
+      : { author: { equals: authorId } }
 
   const [
     openAssignments,
@@ -64,9 +71,9 @@ export async function DashboardWorkbench() {
         collection: 'articles',
         user,
         overrideAccess: false,
-        where: {
-          and: [{ reviewStatus: { equals: 'approved' } }, { _status: { equals: 'draft' } }],
-        },
+        where: ownArticles
+          ? { and: [ownArticles, { _status: { equals: 'draft' } }] }
+          : { _status: { equals: 'draft' } },
       }),
     ),
     countRequest(
@@ -120,16 +127,28 @@ export async function DashboardWorkbench() {
     ),
   ])
 
-  const attentionCount =
-    (changesRequested ?? 0) +
-    (rejectedAssignments ?? 0) +
-    (editor ? (unapprovedComments ?? 0) + (newSubmissions ?? 0) : 0)
+  const attentionCount = [
+    changesRequested,
+    rejectedAssignments,
+    ...(editor ? [unapprovedComments, newSubmissions] : []),
+  ].some((count) => count === null)
+    ? null
+    : (changesRequested ?? 0) +
+      (rejectedAssignments ?? 0) +
+      (editor ? (unapprovedComments ?? 0) + (newSubmissions ?? 0) : 0)
 
   const attentionSources = [
     {
       count: changesRequested ?? 0,
       href: collectionPath('articles', {
-        'where[reviewStatus][in]': 'changesRequested',
+        ...(editor
+          ? { 'where[reviewStatus][in]': 'changesRequested' }
+          : authorId === null
+            ? { 'where[id][equals]': '__unlinked__' }
+            : {
+                'where[and][0][author][equals]': String(authorId),
+                'where[and][1][reviewStatus][in]': 'changesRequested',
+              }),
       }),
       label: 'returned articles',
     },
@@ -159,25 +178,39 @@ export async function DashboardWorkbench() {
         ]
       : []),
   ]
-  const attentionTarget = attentionSources.reduce((current, candidate) =>
-    candidate.count > current.count ? candidate : current,
-  )
+  const attentionTarget =
+    attentionCount === null
+      ? null
+      : attentionSources.reduce((current, candidate) =>
+          candidate.count > current.count ? candidate : current,
+        )
 
-  const readyToPublishHref = collectionPath('articles', {
-    'where[and][0][reviewStatus][equals]': 'approved',
-    'where[and][1][_status][equals]': 'draft',
-  })
+  const readyToPublishHref = editor
+    ? collectionPath('articles', {
+        'where[_status][equals]': 'draft',
+      })
+    : authorId === null
+      ? collectionPath('articles', {
+          'where[id][equals]': '__unlinked__',
+        })
+      : collectionPath('articles', {
+          'where[and][0][author][equals]': String(authorId),
+          'where[and][1][_status][equals]': 'draft',
+        })
   const openAssignmentsHref = collectionPath('assignments', {
     'where[status][in]': 'assigned,accepted,inProgress',
   })
+  const articlesPath = collectionPath('articles')
   const attentionHref =
-    attentionCount === 0
-      ? editor
-        ? collectionPath('articles', {
-            'where[reviewStatus][in]': 'pendingReview',
-          })
-        : '/admin/reporter'
-      : attentionTarget.href
+    attentionCount === null
+      ? articlesPath
+      : attentionCount === 0
+        ? editor
+          ? collectionPath('articles', {
+              'where[reviewStatus][in]': 'pendingReview',
+            })
+          : '/admin/reporter'
+        : (attentionTarget?.href ?? articlesPath)
 
   const cards: WorkbenchCard[] = [
     {
@@ -192,28 +225,29 @@ export async function DashboardWorkbench() {
     {
       count: readyToPublish,
       actionLabel: 'Review drafts',
-      emptyDescription: 'No approved drafts are waiting to publish.',
-      description: editor ? 'Approved drafts ready to go live.' : 'Your approved drafts.',
+      emptyDescription: 'No unpublished articles right now.',
+      description: editor ? 'All unpublished articles.' : 'Your unpublished articles.',
       href: readyToPublishHref,
       tone: 'success',
-      title: '🟢 Ready to publish',
+      title: '🟢 Unpublished articles',
     },
     {
       count: attentionCount,
       actionLabel: editor ? 'Open priority' : 'Open My Work',
       emptyDescription: 'No blockers or moderation items right now.',
       description:
-        attentionCount === 0
-          ? editor
-            ? 'Review, moderation, and rejected work are clear.'
-            : 'No rejected or returned work.'
-          : `Highest priority: ${attentionTarget.label}.`,
+        attentionCount === null
+          ? 'Some queues could not be loaded.'
+          : attentionCount === 0
+            ? editor
+              ? 'Review, moderation, and rejected work are clear.'
+              : 'No rejected or returned work.'
+            : `Highest priority: ${attentionTarget?.label ?? 'unavailable'}.`,
       href: attentionHref,
       tone: 'warning',
       title: '⚠️ Needs attention',
     },
   ]
-  const articlesPath = collectionPath('articles')
   const recent: WorkItem[] = recentDocs.map((doc) => ({
     href: `/admin/collections/articles/${doc.id}`,
     label: doc.title ?? `Article ${doc.id}`,
@@ -221,6 +255,7 @@ export async function DashboardWorkbench() {
     statusTone: reviewTone(doc),
     timestamp: relativeTime(doc.updatedAt),
     timestampTitle: exactTime(doc.updatedAt),
+    datetime: doc.updatedAt ?? null,
   }))
 
   return (
@@ -281,7 +316,7 @@ export async function DashboardWorkbench() {
                       >
                         {item.status}
                       </span>
-                      <time dateTime={item.timestampTitle}>{item.timestamp}</time>
+                      <time dateTime={item.datetime ?? undefined}>{item.timestamp}</time>
                     </span>
                   </Link>
                 </li>

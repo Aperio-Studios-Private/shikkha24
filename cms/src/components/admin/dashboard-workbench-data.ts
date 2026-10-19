@@ -1,4 +1,5 @@
 export interface WorkItem {
+  datetime?: string | null
   href: string
   label: string
   status: string

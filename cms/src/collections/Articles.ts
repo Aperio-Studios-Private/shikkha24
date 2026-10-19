@@ -3,9 +3,10 @@ import type { CollectionConfig } from 'payload'
 import {
   authorField,
   deleteArticleOrEditorInChief,
+  readOwnArticlesOrEditor,
   updateOwnArticlesOrEditor,
 } from '../access/articles'
-import { editorInChiefField, hasRole, isEditorial, publishedOrEditor } from '../access/roles'
+import { editorInChiefField, hasRole, isEditorial } from '../access/roles'
 import { articleBodyEditor } from '../blocks/editors'
 import { guardPublishStatus } from '../hooks/publish'
 
@@ -77,7 +78,7 @@ export const Articles: CollectionConfig = {
   },
   access: {
     // Anyone can read published articles; editors additionally see drafts.
-    read: publishedOrEditor,
+    read: readOwnArticlesOrEditor,
     create: isEditorial,
     /*
      * ⚠️ `update` is **not** `isEditorial`, and T-60 is why: that rule has to

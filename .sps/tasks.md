@@ -3531,15 +3531,25 @@ overflow. Impeccable detector is clean at 1280×800 and 390×844; CMS lint/typec
 
 **C1c7 no-motion amendment completed locally (not pushed/deployed).** Owner removed all hover
 animation from the entire CMS. Added a late-loaded admin motion override that disables animations,
-transitions, transforms, shadows, and hover color/background/border changes; focus outlines remain
-visible. Live hover checks show `transition-duration: 0s`, no transform/shadow, and unchanged
-colors/backgrounds. Impeccable detector is clean at both viewports; CMS lint/typecheck/build pass.
+transitions, and smooth scrolling; focus outlines remain visible. Live enumeration reports zero
+animated elements. Impeccable detector is clean at both viewports; CMS lint/typecheck/build pass.
 
 **C1c7 no-motion correction completed locally (not pushed/deployed).** The first scoped override
 left Payload portals outside the admin template able to animate. Replaced it with an unlayered
 universal CMS rule that disables animation, transition, transition-property, and smooth scrolling
 on every element and pseudo-element. Live enumeration reports zero animated elements. Impeccable
 detector is clean at 1280×800 and 390×844; CMS lint/typecheck/build pass.
+
+**C1c7 deploy-readiness audit fixes completed locally (not pushed/deployed).** Independent OpenCode
+audits found reporter count/link divergence, a fail-open null-author path, ad-manager mislabeling,
+unknown-state masking, invalid datetime attributes, nav hover contrast loss, and colour-only links.
+Fixed reporter draft/returned hrefs, fail-closed unlinked reporters, scoped article reads, ad-manager
+workbench suppression, unknown attention state, ISO datetimes, nav focus contrast, persistent link
+underlines, and targeted Payload hover overrides. The Impeccable live helper is closed and tooling
+injection/CSP changes are removed. Live editor dashboard now shows 5 drafts, the draft link returns
+5 rows, recent timestamps are ISO, zero animated elements remain, selected hover states match rest,
+and detector/lint/typecheck/build pass. Goose was unavailable twice (backend 500); two OpenCode
+models supplied report-only audits. A broader Payload hover-property inventory remains open.
 
 ### T-90 — 🔵 QUEUED (2026-10-19 22:05 +06:00): optional bilingual admin UI + Bangla Academy copy review
 
