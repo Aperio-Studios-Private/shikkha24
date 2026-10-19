@@ -195,9 +195,9 @@ the article/homepage pair already bounds the range.
 | `categories:performance` | **≥ 90** | ≥ 95 | Measured 93–98. The gate holds a 3-point floor below the worst template. |
 | `categories:accessibility` | ≥ 90 | ≥ 90 | Matches. |
 | `categories:seo` | ≥ 90 | — | Added; all templates measure 100. |
-| `cumulative-layout-shift` | ≤ 0.03 | < 0.02 | **Also short of §1.** `/search/` measured 0.0243, so 0.02 would fail today. |
+| `cumulative-layout-shift` | ≤ 0.02 | < 0.02 | Matches. T-83 made all nine measured runs 0.0000. |
 | `total-byte-weight` | ≤ 1.2 MB | < 1.2 MB | Matches. Measured 211–317 KB — comfortable. |
-| **LCP** | **not asserted** | < 1.5 s | **Measured 2351–2939 ms.** Asserting 1.5 s fails on current code. |
+| **LCP** | ≤ 1.5 s | < 1.5 s | Matches. Current code measures ~2.40–2.71s, so the gate now fails honestly. |
 | **TTFB** | not asserted | < 200 ms | Hosting property; S12 production only. |
 | **INP** | not asserted | < 100 ms | Field-only metric. Lab Lighthouse cannot measure it. |
 | **Data-saver** | not asserted | < 30 KB | Not implemented — known gap, see below. |
@@ -242,7 +242,7 @@ moved:   top 510px, 380x227px
 ```
 
 One element accounts for **the entire failure**. The other two templates are fine —
-`/` scores 0.0091 and `/latest/` 0.0007, both far under the 0.03 gate. So this is a single
+`/` scores 0.0091 and `/latest/` 0.0007, both far under the 0.02 gate. So this is a single
 component's layout, not a systemic runner problem. It renders from
 `frontend/src/components/KeyTakeaways.astro`, used at
 `frontend/src/pages/[category]/[id]/[slug].astro:456`.

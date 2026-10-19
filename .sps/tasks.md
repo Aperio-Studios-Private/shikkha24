@@ -3535,25 +3535,23 @@ CSS, so the shared stylesheet is inlined and font discovery starts one round tri
 corrected-gate measurements remain LCP 2.40s on home/latest and 2.71s on article, so T-80 is still open;
 the remaining dominant cost is the webfont payload/swap, which requires an owner typography decision.
 
-### T-81 — 🔴 OPEN (High, gate integrity): the Lighthouse gate does not assert LCP, and relaxes CLS
+### T-81 — ✅ DONE (2026-10-19, commit `5c72c0a`): the Lighthouse gate now enforces LCP and CLS
 `lighthouserc.json` asserts only these numeric metrics:
 
 | assertion | gate in the file | rule 9 (`AGENTS.md`) |
 |---|---|---|
-| `cumulative-layout-shift` | `maxNumericValue: 0.03` | **0.02** |
+| `cumulative-layout-shift` | `maxNumericValue: 0.02` | 0.02 — agrees |
 | `total-byte-weight` | `maxNumericValue: 1258291` (1.2 MB) | 1.2 MB — agrees |
-| `largest-contentful-paint` | **absent** | **< 1.5 s** |
+| `largest-contentful-paint` | `maxNumericValue: 1500` | < 1.5 s — agrees |
 | `first-contentful-paint` | **absent** | — |
 
-So `pnpm verify:lighthouse` can pass green while LCP fails by nearly 2× — which is exactly what happened,
-and it is why T-80 went unnoticed through several sessions. The relaxations are deliberate and documented
-(`docs/performance-budget.md` §8.2), so this is not a bug someone introduced by accident; the problem is
-that the *gate* is weaker than the *rule* and nothing said so.
+The gate now fails honestly on current code: LCP measures ~2.40s on home and
+`/latest/`, and ~2.71s on the article template. That failure is tracked by T-80;
+CLS is fixed by T-83. The historical gate weakness and its original measured
+relaxations remain documented in `docs/performance-budget.md` §8.
 
-**Fix:** add a `largest-contentful-paint` assertion at 1500 ms and tighten CLS to 0.02, then fix what it
-catches (T-80, T-83). If the project intends to keep the relaxation, then rule 9 must be amended by the
-owner — the same pattern as T-71/T-72. Leaving the rule and the gate disagreeing is the one option that
-is not acceptable, because it manufactures false confidence.
+**Fix shipped:** commit `5c72c0a` added the 1500 ms LCP assertion and tightened
+CLS to 0.02. The article fixture URL was corrected at the same time.
 
 ### T-82 — ✅ DONE (2026-10-19): bookmark button name now contains its visible label
 `label-content-name-mismatch` on the article template: the bookmark button

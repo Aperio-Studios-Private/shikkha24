@@ -26,12 +26,9 @@
 #
 #   - **Perf ≥95 (plan) vs 93–97 measured.** The gate holds ≥90. See
 #     `docs/performance-budget.md` §8.
-#   - **LCP <1.5s (plan) vs ~2.7–2.9s measured.** FCP is ~2.0–2.1s, so this is a
-#     first-byte/render-delay problem, not an image problem: the LCP element is the
-#     hero `<img>`, and fonts are already `font-display: swap` with the 400 weight
-#     preloaded. **LCP is deliberately NOT asserted**, because setting it at 1.5s
-#     would fail on today's code. Fixing it is a real optimisation task, not a
-#     threshold to lower.
+#   - **LCP <1.5s (plan) vs ~2.4–2.7s measured.** The gate now asserts 1.5s and
+#     fails honestly. Fonts dominate the remaining gap; T-80 tracks the owner-gated
+#     typography decision and further optimisation work.
 #
 # ## Why the thresholds are `error`, not `warn`
 #

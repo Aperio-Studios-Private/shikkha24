@@ -3268,6 +3268,10 @@ way *after* the billing lock clears, revisit this entry — not before.
 
 - **T-81:** committed `5c72c0a` adds `largest-contentful-paint <= 1500` and tightens
   `cumulative-layout-shift` to `0.02`. The gate now fails honestly on current LCP.
+- **T-81 documentation reconciliation:** the task ledger, performance-budget §8.2,
+  and Lighthouse script header now match the committed gate. Historical text that
+  described LCP as unasserted or CLS as 0.03 was corrected rather than rewritten
+  into a false timeline.
 - **T-80:** CSS inlining remains a real but insufficient ~150 ms gain. Controlled diagnostics showed that
   removing scripts improved homepage FCP to ~0.94–0.98s but LCP only to ~2.11–2.27s; removing webfonts
   dropped LCP to ~0.90–1.54s; a 32-character Bengali core font reduced LCP to ~1.81–1.89s. Fonts remain
