@@ -49,6 +49,7 @@ import { oauthEndpoints } from './endpoints/oauth'
 import { pushEndpoints } from './endpoints/push'
 import { reporterQuickDraftEndpoint } from './endpoints/reporter'
 import { SiteSettings } from './globals/SiteSettings'
+import { withAdminEmoji, withAdminGlobalEmoji } from './lib/admin-emoji'
 import { isMailConfigured } from './lib/mailer'
 import { ALLOWED_ORIGINS } from './lib/origins'
 import { withRebuildTrigger, withRebuildTriggerGlobal } from './lib/rebuild-trigger'
@@ -354,14 +355,14 @@ export default buildConfig({
 
     // ── Administration ───────────────────────────────────────────────────────
     Users,
-  ],
+  ].map(withAdminEmoji),
 
   /**
    * Site Settings is the one that caused the confusion: editing the site name,
    * contact details or logo changed nothing on the live site until a rebuild
    * ran. It now schedules one like any other published content.
    */
-  globals: [withRebuildTriggerGlobal(SiteSettings)],
+  globals: [withAdminGlobalEmoji(withRebuildTriggerGlobal(SiteSettings))],
 
   /**
    * Rich text editor for every field that does not override it.
