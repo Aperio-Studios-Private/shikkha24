@@ -10,31 +10,15 @@
 
 ## ⭐ START HERE — 2026-10-19 18:40 (+06:00). Supersedes the block below.
 
-## ⭐ START HERE — 2026-10-19 19:05 (+06:00). Supersedes the block below.
+## ⭐ START HERE — 2026-10-19 20:47 (+06:00). Supersedes the block below.
 
-**T-89 C1a is manually approved; do not push/deploy yet.** Payload admin is locked with supported
-`admin.theme: 'light'`. `custom.scss` defines the light-only design-token vocabulary and maps
-Payload background/input/text/border/status variables. CMS typecheck, lint, and production build pass.
-The owner confirmed the theme switch visually on local dev. The old local DB was backed up to
-`cms/data/payload.db.backup-20261019-184847`; fresh local dev now has the correct migration schema.
-**T-89 C1b is revised locally and pending owner visual review.** The canvas is darker than white
-surfaces; navigation/header/cards/forms/login use explicit borders and typography; buttons are flat
-and color-coded by action with no shadows, transforms, or transitions. `custom.scss` now imports
-`_admin-tokens`, `_admin-hierarchy`, and `_admin-controls` to respect the file-size rule. CMS
-typecheck, lint, and production build pass. Local dev is running. Do not push/deploy yet. Next: C1c
-(form fields and status colors) after C1b review. T-88 continues waiting for Analytics Engine field data.
-**T-89 C1b-brand is next:** replace Payload's admin icon/login logo with the existing official
-Shikkha24 SVGs through Payload's supported `graphics` components. OpenCode, AGY, and Goose may be used
-as second-opinion reviewers/fixers, but Codex remains the approver.
-**T-89 C1b-brand is complete locally pending owner review.** `BrandIcon` and `BrandLogo` use the
-official SVGs and Payload's supported `graphics` API. Both external reviewers found the nav-icon
-overflow; the icon now fits Payload's 18×18 container. Typecheck/lint/build pass; live dimensions are
-18×18 in the header and 48×48 on login. Next queued: side Dashboard Navigation, then the reporter
-admin-shell defect, then emoji/icon identification.
-**T-89 Dashboard Navigation is complete locally pending owner review.** `DashboardNavLink` is
-registered in `beforeNavLinks`, appears first in the sidebar, and uses Payload's active nav classes.
-Typecheck/lint/build pass and the live sidebar was visually verified. Next queued: fix
-`/admin/reporter` missing the admin shell, then emoji/icon identification.
+**T-89 reporter admin shell is fixed locally; do not push/deploy yet.** Payload 3.90.2 leaves new
+one-segment custom views without a template type, so `/admin/reporter` rendered as a raw fragment.
+`ReporterWorkspace` now wraps its output in Payload's exported `DefaultTemplate` with an explicit
+empty `visibleEntities` fallback. CMS `typecheck`, `lint`, and production `build` pass. Authenticated
+browser verification found the opened sidebar at 275px with Dashboard, My Work, account, and logout.
+Next queued, by owner request: use a dedicated UI/UX design skill to audit and remediate the CMS into
+a modern, clean, easy-to-use light interface. Then add emoji/icon identification.
 
 **T-89 C0 is complete; no UI code has changed.** The read-only inventory is
 `.sps/cms-ux-inventory.md`. It found 34 registered collections, one global, five roles, existing

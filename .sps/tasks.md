@@ -3388,6 +3388,15 @@ state and reuses Payload's `nav__link`/indicator classes. Evidence: CMS `typeche
 production `build` pass; live sidebar shows "Dashboard" first with active styling. Owner visual
 review is next.
 
+**Reporter admin shell completed locally (not pushed/deployed).** Root cause: Payload 3.90.2 marks
+one-segment built-in views as `templateType: 'default'` or `'minimal'`, but leaves new one-segment
+custom views undefined, causing `Root` to render the component as a raw fragment. The fix wraps
+`ReporterWorkspace` in Payload's exported `DefaultTemplate`, preserving the normal nav, brand header,
+account, and logout. Evidence: CMS `typecheck`, `lint`, and production `build` pass; authenticated
+browser check found the 275px opened sidebar, Dashboard/My Work links, account, and logout on
+`/admin/reporter`. Queued next: a modern clean CMS design audit and remediation pass, then emoji
+identification.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own
