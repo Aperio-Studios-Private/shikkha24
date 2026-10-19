@@ -33,6 +33,10 @@ make collection-list primary CTAs consistent and reduce editor-page visual noise
 **T-89 C1c3 is complete locally pending owner review.** Collection-list Create New is a consistent
 44px emerald primary CTA. CMS typecheck/lint/build pass; live Articles/Media verify; detector clean.
 Next: reduce editor-page noise and improve form hierarchy.
+**T-89 C1c4 is complete locally pending owner review.** Editor warning/guidance hierarchy is calmer:
+compact warning callout, smaller title, stronger labels, quieter descriptions, and tighter editor
+spacing. CMS typecheck/lint/build pass; live editor verifies; detector clean. Next queued: emoji/icon
+identification, then remaining C1c polish based on owner review.
 
 **T-89 C0 is complete; no UI code has changed.** The read-only inventory is
 `.sps/cms-ux-inventory.md`. It found 34 registered collections, one global, five roles, existing

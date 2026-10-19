@@ -64,13 +64,39 @@
     background-color: var(--shikkha-brand);
   }
 
-  .field-label {
+  .template-default label.field-label:not(.unstyled) {
     color: var(--shikkha-ink);
+    font-size: 0.875rem;
     font-weight: 650;
   }
 
-  .field-description {
+  .template-default .field-description {
     color: var(--shikkha-ink-muted);
+    font-size: 0.8125rem;
+  }
+
+  .template-default .doc-header__title {
+    font-size: 1.75rem;
+  }
+
+  .custom-view-description {
+    max-width: 72rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #fcd34d;
+    border-radius: 10px;
+    background-color: var(--shikkha-warning-soft);
+    color: var(--shikkha-warning);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+
+  .document-fields__edit,
+  .document-fields__sidebar-fields {
+    padding-block: 1.5rem;
+  }
+
+  .doc-controls__content {
+    padding-block: 0.75rem;
   }
 
   .field-type input:not([type='checkbox']):not([type='radio']),

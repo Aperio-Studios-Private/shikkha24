@@ -3421,6 +3421,12 @@ emerald primary CTA; secondary controls such as "Bulk Upload" remain quiet. Evid
 `typecheck`, `lint`, and production `build` pass; live Articles and Media list CTAs are 44px
 `rgb(4, 120, 87)`; Impeccable detector on the Articles list is clean.
 
+**C1c4 completed locally (not pushed/deployed).** Editor-page noise is reduced: the rebuild notice is
+a compact warning callout, document title is smaller, labels use a stronger hierarchy, descriptions are
+quieter, and editor padding/control spacing is tighter. Evidence: CMS `typecheck`, `lint`, and
+production `build` pass; live editor confirms the callout, 650-weight labels, and emerald publish
+control; Impeccable detector on the editor is clean.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own
