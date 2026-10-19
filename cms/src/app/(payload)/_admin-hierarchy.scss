@@ -13,6 +13,17 @@
     color: var(--shikkha-ink);
   }
 
+  @media (min-width: 769px) {
+    .template-default {
+      grid-template-columns: 275px minmax(0, 1fr);
+    }
+
+    .template-default__nav-toggler,
+    .app-header__mobile-nav-toggler {
+      display: none;
+    }
+  }
+
   .nav,
   .app-header__bg,
   .app-header__gradient-placeholder {
@@ -87,6 +98,10 @@
   }
 
   @media (max-width: 768px), (pointer: coarse) {
+    .template-default {
+      overflow-x: clip;
+    }
+
     .nav-group__toggle {
       min-height: 48px;
       font-size: 12px;

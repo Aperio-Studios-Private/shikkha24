@@ -3481,6 +3481,18 @@ dashboard shows 35 emoji-prefixed labels with 35 unique leading emojis; sidebar 
 present; no horizontal overflow; Impeccable detector is clean; CMS `typecheck`, `lint`, and
 production `build` pass.
 
+**C1c7 completed locally (not pushed/deployed).** Added a role-aware dashboard workbench above the
+collection grid. It uses the Local API with the signed-in session and `overrideAccess: false`, so
+editors see newsroom-wide queues while reporters remain scoped to their own articles/assignments.
+Cards show open assignments, ready-to-publish drafts, and needs-attention work; a recent-work list
+links to the latest three articles. Data helpers and dashboard styles are split into focused files.
+Owner feedback also removed the redundant desktop hamburger: desktop now uses a persistent 275px
+sidebar, while mobile retains the toggle and clips drawer-induced horizontal overflow. Evidence: live
+dashboard renders real counts and recent articles; desktop grid is `275px + content`; 390×844 cards
+are full-width, recent links are 48×335px, and the mobile drawer opens without horizontal overflow.
+Impeccable detector is clean at 1280×800 and 390×844; CMS `typecheck`, `lint`, and production `build`
+pass.
+
 ### T-90 — 🔵 QUEUED (2026-10-19 22:05 +06:00): optional bilingual admin UI + Bangla Academy copy review
 
 Owner approved adding the capability after the current CMS redesign queue. Scope is **not** to make

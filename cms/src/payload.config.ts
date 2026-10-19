@@ -224,7 +224,10 @@ export default buildConfig({
        */
       beforeNavLinks: ['/components/admin/DashboardNavLink#DashboardNavLink'],
       afterNavLinks: ['/components/admin/ReporterNavLink#ReporterNavLink'],
-      beforeDashboard: ['/components/admin/ReporterDashboardLink#ReporterDashboardLink'],
+      beforeDashboard: [
+        '/components/admin/DashboardWorkbench#DashboardWorkbench',
+        '/components/admin/ReporterDashboardLink#ReporterDashboardLink',
+      ],
     },
   },
 

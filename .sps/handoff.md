@@ -3467,3 +3467,15 @@ way *after* the billing lock clears, revisit this entry — not before.
   AGY is designated for Bengali copywriting/review against Bangla Academy rules; Codex remains the
   implementation approver.
 - Deliberately queued behind T-89 C1c7–C1c10 and final redesign QA. No implementation started.
+
+### 2026-10-19 — T-89 C1c7 dashboard workbench
+
+- Added a role-aware task dashboard before the collection grid. It reads counts/recent articles via
+  Payload's Local API with the signed-in session and `overrideAccess: false`; reporters remain scoped
+  by their own access rules.
+- Split data helpers into `dashboard-workbench-data.ts` and styles into `_admin-dashboard.scss` to
+  keep files focused. Cards cover assignments, ready-to-publish, needs-attention, and recent work.
+- Owner feedback removed the redundant desktop hamburger. Desktop now forces a persistent 275px
+  sidebar; mobile keeps its toggle and clips drawer overflow. Verified live at desktop/mobile, with
+  48px recent-work targets, no overflow, detector clean at both widths, and CMS lint/typecheck/build
+  passing. No push/deploy.
