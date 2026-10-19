@@ -5,9 +5,13 @@ import { getPayload } from 'payload'
 import { isEditorUser, relationId } from '../../access/roles'
 import config from '../../payload.config'
 import {
+  collectionPath,
   countRequest,
+  exactTime,
   listRequest,
+  relativeTime,
   reviewLabel,
+  reviewTone,
   type WorkbenchCard,
   type WorkItem,
 } from './dashboard-workbench-data'
@@ -120,30 +124,100 @@ export async function DashboardWorkbench() {
     (changesRequested ?? 0) +
     (rejectedAssignments ?? 0) +
     (editor ? (unapprovedComments ?? 0) + (newSubmissions ?? 0) : 0)
+
+  const attentionSources = [
+    {
+      count: changesRequested ?? 0,
+      href: collectionPath('articles', {
+        'where[reviewStatus][in]': 'changesRequested',
+      }),
+      label: 'returned articles',
+    },
+    {
+      count: rejectedAssignments ?? 0,
+      href: collectionPath('assignments', {
+        'where[status][equals]': 'rejected',
+      }),
+      label: 'rejected assignments',
+    },
+    ...(editor
+      ? [
+          {
+            count: unapprovedComments ?? 0,
+            href: collectionPath('comments', {
+              'where[isApproved][equals]': 'false',
+            }),
+            label: 'comments to approve',
+          },
+          {
+            count: newSubmissions ?? 0,
+            href: collectionPath('citizen-submissions', {
+              'where[status][equals]': 'new',
+            }),
+            label: 'citizen submissions',
+          },
+        ]
+      : []),
+  ]
+  const attentionTarget = attentionSources.reduce((current, candidate) =>
+    candidate.count > current.count ? candidate : current,
+  )
+
+  const readyToPublishHref = collectionPath('articles', {
+    'where[and][0][reviewStatus][equals]': 'approved',
+    'where[and][1][_status][equals]': 'draft',
+  })
+  const openAssignmentsHref = collectionPath('assignments', {
+    'where[status][in]': 'assigned,accepted,inProgress',
+  })
+  const attentionHref =
+    attentionCount === 0
+      ? editor
+        ? collectionPath('articles', {
+            'where[reviewStatus][in]': 'pendingReview',
+          })
+        : '/admin/reporter'
+      : attentionTarget.href
+
   const cards: WorkbenchCard[] = [
     {
       count: openAssignments,
+      actionLabel: 'Open queue',
+      emptyDescription: 'No active assignments right now.',
       description: editor ? 'The newsroom work queue.' : 'Work assigned to you.',
-      href: '/admin/collections/assignments',
+      href: openAssignmentsHref,
       title: '📋 Open assignments',
     },
     {
       count: readyToPublish,
+      actionLabel: 'Review drafts',
+      emptyDescription: 'No approved drafts are waiting to publish.',
       description: editor ? 'Approved drafts ready to go live.' : 'Your approved drafts.',
-      href: '/admin/collections/articles',
+      href: readyToPublishHref,
       title: '🟢 Ready to publish',
     },
     {
       count: attentionCount,
-      description: editor ? 'Review, moderation, and rejected work.' : 'Rejected or returned work.',
-      href: editor ? '/admin/collections/articles' : '/admin/reporter',
+      actionLabel: editor ? 'Open priority' : 'Open My Work',
+      emptyDescription: 'No blockers or moderation items right now.',
+      description:
+        attentionCount === 0
+          ? editor
+            ? 'Review, moderation, and rejected work are clear.'
+            : 'No rejected or returned work.'
+          : `Highest priority: ${attentionTarget.label}.`,
+      href: attentionHref,
       title: '⚠️ Needs attention',
     },
   ]
+  const articlesPath = collectionPath('articles')
   const recent: WorkItem[] = recentDocs.map((doc) => ({
     href: `/admin/collections/articles/${doc.id}`,
     label: doc.title ?? `Article ${doc.id}`,
-    meta: reviewLabel(doc),
+    status: reviewLabel(doc),
+    statusTone: reviewTone(doc),
+    timestamp: relativeTime(doc.updatedAt),
+    timestampTitle: exactTime(doc.updatedAt),
   }))
 
   return (
@@ -156,20 +230,37 @@ export async function DashboardWorkbench() {
             <strong className="dashboard-workbench__count">
               {card.count === null ? '—' : card.count}
             </strong>
-            <span className="dashboard-workbench__description">{card.description}</span>
+            <span className="dashboard-workbench__description">
+              {card.count === 0 ? card.emptyDescription : card.description}
+            </span>
+            <span className="dashboard-workbench__action">{card.actionLabel}</span>
           </Link>
         ))}
       </div>
       <div className="dashboard-workbench__recent">
-        <h3>Recent work</h3>
+        <div className="dashboard-workbench__recent-header">
+          <h3>Recent work</h3>
+          <Link className="dashboard-workbench__browse" href={articlesPath}>
+            Browse all
+          </Link>
+        </div>
         {recent.length === 0 ? (
           <p>No recent articles yet. Create a draft to see it here.</p>
         ) : (
           <ul>
             {recent.map((item) => (
               <li key={item.href}>
-                <Link href={item.href}>{item.label}</Link>
-                <span>{item.meta}</span>
+                <Link href={item.href} title={item.timestampTitle}>
+                  <span className="dashboard-workbench__item-label">{item.label}</span>
+                  <span className="dashboard-workbench__item-meta">
+                    <span
+                      className={`dashboard-workbench__status dashboard-workbench__status--${item.statusTone}`}
+                    >
+                      {item.status}
+                    </span>
+                    <time dateTime={item.timestampTitle}>{item.timestamp}</time>
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>

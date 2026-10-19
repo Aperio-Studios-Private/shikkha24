@@ -3480,6 +3480,18 @@ way *after* the billing lock clears, revisit this entry — not before.
   48px recent-work targets, no overflow, detector clean at both widths, and CMS lint/typecheck/build
   passing. No push/deploy.
 
+### 2026-10-19 — T-89 C1c7 reopened dashboard slice
+
+- Owner correctly rejected the earlier “perfect” framing. The sidebar remains approved, while C1c7
+  is reopened. This slice makes card links filtered and role-aware, chooses the highest-count
+  attention source, adds useful zero-state copy/actions, and enriches recent work with status chips,
+  relative timestamps, exact-time tooltips, and Browse all.
+- Kept `ReporterDashboardLink` in place for now. It remains the server-rendered fallback because
+  the nav-slot output was not previously SSR-verifiable; consolidation is explicitly left open.
+- Verified live: filtered assignments URL resolves to “No Results”; recent links are 48px; mobile
+  Browse all is 48×66px; no horizontal overflow at 390×844; Impeccable detector returns `[]` at
+  1280×800 and 390×844. CMS lint/typecheck/build pass. No push/deploy.
+
 ### 2026-10-19 — T-89 C1c7 button alignment fix
 
 - Root-caused Payload's `a.btn { display: inline-block }`: the enforced button height left labels at

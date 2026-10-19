@@ -19,8 +19,9 @@
   }
 
   .dashboard-workbench__card {
-    display: grid;
-    align-content: start;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 0.25rem;
     min-height: 7rem;
     padding: 0.875rem;
@@ -58,6 +59,14 @@
     line-height: 1.45;
   }
 
+  .dashboard-workbench__action {
+    margin-top: auto;
+    padding-top: 0.375rem;
+    color: var(--shikkha-info-emphasis);
+    font-size: 0.8125rem;
+    font-weight: 700;
+  }
+
   .dashboard-workbench__recent {
     padding: 0.875rem;
     border: 1px solid var(--shikkha-border);
@@ -65,9 +74,46 @@
     background-color: var(--shikkha-surface);
   }
 
+  .dashboard-workbench__recent-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
   .dashboard-workbench__recent h3 {
     margin: 0 0 0.5rem;
     font-size: 0.875rem;
+  }
+
+  .dashboard-workbench__recent-header h3 {
+    margin: 0;
+  }
+
+  .dashboard-workbench__browse {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 0.5rem;
+    border: 1px solid var(--shikkha-info-border);
+    border-radius: var(--shikkha-radius-s);
+    background-color: var(--shikkha-info-bg-muted);
+    color: var(--shikkha-info-fg);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .dashboard-workbench__browse:hover {
+    border-color: var(--shikkha-info-border-muted);
+    background-color: var(--shikkha-info-bg);
+  }
+
+  .dashboard-workbench__browse:focus-visible {
+    outline: 3px solid var(--shikkha-focus);
+    outline-offset: 2px;
   }
 
   .dashboard-workbench__recent p {
@@ -98,33 +144,89 @@
     border-bottom: 0;
   }
 
-  .dashboard-workbench__recent a {
+  .dashboard-workbench__recent li a {
     flex: 1;
-    display: flex;
-    align-items: center;
+    display: grid;
+    align-content: center;
+    gap: 0.125rem;
     min-height: 48px;
     color: var(--shikkha-ink);
     text-decoration: none;
   }
 
-  .dashboard-workbench__recent a:hover {
+  .dashboard-workbench__recent li a:hover {
     color: var(--shikkha-info-emphasis);
   }
 
-  .dashboard-workbench__recent a:focus-visible {
+  .dashboard-workbench__recent li a:focus-visible {
     outline: 3px solid var(--shikkha-focus);
     outline-offset: -3px;
   }
 
-  .dashboard-workbench__recent span {
-    flex: 0 0 auto;
+  .dashboard-workbench__item-label {
+    overflow: hidden;
+    color: var(--shikkha-ink);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dashboard-workbench__item-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     color: var(--shikkha-ink-muted);
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
+  }
+
+  .dashboard-workbench__status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 0 0.375rem;
+    border: 1px solid var(--shikkha-border);
+    border-radius: 999px;
+    background-color: var(--shikkha-neutral-50);
+    color: var(--shikkha-ink-muted);
+    font-size: 0.6875rem;
+    font-weight: 700;
+  }
+
+  .dashboard-workbench__status--success {
+    border-color: var(--shikkha-success-border-muted);
+    background-color: var(--shikkha-success-bg-muted);
+    color: var(--shikkha-success-fg);
+  }
+
+  .dashboard-workbench__status--warning {
+    border-color: var(--shikkha-warning-border-muted);
+    background-color: var(--shikkha-warning-bg-muted);
+    color: var(--shikkha-warning-fg);
+  }
+
+  .dashboard-workbench__status--danger {
+    border-color: var(--shikkha-danger-border-muted);
+    background-color: var(--shikkha-danger-bg-muted);
+    color: var(--shikkha-danger-fg);
+  }
+
+  .dashboard-workbench__recent time {
+    flex: 0 0 auto;
+  }
+
+  .dashboard-workbench__recent > p {
+    color: var(--shikkha-ink-muted);
+    font-size: 0.875rem;
+    line-height: 1.5;
   }
 
   @media (max-width: 768px) {
     .dashboard-workbench__cards {
       grid-template-columns: 1fr;
+    }
+
+    .dashboard-workbench__browse {
+      min-height: 48px;
     }
 
     .dashboard-workbench__recent li {
@@ -133,7 +235,7 @@
       gap: 0.25rem;
     }
 
-    .dashboard-workbench__recent a {
+    .dashboard-workbench__recent li a {
       align-self: stretch;
     }
   }

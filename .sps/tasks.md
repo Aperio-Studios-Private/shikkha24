@@ -3481,6 +3481,21 @@ dashboard shows 35 emoji-prefixed labels with 35 unique leading emojis; sidebar 
 present; no horizontal overflow; Impeccable detector is clean; CMS `typecheck`, `lint`, and
 production `build` pass.
 
+**C1c7 reopened by owner feedback (2026-10-19 22:15 +06:00).** The sidebar is approved, but the
+dashboard is not “perfect”: empty-looking zero cards, generic list links, sparse recent work, and
+duplicated reporter entry points remain. Current slice: make card destinations role-aware and
+filtered, add useful zero states, and enrich recent-work rows with timestamps and status context.
+
+**C1c7 first reopened slice completed locally (not pushed/deployed).** Dashboard cards now use
+filtered Payload list URLs, select the highest-count attention source, explain zero states, and
+show an explicit action. Recent work now has compact status chips, relative timestamps, exact-time
+tooltips, and a “Browse all” control. The reporter banner remains for this slice because its
+server-rendered entry point was the fallback for unverified nav-slot rendering. Evidence: live
+desktop/mobile dashboard, filtered assignments URL resolves to “No Results,” recent links measure
+48px, mobile “Browse all” measures 48px, no horizontal overflow, Impeccable detector is clean at
+1280×800 and 390×844, and CMS lint/typecheck/build pass. C1c7 remains open for reporter-banner
+consolidation and the collection-grid/empty-state follow-up.
+
 **C1c7 completed locally (not pushed/deployed).** Added a role-aware dashboard workbench above the
 collection grid. It uses the Local API with the signed-in session and `overrideAccess: false`, so
 editors see newsroom-wide queues while reporters remain scoped to their own articles/assignments.
