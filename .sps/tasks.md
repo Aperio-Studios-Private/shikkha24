@@ -3261,6 +3261,22 @@ follows this record, verified against the built output.
 
 # AUDIT REMEDIATION QUEUE (2026-10-19) — from `.sps/audit-report.md` (56/100)
 
+### T-86 — ⏸ PAUSED (2026-10-19): owner-approved local Cloudflare deploy while Actions is locked
+The owner cannot resolve the GitHub billing lock because no card is available. The owner explicitly
+approved a local deployment. Scope: run the local frontend gates, build from the production CMS,
+deploy with Wrangler, then verify the live Workers routes and content. Do not push or rerun GitHub
+Actions as part of this task.
+
+**Superseded before deployment by T-87:** the owner transferred the repository to a clean
+organization so Actions can run normally. Local verification and the production-CMS build completed;
+deploy did not.
+
+### T-87 — 🔴 DOING (2026-10-19): transfer repository to Aperio to bypass the personal billing lock
+The owner approved transferring `SHAHID8142/shikkha24` to `Aperio-Studios-Private`. Transfer completed
+at 2026-10-19 11:04 UTC; the new repository is public and the local remote now points there. Secrets,
+variables and workflows transferred. Push the 11 local commits, confirm CI and Cloudflare deploy, then
+verify production. Keep the old personal account only as history; do not use it for Actions.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own
