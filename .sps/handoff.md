@@ -3281,3 +3281,12 @@ way *after* the billing lock clears, revisit this entry — not before.
   SolaimanLipi's vertical metrics, and uses measured `size-adjust: 87.06%`.
 - Current 877-page build: CLS **0.0000 on all nine Lighthouse runs**, accessibility 100, performance
   0.96–0.98. The only remaining Lighthouse assertion failure is T-80 LCP.
+
+### 2026-10-19 — shipped CSS inlining; isolated demo-ad fade fix
+
+- `frontend/astro.config.mjs` now inlines all CSS. This removes the stylesheet round trip and lets font
+  discovery start earlier. It costs a cacheable shared stylesheet but improves first-view LCP; current
+  LCP remains above budget, so T-80 stays open pending an owner-approved font strategy.
+- `DemoAd.astro` steps `visibility` without a 600ms outgoing delay. The old delay kept low-opacity text
+  rendered long enough for Lighthouse's contrast audit to sample it, causing intermittent accessibility
+  failures.

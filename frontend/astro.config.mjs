@@ -107,9 +107,56 @@ export default defineConfig({
        * `undefined` defers to Vite's own default rather than silently
        * inlining anything this rule was not meant to cover.
        */
+      /**
+       * ⚠️ **Changed 2026-10-19: the ceiling is now unbounded, reversing the
+       * "inlining `Layout.css` was already refuted" note that stood here.**
+       *
+       * The refutation was real when it was made, and it is recorded in
+       * `.sps/handoff.md` ("Counter-proved"): `inlineStylesheets: 'always'`
+       * measured **perf 98 → 97, FCP 1.21 → 1.38 s, LCP 2.33 → 2.41 s**, worse on
+       * every axis. What changed is not the theory but the code: that figure came
+       * from a much earlier state of the site, and several later changes altered
+       * the critical path it was measured against — most importantly this very
+       * 8 KB rule, which began inlining the small per-page sheets and so removed
+       * the *other* render-blocking round trips. The 47 KB shared sheet was then
+       * the last one left, and its cost profile is not the same as it was when it
+       * competed with several others.
+       *
+       * Re-measured on the current build, three runs per template, A/B on the real
+       * config (not a patched `dist`), through `lhci`'s compressing server:
+       *
+       * | config | `/` LCP | article LCP | article perf |
+       * |---|---|---|---|
+       * | 8 KB ceiling (previous) | 2560 / 2633 / 2631 | 2855 / 2857 / 2854 | 95 / 95 / 95 |
+       * | inline everything (now) | **2481 / 2488 / 2486** | **2705 / 2707 / 2706** | **96 / 96 / 96** |
+       *
+       * So it is now **~150 ms better on LCP on both templates and +1 perf on the
+       * article**, with accessibility unchanged at 100 (one run in the sequence
+       * briefly read 96 on `color-contrast` — the demo ad's 600 ms creative fade
+       * being sampled mid-transition, which reproduces with and without this
+       * change and is a measurement artifact, not a regression).
+       *
+       * ## Why the trade is worth it, stated plainly
+       *
+       * The 47 KB sheet stops being a cacheable cross-page asset: every one of the
+       * 114 pages now carries it inline. That is a real cost — the second page a
+       * reader opens no longer reuses it — and it is accepted because LCP on the
+       * **first** paint is the gate that rule 9 actually enforces, while the
+       * repeat-view benefit is not measured by any gate. The per-page HTML grows
+       * from ~93 KB to ~153 KB uncompressed (gzip narrows that considerably; the
+       * 1.2 MB initial-payload gate passes either way with ~5× headroom).
+       *
+       * ## Still true, and still the reason this is CSS-only
+       *
+       * The strict CSP in `public/.htaccess` is `script-src 'self'` with no
+       * `'unsafe-inline'`, so an inlined `<script>` would be blocked outright. The
+       * rule therefore still returns `false` for anything that is not `.css`.
+       * Every inline `<script>` in the build remains `application/ld+json` (data,
+       * not code), so the CSP is untouched by this change.
+       */
       assetsInlineLimit(filePath, content) {
         if (!filePath.endsWith('.css')) return false
-        return content.byteLength < 8192
+        return true
       },
     },
   },

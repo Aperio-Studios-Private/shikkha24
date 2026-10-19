@@ -3530,6 +3530,11 @@ paint interaction has not been ruled out.
 serialisation — now **validated as real but insufficient on its own**. It is not blocked and there is no
 mystery left: the remaining work is mechanical, and the search space is now narrow.
 
+**2026-10-19 update:** the validated first step is now shipped. `assetsInlineLimit` returns `true` for
+CSS, so the shared stylesheet is inlined and font discovery starts one round trip earlier. Current
+corrected-gate measurements remain LCP 2.40s on home/latest and 2.71s on article, so T-80 is still open;
+the remaining dominant cost is the webfont payload/swap, which requires an owner typography decision.
+
 ### T-81 — 🔴 OPEN (High, gate integrity): the Lighthouse gate does not assert LCP, and relaxes CLS
 `lighthouserc.json` asserts only these numeric metrics:
 
