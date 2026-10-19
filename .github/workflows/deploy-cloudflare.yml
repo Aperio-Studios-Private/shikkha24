@@ -265,6 +265,9 @@ jobs:
           CMS_URL: ${{ secrets.CMS_URL }}
         run: pnpm run verify:build-output
 
+      - name: Verify touch targets
+        run: pnpm run verify:touch-targets
+
       - name: Verify internal links
         run: pnpm run verify:links
 

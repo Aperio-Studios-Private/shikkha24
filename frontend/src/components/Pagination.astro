@@ -53,14 +53,14 @@ function pageWindow(): number[] {
         <a
           href={hrefFor(page - 1)}
           rel="prev"
-          class="inline-flex h-10 items-center rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
+          class="inline-flex min-h-12 items-center rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
         >
           ← আগের
         </a>
       ) : (
         <span
           aria-disabled="true"
-          class="inline-flex h-10 items-center rounded-md border border-rule px-3 text-sm font-medium text-ink-subtle opacity-50 dark:border-dark-rule dark:text-dark-ink-muted"
+          class="inline-flex min-h-12 items-center rounded-md border border-rule px-3 text-sm font-medium text-ink-subtle opacity-50 dark:border-dark-rule dark:text-dark-ink-muted"
         >
           ← আগের
         </span>
@@ -70,14 +70,14 @@ function pageWindow(): number[] {
         n === page ? (
           <span
             aria-current="page"
-            class="inline-flex h-10 w-10 items-center justify-center rounded-md bg-brand-red text-sm font-bold text-white"
+            class="inline-flex h-12 w-12 items-center justify-center rounded-md bg-brand-red text-sm font-bold text-white"
           >
             {n}
           </span>
         ) : (
           <a
             href={hrefFor(n)}
-            class="inline-flex h-10 w-10 items-center justify-center rounded-md border border-rule text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
+            class="inline-flex h-12 w-12 items-center justify-center rounded-md border border-rule text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
           >
             {n}
           </a>
@@ -89,14 +89,14 @@ function pageWindow(): number[] {
         <a
           href={hrefFor(page + 1)}
           rel="next"
-          class="inline-flex h-10 items-center rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
+          class="inline-flex min-h-12 items-center rounded-md border border-rule px-3 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
         >
           পরের →
         </a>
       ) : (
         <span
           aria-disabled="true"
-          class="inline-flex h-10 items-center rounded-md border border-rule px-3 text-sm font-medium text-ink-subtle opacity-50 dark:border-dark-rule dark:text-dark-ink-muted"
+          class="inline-flex min-h-12 items-center rounded-md border border-rule px-3 text-sm font-medium text-ink-subtle opacity-50 dark:border-dark-rule dark:text-dark-ink-muted"
         >
           পরের →
         </span>

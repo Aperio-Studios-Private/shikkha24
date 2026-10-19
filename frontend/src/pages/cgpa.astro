@@ -97,7 +97,7 @@ const scaleTables = CGPA_SCALES.map((scale) => ({
         <legend class="px-1 text-sm font-semibold text-ink dark:text-dark-ink">বিশ্ববিদ্যালয়ের গ্রেডিং স্কেল</legend>
         <div class="flex flex-col gap-2 sm:flex-row sm:gap-6">
           {scaleTables.map((scale, index) => (
-            <label class="flex items-start gap-2 text-sm text-ink dark:text-dark-ink">
+            <label class="flex min-h-12 items-start gap-2 py-2 text-sm text-ink dark:text-dark-ink">
               <input
                 type="radio"
                 name="cgpa-scale"

@@ -161,7 +161,7 @@ function formatDate(date: string | null | undefined): string {
               ))}
             </div>
             {levelOptions.size > 0 && (
-              <select data-level-filter class="h-8 rounded-md border border-rule bg-surface px-2 text-xs text-ink dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink" aria-label="শিক্ষার স্তর নির্বাচন করুন">
+              <select data-level-filter class="min-h-12 rounded-md border border-rule bg-surface px-3 text-sm text-ink dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink" aria-label="শিক্ষার স্তর নির্বাচন করুন">
                 <option value="">সব স্তর</option>
                 {[...levelOptions.entries()].map(([slug, name]) => (
                   <option value={slug}>{name}</option>
@@ -169,7 +169,7 @@ function formatDate(date: string | null | undefined): string {
               </select>
             )}
             {districtOptions.size > 0 && (
-              <select data-district-filter class="h-8 rounded-md border border-rule bg-surface px-2 text-xs text-ink dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink" aria-label="জেলা নির্বাচন করুন">
+              <select data-district-filter class="min-h-12 rounded-md border border-rule bg-surface px-3 text-sm text-ink dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink" aria-label="জেলা নির্বাচন করুন">
                 <option value="">সব জেলা</option>
                 {[...districtOptions.entries()].map(([slug, name]) => (
                   <option value={slug}>{name}</option>

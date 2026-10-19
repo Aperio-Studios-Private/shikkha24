@@ -34,6 +34,7 @@
     "verify:bengali-spacing": "node scripts/verify-bengali-spacing.mjs",
     "verify:bookmarks": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/verify-bookmark-merge.mjs",
     "verify:build-output": "node scripts/verify-build-output.mjs",
+    "verify:touch-targets": "node scripts/verify-touch-targets.mjs",
     "verify:cgpa": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/verify-cgpa.mjs",
     "verify:client-ip": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/verify-client-ip.mjs",
     "verify:cloudflare": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/verify-cloudflare.mjs",

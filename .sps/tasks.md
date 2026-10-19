@@ -3588,7 +3588,7 @@ defers images behind a tap placeholder), and `frontend/src` contains **no** togg
 measure. Either implement it or formally descope it by amending rule 9 — the owner's call, same pattern as
 T-71/T-72. Related: touch targets (T-85).
 
-### T-85 — 🔴 OPEN (Low, a11y): the 48×48 touch-target gate has no automated enforcement anywhere
+### T-85 — ✅ DONE (2026-10-19): 48×48 touch targets fixed and enforced
 `docs/audit-measurements-design-gates.md` §4 lists **24** controls whose Tailwind sizing classes imply a
 box under the project's 48px minimum — worst are `SocialLinks.astro:83` (`h-4 w-4` = **16×16**) and `:58`
 (28×28), `TextResizer.astro:15,24,33` (32×32), `Header.astro:90` (32×32, search), `deadlines.astro:164,172`
@@ -3597,6 +3597,13 @@ measured geometry** — see the report for why. Note also that Lighthouse's own 
 **1.00** on these pages because it tests the 24px WCAG minimum, not this project's stricter 48px, which is
 why nothing has ever caught this. Fix the worst offenders and add an assertion, or the gate stays
 document-only for a fourth session.
+
+**Closed.** The full 877-page build was scanned and reduced to 21 unique class signatures. Real controls
+now use `h-12`/`min-h-12`; honeypots and checkbox/radio inputs wrapped by a `min-h-12` label are excluded
+because the effective target is the label. Added `scripts/verify-touch-targets.mjs`, wired as
+`verify:touch-targets` into CI and both deploy workflows. Evidence: build 877 pages, typecheck pass,
+`verify:build-output` pass, `verify:links` 63,482 links pass, and
+`PASS no explicit sub-48px touch targets in 877 built pages`.
 
 ### T-73 — 🟢 MOSTLY CLOSED (2026-10-19): the audit's "Unverified" dimensions are now measured
 D1–D4 + F3 → `docs/audit-measurements-a11y-responsive.md` (712 lines). F2 →

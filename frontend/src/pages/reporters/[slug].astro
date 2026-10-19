@@ -290,7 +290,7 @@ const cardImageUrl =
                       <a
                         href={cardImageUrl}
                         download={`${reporter.reporterId}-id-card.png`}
-                        class="inline-flex h-9 w-fit items-center rounded-md border border-rule px-3 font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
+                        class="inline-flex min-h-12 w-fit items-center rounded-md border border-rule px-3 font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
                       >
                         কার্ড ডাউনলোড করুন
                       </a>
@@ -298,7 +298,7 @@ const cardImageUrl =
                         href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${Astro.site?.href.replace(/\/$/, '') ?? ''}/verify/${reporter.reporterId}`)}`}
                         target="_blank"
                         rel="noopener nofollow"
-                        class="inline-flex h-9 w-fit items-center rounded-md border border-rule px-3 font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
+                        class="inline-flex min-h-12 w-fit items-center rounded-md border border-rule px-3 font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
                       >
                         ফেসবুকে শেয়ার করুন
                       </a>

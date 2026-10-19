@@ -412,6 +412,9 @@ jobs:
         # rather than comparing against a live CMS count.
         run: pnpm run verify:build-output
 
+      - name: Verify touch targets
+        run: pnpm run verify:touch-targets
+
       - name: Verify internal links
         # Every `href`/`src` in the built output must resolve to a built file.
         # Astro does not resolve `href` strings, and a link to a route that was

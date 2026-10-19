@@ -3263,3 +3263,14 @@ once validated, and we never added one.
 3–4 s with *"your account is locked due to a billing issue."* The token notice is a forward-looking
 deprecation advisory; it produces no red account state and stops no job. If jobs start failing in a new
 way *after* the billing lock clears, revisit this entry — not before.
+
+### 2026-10-19 — T-81 gate fix; T-80 evidence; T-85 touch targets closed
+
+- **T-81:** committed `5c72c0a` adds `largest-contentful-paint <= 1500` and tightens
+  `cumulative-layout-shift` to `0.02`. The gate now fails honestly on current LCP.
+- **T-80:** CSS inlining remains a real but insufficient ~150 ms gain. Controlled diagnostics showed that
+  removing scripts improved homepage FCP to ~0.94–0.98s but LCP only to ~2.11–2.27s; removing webfonts
+  dropped LCP to ~0.90–1.54s; a 32-character Bengali core font reduced LCP to ~1.81–1.89s. Fonts remain
+  dominant, but changing reader-facing typography needs owner approval.
+- **T-85:** fixed all real explicit sub-48px controls, added `verify:touch-targets`, and wired it into
+  CI/deploy. Verified on an 877-page build: typecheck, build-output, links, and touch-target gates pass.
