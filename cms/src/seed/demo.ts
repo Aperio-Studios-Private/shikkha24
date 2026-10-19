@@ -876,6 +876,7 @@ export async function seedDemo(payload: Payload): Promise<DemoReport> {
           collection: 'articles',
           id: doc.id,
           data,
+          context: { [PROGRAMMATIC_CONTEXT]: true },
           overrideAccess: true,
         })
         report.articles++

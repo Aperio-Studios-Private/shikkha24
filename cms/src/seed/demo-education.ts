@@ -8,6 +8,8 @@
  */
 import type { Payload } from 'payload'
 
+import { PROGRAMMATIC_CONTEXT } from '../hooks/publish'
+
 interface SlugAgnosticPayload {
   find(args: Record<string, unknown>): Promise<{ docs: Array<Record<string, unknown>> }>
   create(args: Record<string, unknown>): Promise<Record<string, unknown>>
@@ -627,6 +629,7 @@ export async function seedDemoEducation(payload: Payload): Promise<EducationRepo
       collection: 'articles',
       id: doc.id,
       data: { university: institutionId },
+      context: { [PROGRAMMATIC_CONTEXT]: true },
       overrideAccess: true,
     })
   }

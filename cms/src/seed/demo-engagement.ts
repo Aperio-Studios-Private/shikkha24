@@ -1,6 +1,8 @@
 import type { Payload } from 'payload'
 import sharp from 'sharp'
 
+import { PROGRAMMATIC_CONTEXT } from '../hooks/publish'
+
 /**
  * Demo reader-engagement content for S9 — galleries, comments and a video embed.
  *
@@ -198,6 +200,7 @@ async function attachDemoVideo(db: SlugAgnosticPayload, report: EngagementReport
     collection: 'articles',
     id: doc.id,
     data: { body },
+    context: { [PROGRAMMATIC_CONTEXT]: true },
     overrideAccess: true,
   })
   report.video = 1
@@ -247,6 +250,7 @@ async function attachDemoArticleVideo(db: SlugAgnosticPayload): Promise<void> {
       collection: 'articles',
       id: doc.id,
       data: { videoUrl: fixture.videoUrl, videoProvider: fixture.videoProvider },
+      context: { [PROGRAMMATIC_CONTEXT]: true },
       overrideAccess: true,
     })
   }
@@ -306,6 +310,7 @@ async function attachDemoPhotoStory(db: SlugAgnosticPayload): Promise<void> {
         fullBleed: index % 2 === 0,
       })),
     },
+    context: { [PROGRAMMATIC_CONTEXT]: true },
     overrideAccess: true,
   })
 }

@@ -3277,6 +3277,11 @@ at 2026-10-19 11:04 UTC; the new repository is public and the local remote now p
 variables and workflows transferred. Push the 11 local commits, confirm CI and Cloudflare deploy, then
 verify production. Keep the old personal account only as history; do not use it for Actions.
 
+**CI progress:** the lock is gone and steps execute. The first org CI run failed at `seed:demo`
+because the T-60 publish guard correctly blocked seed writes to published articles. All seed update
+calls now pass the trusted `PROGRAMMATIC_CONTEXT`; migrate → seed → demo seed passes locally on an
+isolated SQLite database. Pushing the fix for a fresh CI run.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own
