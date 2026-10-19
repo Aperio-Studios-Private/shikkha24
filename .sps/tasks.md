@@ -3365,6 +3365,23 @@ No component, navigation, data-model, access, or workflow changes. Evidence: CMS
 and production `build` all pass; local dev login renders the separated canvas/card hierarchy with no
 button shadow or motion. Owner visual review is next before C1c.
 
+**C1b-brand queued (2026-10-19 19:55 +06:00).** Owner asked to replace Payload's default logo with the
+Shikkha24 brand logo. Scope is limited to Payload's supported admin `graphics.Icon` and
+`graphics.Logo` overrides using the approved official SVGs already tracked under `docs/assets`.
+No storefront, data-model, access, or workflow changes.
+
+**C1b-brand completed locally (not pushed/deployed).** Added `BrandIcon` and `BrandLogo` server
+components using the approved official SVGs and registered them through Payload's supported
+`admin.components.graphics` API. The generated import map now includes both components. OpenCode and
+AGY independently found the same issue: the nav icon initially overflowed Payload's 18px container;
+it is now responsive to that container. Evidence: CMS `typecheck`, `lint`, and production `build`
+pass; live dashboard icon measures 18×18 and login logo measures 48×48. Owner visual review is next.
+
+**New queued items (2026-10-19 20:15 +06:00):** (1) add Dashboard Navigation to the side navigation;
+(2) fix `/admin/reporter` rendering without the admin shell; (3) add relatable emoji or icons to
+admin items, choosing the fastest maintainable option; (4) evaluate the four owner-named models
+against real repository tasks before recommending one.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own

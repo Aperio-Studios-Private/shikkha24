@@ -193,6 +193,10 @@ export default buildConfig({
       titleSuffix: ' — শিক্ষা২৪.কম',
     },
     components: {
+      graphics: {
+        Icon: '/components/admin/BrandIcon#BrandIcon',
+        Logo: '/components/admin/BrandLogo#BrandLogo',
+      },
       /*
        * The reporter workspace (S13) — `/admin/reporter`.
        *

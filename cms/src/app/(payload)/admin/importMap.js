@@ -23,6 +23,8 @@ import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997e
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { OptimisedUploadServer as OptimisedUploadServer_a0bc47af830216526c987119453e160e } from '@/components/media/OptimisedUpload'
+import { BrandIcon as BrandIcon_d0588eb7948ddcaab14f9f6ea2cd1dd7 } from '../../../components/admin/BrandIcon'
+import { BrandLogo as BrandLogo_9bb8ea9971948830b3de812baaa56aec } from '../../../components/admin/BrandLogo'
 import { ReporterNavLink as ReporterNavLink_a2d61f434ac4f4eba5efaab27e9ed1aa } from '../../../components/admin/ReporterNavLink'
 import { ReporterDashboardLink as ReporterDashboardLink_dbea3dee97738c88cf34703830bb8ff2 } from '../../../components/admin/ReporterDashboardLink'
 import { ReporterWorkspace as ReporterWorkspace_750dabffb1accf259adc437cc5df6b4e } from '../../../components/admin/ReporterWorkspace'
@@ -55,6 +57,8 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@/components/media/OptimisedUpload#OptimisedUploadServer": OptimisedUploadServer_a0bc47af830216526c987119453e160e,
+  "/components/admin/BrandIcon#BrandIcon": BrandIcon_d0588eb7948ddcaab14f9f6ea2cd1dd7,
+  "/components/admin/BrandLogo#BrandLogo": BrandLogo_9bb8ea9971948830b3de812baaa56aec,
   "/components/admin/ReporterNavLink#ReporterNavLink": ReporterNavLink_a2d61f434ac4f4eba5efaab27e9ed1aa,
   "/components/admin/ReporterDashboardLink#ReporterDashboardLink": ReporterDashboardLink_dbea3dee97738c88cf34703830bb8ff2,
   "/components/admin/ReporterWorkspace#ReporterWorkspace": ReporterWorkspace_750dabffb1accf259adc437cc5df6b4e,

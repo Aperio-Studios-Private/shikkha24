@@ -23,6 +23,14 @@ and color-coded by action with no shadows, transforms, or transitions. `custom.s
 `_admin-tokens`, `_admin-hierarchy`, and `_admin-controls` to respect the file-size rule. CMS
 typecheck, lint, and production build pass. Local dev is running. Do not push/deploy yet. Next: C1c
 (form fields and status colors) after C1b review. T-88 continues waiting for Analytics Engine field data.
+**T-89 C1b-brand is next:** replace Payload's admin icon/login logo with the existing official
+Shikkha24 SVGs through Payload's supported `graphics` components. OpenCode, AGY, and Goose may be used
+as second-opinion reviewers/fixers, but Codex remains the approver.
+**T-89 C1b-brand is complete locally pending owner review.** `BrandIcon` and `BrandLogo` use the
+official SVGs and Payload's supported `graphics` API. Both external reviewers found the nav-icon
+overflow; the icon now fits Payload's 18×18 container. Typecheck/lint/build pass; live dimensions are
+18×18 in the header and 48×48 on login. Next queued: side Dashboard Navigation, then the reporter
+admin-shell defect, then emoji/icon identification.
 
 **T-89 C0 is complete; no UI code has changed.** The read-only inventory is
 `.sps/cms-ux-inventory.md`. It found 34 registered collections, one global, five roles, existing
