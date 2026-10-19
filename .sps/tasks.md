@@ -3410,6 +3410,12 @@ scale and moved primary create/publish controls from brand red to emerald, leavi
 Evidence: CMS `typecheck`, `lint`, and production `build` pass; detector remains clean at both
 viewports; live Media "Create new Media" and Article "Publish changes" are `rgb(4, 120, 87)`.
 
+**C1c2 completed locally (not pushed/deployed).** Reduced dashboard-card density with an auto-fit
+grid and compact cards; converted the inline dashboard quick-link into the semantic card/primary
+button system. Evidence: CMS `typecheck`, `lint`, and production `build` pass; live desktop shows
+compact 255px cards and a 44px emerald CTA; mobile lays the quick-link out in one column with no
+horizontal overflow; Impeccable detector remains clean at both viewports.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own

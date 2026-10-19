@@ -26,6 +26,10 @@ light neutral system, and primary create/publish controls are emerald while dele
 CMS typecheck/lint/build pass; Impeccable detector is clean at 1280×800 and 390×844; live Media and
 Article primary controls verify emerald. Next: reduce dashboard/list density and make primary list
 CTAs consistent.
+**T-89 C1c2 is complete locally pending owner review.** Dashboard cards are compact and responsive,
+and the My Work quick-link now uses the semantic emerald primary system. CMS typecheck/lint/build
+pass; desktop/mobile browser checks pass with no horizontal overflow; detector remains clean. Next:
+make collection-list primary CTAs consistent and reduce editor-page visual noise.
 
 **T-89 C0 is complete; no UI code has changed.** The read-only inventory is
 `.sps/cms-ux-inventory.md`. It found 34 registered collections, one global, five roles, existing

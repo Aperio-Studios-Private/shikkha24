@@ -24,34 +24,14 @@ import Link from 'next/link'
  */
 export function ReporterDashboardLink() {
   return (
-    <div
-      style={{
-        border: '1px solid var(--theme-elevation-100, #e4e4e4)',
-        borderRadius: '0.5rem',
-        padding: '1rem',
-        marginBottom: '1.5rem',
-      }}
-    >
-      <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-        My Work (প্রতিবেদকের কাজ)
-      </h2>
-      <p style={{ fontSize: '0.875rem', opacity: 0.75, marginBottom: '0.75rem' }}>
-        See your assignments and submit a quick draft (আপনার কাজের তালিকা দেখুন এবং দ্রুত সংবাদ জমা দিন)।
-      </p>
-      <Link
-        href="/admin/reporter"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          minHeight: '2.75rem',
-          padding: '0 1rem',
-          borderRadius: '0.375rem',
-          background: 'var(--theme-elevation-800, #1f1f1f)',
-          color: 'var(--theme-elevation-0, #ffffff)',
-          fontWeight: 500,
-          textDecoration: 'none',
-        }}
-      >
+    <div className="reporter-quicklink">
+      <div>
+        <h2>My Work (প্রতিবেদকের কাজ)</h2>
+        <p>
+          See your assignments and submit a quick draft (আপনার কাজের তালিকা দেখুন এবং দ্রুত সংবাদ জমা দিন)।
+        </p>
+      </div>
+      <Link className="btn btn--style-primary" href="/admin/reporter">
         Open My Work (প্রতিবেদকের কাজে যান)
       </Link>
     </div>
