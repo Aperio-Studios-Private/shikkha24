@@ -3574,12 +3574,20 @@ readers ignore.
 **Verified:** `label-content-name-mismatch` score 1 (was 0); accessibility **100/100/100** on home,
 /latest/ and a real article with **zero** failing audits; build exit 0 (114 pages); `biome check` clean.
 
-### T-83 — 🔴 OPEN (Medium, performance): `verify:lighthouse` asserts CLS 0.03 but CI saw 0.0436
+### T-83 — ✅ DONE (2026-10-19): font fallback made metric-stable
 `docs/performance-budget.md` §8.3a records a **0.0436** CLS on the GitHub runner (`KeyTakeaways.astro`),
 above even the relaxed 0.03 assertion. It could **not** be reproduced locally (measured 0.0007 / 0.0003 /
 0.0000 with TBT = 0 ms), so it is unresolved rather than disproven — CI-runner timing differs from a local
 static server. Either reproduce it on the runner or find the layout that shifts only under a cold cache.
 Until then, describe CLS as *passing locally, unresolved on CI* — never as conclusively green.
+
+**Closed.** The fallback previously resolved to Latin-only fonts, so Bengali first paint escaped to an
+uncontrolled system Bengali face and reflowed when SolaimanLipi loaded. `SolaimanLipi Fallback` now uses
+`local('Noto Sans Bengali')`, applies SolaimanLipi's exact vertical metrics, and uses a measured
+`size-adjust: 87.06%` from the average advance of 65 core Bengali letters/matras/digits. On the current
+877-page build, `verify:lighthouse` measured **CLS 0.0000 on all nine runs** across home, `/latest/`, and
+the article. Accessibility was 100 on all templates; performance was 0.96–0.98. The gate still fails only
+on the separate T-80 LCP budget.
 
 ### T-84 — 🔴 OPEN (Low, scope): data-saver mode does not exist, and rule 9 requires it
 Rule 9 gates "data-saver < 30 KB", `docs/performance-budget.md` §8.4 describes the mode (strips ads,

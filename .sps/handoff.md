@@ -3274,3 +3274,10 @@ way *after* the billing lock clears, revisit this entry — not before.
   dominant, but changing reader-facing typography needs owner approval.
 - **T-85:** fixed all real explicit sub-48px controls, added `verify:touch-targets`, and wired it into
   CI/deploy. Verified on an 877-page build: typecheck, build-output, links, and touch-target gates pass.
+
+### 2026-10-19 — T-83 CLS root cause fixed
+
+- `SolaimanLipi Fallback` now uses `local('Noto Sans Bengali')` instead of Latin-only fonts, applies
+  SolaimanLipi's vertical metrics, and uses measured `size-adjust: 87.06%`.
+- Current 877-page build: CLS **0.0000 on all nine Lighthouse runs**, accessibility 100, performance
+  0.96–0.98. The only remaining Lighthouse assertion failure is T-80 LCP.

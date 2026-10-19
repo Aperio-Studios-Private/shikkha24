@@ -223,11 +223,12 @@ attempted here**: it is a real optimisation task that changes the rendering
 architecture, and it needs its own section rather than being smuggled into a QA
 fix.
 
-### 8.3a ⚠️ CLS is higher on the CI runner than on a laptop — **CULPRIT FOUND, NOT YET FIXED**
+### 8.3a ✅ CLS reflow fixed with a metric-matched Bengali fallback
 
-**Measured, not fixed.** The article template measures **CLS 0.0069** on a developer
-machine across three runs, but **0.0436** on the GitHub runner for the *same
-commit and the same fresh build*. Both are real; the difference is not.
+**Resolved 2026-10-19.** The earlier article-template measurements were **CLS 0.0069** locally and
+**0.0436** on the GitHub runner. The root cause was not CPU timing: the fallback family resolved to
+Latin-only fonts, so Bengali first paint used an uncontrolled system Bengali face and reflowed when
+SolaimanLipi arrived.
 
 **The culprit is now identified.** `scripts/verify-lighthouse.sh`'s `diagnose_layout_shifts()` reads
 the `layout-shifts` audit from the saved LHR and names the element that moved. From CI run
@@ -249,11 +250,12 @@ component's layout, not a systemic runner problem. It renders from
 ⚠️ Note the audit that produces this is `layout-shifts`, **not** `cumulative-layout-shift` — the
 latter's audit details carry only a bare number, with no node attribution.
 
-This is why the gate's CLS ceiling was **not** raised to make the build green.
-The gate exists to hold the environment that actually ships, and the runner is a
-shared, slower machine than a developer laptop — so its number is the more
-conservative one. Raising the ceiling to 0.05 would have turned the build green
-and simultaneously destroyed the only signal the gate gives.
+`SolaimanLipi Fallback` now resolves to `local('Noto Sans Bengali')`, uses SolaimanLipi's exact vertical
+metrics, and applies a measured `size-adjust: 87.06%`. The ratio compares the average advance of 65 core
+Bengali letters, matras and digits: SolaimanLipi 1109/2048em versus Noto Sans Bengali 622.29/1000em.
+
+On the current 877-page build, the corrected Lighthouse gate measured **CLS 0.0000 on all nine runs**
+across the three templates. Accessibility remained 100. The gate still fails only on T-80 LCP.
 
 Two candidate causes, **neither confirmed**:
 
