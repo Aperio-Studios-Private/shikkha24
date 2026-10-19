@@ -360,6 +360,41 @@ check(
 // as evidence here.
 console.log('  ℹ .htaccess exclusion is a wrangler upload-time behaviour (see comment above)')
 
+// --- 6b. First-party RUM contract ---------------------------------------------
+
+console.log('6b. First-party RUM contract (T-88)')
+check(
+  'wrangler defines the Analytics Engine dataset',
+  cfConfig.analytics_engine_datasets?.some(
+    (dataset) => dataset.binding === 'TELEMETRY' && dataset.dataset === 'shikkha24_rum',
+  ),
+)
+const workerText = readFileSync(join(root, 'frontend/worker/index.ts'), 'utf8')
+check(
+  'the Worker handles telemetry before asset dispatch',
+  /url\.pathname === '\/telemetry'/.test(workerText) &&
+    workerText.indexOf("url.pathname === '/telemetry'") <
+      workerText.indexOf('await env.ASSETS.fetch'),
+)
+check(
+  'the Worker derives a low-cardinality sampling index',
+  readFileSync(join(root, 'frontend/worker/telemetry.ts'), 'utf8').includes(
+    'indexes: [templateForPath(payload.path)]',
+  ),
+)
+check(
+  'the beacon is external and sampled (CSP-safe, bounded writes)',
+  readFileSync(join(root, 'frontend/src/layouts/Layout.astro'), 'utf8').includes(
+    '<script defer src="/rum.js"></script>',
+  ) && readFileSync(join(root, 'frontend/public/rum.js'), 'utf8').includes('Math.random() >= 0.2'),
+)
+check(
+  'telemetry responses are never cached',
+  readFileSync(join(root, 'frontend/worker/index.ts'), 'utf8').includes(
+    "headers['Cache-Control'] = 'no-store'",
+  ),
+)
+
 // --- 7. Workflows — gate first, dry-run default, one rebuild consumer --------
 
 console.log('7. Workflow contracts')

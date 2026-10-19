@@ -4,6 +4,20 @@
 
 ## ⭐ START HERE — 2026-10-19 17:25 (+06:00). Supersedes the block below.
 
+## ⭐ START HERE — 2026-10-19 17:55 (+06:00). Supersedes the block below.
+
+**T-88 RUM is implemented, not yet deployed.** Cloudflare Analytics Engine is bound as `TELEMETRY`
+→ `shikkha24_rum`. The Worker accepts sampled same-origin LCP/FCP/path events and indexes them by
+page template. `frontend/public/rum.js` samples 20%, sends once on page hide, and stores no identifiers.
+Do not repeat font-size-only T-80 work; the split-font experiment worsened LCP to
+2480/2557/2855 ms and was reverted.
+
+**Verification evidence:** `pnpm lint` has only the three pre-existing warnings; frontend typecheck and
+build pass; `verify:cloudflare` passes 88 checks; `verify:links` and `verify:touch-targets` pass; and
+`verify:build-output` passes after correcting its no-CMS floor from 10 to 9 current published articles.
+Deploy requires `skip-ci-gate=true` because T-80 LCP remains red. After deploy, probe `POST /telemetry`,
+then collect several days of weighted field data before changing the LCP gate.
+
 **Repository moved:** `SHAHID8142/shikkha24` is now
 `Aperio-Studios-Private/shikkha24`; the local `origin` is updated. This bypassed the personal
 Actions billing lock. Secrets, variables and workflow history transferred.

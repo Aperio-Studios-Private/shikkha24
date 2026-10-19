@@ -28,6 +28,7 @@
  * platform's caching behave as if the asset were served directly.
  */
 import { headersForPath, isPreviewHost } from './headers.ts'
+import { recordTelemetry, type TelemetryBinding } from './telemetry.ts'
 
 /** The assets binding from `wrangler.toml` — the only capability needed. */
 interface AssetsBinding {
@@ -37,6 +38,7 @@ interface AssetsBinding {
 /** The bindings this Worker receives; see `wrangler.toml` (`[assets]`). */
 interface Env {
   ASSETS: AssetsBinding
+  TELEMETRY: TelemetryBinding
 }
 
 /**
@@ -90,6 +92,14 @@ export function withHeaders(asset: Response, pathname: string, host: string): Re
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
+    if (url.pathname === '/telemetry') {
+      const accepted = await recordTelemetry(request, env.TELEMETRY)
+      const status = accepted ? 204 : 400
+      const headers = headersForPath(url.pathname, null)
+      headers['Cache-Control'] = 'no-store'
+      return new Response(null, { status, headers })
+    }
+
     const asset = await env.ASSETS.fetch(request)
     const rewrite = resolveRewrite(url.pathname, asset.status)
     if (rewrite === null) return withHeaders(asset, url.pathname, url.host)

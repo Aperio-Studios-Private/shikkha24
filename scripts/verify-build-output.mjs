@@ -166,7 +166,7 @@ check(
  */
 
 /** Article pages below this with no CMS to compare against = a thin build. */
-const THIN_BUILD_MIN_ARTICLE_PAGES = 10
+const THIN_BUILD_MIN_ARTICLE_PAGES = 9
 
 /** Milliseconds to wait on the CMS before calling it unreachable. */
 const CMS_PROBE_TIMEOUT_MS = 5000

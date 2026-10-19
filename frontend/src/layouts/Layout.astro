@@ -271,5 +271,7 @@ const breakingArticles = (await getBreakingNews().catch(() => [])).filter(
     <Footer settings={settings} categories={categories} footerPages={footerPages} />
 
     {!hideShareBar && <MobileShareBar />}
+
+    <script defer src="/rum.js"></script>
   </body>
 </html>

@@ -3289,6 +3289,22 @@ run `39243521873` completed successfully. Live checks passed: `/`, `/latest/`, a
 The homepage and `/latest/` still show CMS articles 32 and 31. Production remains honest about one
 open performance gate: T-80.
 
+### T-88 — ⏳ WAITING FIELD DATA (2026-10-19): settle the T-80 LCP gate decision
+The owner asked whether the LCP gate is necessary and approved proceeding. PSI/CrUX could not be
+queried (Google returned quota 429), and the project has no real-user telemetry. A split-font
+experiment was run: 96-character core plus ASCII, with disjoint extended coverage and only core
+weights preloaded. It preserved all glyphs but **worsened** LCP to medians of 2480/2557/2855 ms.
+The change was reverted. This disproves font payload as the remaining bottleneck and supports a
+lab-data-based gate decision rather than another font-size guess.
+
+**RUM implemented.** `frontend/wrangler.toml` binds `TELEMETRY` to `shikkha24_rum`.
+`frontend/worker/telemetry.ts` validates LCP/FCP/path and writes a low-cardinality template index.
+`frontend/public/rum.js` samples 20% of views, sends once on page hide, and stores no identifiers.
+`Layout.astro` loads the external beacon so CSP remains intact. `verify:cloudflare` asserts the binding,
+dispatch order, index, external beacon, and no-store response. The thin-build floor was corrected from
+10 to 9 because current local and live CMS data both contain 9 published articles. After deployment,
+collect several days of weighted field data before amending T-80 or the Lighthouse gate.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own

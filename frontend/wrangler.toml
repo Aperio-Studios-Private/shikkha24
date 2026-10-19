@@ -29,6 +29,10 @@ routes = [
   { pattern = "www.shikkha24.com", custom_domain = true },
 ]
 
+[[analytics_engine_datasets]]
+binding = "TELEMETRY"
+dataset = "shikkha24_rum"
+
 [assets]
 directory = "./dist"
 binding = "ASSETS"
