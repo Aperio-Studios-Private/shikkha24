@@ -20,9 +20,8 @@
  *
  * ## Rules this respects
  *
- * - **Dark mode keeps working.** Every value is a `--theme-*` variable, which
- *   Payload redefines per theme, so nothing is hard-coded to a light palette and
- *   no `.dark` branching is needed.
+ * - **Light mode only (T-89).** Payload is locked to `data-theme="light"` in
+ *   `payload.config.ts`; the custom tokens below are scoped to that theme.
  * - **Touch targets.** Controls get a 44px minimum block size, close to the
  *   storefront's ≥48px reader-facing floor (`docs/performance-budget.md` treats
  *   targets as a gate).
@@ -34,6 +33,43 @@
  */
 
 @layer payload-default {
+  /**
+   * T-89 C1a — light-only design tokens.
+   *
+   * These are the shared vocabulary for later chunks. Payload variables remain
+   * the integration point so built-in components continue to work; Shikkha
+   * variables give us stable names for brand, surface, text, and status colors.
+   */
+  html[data-theme='light'] {
+    color-scheme: light;
+
+    --shikkha-brand: #da1c25;
+    --shikkha-brand-dark: #c4161e;
+    --shikkha-brand-soft: #fff1f2;
+    --shikkha-canvas: #f7f7fb;
+    --shikkha-surface: #ffffff;
+    --shikkha-ink: #172033;
+    --shikkha-ink-muted: #55607a;
+    --shikkha-border: #d9deea;
+    --shikkha-info: #1d4ed8;
+    --shikkha-info-soft: #eff6ff;
+    --shikkha-success: #047857;
+    --shikkha-success-soft: #ecfdf5;
+    --shikkha-warning: #b45309;
+    --shikkha-warning-soft: #fffbeb;
+    --shikkha-danger: #dc2626;
+    --shikkha-danger-soft: #fef2f2;
+    --shikkha-focus: #1d4ed8;
+
+    --theme-bg: var(--shikkha-canvas);
+    --theme-input-bg: var(--shikkha-surface);
+    --theme-text: var(--shikkha-ink);
+    --theme-border-color: var(--shikkha-border);
+    --theme-success-500: var(--shikkha-success);
+    --theme-warning-500: var(--shikkha-warning);
+    --theme-error-500: var(--shikkha-danger);
+  }
+
   /* ── Shared affordance ─────────────────────────────────────────────────────
      Radius, weight, minimum size and a real focus ring, applied to every button
      style so the whole admin reads as interactive at a glance. */

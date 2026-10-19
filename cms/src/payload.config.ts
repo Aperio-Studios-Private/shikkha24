@@ -162,6 +162,12 @@ const emailConfig = isMailConfigured()
 export default buildConfig({
   admin: {
     user: Users.slug,
+    /**
+     * T-89 C1a (owner decision): the CMS operator UI is light-only. Payload's
+     * supported `theme` option prevents both cookie and OS preference overrides,
+     * so every admin session receives `data-theme="light"`.
+     */
+    theme: 'light',
     importMap: {
       baseDir: path.resolve(dirname),
     },
