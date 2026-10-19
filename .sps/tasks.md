@@ -3516,6 +3516,19 @@ with centered content; document tabs use the same treatment. Evidence: dashboard
 44px with 10px offsets; mobile primary is 48px with 16/17px offsets. No horizontal overflow.
 Impeccable detector is clean at both widths; CMS `typecheck`, `lint`, and production `build` pass.
 
+**C1c7 live-editor support (in progress).** Owner requested the Impeccable live editor for precise
+dashboard direction. Add a development-only CMS CSP allowance for the local editor helper and React
+19 dev eval support; production CSP remains unchanged. Boot against the Payload admin route, then
+use owner selections to continue the dashboard slice.
+
+**C1c7 full-dashboard redesign amendment completed locally (not pushed/deployed).** Applied the
+accepted greeting card and unified the whole dashboard around the “Start here” card language. The
+dashboard now uses a 24px section grid; greeting, workbench, reporter card, and Payload collection
+widget share the same white bordered container system. Collection cards use 72px rows, 20px padding,
+16px gaps, explicit ink hover/focus text, and visible emoji. Desktop sections measure 24px gaps at
+885px content width; mobile uses 16px gaps, 48px greeting/browse controls, and has no horizontal
+overflow. Impeccable detector is clean at 1280×800 and 390×844; CMS lint/typecheck/build pass.
+
 ### T-90 — 🔵 QUEUED (2026-10-19 22:05 +06:00): optional bilingual admin UI + Bangla Academy copy review
 
 Owner approved adding the capability after the current CMS redesign queue. Scope is **not** to make

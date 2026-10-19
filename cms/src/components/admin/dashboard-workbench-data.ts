@@ -13,6 +13,7 @@ export interface WorkbenchCard {
   count: number | null
   description: string
   href: string
+  tone: 'info' | 'success' | 'warning'
   title: string
 }
 

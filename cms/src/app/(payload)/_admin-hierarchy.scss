@@ -176,8 +176,9 @@
   }
 
   .card--has-onclick:hover {
-    border-color: var(--shikkha-info-border);
-    background-color: var(--shikkha-info-bg-muted);
+    border-color: var(--shikkha-border-strong);
+    background-color: var(--shikkha-neutral-50);
+    color: var(--shikkha-ink);
     box-shadow: none;
   }
 
@@ -187,28 +188,33 @@
     font-weight: 700;
   }
 
+  .card--has-onclick:hover .card__title,
+  .card--has-onclick:focus-within .card__title {
+    color: var(--shikkha-ink);
+  }
+
   .reporter-quicklink {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    margin-bottom: 1rem;
-    padding: 1rem;
+    padding: 20px;
     border: 1px solid var(--shikkha-border);
-    border-radius: var(--shikkha-radius-l);
+    border-radius: 14px;
     background-color: var(--shikkha-surface);
   }
 
   .reporter-quicklink h2 {
-    margin: 0 0 0.25rem;
-    font-size: 1rem;
-    line-height: 1.4;
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
   }
 
   .reporter-quicklink p {
-    margin: 0;
+    margin: 6px 0 0;
     color: var(--shikkha-ink-muted);
-    font-size: 0.875rem;
+    font-size: 13px;
     line-height: 1.5;
   }
 

@@ -186,6 +186,7 @@ export async function DashboardWorkbench() {
       emptyDescription: 'No active assignments right now.',
       description: editor ? 'The newsroom work queue.' : 'Work assigned to you.',
       href: openAssignmentsHref,
+      tone: 'info',
       title: '📋 Open assignments',
     },
     {
@@ -194,6 +195,7 @@ export async function DashboardWorkbench() {
       emptyDescription: 'No approved drafts are waiting to publish.',
       description: editor ? 'Approved drafts ready to go live.' : 'Your approved drafts.',
       href: readyToPublishHref,
+      tone: 'success',
       title: '🟢 Ready to publish',
     },
     {
@@ -207,6 +209,7 @@ export async function DashboardWorkbench() {
             : 'No rejected or returned work.'
           : `Highest priority: ${attentionTarget.label}.`,
       href: attentionHref,
+      tone: 'warning',
       title: '⚠️ Needs attention',
     },
   ]
@@ -221,51 +224,72 @@ export async function DashboardWorkbench() {
   }))
 
   return (
-    <section aria-labelledby="dashboard-workbench-title" className="dashboard-workbench">
-      <h2 id="dashboard-workbench-title">Start here</h2>
-      <div className="dashboard-workbench__cards">
-        {cards.map((card) => (
-          <Link className="dashboard-workbench__card" href={card.href} key={card.title}>
-            <span className="dashboard-workbench__title">{card.title}</span>
-            <strong className="dashboard-workbench__count">
-              {card.count === null ? '—' : card.count}
-            </strong>
-            <span className="dashboard-workbench__description">
-              {card.count === 0 ? card.emptyDescription : card.description}
-            </span>
-            <span className="dashboard-workbench__action">{card.actionLabel}</span>
-          </Link>
-        ))}
-      </div>
-      <div className="dashboard-workbench__recent">
-        <div className="dashboard-workbench__recent-header">
-          <h3>Recent work</h3>
-          <Link className="dashboard-workbench__browse" href={articlesPath}>
-            Browse all
-          </Link>
+    <>
+      <section className="dashboard-greeting" aria-label="Daily greeting">
+        <div className="dashboard-greeting__content">
+          <span className="dashboard-greeting__eyebrow">Today</span>
+          <h2 className="dashboard-greeting__title">Welcome back to Shikkha24</h2>
+          <p className="dashboard-greeting__description">
+            Check your queues, continue recent work, and keep the newsroom moving.
+          </p>
         </div>
-        {recent.length === 0 ? (
-          <p>No recent articles yet. Create a draft to see it here.</p>
-        ) : (
-          <ul>
-            {recent.map((item) => (
-              <li key={item.href}>
-                <Link href={item.href} title={item.timestampTitle}>
-                  <span className="dashboard-workbench__item-label">{item.label}</span>
-                  <span className="dashboard-workbench__item-meta">
-                    <span
-                      className={`dashboard-workbench__status dashboard-workbench__status--${item.statusTone}`}
-                    >
-                      {item.status}
+        <Link className="dashboard-greeting__action" href="/admin/collections/articles?limit=10">
+          Start writing
+        </Link>
+      </section>
+      <section
+        aria-labelledby="dashboard-workbench-title"
+        className="dashboard-workbench dashboard-workbench--modern"
+      >
+        <h2 id="dashboard-workbench-title">Start here</h2>
+        <div className="dashboard-workbench__cards">
+          {cards.map((card) => (
+            <Link
+              className={`dashboard-workbench__card dashboard-workbench__card--${card.tone}`}
+              href={card.href}
+              key={card.title}
+            >
+              <span className="dashboard-workbench__title">{card.title}</span>
+              <strong className="dashboard-workbench__count">
+                {card.count === null ? '—' : card.count}
+              </strong>
+              <span className="dashboard-workbench__description">
+                {card.count === 0 ? card.emptyDescription : card.description}
+              </span>
+              <span className="dashboard-workbench__action">{card.actionLabel}</span>
+            </Link>
+          ))}
+        </div>
+        <div className="dashboard-workbench__recent">
+          <div className="dashboard-workbench__recent-header">
+            <h3>Recent work</h3>
+            <Link className="dashboard-workbench__browse" href={articlesPath}>
+              Browse all
+            </Link>
+          </div>
+          {recent.length === 0 ? (
+            <p>No recent articles yet. Create a draft to see it here.</p>
+          ) : (
+            <ul>
+              {recent.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} title={item.timestampTitle}>
+                    <span className="dashboard-workbench__item-label">{item.label}</span>
+                    <span className="dashboard-workbench__item-meta">
+                      <span
+                        className={`dashboard-workbench__status dashboard-workbench__status--${item.statusTone}`}
+                      >
+                        {item.status}
+                      </span>
+                      <time dateTime={item.timestampTitle}>{item.timestamp}</time>
                     </span>
-                    <time dateTime={item.timestampTitle}>{item.timestamp}</time>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </section>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+    </>
   )
 }

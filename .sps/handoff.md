@@ -3492,6 +3492,19 @@ way *after* the billing lock clears, revisit this entry — not before.
   Browse all is 48×66px; no horizontal overflow at 390×844; Impeccable detector returns `[]` at
   1280×800 and 390×844. CMS lint/typecheck/build pass. No push/deploy.
 
+### 2026-10-19 — T-89 C1c7 full-dashboard redesign
+
+- Applied the owner-accepted single design variant directly to production source: added the Today
+  greeting card, semantic stat card tones, and status/timestamp rows. Removed all Impeccable preview
+  markers and moved accepted CSS into `_admin-dashboard.scss`.
+- Extended the accepted visual system across the full dashboard: 24px section grid on desktop, 16px
+  on mobile; white bordered greeting/workbench/reporter/collection containers; unified collection
+  cards with 72px rows and explicit hover/focus ink text so emoji and labels never disappear.
+- Verified live geometry: desktop sections are 885px wide with 24px gaps; mobile sections are 358px
+  wide with 16px gaps; greeting and Browse controls are 48px tall on mobile; no horizontal overflow.
+  Impeccable detector returns `[]` at 1280×800 and 390×844. CMS lint/typecheck/build pass. No
+  push/deploy.
+
 ### 2026-10-19 — T-89 C1c7 button alignment fix
 
 - Root-caused Payload's `a.btn { display: inline-block }`: the enforced button height left labels at
