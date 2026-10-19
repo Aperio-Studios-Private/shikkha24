@@ -53,6 +53,7 @@
     --shikkha-border: #d9deea;
     --shikkha-info: #1d4ed8;
     --shikkha-info-soft: #eff6ff;
+    --shikkha-control: #f1f5f9;
     --shikkha-success: #047857;
     --shikkha-success-soft: #ecfdf5;
     --shikkha-warning: #b45309;
@@ -68,6 +69,8 @@
     --theme-success-500: var(--shikkha-success);
     --theme-warning-500: var(--shikkha-warning);
     --theme-error-500: var(--shikkha-danger);
+    --accessibility-outline: 3px solid var(--shikkha-focus);
+    --accessibility-outline-offset: 2px;
   }
 
   /* ── Shared affordance ─────────────────────────────────────────────────────
@@ -98,7 +101,7 @@
   }
 
   .btn:focus-visible {
-    outline: 3px solid var(--theme-elevation-800);
+    outline: 3px solid var(--shikkha-focus);
     outline-offset: 2px;
   }
 
@@ -124,14 +127,18 @@
      A visible surface is what makes it look pressable while still reading as the
      lower-priority action next to a primary button. */
   .btn--style-secondary:not(.btn--disabled) {
-    --bg-color: var(--theme-elevation-50);
-    --btn-border: 1px solid var(--theme-elevation-300);
-    --hover-bg: var(--theme-elevation-100);
-    --hover-btn-border: 1px solid var(--theme-elevation-400);
+    --bg-color: var(--shikkha-surface);
+    --btn-border: 1px solid var(--shikkha-border);
+    --hover-bg: var(--shikkha-control);
+    --hover-btn-border: 1px solid #b6c2d9;
+    color: var(--shikkha-ink);
   }
 
   .btn--style-subtle:not(.btn--disabled) {
-    --btn-border: 1px solid var(--theme-elevation-300);
+    --bg-color: var(--shikkha-control);
+    --btn-border: 1px solid transparent;
+    --hover-bg: #e2e8f0;
+    color: var(--shikkha-ink);
   }
 
   /* ── The delete control ───────────────────────────────────────────────────
@@ -141,7 +148,10 @@
      as a bare icon. It gets a surface and a red hover so it is unmistakably a
      control, and unmistakably the dangerous one. */
   .delete-document__toggle {
+    min-block-size: 44px;
     border-radius: 8px;
+    background-color: var(--shikkha-danger-soft);
+    border: 1px solid #fecaca;
     padding-inline: calc(var(--base) * 0.4);
     transition:
       background-color 120ms ease,
@@ -149,8 +159,9 @@
   }
 
   .delete-document__toggle:hover {
-    background-color: var(--theme-error-100);
-    color: var(--theme-error-750);
+    background-color: var(--shikkha-danger);
+    border-color: var(--shikkha-danger);
+    color: #fff;
   }
 
   .delete-document__toggle:focus-visible {
@@ -169,10 +180,11 @@
      `elements/Button/index.js`), and no `--color-error` class exists in the built
      stylesheet. Verified against `@payloadcms/ui/dist/styles.css`. */
   .btn--style-none:not(.btn--disabled) {
-    --bg-color: var(--theme-elevation-50);
-    --btn-border: 1px solid var(--theme-elevation-300);
-    --hover-bg: var(--theme-elevation-100);
-    --hover-btn-border: 1px solid var(--theme-elevation-400);
+    --bg-color: var(--shikkha-control);
+    --btn-border: 1px solid transparent;
+    --hover-bg: #e2e8f0;
+    --hover-btn-border: 1px solid var(--shikkha-border);
+    color: var(--shikkha-ink-muted);
     padding-inline: calc(var(--base) * 0.5);
   }
 
@@ -190,9 +202,28 @@
   .list-controls .btn,
   .collection-list__header .btn,
   .bulk-upload--actions .btn {
-    --bg-color: var(--theme-elevation-50);
-    --btn-border: 1px solid var(--theme-elevation-300);
-    --hover-bg: var(--theme-elevation-100);
+    --bg-color: var(--shikkha-surface);
+    --btn-border: 1px solid var(--shikkha-border);
+    --hover-bg: var(--shikkha-control);
+    color: var(--shikkha-ink);
+  }
+
+  /* ── Content links ────────────────────────────────────────────────────────
+     Keep navigation and buttons on their Payload styles, but make explanatory
+     and table links unmistakably clickable in the light-only palette. */
+  main a:not(.btn):not(.pill):not(.nav-group__toggle):not(.app-header__account) {
+    color: var(--shikkha-info);
+    text-decoration: none;
+  }
+
+  main a:not(.btn):not(.pill):not(.nav-group__toggle):not(.app-header__account):hover {
+    color: #1e40af;
+    text-decoration: underline;
+  }
+
+  main a:not(.btn):not(.pill):not(.nav-group__toggle):not(.app-header__account):focus-visible {
+    outline: 3px solid var(--shikkha-focus);
+    outline-offset: 2px;
   }
 }
 
@@ -207,10 +238,6 @@
  * so dark mode keeps working.
  */
 @layer payload-default {
-  :root {
-    --shikkha-brand: #da1c25;
-    --shikkha-brand-dark: #c4161e;
-  }
   .btn--style-primary:not(.btn--disabled) {
     --bg-color: var(--shikkha-brand);
     --btn-border: 1px solid var(--shikkha-brand-dark);
@@ -226,10 +253,11 @@
   }
   /* The delete control must be the most obvious danger in every view: */
   .delete-document__toggle {
-    color: var(--theme-error-750, #b91c1c);
+    color: var(--shikkha-danger);
   }
   .delete-document__toggle:hover {
-    background-color: var(--theme-error-500, #dc2626);
+    background-color: var(--shikkha-danger);
+    border-color: var(--shikkha-danger);
     color: #fff;
   }
   @media (max-width: 768px) {
