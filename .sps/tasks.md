@@ -3481,6 +3481,24 @@ dashboard shows 35 emoji-prefixed labels with 35 unique leading emojis; sidebar 
 present; no horizontal overflow; Impeccable detector is clean; CMS `typecheck`, `lint`, and
 production `build` pass.
 
+### T-90 — 🔵 QUEUED (2026-10-19 22:05 +06:00): optional bilingual admin UI + Bangla Academy copy review
+
+Owner approved adding the capability after the current CMS redesign queue. Scope is **not** to make
+the admin Bengali-only: keep English as the default operator language, add Bengali as an explicit
+admin-selectable language, and persist the choice through Payload's existing preference system.
+
+Implementation must cover:
+1. Payload-supported admin locale switching for admin chrome, labels, descriptions, validation, CTAs,
+   and custom components.
+2. A complete English/Bengali string inventory with no untranslated fallbacks.
+3. Bengali copy authored or reviewed by AGY against Bangla Academy spelling, terminology, punctuation,
+   and tone rules; Codex remains the implementation approver.
+4. Contrast, focus, touch-target, mobile, detector, lint, typecheck, and build verification in both
+   languages.
+
+Sequencing: start only after T-89 C1c7–C1c10 and final redesign QA, because the UI structure and copy
+surfaces should stabilize first. This is queued, not in progress.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own

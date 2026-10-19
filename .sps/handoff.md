@@ -3458,3 +3458,12 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Handled localized global labels correctly after the live check exposed `[object Object]`. Verified
   35 dashboard labels with 35 unique leading emojis, sidebar/reporter link intact, no overflow,
   Impeccable detector clean, and CMS lint/typecheck/build passing. No push/deploy.
+
+### 2026-10-19 — T-90 queued: optional bilingual admin + AGY Bengali copy review
+
+- Owner approved adding an explicit English/Bengali admin language choice after the current redesign
+  queue. English remains the default operator language; Bengali becomes selectable and persisted.
+- Scope includes all admin chrome, labels, descriptions, validation, CTAs, and custom components.
+  AGY is designated for Bengali copywriting/review against Bangla Academy rules; Codex remains the
+  implementation approver.
+- Deliberately queued behind T-89 C1c7–C1c10 and final redesign QA. No implementation started.
