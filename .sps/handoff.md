@@ -1,5 +1,21 @@
 # SPS Handoff
 
+## ⭐ START HERE — 2026-10-19 12:58 (+06:00). Supersedes the early-hours block below.
+
+**Working tree is clean; three new local commits are on `main`:** `2ff28c4`
+reconciled T-81 documentation, `3a44c52` closed T-79 after an isolated migration
+check, and `5602d81` recorded the disproven T-80 logo self-hosting experiment.
+They are not pushed, and GitHub Actions remains blocked by T-78.
+
+**Remaining active work is owner-gated or blocked:**
+1. **T-78 — clear the GitHub Actions billing lock.** Until then, no push should be expected to run CI or deploy.
+2. **T-80/T-44 — approve the font strategy.** CSS inlining is shipped; logo self-hosting measured no material LCP gain and was reverted. Fonts remain the dominant cost.
+3. **T-84 — choose data-saver implementation or formal descope.**
+
+**Latest verification:** frontend typecheck, 877-page build, touch-target,
+build-output and link gates passed. Lighthouse failed only on the expected T-80
+LCP gate; CLS and accessibility passed.
+
 ## ⭐ START HERE — 2026-10-19 (early hours). Supersedes every block below.
 
 ### 🚨 FIRST: GitHub Actions is LOCKED (T-78) — CI and Deploy cannot run at all
