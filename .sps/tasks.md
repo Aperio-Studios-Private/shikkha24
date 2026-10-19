@@ -3441,6 +3441,15 @@ and replaced hardcoded semantic colors in controls. Evidence: CMS `typecheck`, `
 emerald 5.48:1, white on danger 4.83:1. Live editor warning and publish control use the new tokens;
 Impeccable detector is clean at 1280×800 and 390×844.
 
+**C1c6 completed locally (not pushed/deployed).** Took the low-risk navigation route: all sidebar
+links and group controls now use explicit 48px targets and 14px link text; selected links use a
+brand-tinted background with high-contrast text; hover/focus states are explicit; and the custom
+"My Work" link reuses the native sidebar link system instead of inline styling. A custom default
+collapse was deliberately deferred because Payload's nav preference writes do not reliably accumulate
+group state. Evidence: live Dashboard and `/admin/reporter` selected links both measure 48px and use
+`rgb(255, 241, 242)`; reporter retains the 275px admin shell; CMS `typecheck`, `lint`, and production
+`build` pass; Impeccable detector is clean at 1280×800. Owner visual review is next.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own

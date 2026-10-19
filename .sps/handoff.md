@@ -3412,3 +3412,15 @@ way *after* the billing lock clears, revisit this entry — not before.
   failures.
 - The fade fix is committed separately from CSS inlining so the performance tradeoff and accessibility
   repair remain independently revertable.
+
+### 2026-10-19 — T-89 C1c6 navigation safety pass
+
+- Completed the low-risk C1c6 slice only. Sidebar links/group controls now have explicit 48px targets
+  and 14px link text; selected links use brand-tinted background/text; hover/focus are explicit; the
+  custom reporter link uses the native `nav__link` classes.
+- Deliberately did **not** add a custom default-collapse NavGroup: Payload's client preference update
+  replaces rather than reliably accumulates group state, so a collapse override is higher-risk than
+  this visual slice.
+- Verified live: Dashboard and `/admin/reporter` selected links are 48px with brand-tinted background;
+  reporter keeps the 275px admin shell. CMS lint/typecheck/build pass; Impeccable detector is clean at
+  1280×800. No push/deploy.

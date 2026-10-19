@@ -27,18 +27,7 @@ export function ReporterNavLink() {
   const active = pathname === '/admin/reporter'
 
   return (
-    <a
-      href="/admin/reporter"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        minHeight: '2.75rem',
-        padding: '0 1rem',
-        fontWeight: active ? 600 : 400,
-        textDecoration: 'none',
-        opacity: active ? 1 : 0.85,
-      }}
-    >
+    <a className={active ? 'nav__link active' : 'nav__link'} href="/admin/reporter">
       My Work (প্রতিবেদকের কাজ)
     </a>
   )

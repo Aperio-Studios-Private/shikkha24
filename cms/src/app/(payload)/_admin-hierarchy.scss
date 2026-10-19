@@ -38,6 +38,7 @@
   }
 
   .nav-group__toggle {
+    min-height: 48px;
     color: var(--shikkha-ink-muted);
     font-size: 12px;
     font-weight: 700;
@@ -51,13 +52,29 @@
   }
 
   .nav__link {
+    min-height: 48px;
     color: var(--shikkha-ink);
+    font-size: 14px;
+    line-height: 1.35;
   }
 
-  .nav__link.active,
+  .nav__link:hover {
+    background-color: var(--shikkha-neutral-50);
+  }
+
+  .nav__link:focus-visible {
+    outline: 3px solid var(--shikkha-focus);
+    outline-offset: -3px;
+  }
+
+  .nav__link.active {
+    color: var(--shikkha-brand-fg);
+    background-color: var(--shikkha-brand-bg);
+  }
+
   .nav__link.active .nav__link-indicator {
     color: var(--shikkha-brand);
-    background-color: transparent;
+    background-color: var(--shikkha-brand);
   }
 
   .nav__link.active .nav__link-indicator {
