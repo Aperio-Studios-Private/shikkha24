@@ -1,0 +1,15 @@
+/**
+ * T-89 — CMS-wide no-motion policy.
+ *
+ * Hover may not animate or visually transform controls. Focus remains visible
+ * for accessibility.
+ */
+
+*,
+*::before,
+*::after {
+  animation: none !important;
+  transition: none !important;
+  transition-property: none !important;
+  scroll-behavior: auto !important;
+}

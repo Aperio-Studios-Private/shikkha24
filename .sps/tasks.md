@@ -3529,6 +3529,18 @@ widget share the same white bordered container system. Collection cards use 72px
 885px content width; mobile uses 16px gaps, 48px greeting/browse controls, and has no horizontal
 overflow. Impeccable detector is clean at 1280×800 and 390×844; CMS lint/typecheck/build pass.
 
+**C1c7 no-motion amendment completed locally (not pushed/deployed).** Owner removed all hover
+animation from the entire CMS. Added a late-loaded admin motion override that disables animations,
+transitions, transforms, shadows, and hover color/background/border changes; focus outlines remain
+visible. Live hover checks show `transition-duration: 0s`, no transform/shadow, and unchanged
+colors/backgrounds. Impeccable detector is clean at both viewports; CMS lint/typecheck/build pass.
+
+**C1c7 no-motion correction completed locally (not pushed/deployed).** The first scoped override
+left Payload portals outside the admin template able to animate. Replaced it with an unlayered
+universal CMS rule that disables animation, transition, transition-property, and smooth scrolling
+on every element and pseudo-element. Live enumeration reports zero animated elements. Impeccable
+detector is clean at 1280×800 and 390×844; CMS lint/typecheck/build pass.
+
 ### T-90 — 🔵 QUEUED (2026-10-19 22:05 +06:00): optional bilingual admin UI + Bangla Academy copy review
 
 Owner approved adding the capability after the current CMS redesign queue. Scope is **not** to make

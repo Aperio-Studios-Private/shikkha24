@@ -3505,6 +3505,20 @@ way *after* the billing lock clears, revisit this entry — not before.
   Impeccable detector returns `[]` at 1280×800 and 390×844. CMS lint/typecheck/build pass. No
   push/deploy.
 
+### 2026-10-19 — T-89 CMS-wide no-motion policy
+
+- Owner requested no hover animation across the entire CMS. Added `_admin-motion.scss` as the last
+  admin override. It disables animation, transition, transform, and shadow effects and prevents
+  hover from changing background, border, color, or text decoration across admin templates.
+- Kept focus-visible outlines for accessibility. Live hover checks on nav, collection cards,
+  workbench cards, and greeting controls show zero transition duration and unchanged visual state.
+  Detector is clean at both viewports; CMS lint/typecheck/build pass. No push/deploy.
+
+- Correction: the first override was scoped to admin templates and could not cover Payload portals,
+  drawers, popups, and toasts. Replaced it with an unlayered universal `*` / pseudo-element rule
+  that disables animation, transition, transition-property, and smooth scrolling. Live enumeration
+  reports zero elements with nonzero transition or animation duration. Detector and CMS gates pass.
+
 ### 2026-10-19 — T-89 C1c7 button alignment fix
 
 - Root-caused Payload's `a.btn { display: inline-block }`: the enforced button height left labels at
