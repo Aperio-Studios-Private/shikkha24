@@ -1,0 +1,43 @@
+/**
+ * T-89 C1a/C1b — light-only design tokens.
+ *
+ * The canvas is deliberately darker than surfaces so content reads as a distinct
+ * plane. Status colors are reserved for their semantic controls.
+ */
+
+@layer payload-default {
+  html[data-theme='light'] {
+    color-scheme: light;
+
+    --shikkha-canvas: #e9edf5;
+    --shikkha-surface: #ffffff;
+    --shikkha-control: #eef2f7;
+    --shikkha-ink: #152238;
+    --shikkha-ink-muted: #526077;
+    --shikkha-border: #cbd5e1;
+    --shikkha-border-strong: #94a3b8;
+    --shikkha-brand: #da1c25;
+    --shikkha-brand-dark: #b8161e;
+    --shikkha-brand-soft: #fff1f2;
+    --shikkha-info: #1d4ed8;
+    --shikkha-info-dark: #1e40af;
+    --shikkha-info-soft: #dbeafe;
+    --shikkha-success: #047857;
+    --shikkha-success-soft: #d1fae5;
+    --shikkha-warning: #b45309;
+    --shikkha-warning-soft: #fef3c7;
+    --shikkha-danger: #dc2626;
+    --shikkha-danger-soft: #fee2e2;
+    --shikkha-focus: #1d4ed8;
+
+    --theme-bg: var(--shikkha-canvas);
+    --theme-input-bg: var(--shikkha-surface);
+    --theme-text: var(--shikkha-ink);
+    --theme-border-color: var(--shikkha-border);
+    --theme-success-500: var(--shikkha-success);
+    --theme-warning-500: var(--shikkha-warning);
+    --theme-error-500: var(--shikkha-danger);
+    --accessibility-outline: 3px solid var(--shikkha-focus);
+    --accessibility-outline-offset: 2px;
+  }
+}

@@ -1,0 +1,121 @@
+/**
+ * T-89 C1b — admin surface hierarchy.
+ *
+ * White navigation, header, cards, and forms sit on a cooler canvas. Borders and
+ * typography carry hierarchy without shadows, gradients, or animation.
+ */
+
+@layer payload-default {
+  .template-default,
+  .template-default__wrap,
+  .template-minimal {
+    background-color: var(--shikkha-canvas);
+    color: var(--shikkha-ink);
+  }
+
+  .nav,
+  .app-header__bg,
+  .app-header__gradient-placeholder {
+    background-color: var(--shikkha-surface);
+    opacity: 1;
+  }
+
+  .nav,
+  .app-header__bg {
+    border-color: var(--shikkha-border);
+  }
+
+  .app-header__bg {
+    border-bottom: 1px solid var(--shikkha-border);
+  }
+
+  .template-default h1,
+  .template-default h2,
+  .template-default h3 {
+    color: var(--shikkha-ink);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .nav-group__toggle {
+    color: var(--shikkha-ink-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .nav-group__toggle:hover,
+  .nav-group__toggle:focus-visible {
+    color: var(--shikkha-brand);
+  }
+
+  .nav__link {
+    color: var(--shikkha-ink);
+  }
+
+  .nav__link.active,
+  .nav__link.active .nav__link-indicator {
+    color: var(--shikkha-brand);
+    background-color: transparent;
+  }
+
+  .nav__link.active .nav__link-indicator {
+    background-color: var(--shikkha-brand);
+  }
+
+  .field-label {
+    color: var(--shikkha-ink);
+    font-weight: 650;
+  }
+
+  .field-description {
+    color: var(--shikkha-ink-muted);
+  }
+
+  .field-type input:not([type='checkbox']):not([type='radio']),
+  .field-type textarea,
+  .field-type select {
+    min-height: 44px;
+    border: 1px solid var(--shikkha-border-strong);
+    border-radius: 8px;
+    background-color: var(--shikkha-surface);
+    color: var(--shikkha-ink);
+    transition: none;
+  }
+
+  .field-type input:focus,
+  .field-type textarea:focus,
+  .field-type select:focus {
+    border-color: var(--shikkha-info);
+    outline: 3px solid var(--shikkha-focus);
+    outline-offset: 2px;
+  }
+
+  .card {
+    border: 1px solid var(--shikkha-border);
+    border-radius: 12px;
+    background-color: var(--shikkha-surface);
+    box-shadow: none;
+    transition: none;
+  }
+
+  .card--has-onclick:hover {
+    border-color: var(--shikkha-info);
+    background-color: var(--shikkha-info-soft);
+    box-shadow: none;
+  }
+
+  .card__title {
+    color: var(--shikkha-ink);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .login__form {
+    padding: 24px;
+    border: 1px solid var(--shikkha-border);
+    border-radius: 12px;
+    background-color: var(--shikkha-surface);
+  }
+}

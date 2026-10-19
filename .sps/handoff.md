@@ -17,9 +17,10 @@
 Payload background/input/text/border/status variables. CMS typecheck, lint, and production build pass.
 The owner confirmed the theme switch visually on local dev. The old local DB was backed up to
 `cms/data/payload.db.backup-20261019-184847`; fresh local dev now has the correct migration schema.
-**T-89 C1b is implemented locally and pending owner visual review.** Global Payload focus uses the
-light-only focus token; secondary/subtle/list controls have clearer surfaces; content links use the
-info color; and the delete control has a soft danger resting state plus solid danger hover. CMS
+**T-89 C1b is revised locally and pending owner visual review.** The canvas is darker than white
+surfaces; navigation/header/cards/forms/login use explicit borders and typography; buttons are flat
+and color-coded by action with no shadows, transforms, or transitions. `custom.scss` now imports
+`_admin-tokens`, `_admin-hierarchy`, and `_admin-controls` to respect the file-size rule. CMS
 typecheck, lint, and production build pass. Local dev is running. Do not push/deploy yet. Next: C1c
 (form fields and status colors) after C1b review. T-88 continues waiting for Analytics Engine field data.
 

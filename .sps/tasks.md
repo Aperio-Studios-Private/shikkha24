@@ -3313,7 +3313,7 @@ the known T-80 LCP gate, as expected. Collect several days of weighted field dat
 T-80 or the Lighthouse gate. Query with the Analytics Engine SQL API using
 `quantileExactWeighted(0.75)(double1, _sample_interval)` grouped by `index1`.
 
-### T-89 — 🟡 C0/C1a DONE — C1b PENDING REVIEW (2026-10-19): redesign CMS admin UX in small approved chunks
+### T-89 — 🟡 C0/C1a DONE — C1b REVISED PENDING REVIEW (2026-10-19): redesign CMS admin UX in small approved chunks
 Owner request: make the CMS colorful, very user-friendly, and easy to use through abundant guidance.
 The admin must be light-mode only. Work must be split into small local chunks, verified after each
 chunk, and only then move to the next. Owner explicitly approved subagent use where it helps. This
@@ -3356,12 +3356,14 @@ review passed: the owner confirmed the theme switched and looks nice on local de
 was required for review after the prior dev-pushed schema lacked Payload 3.90 columns; the old local
 DB was backed up as `cms/data/payload.db.backup-20261019-184847`.
 
-**C1b implemented locally (not pushed/deployed).** Refined the existing control layer: global Payload
-focus outline now uses the light-only focus token; secondary/subtle/list controls use clear surfaces
-and ink; content links use the info color with visible hover/focus; and the delete control has a soft
-danger resting state plus solid danger hover. No component, navigation, data-model, access, or
-workflow changes. Evidence: CMS `typecheck`, `lint`, and production `build` all pass; local dev
-returns `/admin` 200. Owner visual review is next before C1c.
+**C1b revised locally after owner feedback (not pushed/deployed).** Replaced the earlier shadowed and
+animated control treatment with a flat, semantic system. The canvas is now darker than white surfaces,
+while navigation, header, cards, forms, and login use explicit borders and typography for hierarchy.
+Buttons are color-coded by action, use only color hover changes, and retain 44px/48px touch targets.
+The stylesheet was split into token, hierarchy, and control files to stay within the file-size rule.
+No component, navigation, data-model, access, or workflow changes. Evidence: CMS `typecheck`, `lint`,
+and production `build` all pass; local dev login renders the separated canvas/card hierarchy with no
+button shadow or motion. Owner visual review is next before C1c.
 
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
