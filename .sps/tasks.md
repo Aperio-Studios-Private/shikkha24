@@ -3397,6 +3397,12 @@ browser check found the 275px opened sidebar, Dashboard/My Work links, account, 
 `/admin/reporter`. Queued next: a modern clean CMS design audit and remediation pass, then emoji
 identification.
 
+**C1c — Modern clean CMS redesign queued (2026-10-19 20:50 +06:00).** Owner says the overall admin
+still looks old and cluttered and asked for a dedicated UI/UX skill to identify and fix the problems.
+Scope: audit the rendered admin in light mode, identify concrete hierarchy/clutter/typography/color/
+navigation issues, then implement small verified chunks. Constraints remain: light-only, fast, no
+heavy motion, no shadows/transforms/transitions on controls, and no push/deploy.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own

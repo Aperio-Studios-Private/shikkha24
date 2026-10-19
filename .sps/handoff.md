@@ -19,6 +19,8 @@ empty `visibleEntities` fallback. CMS `typecheck`, `lint`, and production `build
 browser verification found the opened sidebar at 275px with Dashboard, My Work, account, and logout.
 Next queued, by owner request: use a dedicated UI/UX design skill to audit and remediate the CMS into
 a modern, clean, easy-to-use light interface. Then add emoji/icon identification.
+**T-89 C1c modern redesign is queued.** Use the Impeccable UI/UX skill to audit the rendered admin
+first, then implement small verified chunks. Preserve light-only and performance constraints.
 
 **T-89 C0 is complete; no UI code has changed.** The read-only inventory is
 `.sps/cms-ux-inventory.md`. It found 34 registered collections, one global, five roles, existing
