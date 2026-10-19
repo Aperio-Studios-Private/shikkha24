@@ -30,10 +30,50 @@
     --shikkha-danger-soft: #fee2e2;
     --shikkha-focus: #1d4ed8;
 
+    --shikkha-neutral-0: #ffffff;
+    --shikkha-neutral-50: #f8fafc;
+    --shikkha-neutral-100: #f1f5f9;
+    --shikkha-neutral-150: #e7edf5;
+    --shikkha-neutral-200: #dbe3ee;
+    --shikkha-neutral-250: #ccd6e4;
+    --shikkha-neutral-300: #b7c4d6;
+    --shikkha-neutral-400: #9aa9bf;
+    --shikkha-neutral-500: #7c8ba4;
+    --shikkha-neutral-600: #62718b;
+    --shikkha-neutral-700: #4e5c73;
+    --shikkha-neutral-800: #3d495c;
+    --shikkha-neutral-850: #2f3a4b;
+    --shikkha-neutral-900: #253041;
+    --shikkha-neutral-950: #172032;
+    --shikkha-neutral-1000: #0f1622;
+
     --theme-bg: var(--shikkha-canvas);
     --theme-input-bg: var(--shikkha-surface);
     --theme-text: var(--shikkha-ink);
     --theme-border-color: var(--shikkha-border);
+
+    --theme-elevation-0: var(--shikkha-neutral-0);
+    --theme-elevation-50: var(--shikkha-neutral-50);
+    --theme-elevation-100: var(--shikkha-neutral-100);
+    --theme-elevation-150: var(--shikkha-neutral-150);
+    --theme-elevation-200: var(--shikkha-neutral-200);
+    --theme-elevation-250: var(--shikkha-neutral-250);
+    --theme-elevation-300: var(--shikkha-neutral-300);
+    --theme-elevation-350: var(--shikkha-neutral-350, #a5b3c8);
+    --theme-elevation-400: var(--shikkha-neutral-400);
+    --theme-elevation-450: var(--shikkha-neutral-450, #8b9ab1);
+    --theme-elevation-500: var(--shikkha-neutral-500);
+    --theme-elevation-550: var(--shikkha-neutral-550, #6f7e97);
+    --theme-elevation-600: var(--shikkha-neutral-600);
+    --theme-elevation-650: var(--shikkha-neutral-650, #58667f);
+    --theme-elevation-700: var(--shikkha-neutral-700);
+    --theme-elevation-750: var(--shikkha-neutral-750, #455168);
+    --theme-elevation-800: var(--shikkha-neutral-800);
+    --theme-elevation-850: var(--shikkha-neutral-850);
+    --theme-elevation-900: var(--shikkha-neutral-900);
+    --theme-elevation-950: var(--shikkha-neutral-950);
+    --theme-elevation-1000: var(--shikkha-neutral-1000);
+
     --theme-success-500: var(--shikkha-success);
     --theme-warning-500: var(--shikkha-warning);
     --theme-error-500: var(--shikkha-danger);

@@ -3403,6 +3403,13 @@ Scope: audit the rendered admin in light mode, identify concrete hierarchy/clutt
 navigation issues, then implement small verified chunks. Constraints remain: light-only, fast, no
 heavy motion, no shadows/transforms/transitions on controls, and no push/deploy.
 
+**C1c1 completed locally (not pushed/deployed).** The Impeccable detector was clean at 1280×800 and
+390×844, confirming the issue is higher-level hierarchy/token drift rather than a mechanical CSS
+violation. Remapped Payload's complete `--theme-elevation-*` ramp to the light Shikkha24 neutral
+scale and moved primary create/publish controls from brand red to emerald, leaving delete/danger red.
+Evidence: CMS `typecheck`, `lint`, and production `build` pass; detector remains clean at both
+viewports; live Media "Create new Media" and Article "Publish changes" are `rgb(4, 120, 87)`.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own

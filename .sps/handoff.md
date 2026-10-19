@@ -21,6 +21,11 @@ Next queued, by owner request: use a dedicated UI/UX design skill to audit and r
 a modern, clean, easy-to-use light interface. Then add emoji/icon identification.
 **T-89 C1c modern redesign is queued.** Use the Impeccable UI/UX skill to audit the rendered admin
 first, then implement small verified chunks. Preserve light-only and performance constraints.
+**T-89 C1c1 is complete locally pending owner review.** Payload's full elevation ramp now follows the
+light neutral system, and primary create/publish controls are emerald while delete/danger remain red.
+CMS typecheck/lint/build pass; Impeccable detector is clean at 1280×800 and 390×844; live Media and
+Article primary controls verify emerald. Next: reduce dashboard/list density and make primary list
+CTAs consistent.
 
 **T-89 C0 is complete; no UI code has changed.** The read-only inventory is
 `.sps/cms-ux-inventory.md`. It found 34 registered collections, one global, five roles, existing

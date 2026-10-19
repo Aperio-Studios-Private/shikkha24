@@ -34,13 +34,13 @@
 
   .btn--style-primary:not(.btn--disabled) {
     --color: #fff;
-    --bg-color: var(--shikkha-brand);
-    --hover-bg: var(--shikkha-brand-dark);
+    --bg-color: var(--shikkha-success);
+    --hover-bg: #065f46;
     --hover-color: #fff;
-    --btn-border: 1px solid var(--shikkha-brand-dark);
-    --hover-btn-border: 1px solid var(--shikkha-brand-dark);
-    background-color: var(--shikkha-brand);
-    border: 1px solid var(--shikkha-brand-dark);
+    --btn-border: 1px solid #065f46;
+    --hover-btn-border: 1px solid #065f46;
+    background-color: var(--shikkha-success);
+    border: 1px solid #065f46;
     color: #fff;
   }
 
