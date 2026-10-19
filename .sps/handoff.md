@@ -37,6 +37,10 @@ Next: reduce editor-page noise and improve form hierarchy.
 compact warning callout, smaller title, stronger labels, quieter descriptions, and tighter editor
 spacing. CMS typecheck/lint/build pass; live editor verifies; detector clean. Next queued: emoji/icon
 identification, then remaining C1c polish based on owner review.
+**T-89 C1c research is complete and stored in `.sps/cms-design-research.md`.** The researched direction
+is a light content workbench: role-based color, task-first dashboard/navigation, progressive disclosure,
+consistent list/editor CTAs, semantic status chips, and guided empty states. No CMS source changed in
+the research chunk. Next implementation order starts with C1c5 color/token audit, then navigation IA.
 
 **T-89 C0 is complete; no UI code has changed.** The read-only inventory is
 `.sps/cms-ux-inventory.md`. It found 34 registered collections, one global, five roles, existing

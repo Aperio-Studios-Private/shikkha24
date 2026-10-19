@@ -3427,6 +3427,12 @@ quieter, and editor padding/control spacing is tighter. Evidence: CMS `typecheck
 production `build` pass; live editor confirms the callout, 650-weight labels, and emerald publish
 control; Impeccable detector on the editor is clean.
 
+**C1c research completed (2026-10-19 21:35 +06:00).** Fetched and reviewed Payload, Atlassian, Primer,
+Carbon, Material 3, and NN/g guidance. The synthesis is in `.sps/cms-design-research.md`: build a
+light content workbench with role-based color, task-first dashboard/navigation, progressive disclosure,
+consistent list/editor CTAs, semantic status chips, and guided empty states. No CMS source changed in
+this research chunk.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own
