@@ -247,21 +247,29 @@ const CREATIVES = [
 </script>
 
 <style>
+  /*
+   * ⚠️ **The outgoing creative leaves the render tree immediately — do not
+   * re-add a `visibility` transition delay here.**
+   *
+   * An earlier version delayed `visibility` by 600 ms so the outgoing creative
+   * stayed rendered for the length of its opacity fade. That looked right and
+   * caused a **flaky accessibility gate**: for those 600 ms the element is
+   * rendered at a partial opacity, so its text composites to a blended colour
+   * (measured `#a0a0a0` and `#c5c5c5` on `#f7f7f7`, against the 4.5:1 minimum)
+   * and Lighthouse's `color-contrast` audit sampled it whenever its snapshot
+   * landed mid-fade. It reported a failure on roughly one run in three, on an
+   * element that is `aria-hidden` and whose text a reader never sees — a false
+   * positive that made `pnpm verify:lighthouse` intermittently red.
+   *
+   * So `visibility` is stepped with **no** delay in either direction: the
+   * outgoing creative is gone from rendering the moment the swap happens, and
+   * the incoming one is visible before its opacity starts rising. The cross-fade
+   * is therefore driven by the incoming creative only, which is still a fade —
+   * just not a double-exposure of two half-transparent layers.
+   */
   .demo-creative {
     transition:
       opacity 600ms ease-in-out,
-      /*
-       * `visibility` is not interpolable, so it is stepped — and delayed on the
-       * way *out* so the outgoing creative stays visible for the length of its
-       * fade instead of vanishing instantly. Without the delay the 600ms opacity
-       * transition would be invisible: the element would be hidden on frame one.
-       * On the way in there is no delay, so the incoming creative is visible
-       * before its opacity starts rising.
-       */
-      visibility 0s linear 600ms;
-  }
-
-  .demo-creative.visible {
-    transition-delay: 0s;
+      visibility 0s linear;
   }
 </style>

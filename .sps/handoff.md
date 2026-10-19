@@ -3290,3 +3290,5 @@ way *after* the billing lock clears, revisit this entry — not before.
 - `DemoAd.astro` steps `visibility` without a 600ms outgoing delay. The old delay kept low-opacity text
   rendered long enough for Lighthouse's contrast audit to sample it, causing intermittent accessibility
   failures.
+- The fade fix is committed separately from CSS inlining so the performance tradeoff and accessibility
+  repair remain independently revertable.
