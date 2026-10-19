@@ -3472,6 +3472,15 @@ clean.
 with no horizontal overflow; desktop detector remains clean; CMS `typecheck`, `lint`, and production
 `build` pass.
 
+**C1c11 completed locally (not pushed/deployed).** Added a centralized `admin-emoji` mapper with one
+unique, meaningful emoji for each of the 34 collections and Site Settings; Payload now applies it to
+collection and global labels before config registration. This keeps sidebar, dashboard cards, and
+list labels synchronized without editing 35 collection files or adding an icon library. Fixed
+localized global labels after live rendering exposed an `[object Object]` case. Evidence: live
+dashboard shows 35 emoji-prefixed labels with 35 unique leading emojis; sidebar and “My Work” remain
+present; no horizontal overflow; Impeccable detector is clean; CMS `typecheck`, `lint`, and
+production `build` pass.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own

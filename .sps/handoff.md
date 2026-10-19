@@ -3449,3 +3449,12 @@ way *after* the billing lock clears, revisit this entry — not before.
   Item text expands to 14px and category text to 12px at that breakpoint.
 - Verified 390×844 controls at 48px with no horizontal overflow; desktop detector and CMS
   lint/typecheck/build all pass. No push/deploy.
+
+### 2026-10-19 — T-89 C1c11 unique admin emojis
+
+- Added `cms/src/lib/admin-emoji.ts` as the single source for admin collection/global emoji labels.
+  All 34 collections and Site Settings now receive a unique, meaningful emoji through Payload config
+  mapping, so sidebar, dashboard, and list views stay synchronized.
+- Handled localized global labels correctly after the live check exposed `[object Object]`. Verified
+  35 dashboard labels with 35 unique leading emojis, sidebar/reporter link intact, no overflow,
+  Impeccable detector clean, and CMS lint/typecheck/build passing. No push/deploy.
