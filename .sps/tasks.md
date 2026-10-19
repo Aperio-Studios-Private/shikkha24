@@ -3313,7 +3313,7 @@ the known T-80 LCP gate, as expected. Collect several days of weighted field dat
 T-80 or the Lighthouse gate. Query with the Analytics Engine SQL API using
 `quantileExactWeighted(0.75)(double1, _sample_interval)` grouped by `index1`.
 
-### T-89 — 🟠 TODO (2026-10-19): redesign CMS admin UX in small approved chunks
+### T-89 — 🟡 C0 DONE / AWAITING C1 APPROVAL (2026-10-19): redesign CMS admin UX in small approved chunks
 Owner request: make the CMS colorful, very user-friendly, and easy to use through abundant guidance.
 The admin must be light-mode only. Work must be split into small local chunks, verified after each
 chunk, and only then move to the next. Owner explicitly approved subagent use where it helps. This
@@ -3341,6 +3341,11 @@ task is queued, not started: the plan amendment below still requires owner appro
 **Subagent policy:** C0 may run parallel read-only inventories with disjoint scopes. Implementation
 chunks must stay small; parallel work is allowed only when file ownership is disjoint and the design
 tokens from C1 are already committed. The orchestrator verifies and commits each chunk separately.
+
+**C0 completed without UI changes.** Inventory is in `.sps/cms-ux-inventory.md`. It covers 34
+registered collections, the Site Settings global, 5 roles, publish/rebuild behavior, and all 4 custom
+admin components. It identifies 12 low-guidance collections and splits implementation into 19 small
+chunks. Recommended next chunk is C1a: light-only tokens plus Payload `admin.theme: 'light'`.
 
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are

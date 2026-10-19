@@ -8,6 +8,14 @@
 
 ## ⭐ START HERE — 2026-10-19 18:12 (+06:00). Supersedes the block below.
 
+## ⭐ START HERE — 2026-10-19 18:40 (+06:00). Supersedes the block below.
+
+**T-89 C0 is complete; no UI code has changed.** The read-only inventory is
+`.sps/cms-ux-inventory.md`. It found 34 registered collections, one global, five roles, existing
+button/delete affordance work, and inconsistent reporter-component styling. Twelve collections have
+field help on fewer than half their fields. The recommended next chunk is C1a: lock Payload to
+`admin.theme: 'light'` and commit only the light-only design tokens. C1 needs explicit owner approval.
+
 **New queued task T-89: CMS admin UX redesign.** Owner wants a colorful, friendly, highly guided,
 light-only CMS and approved subagent use where helpful. A chunked plan amendment was added to
 `.sps/plan.md`; no CMS UI work has started. C0 inventory and the plan require owner approval before
