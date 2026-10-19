@@ -3313,6 +3313,35 @@ the known T-80 LCP gate, as expected. Collect several days of weighted field dat
 T-80 or the Lighthouse gate. Query with the Analytics Engine SQL API using
 `quantileExactWeighted(0.75)(double1, _sample_interval)` grouped by `index1`.
 
+### T-89 — 🟠 TODO (2026-10-19): redesign CMS admin UX in small approved chunks
+Owner request: make the CMS colorful, very user-friendly, and easy to use through abundant guidance.
+The admin must be light-mode only. Work must be split into small local chunks, verified after each
+chunk, and only then move to the next. Owner explicitly approved subagent use where it helps. This
+task is queued, not started: the plan amendment below still requires owner approval before UI code.
+
+**Planned order (subject to owner approval):**
+1. **C0 — Inventory & UX baseline:** read-only inventory of collections, roles, workflows, current
+   admin components, recurring tasks, and friction points; produce the feature/chunk list.
+2. **C1 — Light-only design system:** Payload theme lock, brand color tokens, typography, surfaces,
+   focus states, buttons, form controls, and status colors in `custom.scss`.
+3. **C2 — Dashboard orientation:** a “Start here” panel with role-aware quick actions and plain
+   explanations of the publishing workflow.
+4. **C3 — Navigation & collection labels:** group/rename admin surfaces for task-based navigation and
+   add collection-level descriptions.
+5. **C4 — Article editor guide:** contextual instructions for title, slug, category, author, lead,
+   body, publish state, and preview.
+6. **C5 — Media guide:** upload rules, alt text, reuse, quotas, and safe replacement guidance.
+7. **C6 — Reporter workspace polish:** clearer assignment list, quick draft, status, and next-step
+   guidance on mobile.
+8. **C7 — Forms & feedback:** consistent field help, required-field cues, validation/error recovery,
+   and success guidance.
+9. **C8 — Accessibility & final QA:** light-only contrast, keyboard/focus, touch targets, Bengali
+   rendering, mobile layout, build/typecheck/lint, and manual browser checks.
+
+**Subagent policy:** C0 may run parallel read-only inventories with disjoint scopes. Implementation
+chunks must stay small; parallel work is allowed only when file ownership is disjoint and the design
+tokens from C1 are already committed. The orchestrator verifies and commits each chunk separately.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own

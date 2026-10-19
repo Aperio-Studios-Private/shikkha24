@@ -6,6 +6,13 @@
 
 ## ⭐ START HERE — 2026-10-19 18:00 (+06:00). Supersedes the block below.
 
+## ⭐ START HERE — 2026-10-19 18:12 (+06:00). Supersedes the block below.
+
+**New queued task T-89: CMS admin UX redesign.** Owner wants a colorful, friendly, highly guided,
+light-only CMS and approved subagent use where helpful. A chunked plan amendment was added to
+`.sps/plan.md`; no CMS UI work has started. C0 inventory and the plan require owner approval before
+code. T-88 remains waiting for several days of Analytics Engine field data.
+
 **T-88 RUM is deployed on commit `e1612ff` (run `39247330082`).** Cloudflare Analytics Engine is
 bound as `TELEMETRY` → `shikkha24_rum`. The Worker accepts sampled same-origin LCP/FCP/path events
 and indexes them by page template. `frontend/public/rum.js` samples 20%, sends once on page hide,

@@ -391,6 +391,41 @@ Pages under measurement: homepage, article page, category listing, search result
 
 ---
 
+## Scope amendment (2026-10-19) — CMS admin UX redesign (T-89, awaiting approval)
+
+The owner requested a colorful, friendly, highly guided CMS admin, light-mode only. This is an
+operator-UI redesign, not a content-model or storefront change. Admin remains English-first under the
+T-38 amendment; Bengali may appear where it aids bilingual operators, but reader-facing rules do not
+apply to admin chrome.
+
+**Hard constraints:**
+
+- Preserve Payload RBAC, API behavior, publishing hooks, data model, security controls, and existing URLs.
+- No new dependency without a one-line justification, pinned version, license check, and owner-visible handoff note.
+- The admin must be light-mode only; do not retain or add a dark admin theme.
+- Work in small chunks. Each chunk has its own file scope, verification, and commit.
+- No implementation chunk starts until C0’s inventory and this plan are approved.
+
+**Chunks:**
+
+| Chunk | Scope | Files expected | Definition of done |
+|---|---|---|---|
+| C0 | Read-only inventory: collections, roles, workflows, current components, friction points, feature list | none | Inventory and revised chunk list recorded in task memory |
+| C1 | Light-only design tokens and core controls | `cms/src/app/(payload)/custom.scss`, Payload admin theme config | Typecheck/lint/build pass; light-only evidence; buttons/fields/focus/status colors reviewed |
+| C2 | Dashboard orientation and role-aware quick actions | new dashboard component + registration | Build/typecheck/lint pass; dashboard shows next actions and workflow explanation |
+| C3 | Task-based navigation and collection descriptions | collection `admin` metadata only | Build/typecheck/lint pass; sidebar grouping and labels reviewed |
+| C4 | Article editor contextual guide | `Articles.ts` and small help components | Build/typecheck/lint pass; editor walkthrough reviewed on desktop/mobile |
+| C5 | Media upload/reuse guidance | `Media.ts` and small help components | Build/typecheck/lint pass; upload/alt/reuse guidance reviewed |
+| C6 | Reporter workspace polish | reporter admin components only | Build/typecheck/lint pass; assignment/quick-draft flow reviewed |
+| C7 | Form help and feedback consistency | selected collection/component files per sub-chunk | Build/typecheck/lint pass; required/error/success guidance reviewed |
+| C8 | Accessibility and final QA | fixes discovered by QA | Contrast/keyboard/touch/mobile checks pass; full CMS build/typecheck/lint pass |
+
+**Subagent policy:** C0 may use parallel read-only inventories with disjoint scopes. Implementation
+chunks should normally run one at a time for visual coherence; parallel implementation is allowed only
+after C1 is committed and file ownership is disjoint. The orchestrator owns verification and commits.
+
+**Approval gate:** owner must approve this amendment and C0 inventory before C1 code.
+
 ## Data sources
 
 All live-data widgets depend on free public APIs. Provider, rate limit, cost and fallback behaviour per widget are recorded in **`docs/data-sources.md`**. Any widget without a credible free source is descoped rather than assumed.
