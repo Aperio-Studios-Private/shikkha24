@@ -29,6 +29,54 @@
     --shikkha-danger: #dc2626;
     --shikkha-danger-soft: #fee2e2;
     --shikkha-focus: #1d4ed8;
+    --shikkha-radius-s: 8px;
+    --shikkha-radius-m: 10px;
+    --shikkha-radius-l: 12px;
+
+    --shikkha-brand-fg: #b8161e;
+    --shikkha-brand-bg: #fff1f2;
+    --shikkha-brand-bg-muted: #ffe4e6;
+    --shikkha-brand-border: #fda4af;
+    --shikkha-brand-border-muted: #fecdd3;
+    --shikkha-brand-emphasis: #da1c25;
+    --shikkha-brand-emphasis-hover: #b8161e;
+    --shikkha-brand-on-emphasis: #ffffff;
+
+    --shikkha-info-fg: #1e40af;
+    --shikkha-info-bg: #dbeafe;
+    --shikkha-info-bg-muted: #eff6ff;
+    --shikkha-info-border: #93c5fd;
+    --shikkha-info-border-muted: #bfdbfe;
+    --shikkha-info-emphasis: #1d4ed8;
+    --shikkha-info-emphasis-hover: #1e40af;
+    --shikkha-info-on-emphasis: #ffffff;
+
+    --shikkha-success-fg: #065f46;
+    --shikkha-success-bg: #d1fae5;
+    --shikkha-success-bg-muted: #ecfdf5;
+    --shikkha-success-border: #6ee7b7;
+    --shikkha-success-border-muted: #a7f3d0;
+    --shikkha-success-emphasis: #047857;
+    --shikkha-success-emphasis-hover: #065f46;
+    --shikkha-success-on-emphasis: #ffffff;
+
+    --shikkha-warning-fg: #92400e;
+    --shikkha-warning-bg: #fef3c7;
+    --shikkha-warning-bg-muted: #fffbeb;
+    --shikkha-warning-border: #fcd34d;
+    --shikkha-warning-border-muted: #fde68a;
+    --shikkha-warning-emphasis: #b45309;
+    --shikkha-warning-emphasis-hover: #92400e;
+    --shikkha-warning-on-emphasis: #ffffff;
+
+    --shikkha-danger-fg: #b91c1c;
+    --shikkha-danger-bg: #fee2e2;
+    --shikkha-danger-bg-muted: #fef2f2;
+    --shikkha-danger-border: #fca5a5;
+    --shikkha-danger-border-muted: #fecaca;
+    --shikkha-danger-emphasis: #dc2626;
+    --shikkha-danger-emphasis-hover: #b91c1c;
+    --shikkha-danger-on-emphasis: #ffffff;
 
     --shikkha-neutral-0: #ffffff;
     --shikkha-neutral-50: #f8fafc;
@@ -74,9 +122,65 @@
     --theme-elevation-950: var(--shikkha-neutral-950);
     --theme-elevation-1000: var(--shikkha-neutral-1000);
 
+    --theme-success-50: #ecfdf5;
+    --theme-success-100: #d1fae5;
+    --theme-success-150: #c8f4e0;
+    --theme-success-200: #a7f3d0;
+    --theme-success-250: #8ce9c4;
+    --theme-success-300: #6ee7b7;
+    --theme-success-350: #52ddaa;
+    --theme-success-400: #34d399;
+    --theme-success-450: #22c08d;
     --theme-success-500: var(--shikkha-success);
+    --theme-success-550: #046c4e;
+    --theme-success-600: #065f46;
+    --theme-success-650: #05563f;
+    --theme-success-700: #064e3b;
+    --theme-success-750: #054636;
+    --theme-success-800: #063f30;
+    --theme-success-850: #05382a;
+    --theme-success-900: #06312a;
+    --theme-success-950: #022c22;
+
+    --theme-warning-50: #fffbeb;
+    --theme-warning-100: #fef3c7;
+    --theme-warning-150: #fdeeba;
+    --theme-warning-200: #fde68a;
+    --theme-warning-250: #fbdd72;
+    --theme-warning-300: #fcd34d;
+    --theme-warning-350: #f8c638;
+    --theme-warning-400: #fbbf24;
+    --theme-warning-450: #e19c17;
     --theme-warning-500: var(--shikkha-warning);
+    --theme-warning-550: #a54c08;
+    --theme-warning-600: #92400e;
+    --theme-warning-650: #843b0d;
+    --theme-warning-700: #78350f;
+    --theme-warning-750: #6d3010;
+    --theme-warning-800: #612b10;
+    --theme-warning-850: #572610;
+    --theme-warning-900: #4a2010;
+    --theme-warning-950: #3a1a0e;
+
+    --theme-error-50: #fef2f2;
+    --theme-error-100: #fee2e2;
+    --theme-error-150: #fdd5d5;
+    --theme-error-200: #fecaca;
+    --theme-error-250: #fdbaba;
+    --theme-error-300: #fca5a5;
+    --theme-error-350: #f98f8f;
+    --theme-error-400: #f87171;
+    --theme-error-450: #ef5350;
     --theme-error-500: var(--shikkha-danger);
+    --theme-error-550: #c02626;
+    --theme-error-600: #b91c1c;
+    --theme-error-650: #a81f1f;
+    --theme-error-700: #991b1b;
+    --theme-error-750: #8a1818;
+    --theme-error-800: #7f1d1d;
+    --theme-error-850: #721a1a;
+    --theme-error-900: #671717;
+    --theme-error-950: #450a0a;
     --accessibility-outline: 3px solid var(--shikkha-focus);
     --accessibility-outline-offset: 2px;
   }

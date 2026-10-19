@@ -3433,6 +3433,14 @@ light content workbench with role-based color, task-first dashboard/navigation, 
 consistent list/editor CTAs, semantic status chips, and guided empty states. No CMS source changed in
 this research chunk.
 
+**C1c5 completed locally (not pushed/deployed).** Added complete brand/info/success/warning/danger
+foreground, background, muted-background, border, muted-border, emphasis, hover, and on-emphasis
+tokens; mapped Payload's full success/warning/error ramps; introduced shared 8/10/12px radius tokens
+and replaced hardcoded semantic colors in controls. Evidence: CMS `typecheck`, `lint`, and production
+`build` pass. WCAG ratios: muted text 6.37:1, info 7.15:1, warning 6.37:1, danger 5.30:1, white on
+emerald 5.48:1, white on danger 4.83:1. Live editor warning and publish control use the new tokens;
+Impeccable detector is clean at 1280×800 and 390×844.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own

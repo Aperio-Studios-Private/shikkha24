@@ -10,7 +10,7 @@
     --btn-font-weight: 650;
     min-block-size: 44px;
     padding-inline: 14px;
-    border-radius: 8px;
+    border-radius: var(--shikkha-radius-s);
     box-shadow: none;
     transition: none;
   }
@@ -34,38 +34,38 @@
 
   .btn--style-primary:not(.btn--disabled) {
     --color: #fff;
-    --bg-color: var(--shikkha-success);
-    --hover-bg: #065f46;
+    --bg-color: var(--shikkha-success-emphasis);
+    --hover-bg: var(--shikkha-success-emphasis-hover);
     --hover-color: #fff;
-    --btn-border: 1px solid #065f46;
-    --hover-btn-border: 1px solid #065f46;
-    background-color: var(--shikkha-success);
-    border: 1px solid #065f46;
+    --btn-border: 1px solid var(--shikkha-success-emphasis-hover);
+    --hover-btn-border: 1px solid var(--shikkha-success-emphasis-hover);
+    background-color: var(--shikkha-success-emphasis);
+    border: 1px solid var(--shikkha-success-emphasis-hover);
     color: #fff;
   }
 
   .btn--style-secondary:not(.btn--disabled) {
-    --color: var(--shikkha-info-dark);
+    --color: var(--shikkha-info-fg);
     --bg-color: var(--shikkha-surface);
-    --hover-bg: var(--shikkha-info-soft);
-    --hover-color: var(--shikkha-info-dark);
-    --btn-border: 1px solid var(--shikkha-info);
-    --hover-btn-border: 1px solid var(--shikkha-info-dark);
+    --hover-bg: var(--shikkha-info-bg);
+    --hover-color: var(--shikkha-info-fg);
+    --btn-border: 1px solid var(--shikkha-info-border);
+    --hover-btn-border: 1px solid var(--shikkha-info-fg);
     background-color: var(--shikkha-surface);
     border: 1px solid var(--shikkha-info);
-    color: var(--shikkha-info-dark);
+    color: var(--shikkha-info-fg);
   }
 
   .btn--style-dashed:not(.btn--disabled) {
-    --color: var(--shikkha-info-dark);
-    --bg-color: var(--shikkha-info-soft);
-    --hover-bg: #c3ddfd;
-    --hover-color: var(--shikkha-info-dark);
-    --btn-border: 1px dashed var(--shikkha-info);
-    --hover-btn-border: 1px solid var(--shikkha-info-dark);
-    background-color: var(--shikkha-info-soft);
-    border: 1px dashed var(--shikkha-info);
-    color: var(--shikkha-info-dark);
+    --color: var(--shikkha-info-fg);
+    --bg-color: var(--shikkha-info-bg);
+    --hover-bg: var(--shikkha-info-border-muted);
+    --hover-color: var(--shikkha-info-fg);
+    --btn-border: 1px dashed var(--shikkha-info-border);
+    --hover-btn-border: 1px solid var(--shikkha-info-fg);
+    background-color: var(--shikkha-info-bg);
+    border: 1px dashed var(--shikkha-info-border);
+    color: var(--shikkha-info-fg);
   }
 
   .btn--style-subtle:not(.btn--disabled) {
@@ -101,11 +101,11 @@
   }
 
   .btn--style-icon-label:not(.btn--disabled) {
-    --color: var(--shikkha-info-dark);
+    --color: var(--shikkha-info-fg);
     --bg-color: transparent;
-    --hover-bg: var(--shikkha-info-soft);
-    --hover-color: var(--shikkha-info-dark);
-    color: var(--shikkha-info-dark);
+    --hover-bg: var(--shikkha-info-bg);
+    --hover-color: var(--shikkha-info-fg);
+    color: var(--shikkha-info-fg);
   }
 
   .btn--style-none:not(.btn--disabled) {
@@ -121,13 +121,13 @@
 
   .list-create-new-doc__create-new-button:not(.btn--disabled) {
     --color: #fff;
-    --bg-color: var(--shikkha-success);
-    --hover-bg: #065f46;
+    --bg-color: var(--shikkha-success-emphasis);
+    --hover-bg: var(--shikkha-success-emphasis-hover);
     --hover-color: #fff;
-    --btn-border: 1px solid #065f46;
-    --hover-btn-border: 1px solid #065f46;
-    background-color: var(--shikkha-success);
-    border: 1px solid #065f46;
+    --btn-border: 1px solid var(--shikkha-success-emphasis-hover);
+    --hover-btn-border: 1px solid var(--shikkha-success-emphasis-hover);
+    background-color: var(--shikkha-success-emphasis);
+    border: 1px solid var(--shikkha-success-emphasis-hover);
     color: #fff;
     font-weight: 650;
   }
@@ -140,26 +140,26 @@
   .delete-document__toggle {
     min-block-size: 44px;
     padding-inline: 10px;
-    border: 1px solid #fca5a5;
-    border-radius: 8px;
-    background-color: var(--shikkha-danger-soft);
-    color: var(--shikkha-danger);
+    border: 1px solid var(--shikkha-danger-border);
+    border-radius: var(--shikkha-radius-s);
+    background-color: var(--shikkha-danger-bg);
+    color: var(--shikkha-danger-fg);
     transition: none;
   }
 
   .delete-document__toggle:hover {
-    border-color: var(--shikkha-danger);
-    background-color: var(--shikkha-danger);
-    color: #fff;
+    border-color: var(--shikkha-danger-emphasis);
+    background-color: var(--shikkha-danger-emphasis);
+    color: var(--shikkha-danger-on-emphasis);
   }
 
   main a:not(.btn):not(.pill):not(.nav-group__toggle):not(.app-header__account) {
-    color: var(--shikkha-info);
+    color: var(--shikkha-info-emphasis);
     text-decoration: none;
   }
 
   main a:not(.btn):not(.pill):not(.nav-group__toggle):not(.app-header__account):hover {
-    color: var(--shikkha-info-dark);
+    color: var(--shikkha-info-fg);
     text-decoration: underline;
   }
 

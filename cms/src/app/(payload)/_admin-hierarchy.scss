@@ -82,10 +82,10 @@
   .custom-view-description {
     max-width: 72rem;
     padding: 0.75rem 1rem;
-    border: 1px solid #fcd34d;
-    border-radius: 10px;
-    background-color: var(--shikkha-warning-soft);
-    color: var(--shikkha-warning);
+    border: 1px solid var(--shikkha-warning-border);
+    border-radius: var(--shikkha-radius-m);
+    background-color: var(--shikkha-warning-bg);
+    color: var(--shikkha-warning-fg);
     font-size: 0.8125rem;
     line-height: 1.5;
   }
@@ -104,7 +104,7 @@
   .field-type select {
     min-height: 44px;
     border: 1px solid var(--shikkha-border-strong);
-    border-radius: 8px;
+    border-radius: var(--shikkha-radius-s);
     background-color: var(--shikkha-surface);
     color: var(--shikkha-ink);
     transition: none;
@@ -113,22 +113,22 @@
   .field-type input:focus,
   .field-type textarea:focus,
   .field-type select:focus {
-    border-color: var(--shikkha-info);
+    border-color: var(--shikkha-info-emphasis);
     outline: 3px solid var(--shikkha-focus);
     outline-offset: 2px;
   }
 
   .card {
     border: 1px solid var(--shikkha-border);
-    border-radius: 12px;
+    border-radius: var(--shikkha-radius-l);
     background-color: var(--shikkha-surface);
     box-shadow: none;
     transition: none;
   }
 
   .card--has-onclick:hover {
-    border-color: var(--shikkha-info);
-    background-color: var(--shikkha-info-soft);
+    border-color: var(--shikkha-info-border);
+    background-color: var(--shikkha-info-bg-muted);
     box-shadow: none;
   }
 
@@ -146,7 +146,7 @@
     margin-bottom: 1rem;
     padding: 1rem;
     border: 1px solid var(--shikkha-border);
-    border-radius: 12px;
+    border-radius: var(--shikkha-radius-l);
     background-color: var(--shikkha-surface);
   }
 
@@ -188,7 +188,7 @@
   .login__form {
     padding: 24px;
     border: 1px solid var(--shikkha-border);
-    border-radius: 12px;
+    border-radius: var(--shikkha-radius-l);
     background-color: var(--shikkha-surface);
   }
 

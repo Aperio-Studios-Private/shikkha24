@@ -41,6 +41,9 @@ identification, then remaining C1c polish based on owner review.
 is a light content workbench: role-based color, task-first dashboard/navigation, progressive disclosure,
 consistent list/editor CTAs, semantic status chips, and guided empty states. No CMS source changed in
 the research chunk. Next implementation order starts with C1c5 color/token audit, then navigation IA.
+**T-89 C1c5 is complete locally pending owner review.** Semantic color variants, full Payload status
+ramps, and shared radius tokens are in place; controls now consume them. CMS typecheck/lint/build pass;
+contrast and detector checks pass. Next queued: C1c6 navigation IA and active/selected states.
 
 **T-89 C0 is complete; no UI code has changed.** The read-only inventory is
 `.sps/cms-ux-inventory.md`. It found 34 registered collections, one global, five roles, existing
