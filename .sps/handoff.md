@@ -3266,6 +3266,10 @@ way *after* the billing lock clears, revisit this entry — not before.
 
 ### 2026-10-19 — T-81 gate fix; T-80 evidence; T-85 touch targets closed
 
+- **T-79 closed as guidance-only:** an isolated copy of `cms/data/ci.db` had four
+  pending migrations; `payload migrate` applied all four successfully and the
+  follow-up status showed all migrations complete. The committed fixture remains a
+  starting point and must not be "repaired."
 - **T-81:** committed `5c72c0a` adds `largest-contentful-paint <= 1500` and tightens
   `cumulative-layout-shift` to `0.02`. The gate now fails honestly on current LCP.
 - **T-81 documentation reconciliation:** the task ledger, performance-budget §8.2,

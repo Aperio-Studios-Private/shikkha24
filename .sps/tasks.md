@@ -3675,15 +3675,17 @@ code *is* on `origin`; it is simply unverified.
 Billing. Then re-run the failed runs (`gh run rerun 39157954190`, `39157954320`, `39160189220`,
 `39160189040`) rather than pushing an empty commit. Expect **four** workflow runs to re-run, not two.
 
-### T-79 — 🔴 OPEN (Low, verification hygiene): `cms/data/ci.db` must be migrated before local harness runs
+### T-79 — ✅ CLOSED (2026-10-19, guidance-only): `cms/data/ci.db` must be migrated before local harness runs
 A subagent reported this fixture as "corrupt" (2 of 7 migrations, `no such column: faqs_id`). **It is
 not corrupt — the report was a local reproduction error.** CI runs
 `pnpm --filter @shikkha24/cms db:migrate` *before* seeding and testing (`ci.yml:282`, with a comment
 explaining that `push: false` makes `db:migrate` the only thing that creates the schema there), so
 the committed `ci.db` is deliberately a *starting point* that CI migrates forward. Verified: copying
 `ci.db` and running `payload migrate` applies all 4 pending migrations cleanly (**exit 0**), after
-which the harnesses have the expected schema. Guidance for the next session: run migrations first,
-and do not "repair" `ci.db` — it is working as designed.
+which the harnesses have the expected schema. Re-verified today with an isolated copy at
+`/tmp/shikkha24-t79.db`: `db:migrate:status` showed four pending migrations, `db:migrate` applied all
+four successfully, and the follow-up status showed every migration in batch 2. Do not "repair"
+`ci.db` — it is working as designed. Run migrations first before local harness runs.
 
 ### T-74 — ✅ DONE (2026-10-19, commit `70bf5a9`): biome schema/CLI drift was the dominant CI failure
 `biome.json` pinned schema 2.5.13 while the installed CLI was 2.5.15, and `frontend/package.json`
