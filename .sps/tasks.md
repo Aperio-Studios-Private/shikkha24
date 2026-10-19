@@ -3466,6 +3466,12 @@ thin and neutral. White-on-dark-red contrast is 6.62:1. Evidence: live header me
 shell remain intact; CMS `typecheck`, `lint`, and production `build` pass; Impeccable detector is
 clean.
 
+**C1c6 touch-target amendment completed locally (not pushed/deployed).** Desktop keeps the compact
+36px items and 32px category rows; mobile and coarse-pointer devices now expand both to 48px, with
+14px item text and 12px category text. Evidence: 390×844 live sidebar measures both controls at 48px
+with no horizontal overflow; desktop detector remains clean; CMS `typecheck`, `lint`, and production
+`build` pass.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own

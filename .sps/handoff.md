@@ -3442,3 +3442,10 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Verified white-on-dark-red contrast at 6.62:1; live header geometry is centered at 6px top/bottom
   and 6.5px side offsets. Reporter keeps the 275px shell and active “My Work” state. CMS
   lint/typecheck/build pass and Impeccable detector is clean. No push/deploy.
+
+### 2026-10-19 — T-89 C1c6 responsive touch targets
+
+- Kept compact desktop rows but restored the project’s 48px minimum on mobile/coarse-pointer devices.
+  Item text expands to 14px and category text to 12px at that breakpoint.
+- Verified 390×844 controls at 48px with no horizontal overflow; desktop detector and CMS
+  lint/typecheck/build all pass. No push/deploy.
