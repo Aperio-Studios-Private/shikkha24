@@ -3551,6 +3551,19 @@ injection/CSP changes are removed. Live editor dashboard now shows 5 drafts, the
 and detector/lint/typecheck/build pass. Goose was unavailable twice (backend 500); two OpenCode
 models supplied report-only audits. A broader Payload hover-property inventory remains open.
 
+**C1c7 action-control redesign completed locally (not pushed/deployed).** Owner asked to redesign and
+recolour Edit, Publish, Unpublish, Delete, and all action buttons; improve locateability/meaning; and
+check spacing/hierarchy. Added a final unlayered `_admin-actions.scss` because Payload injects a second
+copy of its styles after the custom layer. Semantic map: green = publish/save, amber = unpublish, red =
+delete, blue = create/edit/preview, neutral = duplicate/utility. Standardized 44px desktop controls,
+13px/650–750 labels, 8px radii, 12–16px control gaps, and meaningful emoji labels. Preview and rich-text
+Edit now show text, while Publish, Save Draft, Schedule Publish, Create, Duplicate, Delete, Unpublish,
+array Add, upload, and relationship Add controls are colour-coded and consistently sized. Targeted
+real-mouse checks report zero visual-property diffs on list controls and all visible editor controls,
+and zero diffs on Create/Duplicate/Delete inside the opened document menu. No horizontal overflow at
+1280×800 or 390×844; Impeccable detector returns `[]`; CMS lint/typecheck/build pass. The broader
+Payload hover-property inventory remains open, but the redesigned action family is verified.
+
 ### T-90 — 🔵 QUEUED (2026-10-19 22:05 +06:00): optional bilingual admin UI + Bangla Academy copy review
 
 Owner approved adding the capability after the current CMS redesign queue. Scope is **not** to make

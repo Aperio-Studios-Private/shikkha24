@@ -3549,3 +3549,22 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Verification: CMS lint, typecheck, and production build pass; `git diff --check` clean; Impeccable
   detector returns `[]` at 1280×800 and 390×844; live editor dashboard reports assignments 0,
   unpublished 5, attention 0, and 3 recent rows; the draft URL returns 5 rows. No push/deploy.
+
+### 2026-10-20 — T-89 C1c7 action-control redesign
+
+- Owner asked for Edit, Publish, Unpublish, Delete, and all action buttons to be easier to locate and
+  understand, with improved spacing/hierarchy. Inventory found Publish prominent but Duplicate/Delete
+  low-contrast in menus, Preview/Edit as 30px icon-only targets, and ambiguous Add controls.
+- Root-caused a cascade issue: Payload injects a second copy of its styles after the custom layer, so
+  same-specificity rules in `_admin-controls.scss` lost. Added `_admin-actions.scss` as the final
+  unlayered source instead of adding `!important`.
+- Semantic system: green publish/save, amber unpublish, red delete, blue create/edit/preview, neutral
+  duplicate/utility. Controls use 44px desktop targets, 13px labels, consistent radii, meaningful emoji,
+  and 12–16px document-control spacing. Preview and rich-text Edit now have visible text labels.
+- Fixed residual real-mouse hover diffs for Filters, Publish dropdown, dashed Add buttons, and
+  relationship Add. Targeted checks now report zero visual-property diffs on list controls, all visible
+  editor controls, and Create/Duplicate/Delete inside the document menu. Schedule Publish was present in
+  the draft menu but not returned by the focused script because it was hidden in that state.
+- Verification: no horizontal overflow at 1280×800 or 390×844; Impeccable detector `[]` at both widths;
+  CMS lint, typecheck, and production build pass. No push/deploy. The broader Payload hover-property
+  inventory remains open.

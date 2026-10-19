@@ -1,0 +1,231 @@
+/**
+ * T-89 — residual hover-state neutralizers.
+ *
+ * Payload's compound hover rules win in cascade order. These final rules pin
+ * only the audited changing properties to their resting values. Keyboard focus
+ * and active feedback remain available. The Lexical insertion affordance keeps
+ * its instant display toggle because it is functional, not decorative motion.
+ */
+
+.react-select .rs__control:not(:disabled):hover:not(:focus):not(:focus-within):not(:active) {
+  border-color: var(--shikkha-neutral-150) !important;
+  box-shadow: 0 2px 2px -1px rgb(0 0 0 / 10%) !important;
+}
+
+.step-nav .dashboard-breadcrumb-select .rs__control:not(:disabled):hover:not(:focus):not(:focus-within):not(:active) {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.react-select--error .rs__control:not(:disabled):hover:not(:focus):not(:focus-within):not(:active) {
+  border-color: var(--shikkha-danger-emphasis) !important;
+}
+
+.graphic-account:hover:not(.graphic-account--active) .graphic-account__bg {
+  fill: var(--shikkha-neutral-50) !important;
+  stroke: var(--shikkha-neutral-200) !important;
+}
+
+.graphic-account:hover:not(.graphic-account--active) .graphic-account__head,
+.graphic-account:hover:not(.graphic-account--active) .graphic-account__body {
+  fill: var(--shikkha-neutral-200) !important;
+}
+
+.hamburger:hover:not(:focus):not(:focus-visible):not(:active) {
+  background-color: var(--theme-bg) !important;
+  box-shadow: 0 0 0 1px var(--shikkha-neutral-150) !important;
+}
+
+.step-nav a:hover:not(:focus):not(:focus-visible):not(:active) {
+  text-decoration-line: none !important;
+}
+
+.checkbox-input:not(.checkbox-input--read-only):hover:not(:focus):not(:focus-within):not(:active) .checkbox-input__input,
+.checkbox-input:not(.checkbox-input--read-only):hover:not(:focus):not(:focus-within):not(:active) input[type='checkbox'],
+.checkbox-input__input:not(:disabled):hover:not(:focus):not(:focus-within):not(:active) {
+  border-color: var(--shikkha-neutral-150) !important;
+  box-shadow: 0 2px 2px -1px rgb(0 0 0 / 10%) !important;
+}
+
+.pill--style-light.pill--has-action:hover:not(:focus):not(:focus-visible):not(:active) {
+  background-color: var(--shikkha-neutral-100) !important;
+}
+
+.search-filter__input:not(:disabled):hover:not(:focus):not(:focus-within):not(:active) {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.sort-column__button:hover {
+  opacity: 1 !important;
+}
+
+.clickable-arrow:not(.clickable-arrow--is-disabled):hover:not(:focus):not(:focus-visible):not(:active) {
+  background-color: transparent !important;
+}
+
+.nav a.nav__link:hover:not(:focus):not(:focus-visible):not(:active) {
+  background-color: transparent !important;
+  border-color: var(--shikkha-neutral-100) !important;
+  box-shadow: none !important;
+}
+
+.nav a.nav__link.active:hover:not(:focus):not(:focus-visible):not(:active) {
+  background-color: var(--shikkha-brand-bg) !important;
+}
+
+.btn:not(.btn--disabled):hover:not(:focus):not(:focus-visible):not(:active) {
+  background-color: var(--bg-color, transparent) !important;
+  color: var(--color, currentColor) !important;
+  border: var(--btn-border, none) !important;
+  box-shadow: none !important;
+}
+
+.btn--withPopup .popup-button:hover:not(:focus):not(:focus-visible):not(:active) {
+  background-color: var(--bg-color, transparent) !important;
+  color: var(--color, currentColor) !important;
+  border: var(--btn-border, 1px solid transparent) !important;
+}
+
+.date-time-picker .react-datepicker__input-container input:not(:disabled):hover:not(:focus):not(:focus-within):not(:active),
+.field-type input:not([type='checkbox']):not([type='radio']):not(:disabled):hover:not(:focus):not(:focus-within):not(:active),
+.field-type textarea:not(:disabled):hover:not(:focus):not(:focus-within):not(:active) {
+  border-color: var(--shikkha-neutral-150) !important;
+  box-shadow: 0 2px 2px -1px rgb(0 0 0 / 10%) !important;
+}
+
+.field-type.error input:not(:disabled):hover:not(:focus):not(:focus-within):not(:active),
+.field-type.error textarea:not(:disabled):hover:not(:focus):not(:focus-within):not(:active) {
+  border-color: var(--shikkha-danger-emphasis) !important;
+}
+
+.btn--style-icon-label:not(.btn--disabled):hover:not(:focus):not(:focus-visible):not(:active) {
+  background-color: transparent !important;
+  color: var(--shikkha-info-fg) !important;
+  border-color: transparent !important;
+}
+
+.doc-tab.btn--style-tab:not(.btn--disabled):hover:not(:focus):not(:focus-visible):not(:active) {
+  background-color: var(--shikkha-neutral-100) !important;
+  color: var(--shikkha-ink) !important;
+}
+
+.btn--withPopup .popup-button:hover:not(:focus):not(:focus-visible):not(:active) {
+  background-color: var(--shikkha-success-emphasis-hover) !important;
+  border-color: var(--shikkha-neutral-150) !important;
+}
+
+.btn--style-primary.btn--withPopup .popup-button:hover:not(:focus):not(:focus-visible):not(:active) {
+  border-color: var(--shikkha-success-emphasis-hover) !important;
+}
+
+.relationship-add-new__add-button:not(.relationship-add-new__add-button--unstyled):not(:disabled):hover:not(:focus):not(:focus-within):not(:active) {
+  border-color: var(--shikkha-neutral-150) !important;
+  box-shadow: 0 2px 2px -1px rgb(0 0 0 / 10%) !important;
+}
+
+.relationship.error .relationship-add-new__add-button:not(:disabled):hover:not(:focus):not(:focus-within):not(:active) {
+  border-color: var(--shikkha-danger-emphasis) !important;
+}
+
+.array-field__header-action:hover:not(:focus):not(:focus-visible):not(:active) {
+  color: currentColor !important;
+  border-color: var(--shikkha-neutral-800) !important;
+  outline-color: var(--shikkha-neutral-800) !important;
+  stroke: transparent !important;
+  text-decoration-line: none !important;
+  text-decoration-color: currentColor !important;
+}
+
+.preview-btn:hover:not(:focus):not(:focus-visible):not(:active) {
+  background-color: var(--shikkha-info-bg) !important;
+  border-color: var(--shikkha-info-border) !important;
+  color: var(--shikkha-info-fg) !important;
+}
+
+.link-edit:hover:not(:focus):not(:focus-visible):not(:active) {
+  background-color: var(--shikkha-info-bg) !important;
+  border-color: var(--shikkha-info-border) !important;
+  color: var(--shikkha-info-fg) !important;
+}
+
+.doc-controls__dots:hover:not(:focus):not(:focus-visible):not(:active) {
+  background-color: var(--shikkha-surface) !important;
+  border-color: var(--shikkha-border) !important;
+  color: var(--shikkha-ink-muted) !important;
+}
+
+.popup-button-list__button:hover:not(:focus):not(:focus-visible):not(:active) {
+  border-color: transparent !important;
+}
+
+#action-create.popup-button-list__button:hover:not(:focus):not(:focus-visible):not(:active) {
+  border-color: var(--shikkha-info-border) !important;
+  background-color: var(--shikkha-info-bg) !important;
+  color: var(--shikkha-info-fg) !important;
+}
+
+#schedule-publish.popup-button-list__button:hover:not(:focus):not(:focus-visible):not(:active) {
+  border-color: var(--shikkha-success-border) !important;
+  background-color: var(--shikkha-success-bg) !important;
+  color: var(--shikkha-success-fg) !important;
+}
+
+#action-duplicate.popup-button-list__button:hover:not(:focus):not(:focus-visible):not(:active) {
+  border-color: var(--shikkha-border) !important;
+  background-color: var(--shikkha-surface) !important;
+  color: var(--shikkha-ink) !important;
+}
+
+#action-delete.popup-button-list__button:hover:not(:focus):not(:focus-visible):not(:active),
+.delete-document__toggle:hover:not(:focus):not(:focus-within):not(:active) {
+  border-color: var(--shikkha-danger-border) !important;
+  background-color: var(--shikkha-danger-bg) !important;
+  color: var(--shikkha-danger-fg) !important;
+}
+
+.array-field__add-row:not(.btn--disabled):hover:not(:focus):not(:focus-visible):not(:active) {
+  background-color: var(--shikkha-info-bg) !important;
+  border-color: var(--shikkha-info-border) !important;
+  border-style: dashed !important;
+  color: var(--shikkha-info-fg) !important;
+}
+
+.upload__createNewToggler:not(.btn--disabled):hover:not(:focus):not(:focus-visible):not(:active),
+.upload__listToggler:not(.btn--disabled):hover:not(:focus):not(:focus-visible):not(:active) {
+  background-color: var(--shikkha-info-bg) !important;
+  border-color: var(--shikkha-info-border) !important;
+  color: var(--shikkha-info-fg) !important;
+}
+
+.relationship-add-new__add-button:not(.relationship-add-new__add-button--unstyled):not(:disabled):hover:not(:focus):not(:focus-within):not(:active) {
+  border-color: var(--shikkha-info-border) !important;
+  background-color: var(--shikkha-info-bg) !important;
+  color: var(--shikkha-info-fg) !important;
+  box-shadow: 0 2px 2px -1px rgb(0 0 0 / 10%) !important;
+}
+
+.sort-column__button:hover {
+  background-color: var(--shikkha-neutral-100) !important;
+  border-color: var(--shikkha-border) !important;
+  color: var(--shikkha-ink) !important;
+  opacity: 1 !important;
+}
+
+.nav-group__toggle:hover:not(:focus):not(:focus-visible):not(:active) {
+  color: var(--shikkha-neutral-0) !important;
+  background-color: var(--shikkha-brand-emphasis-hover) !important;
+  border-color: var(--shikkha-brand-emphasis-hover) !important;
+  box-shadow: none !important;
+}
+
+.nav-group__toggle:hover:not(:focus):not(:focus-visible):not(:active) .stroke {
+  border-color: var(--shikkha-neutral-150) !important;
+  box-shadow: none !important;
+  stroke: currentColor !important;
+}
+
+.insert-paragraph-at-end:hover,
+.insert-paragraph-at-end:hover .insert-paragraph-at-end-inside {
+  background-color: transparent !important;
+}

@@ -1,0 +1,290 @@
+/**
+ * T-89 — final action-control system.
+ *
+ * Payload injects a second copy of its styles after the custom layer. These
+ * unlayered rules win the cascade without `!important`. Colour encodes the
+ * consequence: green commits/publishes, amber withdraws, red deletes, blue
+ * creates/edits/previews, and neutral duplicates or opens utilities.
+ */
+
+.doc-controls__wrapper,
+.doc-controls__content,
+.doc-controls__controls {
+  align-items: center;
+}
+
+.doc-controls__wrapper {
+  gap: 16px;
+}
+
+.doc-controls__content {
+  gap: 16px;
+}
+
+.doc-controls__controls {
+  gap: 12px;
+}
+
+.doc-controls__meta {
+  gap: 16px;
+}
+
+.doc-controls__dots {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--shikkha-border);
+  border-radius: var(--shikkha-radius-s);
+  background-color: var(--shikkha-surface);
+  color: var(--shikkha-ink-muted);
+}
+
+.preview-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--shikkha-info-border);
+  border-radius: var(--shikkha-radius-s);
+  background-color: var(--shikkha-info-bg);
+  color: var(--shikkha-info-fg);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.preview-btn::after {
+  content: "Preview";
+}
+
+.link-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 32px;
+  min-height: 32px;
+  border: 1px solid var(--shikkha-info-border);
+  border-radius: 8px;
+  background-color: var(--shikkha-info-bg);
+  color: var(--shikkha-info-fg);
+}
+
+.link-edit::after {
+  content: "Edit";
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.btn--style-primary .btn:not(.btn--disabled),
+.btn--style-primary .popup-button {
+  min-height: 44px;
+  border: 1px solid var(--shikkha-success-emphasis-hover);
+  border-radius: var(--shikkha-radius-s);
+  background-color: var(--shikkha-success-emphasis);
+  color: var(--shikkha-success-on-emphasis);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.btn--style-primary .popup-button {
+  width: 44px;
+  background-color: var(--shikkha-success-emphasis-hover);
+}
+
+#action-unpublish:not(.btn--disabled),
+#action-unpublish-locale:not(.btn--disabled) {
+  border-color: var(--shikkha-warning-emphasis-hover);
+  background-color: var(--shikkha-warning-emphasis);
+  color: var(--shikkha-warning-on-emphasis);
+}
+
+#action-save-draft:not(.btn--disabled) {
+  border-color: var(--shikkha-info-border);
+  background-color: var(--shikkha-info-bg);
+  color: var(--shikkha-info-fg);
+}
+
+#action-delete:not(.btn--disabled),
+.delete-document__toggle:not(.btn--disabled) {
+  border-color: var(--shikkha-danger-border);
+  background-color: var(--shikkha-danger-bg);
+  color: var(--shikkha-danger-fg);
+}
+
+#action-duplicate:not(.btn--disabled) {
+  border-color: var(--shikkha-border);
+  background-color: var(--shikkha-surface);
+  color: var(--shikkha-ink);
+}
+
+#schedule-publish:not(.btn--disabled) {
+  border-color: var(--shikkha-success-border);
+  background-color: var(--shikkha-success-bg);
+  color: var(--shikkha-success-fg);
+}
+
+#action-create:not(.btn--disabled) {
+  border-color: var(--shikkha-info-border);
+  background-color: var(--shikkha-info-bg);
+  color: var(--shikkha-info-fg);
+}
+
+.popup-button-list {
+  display: grid;
+  gap: 4px;
+  min-width: 210px;
+  padding: 8px;
+  border: 1px solid var(--shikkha-border);
+  border-radius: var(--shikkha-radius-m);
+  background-color: var(--shikkha-surface);
+}
+
+.popup-button-list__button {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--shikkha-radius-s);
+  color: var(--shikkha-ink);
+  font-size: 13px;
+  font-weight: 650;
+  text-align: left;
+}
+
+.popup-button-list__button::before {
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+#action-create::before {
+  content: "➕";
+}
+
+#action-duplicate::before {
+  content: "📄";
+}
+
+#action-delete::before {
+  content: "🗑️";
+}
+
+#schedule-publish::before {
+  content: "⏰";
+}
+
+[id*="unpublish" i]::before {
+  content: "⏸️";
+}
+
+#action-save .btn__label::before {
+  content: "🚀";
+  margin-right: 8px;
+}
+
+#action-save-draft::before {
+  content: "💾";
+}
+
+.delete-document__toggle {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: var(--shikkha-radius-s);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.delete-document__toggle::before {
+  content: "🗑️";
+  margin-right: 8px;
+}
+
+.list-create-new-doc__create-new-button:not(.btn--disabled) {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: var(--shikkha-radius-s);
+  font-size: 13px;
+}
+
+.list-create-new-doc__create-new-button .btn__label::before {
+  content: "➕";
+  margin-right: 8px;
+}
+
+.pill {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--shikkha-border);
+  border-radius: var(--shikkha-radius-s);
+  background-color: var(--shikkha-neutral-100);
+  color: var(--shikkha-ink);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.pill--has-icon {
+  gap: 6px;
+  padding-right: 8px;
+}
+
+.array-field__add-row:not(.btn--disabled) {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px dashed var(--shikkha-info-border);
+  border-radius: var(--shikkha-radius-s);
+  background-color: var(--shikkha-info-bg);
+  color: var(--shikkha-info-fg);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.array-field__add-row .btn__label::before {
+  content: "➕";
+  margin-right: 8px;
+}
+
+.upload__createNewToggler:not(.btn--disabled),
+.upload__listToggler:not(.btn--disabled) {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--shikkha-info-border);
+  border-radius: var(--shikkha-radius-s);
+  background-color: var(--shikkha-info-bg);
+  color: var(--shikkha-info-fg);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.upload__createNewToggler .btn__label::before {
+  content: "➕";
+  margin-right: 6px;
+}
+
+.upload__listToggler .btn__label::before {
+  content: "🗂️";
+  margin-right: 6px;
+}
+
+.relationship-add-new__add-button:not(.relationship-add-new__add-button--unstyled) {
+  width: 44px;
+  min-height: 44px;
+  justify-content: center;
+  border-color: var(--shikkha-info-border);
+  background-color: var(--shikkha-info-bg);
+  color: var(--shikkha-info-fg);
+}
+
+.sort-column__button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--shikkha-border);
+  border-radius: 8px;
+  background-color: var(--shikkha-neutral-100);
+  color: var(--shikkha-ink);
+  opacity: 1;
+}
