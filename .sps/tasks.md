@@ -3313,7 +3313,7 @@ the known T-80 LCP gate, as expected. Collect several days of weighted field dat
 T-80 or the Lighthouse gate. Query with the Analytics Engine SQL API using
 `quantileExactWeighted(0.75)(double1, _sample_interval)` grouped by `index1`.
 
-### T-89 — 🟡 C0/C1a DONE (2026-10-19): redesign CMS admin UX in small approved chunks
+### T-89 — 🟡 C0/C1a DONE — AWAITING C1b APPROVAL (2026-10-19): redesign CMS admin UX in small approved chunks
 Owner request: make the CMS colorful, very user-friendly, and easy to use through abundant guidance.
 The admin must be light-mode only. Work must be split into small local chunks, verified after each
 chunk, and only then move to the next. Owner explicitly approved subagent use where it helps. This
@@ -3347,12 +3347,14 @@ registered collections, the Site Settings global, 5 roles, publish/rebuild behav
 admin components. It identifies 12 low-guidance collections and splits implementation into 19 small
 chunks. Recommended next chunk is C1a: light-only tokens plus Payload `admin.theme: 'light'`.
 
-**C1a completed locally (not pushed/deployed).** `payload.config.ts` now sets the supported
+**C1a completed and manually approved (not pushed/deployed).** `payload.config.ts` now sets the supported
 `admin.theme: 'light'`, preventing cookie/OS dark overrides. `custom.scss` adds the light-only brand,
 canvas, surface, text, border, focus, and status token vocabulary and maps Payload’s background,
 input, text, border, and status-500 variables. No component, navigation, data-model, access, or
 workflow changes. Evidence: CMS `typecheck`, `lint`, and production `build` all pass. Owner manual
-review is next at local CMS dev; C1b remains gated on that review.
+review passed: the owner confirmed the theme switched and looks nice on local dev. A fresh local DB
+was required for review after the prior dev-pushed schema lacked Payload 3.90 columns; the old local
+DB was backed up as `cms/data/payload.db.backup-20261019-184847`. C1b remains gated on owner approval.
 
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are

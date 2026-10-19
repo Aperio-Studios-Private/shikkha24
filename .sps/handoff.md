@@ -12,11 +12,13 @@
 
 ## ⭐ START HERE — 2026-10-19 19:05 (+06:00). Supersedes the block below.
 
-**T-89 C1a is complete locally; do not push/deploy yet.** Payload admin is locked with supported
+**T-89 C1a is manually approved; do not push/deploy yet.** Payload admin is locked with supported
 `admin.theme: 'light'`. `custom.scss` defines the light-only design-token vocabulary and maps
 Payload background/input/text/border/status variables. CMS typecheck, lint, and production build pass.
-Next: owner manual review of local dev, then C1b (buttons/links/focus/destructive controls). T-88
-continues waiting for Analytics Engine field data.
+The owner confirmed the theme switch visually on local dev. The old local DB was backed up to
+`cms/data/payload.db.backup-20261019-184847`; fresh local dev now has the correct migration schema.
+Next: C1b (buttons/links/focus/destructive controls), pending owner approval. T-88 continues waiting
+for Analytics Engine field data.
 
 **T-89 C0 is complete; no UI code has changed.** The read-only inventory is
 `.sps/cms-ux-inventory.md`. It found 34 registered collections, one global, five roles, existing
