@@ -6,9 +6,25 @@
  */
 
 @layer payload-default {
+  a.btn {
+    display: inline-flex;
+  }
+
+  button.btn {
+    display: inline-flex;
+  }
+
+  .doc-tab.btn {
+    display: flex;
+  }
+
   .btn {
     --btn-font-weight: 650;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     min-block-size: 44px;
+    vertical-align: middle;
     padding-inline: 14px;
     border-radius: var(--shikkha-radius-s);
     box-shadow: none;

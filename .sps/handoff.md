@@ -3479,3 +3479,11 @@ way *after* the billing lock clears, revisit this entry — not before.
   sidebar; mobile keeps its toggle and clips drawer overflow. Verified live at desktop/mobile, with
   48px recent-work targets, no overflow, detector clean at both widths, and CMS lint/typecheck/build
   passing. No push/deploy.
+
+### 2026-10-19 — T-89 C1c7 button alignment fix
+
+- Root-caused Payload's `a.btn { display: inline-block }`: the enforced button height left labels at
+  the top. Added flex centering for anchor/button buttons and document tabs.
+- Verified dashboard/list/editor controls with measured top/bottom text offsets, including 48px
+  mobile targets and no overflow. Detector is clean at 1280×800 and 390×844; CMS lint/typecheck/build
+  pass. No push/deploy.

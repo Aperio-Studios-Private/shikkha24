@@ -3493,6 +3493,14 @@ are full-width, recent links are 48×335px, and the mobile drawer opens without 
 Impeccable detector is clean at 1280×800 and 390×844; CMS `typecheck`, `lint`, and production `build`
 pass.
 
+**C1c7 button-alignment amendment completed locally (not pushed/deployed).** Owner reported button
+text sitting off-center. Root cause: Payload anchors `a.btn` to `inline-block`, so the 44px/48px
+minimum height left text at the top and empty space at the bottom. Buttons are now flex containers
+with centered content; document tabs use the same treatment. Evidence: dashboard primary button is
+44px with 14px top/bottom text offsets; list Create New is 44px with 11px offsets; editor tabs are
+44px with 10px offsets; mobile primary is 48px with 16/17px offsets. No horizontal overflow.
+Impeccable detector is clean at both widths; CMS `typecheck`, `lint`, and production `build` pass.
+
 ### T-90 — 🔵 QUEUED (2026-10-19 22:05 +06:00): optional bilingual admin UI + Bangla Academy copy review
 
 Owner approved adding the capability after the current CMS redesign queue. Scope is **not** to make
