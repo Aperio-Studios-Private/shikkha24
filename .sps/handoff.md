@@ -3266,6 +3266,10 @@ way *after* the billing lock clears, revisit this entry — not before.
 
 ### 2026-10-19 — T-81 gate fix; T-80 evidence; T-85 touch targets closed
 
+- **T-80 logo self-hosting disproven:** a local 1×/2× WebP logo passed the build
+  and static gates but measured LCP medians of 2409/2256/2862 ms. This is not a
+  material gain over baseline, so the code was reverted. The remaining T-80 lever
+  is owner-gated typography.
 - **T-79 closed as guidance-only:** an isolated copy of `cms/data/ci.db` had four
   pending migrations; `payload migrate` applied all four successfully and the
   follow-up status showed all migrations complete. The committed fixture remains a

@@ -3535,6 +3535,20 @@ CSS, so the shared stylesheet is inlined and font discovery starts one round tri
 corrected-gate measurements remain LCP 2.40s on home/latest and 2.71s on article, so T-80 is still open;
 the remaining dominant cost is the webfont payload/swap, which requires an owner typography decision.
 
+**2026-10-19 logo experiment — DISPROVEN as an LCP lever.** A build-time Astro `Image` pipeline was
+tested for the header logo (SVG → 1×/2× WebP, served from `/_astro/`). The 877-page build, typecheck,
+touch-target, build-output and link gates passed. The full Lighthouse gate still failed only on LCP:
+
+| template | LCP (median) |
+|---|---|
+| `/` | 2409 ms |
+| `/latest/` | 2256 ms |
+| article (build-selected) | 2862 ms |
+
+This is within normal run variation of the 2.40/2.40/2.71s baseline, not the ~1000 ms needed. The
+experiment was reverted rather than kept as complexity. The remaining decision is still the
+owner-gated font strategy; T-44's corrected ceiling applies.
+
 ### T-81 — ✅ DONE (2026-10-19, commit `5c72c0a`): the Lighthouse gate now enforces LCP and CLS
 `lighthouserc.json` asserts only these numeric metrics:
 
