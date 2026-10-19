@@ -3458,6 +3458,14 @@ item dividers are `rgb(241, 245, 249)`, section gap is 16.25px rendered, and the
 overflow; reporter retains the 275px shell. CMS `typecheck`, `lint`, and production `build` pass;
 Impeccable detector is clean.
 
+**C1c6 compact category amendment completed locally (not pushed/deployed).** Sidebar items are
+tighter at 36px with 13px text; category rows are compact 32px red bars with white text, vertical
+centering, and a minimal 0.5rem side inset. Section gaps are 0.875rem, while item separators remain
+thin and neutral. White-on-dark-red contrast is 6.62:1. Evidence: live header measures 32px with
+6px top/bottom and 6.5px left/right offsets; Dashboard/reporter active states and the 275px reporter
+shell remain intact; CMS `typecheck`, `lint`, and production `build` pass; Impeccable detector is
+clean.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own

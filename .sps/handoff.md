@@ -3433,3 +3433,12 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Kept the native Payload sidebar structure and removed a duplicate active-indicator rule. Verified
   live on Dashboard and `/admin/reporter`; no horizontal overflow. CMS lint/typecheck/build pass and
   Impeccable detector is clean. No push/deploy.
+
+### 2026-10-19 — T-89 C1c6 compact category refinement
+
+- Owner feedback requested a more compact sidebar, then a solid red category row with white text.
+  Links are now 36px/13px, category rows 32px red/white and vertically centered with 0.5rem side
+  inset, and section gaps 0.875rem.
+- Verified white-on-dark-red contrast at 6.62:1; live header geometry is centered at 6px top/bottom
+  and 6.5px side offsets. Reporter keeps the 275px shell and active “My Work” state. CMS
+  lint/typecheck/build pass and Impeccable detector is clean. No push/deploy.
