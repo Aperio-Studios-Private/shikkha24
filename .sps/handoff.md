@@ -3424,3 +3424,12 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Verified live: Dashboard and `/admin/reporter` selected links are 48px with brand-tinted background;
   reporter keeps the 275px admin shell. CMS lint/typecheck/build pass; Impeccable detector is clean at
   1280×800. No push/deploy.
+
+### 2026-10-19 — T-89 C1c6 sidebar density amendment
+
+- Owner asked for tighter sidebar rows, item separators, and a solid category-header line. Links are
+  now 44px, category headers 40px with a solid border, item separators are thin neutral borders, and
+  section spacing is 1.25rem.
+- Kept the native Payload sidebar structure and removed a duplicate active-indicator rule. Verified
+  live on Dashboard and `/admin/reporter`; no horizontal overflow. CMS lint/typecheck/build pass and
+  Impeccable detector is clean. No push/deploy.

@@ -3450,6 +3450,14 @@ group state. Evidence: live Dashboard and `/admin/reporter` selected links both 
 `rgb(255, 241, 242)`; reporter retains the 275px admin shell; CMS `typecheck`, `lint`, and production
 `build` pass; Impeccable detector is clean at 1280×800. Owner visual review is next.
 
+**C1c6 owner-feedback amendment completed locally (not pushed/deployed).** Sidebar rows are now
+tighter at 44px, category headers use a 40px row with a solid divider, individual items use thin
+neutral separators, and section gaps increase to 1.25rem. Duplicate active-indicator CSS was removed.
+Evidence: live Dashboard/reporter links measure 44px, category dividers are `rgb(148, 163, 184)`,
+item dividers are `rgb(241, 245, 249)`, section gap is 16.25px rendered, and there is no horizontal
+overflow; reporter retains the 275px shell. CMS `typecheck`, `lint`, and production `build` pass;
+Impeccable detector is clean.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own
