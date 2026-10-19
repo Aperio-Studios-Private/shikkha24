@@ -4,13 +4,23 @@
 
 ## ⭐ START HERE — 2026-10-19 17:25 (+06:00). Supersedes the block below.
 
-## ⭐ START HERE — 2026-10-19 17:55 (+06:00). Supersedes the block below.
+## ⭐ START HERE — 2026-10-19 18:00 (+06:00). Supersedes the block below.
 
-**T-88 RUM is implemented, not yet deployed.** Cloudflare Analytics Engine is bound as `TELEMETRY`
-→ `shikkha24_rum`. The Worker accepts sampled same-origin LCP/FCP/path events and indexes them by
-page template. `frontend/public/rum.js` samples 20%, sends once on page hide, and stores no identifiers.
-Do not repeat font-size-only T-80 work; the split-font experiment worsened LCP to
-2480/2557/2855 ms and was reverted.
+**T-88 RUM is deployed on commit `e1612ff` (run `39247330082`).** Cloudflare Analytics Engine is
+bound as `TELEMETRY` → `shikkha24_rum`. The Worker accepts sampled same-origin LCP/FCP/path events
+and indexes them by page template. `frontend/public/rum.js` samples 20%, sends once on page hide,
+and stores no identifiers. The owner enabled Analytics Engine after the first API attempt returned
+error 10089; the rerun deployed successfully.
+
+**Live evidence:** the homepage includes `<script defer src="/rum.js"></script>`; `/rum.js` returns
+200 and remains allowed by `script-src 'self'`; valid `POST /telemetry` returns 204/no-store; invalid
+and non-POST requests return 400. Production is now collecting sampled field data.
+
+**Next data review:** use the Analytics Engine SQL API and account ID
+`0e2e4a6986f91edabe1dae4945a9b88b`; query `shikkha24_rum` with
+`quantileExactWeighted(0.75)(double1, _sample_interval)` grouped by `index1`. Do not change the
+T-80/Lighthouse gate until there is enough weighted field data. Do not repeat font-size-only work;
+the split-font experiment worsened LCP to 2480/2557/2855 ms and was reverted.
 
 **Verification evidence:** `pnpm lint` has only the three pre-existing warnings; frontend typecheck and
 build pass; `verify:cloudflare` passes 88 checks; `verify:links` and `verify:touch-targets` pass; and

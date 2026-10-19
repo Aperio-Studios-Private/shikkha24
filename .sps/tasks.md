@@ -3297,13 +3297,21 @@ weights preloaded. It preserved all glyphs but **worsened** LCP to medians of 24
 The change was reverted. This disproves font payload as the remaining bottleneck and supports a
 lab-data-based gate decision rather than another font-size guess.
 
-**RUM implemented.** `frontend/wrangler.toml` binds `TELEMETRY` to `shikkha24_rum`.
+**RUM implemented and deployed.** `frontend/wrangler.toml` binds `TELEMETRY` to `shikkha24_rum`.
 `frontend/worker/telemetry.ts` validates LCP/FCP/path and writes a low-cardinality template index.
 `frontend/public/rum.js` samples 20% of views, sends once on page hide, and stores no identifiers.
 `Layout.astro` loads the external beacon so CSP remains intact. `verify:cloudflare` asserts the binding,
 dispatch order, index, external beacon, and no-store response. The thin-build floor was corrected from
-10 to 9 because current local and live CMS data both contain 9 published articles. After deployment,
-collect several days of weighted field data before amending T-80 or the Lighthouse gate.
+10 to 9 because current local and live CMS data both contain 9 published articles.
+
+**Deployed 2026-10-19 17:56 (+06:00):** commit `e1612ff` is live via Cloudflare run `39247330082`.
+The first deploy attempt exposed a one-time Cloudflare account activation requirement; the owner
+enabled Analytics Engine and the rerun passed. Live checks: `/` contains the external `/rum.js` tag,
+`/rum.js` returns 200 under the existing self-only script CSP, valid `POST /telemetry` returns 204
+with `no-store`, and malformed/wrong-method requests return 400. A normal push deploy still fails at
+the known T-80 LCP gate, as expected. Collect several days of weighted field data before amending
+T-80 or the Lighthouse gate. Query with the Analytics Engine SQL API using
+`quantileExactWeighted(0.75)(double1, _sample_interval)` grouped by `index1`.
 
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
