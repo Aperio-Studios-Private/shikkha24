@@ -3382,6 +3382,12 @@ pass; live dashboard icon measures 18×18 and login logo measures 48×48. Owner 
 admin items, choosing the fastest maintainable option; (4) evaluate the four owner-named models
 against real repository tasks before recommending one.
 
+**Dashboard Navigation completed locally (not pushed/deployed).** Added a top-of-sidebar Dashboard
+link through Payload's supported `beforeNavLinks` slot. The client link uses the pathname for active
+state and reuses Payload's `nav__link`/indicator classes. Evidence: CMS `typecheck`, `lint`, and
+production `build` pass; live sidebar shows "Dashboard" first with active styling. Owner visual
+review is next.
+
 > Owner instruction (2026-10-19 00:26): "deploy as much as possible subagents and
 > fix everything and make the project rating 100/100 by sps rules". Findings are
 > worked in the audit's own risk order. Each task closes only with the repo's own

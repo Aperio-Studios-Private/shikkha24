@@ -31,6 +31,10 @@ official SVGs and Payload's supported `graphics` API. Both external reviewers fo
 overflow; the icon now fits Payload's 18×18 container. Typecheck/lint/build pass; live dimensions are
 18×18 in the header and 48×48 on login. Next queued: side Dashboard Navigation, then the reporter
 admin-shell defect, then emoji/icon identification.
+**T-89 Dashboard Navigation is complete locally pending owner review.** `DashboardNavLink` is
+registered in `beforeNavLinks`, appears first in the sidebar, and uses Payload's active nav classes.
+Typecheck/lint/build pass and the live sidebar was visually verified. Next queued: fix
+`/admin/reporter` missing the admin shell, then emoji/icon identification.
 
 **T-89 C0 is complete; no UI code has changed.** The read-only inventory is
 `.sps/cms-ux-inventory.md`. It found 34 registered collections, one global, five roles, existing

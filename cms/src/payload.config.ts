@@ -221,6 +221,7 @@ export default buildConfig({
        * server-rendered HTML — the dashboard body does, so at least one entry
        * point is verifiable rather than assumed.
        */
+      beforeNavLinks: ['/components/admin/DashboardNavLink#DashboardNavLink'],
       afterNavLinks: ['/components/admin/ReporterNavLink#ReporterNavLink'],
       beforeDashboard: ['/components/admin/ReporterDashboardLink#ReporterDashboardLink'],
     },
