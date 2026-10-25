@@ -348,7 +348,17 @@ export async function DashboardWorkbench() {
             </Link>
           </div>
           {recent.length === 0 ? (
-            <p>No recent articles yet. Create a draft to see it here.</p>
+            /* D2 — empty state as onboarding: why this surface exists + one action. */
+            <div className="dashboard-empty">
+              <strong>No work yet today (আজ এখনো কিছু নেই)।</strong>
+              <span>
+                Articles you write appear here, newest first — start with a draft and it shows up
+                immediately (আপনার লেখা সংবাদ এখানে দেখা যাবে)।
+              </span>
+              <a className="dashboard-empty__action" href="/admin/collections/articles/create">
+                ＋ Create first article (প্রথম সংবাদ লিখুন)
+              </a>
+            </div>
           ) : (
             <ul>
               {recent.map((item) => (

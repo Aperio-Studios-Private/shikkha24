@@ -339,6 +339,44 @@
     white-space: nowrap;
   }
 
+  /* D2 — onboarding-style empty state: why, what next, one action. */
+  .dashboard-empty {
+    display: grid;
+    gap: var(--shikkha-space-2);
+    justify-items: start;
+    padding: var(--shikkha-space-4);
+    border: 1px dashed var(--shikkha-border);
+    border-radius: var(--shikkha-radius-m);
+    background-color: var(--shikkha-surface);
+    color: var(--shikkha-ink-muted);
+    font-size: var(--shikkha-text-body-sm);
+    line-height: var(--shikkha-lh-body);
+  }
+
+  .dashboard-empty strong {
+    color: var(--shikkha-ink);
+    font-size: var(--shikkha-text-body);
+  }
+
+  .dashboard-empty__action {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--shikkha-control-default);
+    padding: 0 var(--shikkha-space-3);
+    border: 1px solid var(--shikkha-success-emphasis-hover);
+    border-radius: var(--shikkha-radius-pill);
+    background-color: var(--shikkha-success-emphasis);
+    color: var(--shikkha-success-on-emphasis);
+    font-weight: var(--shikkha-weight-bold);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .dashboard-empty__action:hover {
+    background-color: var(--shikkha-success-emphasis-hover);
+    color: var(--shikkha-success-on-emphasis);
+  }
+
   .dashboard-workbench__recent ul {
     display: grid;
     gap: 0;
