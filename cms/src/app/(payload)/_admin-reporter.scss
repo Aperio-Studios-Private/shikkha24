@@ -197,6 +197,94 @@
     white-space: nowrap;
   }
 
+  /* ── Quick Draft form (C5) — token-styled replacement for Tailwind classes. */
+  .reporter-form {
+    display: grid;
+    gap: var(--shikkha-space-4);
+    padding: var(--shikkha-space-5);
+    border: 1px solid var(--shikkha-border);
+    border-radius: var(--shikkha-radius-l);
+    background-color: var(--shikkha-surface);
+  }
+
+  .reporter-field__label {
+    display: block;
+    margin-bottom: var(--shikkha-space-1);
+    color: var(--shikkha-ink);
+    font-size: var(--shikkha-text-body-sm);
+    font-weight: var(--shikkha-weight-semibold);
+  }
+
+  .reporter-field {
+    display: block;
+    width: 100%;
+    min-height: var(--shikkha-control-touch);
+    padding: var(--shikkha-space-2) var(--shikkha-space-3);
+    border: 1px solid var(--shikkha-border-strong);
+    border-radius: var(--shikkha-radius-s);
+    background-color: var(--shikkha-surface);
+    color: var(--shikkha-ink);
+    font-family: inherit;
+    font-size: var(--shikkha-text-body);
+    line-height: var(--shikkha-lh-body);
+  }
+
+  .reporter-field:focus-visible {
+    outline: 3px solid var(--shikkha-focus);
+    outline-offset: 2px;
+  }
+
+  .reporter-field__help {
+    margin: var(--shikkha-space-1) 0 0;
+    color: var(--shikkha-ink-muted);
+    font-size: var(--shikkha-text-caption);
+    line-height: var(--shikkha-lh-body);
+  }
+
+  .reporter-submit {
+    min-height: var(--shikkha-control-touch);
+    padding: 0 var(--shikkha-space-4);
+    border: 1px solid var(--shikkha-info-emphasis);
+    border-radius: var(--shikkha-radius-s);
+    background-color: var(--shikkha-info-emphasis);
+    color: var(--shikkha-info-on-emphasis);
+    font-family: inherit;
+    font-size: var(--shikkha-text-body);
+    font-weight: var(--shikkha-weight-bold);
+    cursor: pointer;
+  }
+
+  .reporter-submit:hover:not(:disabled) {
+    background-color: var(--shikkha-info-emphasis-hover);
+  }
+
+  .reporter-submit:disabled {
+    opacity: 0.6;
+  }
+
+  .reporter-submit:focus-visible {
+    outline: 3px solid var(--shikkha-focus);
+    outline-offset: 2px;
+  }
+
+  .reporter-message {
+    margin: 0;
+    font-size: var(--shikkha-text-body-sm);
+    line-height: var(--shikkha-lh-body);
+  }
+
+  .reporter-message--error {
+    color: var(--shikkha-danger-fg);
+  }
+
+  .reporter-message--success {
+    color: var(--shikkha-success-fg);
+  }
+
+  .reporter-message a {
+    color: var(--shikkha-info-emphasis);
+  }
+
   /* Empty state — guidance, not a shrug (0 assignments is a normal day). */
   .reporter-empty {
     display: grid;

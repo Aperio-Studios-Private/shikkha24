@@ -80,13 +80,12 @@ export function QuickDraftForm({ categories }: Props) {
     }
   }
 
-  /** 48px minimum height throughout: this form exists to be used on a phone. */
-  const field =
-    'mt-1 w-full min-h-12 rounded-md border border-gray-300 px-3 py-2 text-base dark:border-gray-600 dark:bg-gray-900'
-  const label = 'block text-sm font-medium'
+  /** Token classes only — 48px controls; this form exists to be used on a phone. */
+  const field = 'reporter-field'
+  const label = 'reporter-field__label'
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="reporter-form">
       <div>
         <label className={label} htmlFor="qd-title">
           Title (শিরোনাম)
@@ -129,16 +128,10 @@ export function QuickDraftForm({ categories }: Props) {
           Body (বিবরণ)
         </label>
         <textarea id="qd-body" name="body" required rows={8} className={field} />
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          প্রতিটি অনুচ্ছেদের মাঝে একটি খালি লাইন রাখুন।
-        </p>
+        <p className="reporter-field__help">প্রতিটি অনুচ্ছেদের মাঝে একটি খালি লাইন রাখুন।</p>
       </div>
 
-      <button
-        type="submit"
-        disabled={state === 'saving'}
-        className="min-h-12 w-full rounded-md bg-blue-600 px-4 font-medium text-white disabled:opacity-60"
-      >
+      <button type="submit" disabled={state === 'saving'} className="reporter-submit">
         {state === 'saving' ? 'Submitting (জমা হচ্ছে…)' : 'Submit Draft (খসড়া জমা দিন)'}
       </button>
 
@@ -147,8 +140,8 @@ export function QuickDraftForm({ categories }: Props) {
           role="status"
           className={
             state === 'error'
-              ? 'text-sm text-red-600 dark:text-red-400'
-              : 'text-sm text-green-700 dark:text-green-400'
+              ? 'reporter-message reporter-message--error'
+              : 'reporter-message reporter-message--success'
           }
         >
           {message}{' '}
@@ -160,7 +153,7 @@ export function QuickDraftForm({ categories }: Props) {
         </p>
       )}
 
-      <p className="text-xs text-gray-500 dark:text-gray-400">
+      <p className="reporter-field__help">
         This creates a draft — publishing needs editor approval (এটি একটি খসড়া তৈরি করে — প্রকাশ করতে
         সম্পাদকের অনুমোদন লাগবে)।
       </p>
