@@ -1,5 +1,22 @@
 # SPS Handoff
 
+## ⭐ START HERE — 2026-10-25 14:50 (+06:00). সর্বশেষ; নিচের ব্লকগুলো ইতিহাস।
+
+দুটি নির্ধারিত অনুস্মারক চালানো হয়েছে (বিস্তারিত `.sps/tasks.md` ২০২৬-১০-২৫
+এন্ট্রিতে):
+
+1. **IndexNow retry #2:** joint এখনো 403; Bing-ও 403; **Yandex 202 — ৮২ URL
+   গৃহীত**। কী বৈধ থেকেছে; রোটেশন নয়। `scripts/ping-indexnow.mjs` এখন
+   per-engine ফলব্যাক করে (joint → Bing → Yandex) — স্থানীয় কমিটে আছে, HOLD
+   নীতি অনুযায়ী push করা হয়নি (T-89 "do not push/deploy yet" বলবৎ: ২৮টি
+   কমিট এখনো স্থানীয়)। পুরনো কী ফাইল 91fbd… পরবর্তী অনুমোদিত push-এ মুছবে।
+2. **SEO Day-7:** নিবন্ধ সংখ্যা এখনো ৯ — উৎস-লিংক ছাড়া নিবন্ধ প্রকাশ অসম্ভব।
+   GSC Pages (indexed vs processing) সংখ্যা মালিকের কাছ থেকে নিতে হবে।
+
+মূল অবস্থা অপরিবর্তিত: 9 প্রকাশিত নিবন্ধ, সাইট লাইভ (shikkha24.com HTTP 200),
+CMS admin रीडिज़ाइন T-89 স্থানীয় হোল্ডে (মালিকের রিভিউ অপেক্ষায়)।
+
+
 ## ⭐ START HERE — 2026-10-19 12:58 (+06:00). Supersedes the early-hours block below.
 
 ## ⭐ START HERE — 2026-10-19 17:25 (+06:00). Supersedes the block below.
