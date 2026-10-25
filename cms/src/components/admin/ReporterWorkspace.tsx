@@ -91,7 +91,7 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
    * The desk gets the whole board; a reporter gets their own queue. The same
    * `Assignments.read` rule decides, because the query carries the session.
    */
-  const [assignmentsResult, categoriesResult] = await Promise.all([
+  const [assignmentsResult, categoriesResult, recentResult] = await Promise.all([
     req.payload
       .find({
         collection: 'assignments',
@@ -105,6 +105,21 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
     req.payload
       .find({ collection: 'categories', sort: 'nameBn', limit: 100, depth: 0 })
       .catch(() => ({ docs: [] as Array<{ id: number | string; nameBn?: string }> })),
+    /*
+     * C4 — the reporter's own newest articles, so filing a draft is not a
+     * fire-and-forget action. Same session-scoped pattern as the assignments
+     * query: Articles.read filters to what this user may see.
+     */
+    req.payload
+      .find({
+        collection: 'articles',
+        depth: 0,
+        limit: 5,
+        overrideAccess: false,
+        sort: '-updatedAt',
+        user,
+      })
+      .catch(() => ({ docs: [] as Array<Record<string, unknown>> })),
   ])
 
   const assignments = (assignmentsResult.docs ?? []) as AssignmentDoc[]
@@ -116,6 +131,13 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
   const isEditor = isEditorUser(user)
   const hasProfile =
     relationId((userDoc as { authorProfile?: unknown } | null)?.authorProfile) !== null
+
+  const recentArticles = (recentResult.docs ?? []) as Array<{
+    id: number | string
+    title?: string | null
+    reviewStatus?: string | null
+    _status?: string | null
+  }>
 
   const now = new Date()
   const { active, decided, overdue, dueSoon } = summarize(assignments, now)
@@ -243,6 +265,41 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
                     </a>
                     <span className={'reporter-chip reporter-chip--' + statusChip.tone}>
                       {statusChip.label}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        )}
+
+        {recentArticles.length > 0 && (
+          <section className="reporter-section">
+            <h2>My recent work (সাম্প্রতিক সংবাদ)</h2>
+            <ul className="reporter-decided">
+              {recentArticles.map((article) => {
+                const status = article.reviewStatus ?? article._status ?? ''
+                const tone =
+                  status === 'approved' || status === 'published'
+                    ? 'success'
+                    : status === 'changesRequested' || status === 'rejected'
+                      ? 'danger'
+                      : status === 'pendingReview'
+                        ? 'warning'
+                        : 'info'
+                const label =
+                  status === 'changesRequested'
+                    ? 'Returned'
+                    : status === 'pendingReview'
+                      ? 'In review'
+                      : status
+                return (
+                  <li key={article.id}>
+                    <a href={'/admin/collections/articles/' + article.id}>
+                      {article.title ?? 'Untitled (শিরোনামহীন)'}
+                    </a>
+                    <span className={'reporter-chip reporter-chip--' + tone}>
+                      {label || 'draft'}
                     </span>
                   </li>
                 )
