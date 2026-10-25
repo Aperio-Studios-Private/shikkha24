@@ -57,6 +57,7 @@ export const Deadlines: CollectionConfig = {
       required: true,
       index: true,
       label: { en: 'Title', bn: 'শিরোনাম' },
+      admin: { description: 'ক্যালেন্ডারে যে লেখাটি দেখা যাবে — ছোট ও নির্দিষ্ট রাখুন।' },
     },
     {
       name: 'type',
@@ -65,6 +66,7 @@ export const Deadlines: CollectionConfig = {
       index: true,
       label: { en: 'Type', bn: 'ধরন' },
       options: DEADLINE_TYPES.map((value) => ({ value, label: TYPE_LABELS[value] })),
+      admin: { description: 'ধরন দিয়েই সাইটে রঙ ও ফিল্টার ঠিক হয়।' },
     },
     {
       name: 'dateStart',
@@ -72,7 +74,10 @@ export const Deadlines: CollectionConfig = {
       required: true,
       index: true,
       label: { en: 'Start date', bn: 'শুরুর তারিখ' },
-      admin: { date: { pickerAppearance: 'dayOnly' } },
+      admin: {
+        date: { pickerAppearance: 'dayOnly' },
+        description: 'একদিনের ঘটনা হলে এটিই একমাত্র তারিখ।',
+      },
     },
     {
       name: 'dateEnd',
@@ -90,6 +95,7 @@ export const Deadlines: CollectionConfig = {
       hasMany: true,
       index: true,
       label: { en: 'Level', bn: 'শ্রেণি' },
+      admin: { description: 'কোন শ্রেণির জন্য — একাধিক বাছা যায়।' },
     },
     {
       name: 'district',
@@ -100,7 +106,12 @@ export const Deadlines: CollectionConfig = {
       label: { en: 'District', bn: 'জেলা' },
       admin: { description: 'ঐচ্ছিক। পরীক্ষাকেন্দ্র বা স্থানীয় সময়সীমার জন্য।' },
     },
-    { name: 'description', type: 'textarea', label: { en: 'Description', bn: 'বিবরণ' } },
+    {
+      name: 'description',
+      type: 'textarea',
+      label: { en: 'Description', bn: 'বিবরণ' },
+      admin: { description: 'ক্যালেন্ডারে তারিখের নিচে ছোট ব্যাখ্যা।' },
+    },
     {
       name: 'relatedArticle',
       type: 'relationship',

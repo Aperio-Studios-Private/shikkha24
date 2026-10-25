@@ -90,6 +90,7 @@ export const Assignments: CollectionConfig = {
       type: 'text',
       required: true,
       label: { en: 'What to cover', bn: 'কী নিয়ে কাজ' },
+      admin: { description: 'কাজের বিষয়টি এক লাইনে — কোন ঘটনা, কোন প্রতিষ্ঠান।' },
       access: { update: editorField },
     },
     {
@@ -106,6 +107,7 @@ export const Assignments: CollectionConfig = {
       required: true,
       index: true,
       label: { en: 'Assigned to', bn: 'কাকে দেওয়া হলো' },
+      admin: { description: 'প্রতিবেদকের লেখক-প্রোফাইল। নিজের প্রোফাইল ছাড়া কেউ কাজ জমা দিতে পারবেন না।' },
       // Reassigning is a desk decision, not a reporter's.
       access: { update: editorField },
     },
@@ -122,7 +124,7 @@ export const Assignments: CollectionConfig = {
       type: 'date',
       index: true,
       label: { en: 'Due', bn: 'সময়সীমা' },
-      admin: { position: 'sidebar' },
+      admin: { position: 'sidebar', description: 'ঢাকার সময় অনুযায়ী শেষ দিন। পার হলে তালিকায় লাল হয়ে দেখাবে।' },
       access: { update: editorField },
     },
     {
@@ -136,7 +138,7 @@ export const Assignments: CollectionConfig = {
         { value: 'high', label: { en: 'High', bn: 'জরুরি' } },
         { value: 'urgent', label: { en: 'Urgent', bn: 'অতি জরুরি' } },
       ],
-      admin: { position: 'sidebar' },
+      admin: { position: 'sidebar', description: 'high / urgent কাজ প্রতিবেদকের তালিকায় আলাদা চিহ্ন পায়।' },
       access: { update: editorField },
     },
     {
@@ -180,13 +182,14 @@ export const Assignments: CollectionConfig = {
       type: 'relationship',
       relationTo: 'districts',
       label: { en: 'District', bn: 'জেলা' },
+      admin: { description: 'কাজটি নির্দিষ্ট জেলার হলে বাছুন, নাহলে খালি রাখুন।' },
       access: { update: editorField },
     },
     {
       name: 'editorNote',
       type: 'textarea',
       label: { en: 'Editor note', bn: 'সম্পাদকের নোট' },
-      admin: { position: 'sidebar' },
+      admin: { position: 'sidebar', description: 'শুধু সম্পাদক দেখেন — প্রতিবেদক এই নোট পড়তে পান না।' },
       access: { update: editorField },
     },
   ],

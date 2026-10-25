@@ -37,20 +37,30 @@ export const Quizzes: CollectionConfig = {
     delete: isSuperAdminOrEditorInChief,
   },
   fields: [
-    { name: 'title', type: 'text', required: true, label: { en: 'Title', bn: 'শিরোনাম' } },
+    {
+      name: 'title',
+      type: 'text',
+      required: true,
+      label: { en: 'Title', bn: 'শিরোনাম' },
+      admin: { description: 'কুইজের শিরোনাম — যেমন "আজকের ভর্তি কুইজ"।' },
+    },
     {
       name: 'date',
       type: 'date',
       required: true,
       index: true,
       label: { en: 'Quiz date', bn: 'কুইজের তারিখ' },
-      admin: { date: { pickerAppearance: 'dayOnly' } },
+      admin: {
+        date: { pickerAppearance: 'dayOnly' },
+        description: 'এক দিনে একটিই কুইজ রাখুন — সাইটে একই তারিখের কুইজ দেখানো হয়।',
+      },
     },
     {
       name: 'questions',
       type: 'array',
       minRows: 1,
       label: { en: 'Questions', bn: 'প্রশ্নসমূহ' },
+      admin: { description: 'প্রতিটি প্রশ্নে অন্তত দুটি বিকল্প দিন।' },
       fields: [
         { name: 'question', type: 'text', required: true, label: { en: 'Question', bn: 'প্রশ্ন' } },
         {
@@ -58,6 +68,7 @@ export const Quizzes: CollectionConfig = {
           type: 'array',
           minRows: 2,
           label: { en: 'Options', bn: 'বিকল্পসমূহ' },
+          admin: { description: 'অন্তত দুটি, সাধারণত চারটি বিকল্প।' },
           fields: [
             { name: 'label', type: 'text', required: true, label: { en: 'Option', bn: 'বিকল্প' } },
           ],
@@ -69,7 +80,12 @@ export const Quizzes: CollectionConfig = {
           label: { en: 'Correct answer', bn: 'সঠিক উত্তর' },
           admin: { description: 'বিকল্পের হুবহু লেখাটি লিখুন।' },
         },
-        { name: 'explanation', type: 'textarea', label: { en: 'Explanation', bn: 'ব্যাখ্যা' } },
+        {
+          name: 'explanation',
+          type: 'textarea',
+          label: { en: 'Explanation', bn: 'ব্যাখ্যা' },
+          admin: { description: 'উত্তর দেওয়ার পরে পাঠক যেটি দেখবেন — এক-দুই বাক্য।' },
+        },
       ],
     },
     {
@@ -78,7 +94,7 @@ export const Quizzes: CollectionConfig = {
       defaultValue: true,
       index: true,
       label: { en: 'Active', bn: 'সক্রিয়' },
-      admin: { position: 'sidebar' },
+      admin: { position: 'sidebar', description: 'বন্ধ করলে পাঠকেরা আর এই কুইজ দেখতে পাবেন না।' },
     },
   ],
   timestamps: true,

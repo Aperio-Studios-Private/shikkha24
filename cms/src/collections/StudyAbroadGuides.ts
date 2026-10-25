@@ -34,6 +34,7 @@ export const StudyAbroadGuides: CollectionConfig = {
       required: true,
       index: true,
       label: { en: 'Country', bn: 'দেশ' },
+      admin: { description: 'গাইডটি যে দেশের জন্য — এক দেশে এক গাইড।' },
     },
     {
       name: 'slug',
@@ -42,11 +43,13 @@ export const StudyAbroadGuides: CollectionConfig = {
       unique: true,
       index: true,
       label: { en: 'Slug', bn: 'স্লাগ' },
+      admin: { description: 'URL-এর শেষাংশ — ইংরেজি ছোট হাতের দেশের নাম ব্যবহার করুন।' },
     },
     {
       name: 'visaRequirements',
       type: 'richText',
       label: { en: 'Visa requirements', bn: 'ভিসার শর্ত' },
+      admin: { description: 'ভিসার ধরন, প্রয়োজনীয় কাগজ ও প্রক্রিয়া — সূত্রসহ।' },
     },
     { name: 'tuitionRange', type: 'text', label: { en: 'Tuition range', bn: 'টিউশন ফি' } },
     {

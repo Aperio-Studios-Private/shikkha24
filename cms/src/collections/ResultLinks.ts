@@ -57,6 +57,7 @@ export const ResultLinks: CollectionConfig = {
       required: true,
       index: true,
       label: { en: 'Title', bn: 'শিরোনাম' },
+      admin: { description: 'যেমন "এইচএসসি ফলাফল ২০২৬" — পরীক্ষা, বছর, ফলাফল একসাথে।' },
     },
     {
       name: 'examName',

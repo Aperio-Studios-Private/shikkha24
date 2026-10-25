@@ -750,14 +750,26 @@ export interface User {
  */
 export interface Assignment {
   id: number;
+  /**
+   * কাজের বিষয়টি এক লাইনে — কোন ঘটনা, কোন প্রতিষ্ঠান।
+   */
   title: string;
   /**
    * কোণ, সূত্র, কী জানতে হবে।
    */
   brief?: string | null;
+  /**
+   * প্রতিবেদকের লেখক-প্রোফাইল। নিজের প্রোফাইল ছাড়া কেউ কাজ জমা দিতে পারবেন না।
+   */
   assignedTo: number | Author;
   assignedBy?: (number | null) | User;
+  /**
+   * ঢাকার সময় অনুযায়ী শেষ দিন। পার হলে তালিকায় লাল হয়ে দেখাবে।
+   */
   dueAt?: string | null;
+  /**
+   * high / urgent কাজ প্রতিবেদকের তালিকায় আলাদা চিহ্ন পায়।
+   */
   priority: 'normal' | 'high' | 'urgent';
   /**
    * প্রতিবেদক শুধু accepted / inProgress / filed দিতে পারেন। অনুমোদন সম্পাদকের কাজ।
@@ -767,7 +779,13 @@ export interface Assignment {
    * প্রতিবেদক যে সংবাদটি লিখেছেন।
    */
   filedArticle?: (number | null) | Article;
+  /**
+   * কাজটি নির্দিষ্ট জেলার হলে বাছুন, নাহলে খালি রাখুন।
+   */
   district?: (number | null) | District;
+  /**
+   * শুধু সম্পাদক দেখেন — প্রতিবেদক এই নোট পড়তে পান না।
+   */
   editorNote?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -843,8 +861,17 @@ export interface Faq {
  */
 export interface FactCheck {
   id: number;
+  /**
+   * যে দাবিটি যাচাই করা হচ্ছে — যিনি ছড়িয়েছেন তার ভাষায় সংক্ষেপে।
+   */
   claim: string;
+  /**
+   * প্রমাণ দেখে যাচাইয়ের চূড়ান্ত রায়।
+   */
   verdict: 'false' | 'misleading' | 'true';
+  /**
+   * কেন এই রায় — সূত্র, অফিসিয়াল নোটিশ, যাচাইয়ের ধাপ।
+   */
   evidence?: {
     root: {
       type: string;
@@ -860,13 +887,25 @@ export interface FactCheck {
     };
     [k: string]: unknown;
   } | null;
+  /**
+   * যাচাইয়ের মূল লিংকগুলো — একটিরও নিজে না দেখে যাচাই নয়।
+   */
   sourceUrls?:
     | {
+        /**
+         * https:// সহ পূর্ণ ঠিকানা।
+         */
         url: string;
+        /**
+         * লিংকটি কী তা এক শব্দে — যেমন "বোর্ডের নোটিশ"।
+         */
         label?: string | null;
         id?: string | null;
       }[]
     | null;
+  /**
+   * ভুয়া দাবিটি বনাম আসলটি — সর্বোচ্চ দুটি ছবি, পাশাপাশি দেখানো হবে।
+   */
   comparisonImages?:
     | {
         image: number | Media;
@@ -888,18 +927,45 @@ export interface FactCheck {
  */
 export interface Scholarship {
   id: number;
+  /**
+   * বৃত্তির নাম — প্রদানকারীর নাম আলাদা ঘরে।
+   */
   title: string;
+  /**
+   * যে প্রতিষ্ঠান বৃত্তি দিচ্ছে — বিশ্ববিদ্যালয়, দূতাবাস, ফাউন্ডেশন।
+   */
   provider: string;
+  /**
+   * কোন স্তরের শিক্ষার্থীরা আবেদন করতে পারবে।
+   */
   level?: (number | Level)[] | null;
+  /**
+   * বৃত্তিটি যে দেশে — বাংলাদেশ হলে "বাংলাদেশ" লিখুন।
+   */
   country?: string | null;
+  /**
+   * বৃত্তিটি কী কী খরচ বহন করে — শিক্ষার্থীর খরচ নয়, বৃত্তির ধরন।
+   */
   fundingType: 'full' | 'partial' | 'tuition';
+  /**
+   * টাকা/পরিমাণ থাকলে লিখুন, না থাকলে খালি — অঙ্ক না জানা থাকলে নয়।
+   */
   amount?: string | null;
   /**
    * ট্র্যাকার এই তারিখ অনুযায়ী সাজানো হয়।
    */
   deadline: string;
+  /**
+   * শিক্ষার্থীরা যে শর্তগুলো পূরণ করলে আবেদন করতে পারবে।
+   */
   eligibility?: string | null;
+  /**
+   * অফিসিয়াল আবেদন পৃষ্ঠার ঠিকানা — অফিসিয়ালই দিন।
+   */
   applyUrl?: string | null;
+  /**
+   * বিস্তারিত তথ্য — বৃত্তির সারসংক্ষেপ ও শর্তাবলি।
+   */
   description?: {
     root: {
       type: string;
@@ -915,7 +981,13 @@ export interface Scholarship {
     };
     [k: string]: unknown;
   } | null;
+  /**
+   * বিদেশে পড়ার বৃত্তি হলে টিক দিন — সাইটে আলাদা করে দেখানো হবে।
+   */
   isInternational?: boolean | null;
+  /**
+   * বন্ধ করলে বৃত্তিটি সাইটে আর দেখাবে না।
+   */
   isActive?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -930,18 +1002,33 @@ export interface Scholarship {
  */
 export interface Deadline {
   id: number;
+  /**
+   * ক্যালেন্ডারে যে লেখাটি দেখা যাবে — ছোট ও নির্দিষ্ট রাখুন।
+   */
   title: string;
+  /**
+   * ধরন দিয়েই সাইটে রঙ ও ফিল্টার ঠিক হয়।
+   */
   type: 'admission' | 'result' | 'examRoutine' | 'scholarshipDeadline' | 'holiday' | 'circular';
+  /**
+   * একদিনের ঘটনা হলে এটিই একমাত্র তারিখ।
+   */
   dateStart: string;
   /**
    * ঐচ্ছিক। একাধিক দিনের ঘটনার জন্য (যেমন ভর্তি সময়কাল)।
    */
   dateEnd?: string | null;
+  /**
+   * কোন শ্রেণির জন্য — একাধিক বাছা যায়।
+   */
   level?: (number | Level)[] | null;
   /**
    * ঐচ্ছিক। পরীক্ষাকেন্দ্র বা স্থানীয় সময়সীমার জন্য।
    */
   district?: (number | District)[] | null;
+  /**
+   * ক্যালেন্ডারে তারিখের নিচে ছোট ব্যাখ্যা।
+   */
   description?: string | null;
   relatedArticle?: (number | null) | Article;
   updatedAt: string;
@@ -957,10 +1044,25 @@ export interface Deadline {
  */
 export interface Circular {
   id: number;
+  /**
+   * বিজ্ঞপ্তির নিজের শিরোনাম — প্রতিষ্ঠানের নাম আলাদা ঘরে।
+   */
   title: string;
+  /**
+   * মন্ত্রণালয়, বোর্ড, বিশ্ববিদ্যালয় বা কোম্পানির নাম।
+   */
   organisation: string;
+  /**
+   * বিজ্ঞপ্তির ধরন — এটি দিয়েই সাইটে ফিল্টার হয়।
+   */
   type: 'education' | 'bcs' | 'governmentJob' | 'privateJob';
+  /**
+   * একাধিক শ্রেণি বাছা যায় (যেমন HSC, স্নাতক)।
+   */
   level?: (number | Level)[] | null;
+  /**
+   * বিজ্ঞপ্তি পত্রিকায় যেদিন প্রকাশিত হয়েছে।
+   */
   publishedDate?: string | null;
   deadline?: string | null;
   vacancyCount?: number | null;
@@ -994,6 +1096,9 @@ export interface Circular {
  */
 export interface ResultLink {
   id: number;
+  /**
+   * যেমন "এইচএসসি ফলাফল ২০২৬" — পরীক্ষা, বছর, ফলাফল একসাথে।
+   */
   title: string;
   examName: string;
   boardOrInstitution?: string | null;
@@ -1036,8 +1141,17 @@ export interface ResultLink {
  */
 export interface StudyAbroadGuide {
   id: number;
+  /**
+   * গাইডটি যে দেশের জন্য — এক দেশে এক গাইড।
+   */
   country: string;
+  /**
+   * URL-এর শেষাংশ — ইংরেজি ছোট হাতের দেশের নাম ব্যবহার করুন।
+   */
   slug: string;
+  /**
+   * ভিসার ধরন, প্রয়োজনীয় কাগজ ও প্রক্রিয়া — সূত্রসহ।
+   */
   visaRequirements?: {
     root: {
       type: string;
@@ -1100,8 +1214,17 @@ export interface StudyAbroadGuide {
  */
 export interface PhotoGallery {
   id: number;
+  /**
+   * গ্যালারির নাম — যা ছবিগুলোর বিষয় বলে দেয়।
+   */
   title: string;
+  /**
+   * URL-এর শেষাংশ — ইংরেজি ছোট হাতের অক্ষর, হাইফেন।
+   */
   slug: string;
+  /**
+   * ক্রম অনুযায়ী দেখানো হবে — প্রতিটি ছবিতে ক্যাপশন দিন।
+   */
   images?:
     | {
         image: number | Media;
@@ -1109,6 +1232,9 @@ export interface PhotoGallery {
         id?: string | null;
       }[]
     | null;
+  /**
+   * গ্যালারির উপরে ছোট ভূমিকা।
+   */
   description?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -1242,11 +1368,23 @@ export interface Poll {
  */
 export interface Quiz {
   id: number;
+  /**
+   * কুইজের শিরোনাম — যেমন "আজকের ভর্তি কুইজ"।
+   */
   title: string;
+  /**
+   * এক দিনে একটিই কুইজ রাখুন — সাইটে একই তারিখের কুইজ দেখানো হয়।
+   */
   date: string;
+  /**
+   * প্রতিটি প্রশ্নে অন্তত দুটি বিকল্প দিন।
+   */
   questions?:
     | {
         question: string;
+        /**
+         * অন্তত দুটি, সাধারণত চারটি বিকল্প।
+         */
         options?:
           | {
               label: string;
@@ -1257,10 +1395,16 @@ export interface Quiz {
          * বিকল্পের হুবহু লেখাটি লিখুন।
          */
         correctAnswer: string;
+        /**
+         * উত্তর দেওয়ার পরে পাঠক যেটি দেখবেন — এক-দুই বাক্য।
+         */
         explanation?: string | null;
         id?: string | null;
       }[]
     | null;
+  /**
+   * বন্ধ করলে পাঠকেরা আর এই কুইজ দেখতে পাবেন না।
+   */
   isActive?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -1439,6 +1583,9 @@ export interface SavedDeadline {
   id: number;
   reader: number | Reader;
   deadline: number | Deadline;
+  /**
+   * ঐচ্ছিক। এই সময়ে পাঠককে রিমাইন্ডার পাঠানো হবে।
+   */
   remindAt?: string | null;
   notified?: boolean | null;
   updatedAt: string;
@@ -1475,11 +1622,17 @@ export interface Bookmark {
  */
 export interface CitizenSubmission {
   id: number;
+  /**
+   * পাঠক যে শিরোনাম দিয়ে জমা দিয়েছেন — সম্পাদক পরে বদলাতে পারেন।
+   */
   title: string;
   /**
    * কী ঘটেছে, কোথায়, কখন — বিস্তারিত লিখুন।
    */
   body: string;
+  /**
+   * ঘটনাটি যে জেলায় — পাঠক না দিলে খালি থাকতে পারে।
+   */
   district?: (number | null) | District;
   /**
    * সম্পর্কিত ছবি (ঐচ্ছিক)।

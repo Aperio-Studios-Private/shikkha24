@@ -42,7 +42,13 @@ export const FactChecks: CollectionConfig = {
     delete: isSuperAdminOrEditorInChief,
   },
   fields: [
-    { name: 'claim', type: 'text', required: true, label: { en: 'Claim', bn: 'দাবি' } },
+    {
+      name: 'claim',
+      type: 'text',
+      required: true,
+      label: { en: 'Claim', bn: 'দাবি' },
+      admin: { description: 'যে দাবিটি যাচাই করা হচ্ছে — যিনি ছড়িয়েছেন তার ভাষায় সংক্ষেপে।' },
+    },
     {
       name: 'verdict',
       type: 'select',
@@ -50,15 +56,33 @@ export const FactChecks: CollectionConfig = {
       index: true,
       label: { en: 'Verdict', bn: 'রায়' },
       options: FACT_VERDICTS.map((value) => ({ value, label: VERDICT_LABELS[value] })),
+      admin: { description: 'প্রমাণ দেখে যাচাইয়ের চূড়ান্ত রায়।' },
     },
-    { name: 'evidence', type: 'richText', label: { en: 'Evidence', bn: 'প্রমাণ' } },
+    {
+      name: 'evidence',
+      type: 'richText',
+      label: { en: 'Evidence', bn: 'প্রমাণ' },
+      admin: { description: 'কেন এই রায় — সূত্র, অফিসিয়াল নোটিশ, যাচাইয়ের ধাপ।' },
+    },
     {
       name: 'sourceUrls',
       type: 'array',
       label: { en: 'Sources', bn: 'সূত্র' },
+      admin: { description: 'যাচাইয়ের মূল লিংকগুলো — একটিরও নিজে না দেখে যাচাই নয়।' },
       fields: [
-        { name: 'url', type: 'text', required: true, label: { en: 'URL', bn: 'লিংক' } },
-        { name: 'label', type: 'text', label: { en: 'Label', bn: 'বর্ণনা' } },
+        {
+          name: 'url',
+          type: 'text',
+          required: true,
+          label: { en: 'URL', bn: 'লিংক' },
+          admin: { description: 'https:// সহ পূর্ণ ঠিকানা।' },
+        },
+        {
+          name: 'label',
+          type: 'text',
+          label: { en: 'Label', bn: 'বর্ণনা' },
+          admin: { description: 'লিংকটি কী তা এক শব্দে — যেমন "বোর্ডের নোটিশ"।' },
+        },
       ],
     },
     {
@@ -66,6 +90,7 @@ export const FactChecks: CollectionConfig = {
       type: 'array',
       maxRows: 2,
       label: { en: 'Before / after images', bn: 'তুলনামূলক ছবি' },
+      admin: { description: 'ভুয়া দাবিটি বনাম আসলটি — সর্বোচ্চ দুটি ছবি, পাশাপাশি দেখানো হবে।' },
       fields: [
         {
           name: 'image',

@@ -52,6 +52,7 @@ export const CitizenSubmissions: CollectionConfig = {
       type: 'text',
       required: true,
       label: { en: 'Headline', bn: 'শিরোনাম' },
+      admin: { description: 'পাঠক যে শিরোনাম দিয়ে জমা দিয়েছেন — সম্পাদক পরে বদলাতে পারেন।' },
     },
     {
       name: 'body',
@@ -66,6 +67,7 @@ export const CitizenSubmissions: CollectionConfig = {
       type: 'relationship',
       relationTo: 'districts',
       label: { en: 'District', bn: 'জেলা' },
+      admin: { description: 'ঘটনাটি যে জেলায় — পাঠক না দিলে খালি থাকতে পারে।' },
     },
     {
       name: 'media',

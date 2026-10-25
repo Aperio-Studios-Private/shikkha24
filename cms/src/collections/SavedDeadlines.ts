@@ -58,7 +58,10 @@ export const SavedDeadlines: CollectionConfig = {
       name: 'remindAt',
       type: 'date',
       label: { en: 'Remind at', bn: 'মনে করানোর সময়' },
-      admin: { date: { pickerAppearance: 'dayAndTime' } },
+      admin: {
+        date: { pickerAppearance: 'dayAndTime' },
+        description: 'ঐচ্ছিক। এই সময়ে পাঠককে রিমাইন্ডার পাঠানো হবে।',
+      },
     },
     {
       name: 'notified',

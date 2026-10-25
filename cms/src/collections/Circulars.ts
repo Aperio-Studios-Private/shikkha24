@@ -34,6 +34,7 @@ export const Circulars: CollectionConfig = {
       required: true,
       index: true,
       label: { en: 'Title', bn: 'শিরোনাম' },
+      admin: { description: 'বিজ্ঞপ্তির নিজের শিরোনাম — প্রতিষ্ঠানের নাম আলাদা ঘরে।' },
     },
     {
       name: 'organisation',
@@ -41,6 +42,7 @@ export const Circulars: CollectionConfig = {
       required: true,
       index: true,
       label: { en: 'Organisation', bn: 'প্রতিষ্ঠান' },
+      admin: { description: 'মন্ত্রণালয়, বোর্ড, বিশ্ববিদ্যালয় বা কোম্পানির নাম।' },
     },
     {
       name: 'type',
@@ -54,6 +56,7 @@ export const Circulars: CollectionConfig = {
         { value: 'governmentJob', label: 'Government Job (সরকারি চাকরি)' },
         { value: 'privateJob', label: 'Private Job (বেসরকারি চাকরি)' },
       ],
+      admin: { description: 'বিজ্ঞপ্তির ধরন — এটি দিয়েই সাইটে ফিল্টার হয়।' },
     },
     {
       name: 'level',
@@ -61,12 +64,13 @@ export const Circulars: CollectionConfig = {
       relationTo: 'levels',
       hasMany: true,
       label: { en: 'Level', bn: 'শ্রেণি' },
+      admin: { description: 'একাধিক শ্রেণি বাছা যায় (যেমন HSC, স্নাতক)।' },
     },
     {
       name: 'publishedDate',
       type: 'date',
       label: { en: 'Published date', bn: 'প্রকাশের তারিখ' },
-      admin: { date: { pickerAppearance: 'dayOnly' } },
+      admin: { date: { pickerAppearance: 'dayOnly' }, description: 'বিজ্ঞপ্তি পত্রিকায় যেদিন প্রকাশিত হয়েছে।' },
     },
     {
       name: 'deadline',

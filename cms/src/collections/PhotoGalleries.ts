@@ -31,6 +31,7 @@ export const PhotoGalleries: CollectionConfig = {
       required: true,
       index: true,
       label: { en: 'Title', bn: 'শিরোনাম' },
+      admin: { description: 'গ্যালারির নাম — যা ছবিগুলোর বিষয় বলে দেয়।' },
     },
     {
       name: 'slug',
@@ -39,12 +40,14 @@ export const PhotoGalleries: CollectionConfig = {
       unique: true,
       index: true,
       label: { en: 'Slug', bn: 'স্লাগ' },
+      admin: { description: 'URL-এর শেষাংশ — ইংরেজি ছোট হাতের অক্ষর, হাইফেন।' },
     },
     {
       name: 'images',
       type: 'array',
       minRows: 1,
       label: { en: 'Images', bn: 'ছবিসমূহ' },
+      admin: { description: 'ক্রম অনুযায়ী দেখানো হবে — প্রতিটি ছবিতে ক্যাপশন দিন।' },
       fields: [
         {
           name: 'image',
@@ -56,7 +59,12 @@ export const PhotoGalleries: CollectionConfig = {
         { name: 'caption', type: 'text', label: { en: 'Caption', bn: 'ক্যাপশন' } },
       ],
     },
-    { name: 'description', type: 'textarea', label: { en: 'Description', bn: 'বিবরণ' } },
+    {
+      name: 'description',
+      type: 'textarea',
+      label: { en: 'Description', bn: 'বিবরণ' },
+      admin: { description: 'গ্যালারির উপরে ছোট ভূমিকা।' },
+    },
   ],
   timestamps: true,
 }
