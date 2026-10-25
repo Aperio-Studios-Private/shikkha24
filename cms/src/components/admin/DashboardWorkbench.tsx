@@ -228,11 +228,13 @@ export async function DashboardWorkbench() {
           }),
         )
       : Promise.resolve(0),
+    // D4 — five recent edits: research says 5–10 is the useful scan window;
+    // three hid half of a busy day's work.
     listRequest(
       payload.find({
         collection: 'articles',
         depth: 0,
-        limit: 3,
+        limit: 5,
         overrideAccess: false,
         sort: '-updatedAt',
         user,
