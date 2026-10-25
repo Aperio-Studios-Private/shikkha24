@@ -4372,3 +4372,41 @@ Microsoft অ্যাকাউন্ট লাগবে — মালিকে�
 প্রকাশিত হয়নি — সম্ভাব্য কারণ মালিকের কাছ থেকে উৎস-লিংক আসেনি)। GSC Pages
 রিপোর্ট সংখ্যা (indexed vs processing) মালিককে জানতে হবে; ব্র্যান্ড-টার্ম
 ভিজিবিলিটি উইন্ডো (১৮ অক্টোবর থেকে ৩–৭ দিন) পেরিয়ে গেছে।
+
+### 2026-10-25 (শেষ অংশ) — Actions-reset অনুস্মারক + তিনটি প্রোডাকশন আবিষ্কার
+
+**অনুস্মারকের রায়:** মিনিট-reset প্রশ্নটি অপ্রাসঙ্গিক (repo public — সীমাহীন)।
+`deploy.yml target=cms` **mode=dry-run** dispatch করা হয়েছে (run 40177273977)
+→ **"Wait for CI to pass"-এ ৭ সেকেন্ডেই ব্যর্থ**, কারণ main-এর CI ১৯ অক্টোবর থেকে লাল।
+লাইভ cPanel রান (mode=live) সচেতনভাবে করা হয়নি — রোলব্যাক-only path, ঝুঁকিপূর্ণ।
+per reminder-এর fallback: **ম্যানুয়াল Codespace চক্রই প্রচলিত থাকল** (T-31 পদ্ধতি)।
+
+**আবিষ্কার ১ — CI ১৯ অক্টোবর থেকে লাল (LCP gate):** `lighthouserc.json`-এ
+`largest-contentful-paint ≤ 1500ms` assertion যোগ হয়েছে (অন্য সেশন; পরিমাপ
+২২৫৬ms ও ২৭১০ms) — অথচ verify-lighthouse.sh-এর নিজের মন্তব্যই বলে "LCP
+deliberately NOT asserted — 1.5s বসালে আজকের কোডেই fail করবে"। এতে **সব
+CI-gated workflow (Deploy, deploy.yml) জমা আছে**। সিদ্ধান্ত মালিকের: gate
+revert (এক-ফাইল, হেল্ড স্ট্যাকে যোগ হবে) নাকি প্রকৃত LCP-অপ্টিমাইজেশন (<1.5s)।
+
+**আবিষ্কার ২ — নাইটলি backup কখনোই সবুজ হয়নি (১৩–২৪ অক্টোবর, ১২/১২ ব্যর্থ),**
+আজ তদন্ত+আংশিক সংশোধন:
+- `FTP_HOST` secret সংশোধন করা হলো → নথি-মান `b201.serverdiana.com`
+  (স্ক্রিপ্টের নোট: cPanel-এর দেখানো `ftp.shikkha24.com` cert-ভুল, এবং
+  `ftp://`-স্কিম-সহ পেস্টই "Bad hostname"-এর কারণ হয় — অক্টোবর ৫-এর ঘটনা)।
+- সংশোধন-পরবর্তী প্রমাণ: FTP সংযোগ+TLS+লগইন এখন **কাজ করে** — নতুন ব্যর্থতা
+  `(78) The file does not exist` = সার্ভারে `latest.txt`/dump **নেই**;
+  মার্কার-run প্রমাণ করল runner-curl URL পার্স করেই DNS-এ যায় ((6)) — এবং
+  `(3)`-টি harness counter-proof curl-এর expected-ব্যর্থতা, বিভ্রান্তিকর কিন্তু নিরীহ।
+- **শেষ অজানা চাকা = হোস্ট-side cron dump তৈরি করছে না।** UAPI দিয়ে যাচাই
+  চেষ্টা → cPanel HTML-লগইন (টোকেন প্রত্যাখ্যাত; সম্ভবত মালিক পাসওয়ার্ড রোল
+  করেছেন) → মালিকের হাতে। রানবুক ধাপ: cPanel → Cron Jobs-এ
+  `~/bin/shikkha24-backup-dump.sh` জব আছে কি না; না থাকলে cron বসান এবং
+  একবার হাতে চালান। তারপর রাত ১টার রান সবুজ হওয়ার কথা।
+- পুরনো কী ফাইল (91fbd…) মোছা এখনো পেন্ডিং — পরবর্তী অনুমোদিত push-এ।
+
+**আবিষ্কার ৩ — repo এখন `Aperio-Studios-Private/shikkha24` (public)।** গত ৬
+দিনে transfer হয়েছে; GitHub redirect-এর জন্য সব পুরনো পথ কাজ করছে। secret/
+variable transfer-সহ সংরক্ষিত; Actions সীমাহীনতা অটুট।
+
+**স্থিতি:** লোকাল HEAD `6862282`+1 (আজকের IndexNow fallback+docs) — push-হোল্ড
+অটুট (২৯→৩০ কমিট)। লাইভ সাইট অক্ষত (HTTP 200), প্রকাশিত নিবন্ধ ৯।
