@@ -323,12 +323,16 @@ export default buildConfig({
      * seeding are unaffected. See `lib/rebuild-trigger.ts` for why the trigger
      * is debounced rather than fired per save.
      */
+    /*
+     * ⚠️ Array order IS sidebar group order (Payload's groupNavItems emits
+     * groups in first-seen entity order). Keep each group's members contiguous
+     * and the groups in workflow order: Editorial → Education → Media →
+     * Interactive → Readers → Advertising → Taxonomy → Administration.
+     * (T-89 S2 — before this, Taxonomy sat second because its members were
+     * interleaved with the Editorial block.)
+     */
     // ── Editorial ────────────────────────────────────────────────────────────
     withRebuildTrigger(Articles),
-    withRebuildTrigger(Categories),
-    withRebuildTrigger(Levels),
-    withRebuildTrigger(Districts),
-    withRebuildTrigger(Tags),
     withRebuildTrigger(Authors),
     /*
      * ⚠️ Deliberately NOT wrapped in `withRebuildTrigger`. An assignment is
@@ -351,16 +355,15 @@ export default buildConfig({
     withRebuildTrigger(ResultLinks),
     withRebuildTrigger(StudyAbroadGuides),
 
+    // ── Media ────────────────────────────────────────────────────────────────
+    withRebuildTrigger(Media),
+    withRebuildTrigger(PhotoGalleries),
+    withRebuildTrigger(LiveStreams),
+
     // ── Interactive ──────────────────────────────────────────────────────────
     withRebuildTrigger(LiveBlogs),
     withRebuildTrigger(Polls),
     withRebuildTrigger(Quizzes),
-
-    // ── Media & advertising ──────────────────────────────────────────────────
-    withRebuildTrigger(Media),
-    withRebuildTrigger(PhotoGalleries),
-    withRebuildTrigger(LiveStreams),
-    withRebuildTrigger(AdUnits),
 
     // ── Readers ──────────────────────────────────────────────────────────────
     // Deliberately NOT wrapped: these are written by the public, not published
@@ -372,11 +375,24 @@ export default buildConfig({
     Bookmarks,
     CitizenSubmissions,
     PushSubscriptions,
-    Readers,
     PollVotes,
     Reactions,
 
+    // ── Advertising ──────────────────────────────────────────────────────────
+    withRebuildTrigger(AdUnits),
+
+    // ── Taxonomy ─────────────────────────────────────────────────────────────
+    withRebuildTrigger(Categories),
+    withRebuildTrigger(Levels),
+    withRebuildTrigger(Districts),
+    withRebuildTrigger(Tags),
+
     // ── Administration ───────────────────────────────────────────────────────
+    // ⚠️ `Readers` is a *public account* collection with an Administration group:
+    // its position here is what makes the Administration section render LAST.
+    // (While it sat inside the Readers block, the section was born mid-list —
+    // ahead of Advertising and Taxonomy — because group order is first-seen.)
+    Readers,
     Users,
   ].map(withAdminEmoji),
 

@@ -3631,6 +3631,14 @@ afterNavLinks (bottom, after ~34 collections) into beforeNavLinks directly after
 personal-task links now sit together at the top. Typecheck/lint/production build green.
 ⚠️ Scope discipline (owner 2026-10-25): T-89 is UI/UX polish only — no database/seed work. A
 leftover diagnostic probe (verify-tmp-t89-diag.ts) was caught by lint and removed same-session.
+**S2 shipped 2026-10-25:** sidebar groups were already defined on all 34 collections and Payload
+renders them collapsible natively (NavGroup toggles + remembers per-user preference), but group
+ORDER followed first-seen collection order: Taxonomy appeared 2nd (its members were interleaved with
+Editorial) and Administration appeared 6th (the `Readers` collection carries an Administration group
+and sat inside the Readers block). Fixed by making each group's members contiguous in array order
+and moving `Readers` to the Administration block. Verified on a production build: Editorial →
+Education → Media → Interactive → Readers → Advertising → Taxonomy → Administration. Default-open
+remains all-expanded (Payload preference behavior; collapsible by click, remembered).
 
 **Chunk C — reporter workspace redesign (learn-first, owner directive: understand the use case BEFORE
 redesigning). Use case learned from code and docs:** field reporters file from phones; their daily

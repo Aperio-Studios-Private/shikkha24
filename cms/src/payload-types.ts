@@ -69,10 +69,6 @@ export interface Config {
   blocks: {};
   collections: {
     articles: Article;
-    categories: Category;
-    levels: Level;
-    districts: District;
-    tags: Tag;
     authors: Author;
     assignments: Assignment;
     pages: Page;
@@ -84,13 +80,12 @@ export interface Config {
     circulars: Circular;
     'result-links': ResultLink;
     'study-abroad-guides': StudyAbroadGuide;
-    'live-blogs': LiveBlog;
-    polls: Poll;
-    quizzes: Quiz;
     media: Media;
     'photo-galleries': PhotoGallery;
     'live-streams': LiveStream;
-    'ad-units': AdUnit;
+    'live-blogs': LiveBlog;
+    polls: Poll;
+    quizzes: Quiz;
     comments: Comment;
     'newsletter-subscribers': NewsletterSubscriber;
     'newsletter-campaigns': NewsletterCampaign;
@@ -98,9 +93,14 @@ export interface Config {
     bookmarks: Bookmark;
     'citizen-submissions': CitizenSubmission;
     'push-subscriptions': PushSubscription;
-    readers: Reader;
     'poll-votes': PollVote;
     reactions: Reaction;
+    'ad-units': AdUnit;
+    categories: Category;
+    levels: Level;
+    districts: District;
+    tags: Tag;
+    readers: Reader;
     users: User;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
@@ -111,10 +111,6 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     articles: ArticlesSelect<false> | ArticlesSelect<true>;
-    categories: CategoriesSelect<false> | CategoriesSelect<true>;
-    levels: LevelsSelect<false> | LevelsSelect<true>;
-    districts: DistrictsSelect<false> | DistrictsSelect<true>;
-    tags: TagsSelect<false> | TagsSelect<true>;
     authors: AuthorsSelect<false> | AuthorsSelect<true>;
     assignments: AssignmentsSelect<false> | AssignmentsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
@@ -126,13 +122,12 @@ export interface Config {
     circulars: CircularsSelect<false> | CircularsSelect<true>;
     'result-links': ResultLinksSelect<false> | ResultLinksSelect<true>;
     'study-abroad-guides': StudyAbroadGuidesSelect<false> | StudyAbroadGuidesSelect<true>;
-    'live-blogs': LiveBlogsSelect<false> | LiveBlogsSelect<true>;
-    polls: PollsSelect<false> | PollsSelect<true>;
-    quizzes: QuizzesSelect<false> | QuizzesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'photo-galleries': PhotoGalleriesSelect<false> | PhotoGalleriesSelect<true>;
     'live-streams': LiveStreamsSelect<false> | LiveStreamsSelect<true>;
-    'ad-units': AdUnitsSelect<false> | AdUnitsSelect<true>;
+    'live-blogs': LiveBlogsSelect<false> | LiveBlogsSelect<true>;
+    polls: PollsSelect<false> | PollsSelect<true>;
+    quizzes: QuizzesSelect<false> | QuizzesSelect<true>;
     comments: CommentsSelect<false> | CommentsSelect<true>;
     'newsletter-subscribers': NewsletterSubscribersSelect<false> | NewsletterSubscribersSelect<true>;
     'newsletter-campaigns': NewsletterCampaignsSelect<false> | NewsletterCampaignsSelect<true>;
@@ -140,9 +135,14 @@ export interface Config {
     bookmarks: BookmarksSelect<false> | BookmarksSelect<true>;
     'citizen-submissions': CitizenSubmissionsSelect<false> | CitizenSubmissionsSelect<true>;
     'push-subscriptions': PushSubscriptionsSelect<false> | PushSubscriptionsSelect<true>;
-    readers: ReadersSelect<false> | ReadersSelect<true>;
     'poll-votes': PollVotesSelect<false> | PollVotesSelect<true>;
     reactions: ReactionsSelect<false> | ReactionsSelect<true>;
+    'ad-units': AdUnitsSelect<false> | AdUnitsSelect<true>;
+    categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    levels: LevelsSelect<false> | LevelsSelect<true>;
+    districts: DistrictsSelect<false> | DistrictsSelect<true>;
+    tags: TagsSelect<false> | TagsSelect<true>;
+    readers: ReadersSelect<false> | ReadersSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
@@ -1093,6 +1093,72 @@ export interface StudyAbroadGuide {
 /**
  * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
  *
+ * ছবির গ্যালারি — প্রতিটি ছবির ক্যাপশনসহ।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "photo-galleries".
+ */
+export interface PhotoGallery {
+  id: number;
+  title: string;
+  slug: string;
+  images?:
+    | {
+        image: number | Media;
+        caption?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  description?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
+ * লাইভ টিভি — ইউটিউব বা ফেসবুকের লাইভ সম্প্রচার। /live-tv পাতায় দেখানো হয়। স্ট্রিম শেষ হলে isLive বন্ধ করুন।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "live-streams".
+ */
+export interface LiveStream {
+  id: number;
+  /**
+   * যেমন: বাজেট ২০২৬ সরাসরি সম্প্রচার।
+   */
+  title: string;
+  /**
+   * কোন প্লেয়ার ব্যবহার হবে তা ঠিক করে।
+   */
+  provider: 'youtube' | 'facebook';
+  /**
+   * ১১ অক্ষরের আইডি, যেমন aqz-KE-bpKQ। সম্পূর্ণ লিংক নয়।
+   */
+  videoId?: string | null;
+  /**
+   * ফেসবুক ভিডিও বা লাইভ সম্প্রচারের সম্পূর্ণ ঠিকানা (https://www.facebook.com/…)।
+   */
+  pageUrl?: string | null;
+  /**
+   * শুধু এই বোতাম চালু থাকলে পাতা সরাসরি সম্প্রচার দেখায়। সম্প্রচার শেষ হলে বন্ধ করে দিন।
+   */
+  isLive?: boolean | null;
+  /**
+   * সম্প্রচার না থাকলে এই সময় দেখানো হয়।
+   */
+  scheduledStart?: string | null;
+  scheduledEnd?: string | null;
+  description?: string | null;
+  /**
+   * প্লে করার আগে এই ছবিটি দেখানো হয়। নিজের ছবি দিন — ইউটিউবের থাম্বনেইল সরাসরি ব্যবহার করলে পাঠকের ব্রাউজার থেকে ইউটিউবে অনুরোধ যায়।
+   */
+  poster?: (number | null) | Media;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
  * ফলাফল প্রকাশ বা ভর্তি লটারির দিনের লাইভ কভারেজ।
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1195,126 +1261,6 @@ export interface Quiz {
         id?: string | null;
       }[]
     | null;
-  isActive?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
- *
- * ছবির গ্যালারি — প্রতিটি ছবির ক্যাপশনসহ।
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "photo-galleries".
- */
-export interface PhotoGallery {
-  id: number;
-  title: string;
-  slug: string;
-  images?:
-    | {
-        image: number | Media;
-        caption?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  description?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
- *
- * লাইভ টিভি — ইউটিউব বা ফেসবুকের লাইভ সম্প্রচার। /live-tv পাতায় দেখানো হয়। স্ট্রিম শেষ হলে isLive বন্ধ করুন।
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "live-streams".
- */
-export interface LiveStream {
-  id: number;
-  /**
-   * যেমন: বাজেট ২০২৬ সরাসরি সম্প্রচার।
-   */
-  title: string;
-  /**
-   * কোন প্লেয়ার ব্যবহার হবে তা ঠিক করে।
-   */
-  provider: 'youtube' | 'facebook';
-  /**
-   * ১১ অক্ষরের আইডি, যেমন aqz-KE-bpKQ। সম্পূর্ণ লিংক নয়।
-   */
-  videoId?: string | null;
-  /**
-   * ফেসবুক ভিডিও বা লাইভ সম্প্রচারের সম্পূর্ণ ঠিকানা (https://www.facebook.com/…)।
-   */
-  pageUrl?: string | null;
-  /**
-   * শুধু এই বোতাম চালু থাকলে পাতা সরাসরি সম্প্রচার দেখায়। সম্প্রচার শেষ হলে বন্ধ করে দিন।
-   */
-  isLive?: boolean | null;
-  /**
-   * সম্প্রচার না থাকলে এই সময় দেখানো হয়।
-   */
-  scheduledStart?: string | null;
-  scheduledEnd?: string | null;
-  description?: string | null;
-  /**
-   * প্লে করার আগে এই ছবিটি দেখানো হয়। নিজের ছবি দিন — ইউটিউবের থাম্বনেইল সরাসরি ব্যবহার করলে পাঠকের ব্রাউজার থেকে ইউটিউবে অনুরোধ যায়।
-   */
-  poster?: (number | null) | Media;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
- *
- * বিজ্ঞাপনের অবস্থান ও ক্যাম্পেইন। CLS শূন্য রাখতে নির্দিষ্ট অবস্থান ব্যবহার করুন — নতুন অবস্থান যোগ করার আগে ফ্রন্টএন্ডে সেই স্লট থাকতে হবে।
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "ad-units".
- */
-export interface AdUnit {
-  id: number;
-  /**
-   * শুধু অভ্যন্তরীণ — পাঠক এটি দেখবেন না।
-   */
-  name: string;
-  /**
-   * সাইটে যে স্লটটি আছে, শুধু সেটিই বেছে নিন।
-   */
-  position:
-    | 'homepageLeaderboard'
-    | 'homepageFooter'
-    | 'sidebarTop'
-    | 'sidebarSticky'
-    | 'categoryLeaderboard'
-    | 'liveBlogTop'
-    | 'liveTvTop'
-    | 'articleTop'
-    | 'articleMiddle'
-    | 'articleBottom';
-  adType: 'adsense' | 'sponsorBanner' | 'direct';
-  /**
-   * AdSense ইউনিটের আইডি (ক্লায়েন্ট আইডি নয় — সেটি সাইট সেটিংসে একবার সেট করা)। খালি থাকলে স্লটটি প্লেসহোল্ডার দেখাবে।
-   */
-  adsenseSlotId?: string | null;
-  /**
-   * প্রস্তাবিত মাপ ৭২৮×৯০ বা ৩০০×২৫০ — স্লটের মাপের সঙ্গে মিলতে হবে।
-   */
-  image?: (number | null) | Media;
-  /**
-   * বিজ্ঞাপনদাতার ঠিকানা। লিংকটি স্বয়ংক্রিয়ভাবে rel="sponsored nofollow" পাবে।
-   */
-  targetUrl?: string | null;
-  /**
-   * লেবেলে দেখানো হবে — যেমন "বিজ্ঞাপন — পাঠক প্রকাশনী"।
-   */
-  sponsorName?: string | null;
-  campaignStart?: string | null;
-  /**
-   * এই তারিখের পর ইউনিটটি স্বয়ংক্রিয়ভাবে বন্ধ হয়ে যাবে — ম্যানুয়াল কিছু করতে হবে না।
-   */
-  campaignEnd?: string | null;
   isActive?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -1620,6 +1566,60 @@ export interface Reaction {
   createdAt: string;
 }
 /**
+ * ⚠️ স্বয়ংক্রিয় rebuild চালু নেই (DEPLOY_WEBHOOK_URL সেট করা হয়নি)। সাইটটি স্ট্যাটিক HTML, তাই সংরক্ষণ করলেই পরিবর্তন দেখা যাবে না — rebuild চালাতে হবে।
+ *
+ * বিজ্ঞাপনের অবস্থান ও ক্যাম্পেইন। CLS শূন্য রাখতে নির্দিষ্ট অবস্থান ব্যবহার করুন — নতুন অবস্থান যোগ করার আগে ফ্রন্টএন্ডে সেই স্লট থাকতে হবে।
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ad-units".
+ */
+export interface AdUnit {
+  id: number;
+  /**
+   * শুধু অভ্যন্তরীণ — পাঠক এটি দেখবেন না।
+   */
+  name: string;
+  /**
+   * সাইটে যে স্লটটি আছে, শুধু সেটিই বেছে নিন।
+   */
+  position:
+    | 'homepageLeaderboard'
+    | 'homepageFooter'
+    | 'sidebarTop'
+    | 'sidebarSticky'
+    | 'categoryLeaderboard'
+    | 'liveBlogTop'
+    | 'liveTvTop'
+    | 'articleTop'
+    | 'articleMiddle'
+    | 'articleBottom';
+  adType: 'adsense' | 'sponsorBanner' | 'direct';
+  /**
+   * AdSense ইউনিটের আইডি (ক্লায়েন্ট আইডি নয় — সেটি সাইট সেটিংসে একবার সেট করা)। খালি থাকলে স্লটটি প্লেসহোল্ডার দেখাবে।
+   */
+  adsenseSlotId?: string | null;
+  /**
+   * প্রস্তাবিত মাপ ৭২৮×৯০ বা ৩০০×২৫০ — স্লটের মাপের সঙ্গে মিলতে হবে।
+   */
+  image?: (number | null) | Media;
+  /**
+   * বিজ্ঞাপনদাতার ঠিকানা। লিংকটি স্বয়ংক্রিয়ভাবে rel="sponsored nofollow" পাবে।
+   */
+  targetUrl?: string | null;
+  /**
+   * লেবেলে দেখানো হবে — যেমন "বিজ্ঞাপন — পাঠক প্রকাশনী"।
+   */
+  sponsorName?: string | null;
+  campaignStart?: string | null;
+  /**
+   * এই তারিখের পর ইউনিটটি স্বয়ংক্রিয়ভাবে বন্ধ হয়ে যাবে — ম্যানুয়াল কিছু করতে হবে না।
+   */
+  campaignEnd?: string | null;
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -1740,22 +1740,6 @@ export interface PayloadLockedDocument {
         value: number | Article;
       } | null)
     | ({
-        relationTo: 'categories';
-        value: number | Category;
-      } | null)
-    | ({
-        relationTo: 'levels';
-        value: number | Level;
-      } | null)
-    | ({
-        relationTo: 'districts';
-        value: number | District;
-      } | null)
-    | ({
-        relationTo: 'tags';
-        value: number | Tag;
-      } | null)
-    | ({
         relationTo: 'authors';
         value: number | Author;
       } | null)
@@ -1800,18 +1784,6 @@ export interface PayloadLockedDocument {
         value: number | StudyAbroadGuide;
       } | null)
     | ({
-        relationTo: 'live-blogs';
-        value: number | LiveBlog;
-      } | null)
-    | ({
-        relationTo: 'polls';
-        value: number | Poll;
-      } | null)
-    | ({
-        relationTo: 'quizzes';
-        value: number | Quiz;
-      } | null)
-    | ({
         relationTo: 'media';
         value: number | Media;
       } | null)
@@ -1824,8 +1796,16 @@ export interface PayloadLockedDocument {
         value: number | LiveStream;
       } | null)
     | ({
-        relationTo: 'ad-units';
-        value: number | AdUnit;
+        relationTo: 'live-blogs';
+        value: number | LiveBlog;
+      } | null)
+    | ({
+        relationTo: 'polls';
+        value: number | Poll;
+      } | null)
+    | ({
+        relationTo: 'quizzes';
+        value: number | Quiz;
       } | null)
     | ({
         relationTo: 'comments';
@@ -1856,16 +1836,36 @@ export interface PayloadLockedDocument {
         value: number | PushSubscription;
       } | null)
     | ({
-        relationTo: 'readers';
-        value: number | Reader;
-      } | null)
-    | ({
         relationTo: 'poll-votes';
         value: number | PollVote;
       } | null)
     | ({
         relationTo: 'reactions';
         value: number | Reaction;
+      } | null)
+    | ({
+        relationTo: 'ad-units';
+        value: number | AdUnit;
+      } | null)
+    | ({
+        relationTo: 'categories';
+        value: number | Category;
+      } | null)
+    | ({
+        relationTo: 'levels';
+        value: number | Level;
+      } | null)
+    | ({
+        relationTo: 'districts';
+        value: number | District;
+      } | null)
+    | ({
+        relationTo: 'tags';
+        value: number | Tag;
+      } | null)
+    | ({
+        relationTo: 'readers';
+        value: number | Reader;
       } | null)
     | ({
         relationTo: 'users';
@@ -1984,57 +1984,6 @@ export interface ArticlesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "categories_select".
- */
-export interface CategoriesSelect<T extends boolean = true> {
-  nameBn?: T;
-  slug?: T;
-  parent?: T;
-  description?: T;
-  icon?: T;
-  colorAccent?: T;
-  sortOrder?: T;
-  isActive?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "levels_select".
- */
-export interface LevelsSelect<T extends boolean = true> {
-  nameBn?: T;
-  slug?: T;
-  sortOrder?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "districts_select".
- */
-export interface DistrictsSelect<T extends boolean = true> {
-  nameBn?: T;
-  nameEn?: T;
-  slug?: T;
-  divisionBn?: T;
-  divisionEn?: T;
-  sortOrder?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "tags_select".
- */
-export interface TagsSelect<T extends boolean = true> {
-  nameBn?: T;
-  slug?: T;
-  updatedAt?: T;
-  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2299,6 +2248,61 @@ export interface StudyAbroadGuidesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
+  alt?: T;
+  caption?: T;
+  credit?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "photo-galleries_select".
+ */
+export interface PhotoGalleriesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  images?:
+    | T
+    | {
+        image?: T;
+        caption?: T;
+        id?: T;
+      };
+  description?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "live-streams_select".
+ */
+export interface LiveStreamsSelect<T extends boolean = true> {
+  title?: T;
+  provider?: T;
+  videoId?: T;
+  pageUrl?: T;
+  isLive?: T;
+  scheduledStart?: T;
+  scheduledEnd?: T;
+  description?: T;
+  poster?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "live-blogs_select".
  */
 export interface LiveBlogsSelect<T extends boolean = true> {
@@ -2355,79 +2359,6 @@ export interface QuizzesSelect<T extends boolean = true> {
         explanation?: T;
         id?: T;
       };
-  isActive?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media_select".
- */
-export interface MediaSelect<T extends boolean = true> {
-  alt?: T;
-  caption?: T;
-  credit?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "photo-galleries_select".
- */
-export interface PhotoGalleriesSelect<T extends boolean = true> {
-  title?: T;
-  slug?: T;
-  images?:
-    | T
-    | {
-        image?: T;
-        caption?: T;
-        id?: T;
-      };
-  description?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "live-streams_select".
- */
-export interface LiveStreamsSelect<T extends boolean = true> {
-  title?: T;
-  provider?: T;
-  videoId?: T;
-  pageUrl?: T;
-  isLive?: T;
-  scheduledStart?: T;
-  scheduledEnd?: T;
-  description?: T;
-  poster?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "ad-units_select".
- */
-export interface AdUnitsSelect<T extends boolean = true> {
-  name?: T;
-  position?: T;
-  adType?: T;
-  adsenseSlotId?: T;
-  image?: T;
-  targetUrl?: T;
-  sponsorName?: T;
-  campaignStart?: T;
-  campaignEnd?: T;
   isActive?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -2548,6 +2479,97 @@ export interface PushSubscriptionsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "poll-votes_select".
+ */
+export interface PollVotesSelect<T extends boolean = true> {
+  poll?: T;
+  voterHash?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reactions_select".
+ */
+export interface ReactionsSelect<T extends boolean = true> {
+  article?: T;
+  type?: T;
+  reader?: T;
+  fingerprint?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ad-units_select".
+ */
+export interface AdUnitsSelect<T extends boolean = true> {
+  name?: T;
+  position?: T;
+  adType?: T;
+  adsenseSlotId?: T;
+  image?: T;
+  targetUrl?: T;
+  sponsorName?: T;
+  campaignStart?: T;
+  campaignEnd?: T;
+  isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories_select".
+ */
+export interface CategoriesSelect<T extends boolean = true> {
+  nameBn?: T;
+  slug?: T;
+  parent?: T;
+  description?: T;
+  icon?: T;
+  colorAccent?: T;
+  sortOrder?: T;
+  isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "levels_select".
+ */
+export interface LevelsSelect<T extends boolean = true> {
+  nameBn?: T;
+  slug?: T;
+  sortOrder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "districts_select".
+ */
+export interface DistrictsSelect<T extends boolean = true> {
+  nameBn?: T;
+  nameEn?: T;
+  slug?: T;
+  divisionBn?: T;
+  divisionEn?: T;
+  sortOrder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags_select".
+ */
+export interface TagsSelect<T extends boolean = true> {
+  nameBn?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "readers_select".
  */
 export interface ReadersSelect<T extends boolean = true> {
@@ -2580,28 +2602,6 @@ export interface ReadersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "poll-votes_select".
- */
-export interface PollVotesSelect<T extends boolean = true> {
-  poll?: T;
-  voterHash?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "reactions_select".
- */
-export interface ReactionsSelect<T extends boolean = true> {
-  article?: T;
-  type?: T;
-  reader?: T;
-  fingerprint?: T;
-  updatedAt?: T;
-  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
