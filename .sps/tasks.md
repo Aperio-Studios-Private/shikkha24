@@ -3648,6 +3648,22 @@ system card (labels/help/chips/48px submit on tokens, success/danger message chi
 to a new `_admin-reporter.scss` — the page becomes the pattern for external-surface scale use.
 Deliberately out of scope: accept/decline quick actions (would need a new write endpoint — a
 separate owner decision). **Status: PROPOSED to owner, awaiting approval before code.**
+**Owner approved 2026-10-25; C1–C3 + quiet decided strip shipped** at `a…` (see tasks entry below),
+AWAITING OWNER REVIEW. Verified by CDP with seeded temp data (author + reporter + 5 assignments,
+deleted same-session): summary strip shows In progress 3 / Due soon 1 / Overdue 1 chips; amber
+overdue callout with singular grammar; 3 active cards with status chips (In progress, Urgent 🔥,
+Accepted, High ⚠, Assigned), relative deadlines rendering exactly "Overdue by 2d" (danger-red),
+"Due today", "In 5 days" (a suspicious extraction string was re-verified as correct DOM text);
+decided strip shows Approved + Rejected chips; card titles 16px, chips 12px; no horizontal overflow
+at 1280×800 and 390×844; lint/typecheck/build pass. C4–C6 (recent work, quick-draft re-skin,
+decided polish) remain queued.
+
+### T-91 — 🔴 NEW (2026-10-25 owner): upgrade Next.js past the 16.4.0 security advisory
+Owner pasted the Vercel banner: "Next.js 16.4.0 is affected by a known security vulnerability",
+suggested `next upgrade --agent=security`. Findings below, **no code change without owner
+approval** (dependency rule; Payload compat; the production redeploy reality).
+
+### T-90
 
 ### T-90 — 🔵 QUEUED (2026-10-19 22:05 +06:00): optional bilingual admin UI + Bangla Academy copy review
 

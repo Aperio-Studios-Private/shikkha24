@@ -3,6 +3,14 @@ import type { AdminViewServerProps } from 'payload'
 
 import { isEditorUser, relationId } from '../../access/roles'
 import { QuickDraftForm } from './QuickDraftForm'
+import {
+  deadlineInfo,
+  dhakaDate,
+  dhakaDayDiff,
+  PRIORITY_CHIPS,
+  STATUS_CHIPS,
+  summarize,
+} from './reporter-workspace-data'
 
 /**
  * প্রতিবেদকের কাজ — the reporter workspace, at `/admin/reporter`.
@@ -44,35 +52,6 @@ interface AssignmentDoc {
   priority?: string | null
   dueAt?: string | null
   brief?: string | null
-}
-
-/** Bengali labels for the assignment statuses, mirroring the CMS options. */
-const STATUS_LABELS: Record<string, string> = {
-  assigned: 'Assigned (দেওয়া হয়েছে)',
-  accepted: 'Accepted (নেওয়া হয়েছে)',
-  inProgress: 'In Progress (কাজ চলছে)',
-  filed: 'Filed (জমা দেওয়া হয়েছে)',
-  approved: 'Approved (অনুমোদিত)',
-  rejected: 'Rejected (বাতিল)',
-}
-
-const PRIORITY_LABELS: Record<string, string> = {
-  normal: 'Normal (সাধারণ)',
-  high: 'High (জরুরি)',
-  urgent: 'Urgent (অতি জরুরি)',
-}
-
-/** `YYYY-MM-DD` in Dhaka time — the same basis the public site uses. */
-function dhakaDate(value: string | null | undefined): string | null {
-  if (!value) return null
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return null
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Dhaka',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(parsed)
 }
 
 export async function ReporterWorkspace(props: AdminViewServerProps) {
@@ -138,97 +117,108 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
   const hasProfile =
     relationId((userDoc as { authorProfile?: unknown } | null)?.authorProfile) !== null
 
+  const now = new Date()
+  const { active, decided, overdue, dueSoon } = summarize(assignments, now)
+
   return (
     <DefaultTemplate {...props} viewType="reporter" visibleEntities={visibleEntities}>
-      <div style={{ maxWidth: '46rem', margin: '0 auto', padding: '1rem' }}>
-        <header style={{ marginBottom: '1.5rem' }}>
-          <h1 style={{ fontSize: 'var(--shikkha-text-heading)', fontWeight: 700 }}>
-            My Work (প্রতিবেদকের কাজ)
-          </h1>
-          <p
-            style={{ marginTop: '0.25rem', opacity: 0.75, fontSize: 'var(--shikkha-text-body-sm)' }}
-          >
+      <div className="reporter-page">
+        <header className="reporter-page__header">
+          <h1>My Work (প্রতিবেদকের কাজ)</h1>
+          <p>
             {isEditor
               ? 'Viewing all assignments as desk (ডেস্ক হিসেবে সব কাজ দেখা হচ্ছে)।'
               : 'Your own assignments and quick-draft (আপনার নিজের কাজ ও দ্রুত সংবাদ জমা দেওয়ার জায়গা)।'}
           </p>
+          {active.length > 0 && (
+            <div className="reporter-summary">
+              <span className="reporter-chip reporter-chip--info">
+                In progress {active.length} (চলমান)
+              </span>
+              {dueSoon > 0 && (
+                <span className="reporter-chip reporter-chip--warning">
+                  Due soon {dueSoon} (শীঘ্রই)
+                </span>
+              )}
+              {overdue > 0 && (
+                <span className="reporter-chip reporter-chip--danger">
+                  Overdue {overdue} (ওভারডিউ)
+                </span>
+              )}
+              {overdue === 0 && dueSoon === 0 && (
+                <span className="reporter-chip reporter-chip--success">
+                  All on track (সব ঠিক আছে)
+                </span>
+              )}
+            </div>
+          )}
         </header>
 
-        {/* ── আমার কাজ ─────────────────────────────────────────────────────── */}
-        <section style={{ marginBottom: '2rem' }}>
-          <h2
-            style={{
-              fontSize: 'var(--shikkha-text-title)',
-              fontWeight: 600,
-              marginBottom: '0.75rem',
-            }}
-          >
-            My Work (আমার কাজ) {assignments.length > 0 && `(${assignments.length})`}
+        {overdue > 0 && (
+          <p className="reporter-overdue" role="alert">
+            ⚠️ {overdue === 1 ? 'One assignment is' : overdue + ' assignments are'} overdue — file it
+            or tell your editor (সময়সীমা পেরিয়ে গেছে — জমা দিন অথবা সম্পাদককে জানান)।
+          </p>
+        )}
+
+        <section className="reporter-section">
+          <h2>
+            Active assignments (চলমান অ্যাসাইনমেন্ট)
+            {active.length > 0 ? ' (' + active.length + ')' : ''}
           </h2>
 
-          {assignments.length === 0 ? (
-            <p style={{ fontSize: 'var(--shikkha-text-body-sm)', opacity: 0.75 }}>
-              Nothing assigned yet. Work from an editor will appear here (এখন কোনো কাজ নেই। সম্পাদক কাজ
-              দিলে এখানে দেখা যাবে)।
-            </p>
+          {active.length === 0 ? (
+            <div className="reporter-empty">
+              <strong>✅ Nothing due right now (এখন কোনো কাজ বাকি নেই)।</strong>
+              <span>
+                New assignments from your editor will appear here (সম্পাদক কাজ দিলেই এখানে দেখা যাবে)।
+              </span>
+            </div>
           ) : (
-            <ul
-              style={{ display: 'grid', gap: '0.75rem', listStyle: 'none', padding: 0, margin: 0 }}
-            >
-              {assignments.map((assignment) => {
-                const due = dhakaDate(assignment.dueAt)
+            <ul className="reporter-assignments">
+              {active.map((assignment) => {
+                const statusChip = STATUS_CHIPS[assignment.status ?? ''] ?? {
+                  label: assignment.status ?? '—',
+                  tone: 'info' as const,
+                }
+                const priorityChip = PRIORITY_CHIPS[assignment.priority ?? '']
+                const diff = dhakaDayDiff(assignment.dueAt, now)
+                const due = deadlineInfo(diff, dhakaDate(assignment.dueAt))
+                const late = diff !== null && diff < 0
                 return (
                   <li
                     key={assignment.id}
-                    style={{
-                      border: '1px solid var(--theme-elevation-100, #e4e4e4)',
-                      borderRadius: '0.5rem',
-                      padding: '0.875rem',
-                    }}
+                    className={
+                      late
+                        ? 'reporter-assignment reporter-assignment--overdue'
+                        : 'reporter-assignment'
+                    }
                   >
-                    <a
-                      href={`/admin/collections/assignments/${assignment.id}`}
-                      style={{ fontWeight: 600, display: 'block', minHeight: '1.5rem' }}
-                    >
-                      {assignment.title ?? 'Untitled (শিরোনামহীন)'}
-                    </a>
-
-                    <p
-                      style={{
-                        marginTop: '0.375rem',
-                        fontSize: 'var(--shikkha-text-body-sm)',
-                        opacity: 0.8,
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: '0.5rem',
-                      }}
-                    >
-                      <span>
-                        Status: {STATUS_LABELS[assignment.status ?? ''] ?? assignment.status}
-                      </span>
-                      <span>·</span>
-                      <span>
-                        Priority:{' '}
-                        {PRIORITY_LABELS[assignment.priority ?? ''] ?? assignment.priority}
-                      </span>
-                      {due && (
-                        <>
-                          <span>·</span>
-                          <span>Deadline (সময়সীমা): {due}</span>
-                        </>
-                      )}
-                    </p>
-
-                    {assignment.brief && (
-                      <p
-                        style={{
-                          marginTop: '0.375rem',
-                          fontSize: 'var(--shikkha-text-body-sm)',
-                          opacity: 0.7,
-                        }}
+                    <div className="reporter-assignment__head">
+                      <a
+                        className="reporter-assignment__title"
+                        href={'/admin/collections/assignments/' + assignment.id}
                       >
-                        {assignment.brief}
-                      </p>
+                        {assignment.title ?? 'Untitled (শিরোনামহীন)'}
+                      </a>
+                      <span className={'reporter-chip reporter-chip--' + statusChip.tone}>
+                        {statusChip.label}
+                      </span>
+                    </div>
+                    <div className="reporter-assignment__meta">
+                      {priorityChip && (
+                        <span className={'reporter-chip reporter-chip--' + priorityChip.tone}>
+                          {priorityChip.label}
+                        </span>
+                      )}
+                      {due.tone === 'muted' ? (
+                        <span>{due.text}</span>
+                      ) : (
+                        <span className={'reporter-assignment__due--' + due.tone}>{due.text}</span>
+                      )}
+                    </div>
+                    {assignment.brief && (
+                      <p className="reporter-assignment__brief">{assignment.brief}</p>
                     )}
                   </li>
                 )
@@ -237,17 +227,32 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
           )}
         </section>
 
-        {/* ── দ্রুত সংবাদ ───────────────────────────────────────────────────── */}
-        <section>
-          <h2
-            style={{
-              fontSize: 'var(--shikkha-text-title)',
-              fontWeight: 600,
-              marginBottom: '0.75rem',
-            }}
-          >
-            Quick Draft (দ্রুত সংবাদ)
-          </h2>
+        {decided.length > 0 && (
+          <section className="reporter-section">
+            <h2>Recently decided (সম্প্রতি সিদ্ধান্ত)</h2>
+            <ul className="reporter-decided">
+              {decided.slice(0, 5).map((assignment) => {
+                const statusChip = STATUS_CHIPS[assignment.status ?? ''] ?? {
+                  label: assignment.status ?? '—',
+                  tone: 'info' as const,
+                }
+                return (
+                  <li key={assignment.id}>
+                    <a href={'/admin/collections/assignments/' + assignment.id}>
+                      {assignment.title ?? 'Untitled (শিরোনামহীন)'}
+                    </a>
+                    <span className={'reporter-chip reporter-chip--' + statusChip.tone}>
+                      {statusChip.label}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        )}
+
+        <section className="reporter-section">
+          <h2>Quick Draft (দ্রুত সংবাদ)</h2>
 
           {hasProfile ? (
             <QuickDraftForm categories={categories} />
