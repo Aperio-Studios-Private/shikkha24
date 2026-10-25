@@ -4580,3 +4580,17 @@ variable transfer-সহ সংরক্ষিত; Actions সীমাহীন
 অটুট (২৯→৩০ কমিট)। লাইভ সাইট অক্ষত (HTTP 200), প্রকাশিত নিবন্ধ ৯।
 
 **C8 — final QA (2026-10-25/26, no code changes needed).** Measured on a production build via headless Chrome: text contrast 5.85–6.37:1 (body/descriptions) and 15.94:1 (nav/chrome) — above WCAG AA; topbar search keyboard-focusable; zero undersized interactive targets at 1280 (the only 0×0 hit on mobile is the intentionally hidden Site link); no horizontal overflow at 1280×900, 390×844 dashboard, or 390×844 reporter page.
+
+**E1–E3 — header spacing + button affordance (2026-10-26, verified, ready to deploy).**
+- **E1 (spacing):** doc-controls/document-fields used rem paddings → rendered 9.75/19.5px under
+  Payload's ~13px root. Now device-px tokens (16/24px) plus template-wrap top air; the editor's
+  header-to-content gap went 160→176.
+- **E2 (buttons):** the split-control chevron (`popup-button--background`) matched no rule and
+  measured transparent / 0px border / 0px radius. Catch-all + explicit variant rule added. Verified:
+  Publish emerald, chevron dark emerald, dots white-bordered, Schedule light green, and menu
+  Create (blue) / Duplicate (white) / Delete (red) — all with bg + 1px border + 8px radius.
+- **E3 (consistency):** re-audit across 8 views × 2 widths. Root cause of remaining square buttons:
+  Payload's own `--style-radius-s/m/l` were never mapped, so wherever Payload's layer won the
+  cascade the shape collapsed. Mapped to our tokens; re-confirmed 8px radius on the article editor
+  at 1280 and 390. No horizontal overflow on any view. (One 0px reading during E3 was a
+  mid-hydration artifact — re-measured after settle.)

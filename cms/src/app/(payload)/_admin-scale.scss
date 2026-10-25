@@ -87,5 +87,17 @@
     --shikkha-weight-bold: 700;
     --shikkha-radius-xl: 14px;
     --shikkha-radius-pill: 999px;
+
+    /*
+     * E3 — Payload's own radius variables are what its .btn rules consume
+     * (`border-radius: var(--style-radius-s)`). We never set them, so on pages
+     * where Payload's layer wins the button rendered with 0 radius while our
+     * override won elsewhere — an inconsistent button shape page to page.
+     * Mapping Payload's variables to our tokens fixes every .btn site-wide
+     * instead of chasing each selector.
+     */
+    --style-radius-s: var(--shikkha-radius-s);
+    --style-radius-m: var(--shikkha-radius-m);
+    --style-radius-l: var(--shikkha-radius-l);
   }
 }
