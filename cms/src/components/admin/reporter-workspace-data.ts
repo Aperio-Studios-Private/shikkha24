@@ -85,6 +85,22 @@ export function deadlineInfo(diff: number | null, exact: string | null): Deadlin
   return { text: 'Deadline ' + (exact ?? '') + ' (সময়সীমা)', tone: 'muted' }
 }
 
+/**
+ * C6 — "decided when" in words: today / yesterday / Nd ago. Absolute dates in a
+ * five-row strip read as noise; the relative form is the useful part.
+ */
+export function relativeDays(value: string | null | undefined, now: Date = new Date()): string {
+  if (!value) return ''
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return ''
+  const days = Math.round(
+    (new Date(dhakaDayKey(now)).getTime() - new Date(dhakaDayKey(parsed)).getTime()) / 86_400_000,
+  )
+  if (days <= 0) return 'Today (আজ)'
+  if (days === 1) return 'Yesterday (গতকাল)'
+  return days + 'd ago (' + days + ' দিন আগে)'
+}
+
 export interface AssignableDoc {
   status?: string | null
   dueAt?: string | null

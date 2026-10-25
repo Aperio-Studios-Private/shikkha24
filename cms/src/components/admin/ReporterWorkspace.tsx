@@ -8,6 +8,7 @@ import {
   dhakaDate,
   dhakaDayDiff,
   PRIORITY_CHIPS,
+  relativeDays,
   STATUS_CHIPS,
   summarize,
 } from './reporter-workspace-data'
@@ -52,6 +53,7 @@ interface AssignmentDoc {
   priority?: string | null
   dueAt?: string | null
   brief?: string | null
+  updatedAt?: string | null
 }
 
 export async function ReporterWorkspace(props: AdminViewServerProps) {
@@ -263,8 +265,13 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
                     <a href={'/admin/collections/assignments/' + assignment.id}>
                       {assignment.title ?? 'Untitled (শিরোনামহীন)'}
                     </a>
-                    <span className={'reporter-chip reporter-chip--' + statusChip.tone}>
-                      {statusChip.label}
+                    <span className="reporter-decided__meta">
+                      <span className="reporter-decided__time">
+                        {relativeDays(assignment.updatedAt, now)}
+                      </span>
+                      <span className={'reporter-chip reporter-chip--' + statusChip.tone}>
+                        {statusChip.label}
+                      </span>
                     </span>
                   </li>
                 )

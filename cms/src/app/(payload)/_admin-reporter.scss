@@ -197,6 +197,20 @@
     white-space: nowrap;
   }
 
+  /* C6 — decision recency: relative words, caption weight, never wraps. */
+  .reporter-decided__meta {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--shikkha-space-2);
+  }
+
+  .reporter-decided__time {
+    color: var(--shikkha-ink-muted);
+    font-size: var(--shikkha-text-caption);
+    white-space: nowrap;
+  }
+
   /* ── Quick Draft form (C5) — token-styled replacement for Tailwind classes. */
   .reporter-form {
     display: grid;
