@@ -3707,8 +3707,12 @@ was delegated; orchestrator verification caught and fixed the breakage.
    — a 568px cluster on a 390px phone (before the fix) cannot survive it. Contract now written in
    the SCSS: desktop pills ≤32px with English-first short labels; mobile = three measured 36–40px
    icon buttons (labels/⌘K/dividers/Site hidden, aria-labels kept) with breathing gaps + margins.
-**Verification (orchestrator, CDP, temp users/seeds later deleted):** search overlay opens by ⌘K and
-click; authentic browser fetch returns the seeded result groups; keyboard/Esc paths fine;
+**Data audit (owner's "No results" report, 2026-10-25):** the endpoint is proven working
+(seeded title-bearing docs are returned instantly), but this LOCAL database literally has nothing
+for it to match — authors: 0 docs, assignments: 0 docs, articles: 20 docs of which 0 have a
+non-null title (CI-seeded shells). "No results" is the correct answer on this data. Fix is content
+(seed realistic demo docs or write real ones), not code. An endpoint-scope expansion drafted in the
+same session was reverted uncommitted as out-of-scope.
 desktop 1280: topbar inside header (y:12, 371px, zero scroll/clip flags); mobile 390: 3 icon
 buttons, cluster ≤336px clean of the avatar, no page overflow; lint/typecheck/production build all
 green. Owner eyeball pending (dev-server refresh).
