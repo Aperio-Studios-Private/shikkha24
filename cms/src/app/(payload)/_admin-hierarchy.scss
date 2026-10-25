@@ -140,13 +140,27 @@
     line-height: var(--shikkha-lh-body);
   }
 
+  /*
+   * E1 — header breathing room, stated in device px.
+   *
+   * These were `1.5rem`/`0.75rem` and therefore rendered at 19.5px/9.75px: the
+   * admin root is ~13px, so every rem value here silently loses 25% and every
+   * view sat too close under the app header. The scale tokens are device px
+   * (see _admin-scale.scss), which is why these now read as written.
+   */
   .document-fields__edit,
   .document-fields__sidebar-fields {
-    padding-block: 1.5rem;
+    padding-block: var(--shikkha-space-6);
   }
 
   .doc-controls__content {
-    padding-block: 0.75rem;
+    padding-block: var(--shikkha-space-4);
+  }
+
+  /* The wrap itself starts flush under the header — give the whole page air. */
+  .template-default__wrap > .gutter--left,
+  .template-default__wrap > .gutter--right {
+    padding-top: var(--shikkha-space-4);
   }
 
   .field-type input:not([type='checkbox']):not([type='radio']),
