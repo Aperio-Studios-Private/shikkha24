@@ -221,6 +221,11 @@
     background-color: var(--shikkha-warning-bg-muted);
   }
 
+  .dashboard-workbench__card--danger {
+    border-color: var(--shikkha-danger-border-muted);
+    background-color: var(--shikkha-danger-bg-muted);
+  }
+
   .dashboard-workbench__title {
     font-size: var(--shikkha-text-body);
     font-weight: var(--shikkha-weight-bold);
@@ -242,6 +247,10 @@
 
   .dashboard-workbench__card--warning .dashboard-workbench__count {
     color: var(--shikkha-warning-fg);
+  }
+
+  .dashboard-workbench__card--danger .dashboard-workbench__count {
+    color: var(--shikkha-danger-fg);
   }
 
   .dashboard-workbench__description {

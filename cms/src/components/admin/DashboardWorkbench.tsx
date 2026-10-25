@@ -33,7 +33,116 @@ export async function DashboardWorkbench() {
   if (!user) return null
 
   const editor = isEditorUser(user)
-  if (hasRole(user, 'adManager')) return null
+
+  /*
+   * D3 — Ad Manager gets a purpose-built panel instead of nothing. The stock
+   * workbench asks editorial questions ("what do I owe?"); an ad manager's
+   * question is "which slots are live and which are about to expire?".
+   */
+  if (hasRole(user, 'adManager') && !editor) {
+    const nowIso = new Date().toISOString()
+    const in7 = new Date(Date.now() + 7 * 86_400_000).toISOString()
+    const [activeUnits, endingSoon, expiredButActive] = await Promise.all([
+      countRequest(
+        payload.count({
+          collection: 'ad-units',
+          user,
+          overrideAccess: false,
+          where: { isActive: { equals: true } },
+        }),
+      ),
+      countRequest(
+        payload.count({
+          collection: 'ad-units',
+          user,
+          overrideAccess: false,
+          where: {
+            and: [
+              { isActive: { equals: true } },
+              { campaignEnd: { greater_than_equal: nowIso, less_than_equal: in7 } },
+            ],
+          },
+        }),
+      ),
+      countRequest(
+        payload.count({
+          collection: 'ad-units',
+          user,
+          overrideAccess: false,
+          where: {
+            and: [{ isActive: { equals: true } }, { campaignEnd: { less_than: nowIso } }],
+          },
+        }),
+      ),
+    ])
+
+    const adsPath = collectionPath('ad-units')
+    const adCards: WorkbenchCard[] = [
+      {
+        actionLabel: 'Open ad units',
+        count: activeUnits,
+        description: 'Slots currently live on the site.',
+        emptyDescription: 'No live ad units right now.',
+        href: collectionPath('ad-units', { 'where[isActive][equals]': 'true' }),
+        title: '📢 Live ad units',
+        tone: 'success',
+      },
+      {
+        actionLabel: 'Review schedule',
+        count: endingSoon,
+        description: 'Campaigns ending within 7 days.',
+        emptyDescription: 'Nothing expires this week.',
+        href: collectionPath('ad-units', { 'where[campaignEnd][less_than_equal]': in7 }),
+        title: '⏳ Ending this week',
+        tone: 'warning',
+      },
+      {
+        actionLabel: 'Fix expired',
+        count: expiredButActive,
+        description: 'Past campaign end but still switched on.',
+        emptyDescription: 'No stale campaigns.',
+        href: collectionPath('ad-units', { 'where[isActive][equals]': 'true' }),
+        title: '⚠️ Expired but active',
+        tone: 'danger',
+      },
+    ]
+
+    return (
+      <section
+        aria-labelledby="dashboard-ads-title"
+        className="dashboard-workbench dashboard-workbench--modern"
+      >
+        <h2 id="dashboard-ads-title">Advertising overview (বিজ্ঞাপন)</h2>
+        <div className="dashboard-workbench__cards">
+          {adCards.map((card) => (
+            <Link
+              className={'dashboard-workbench__card dashboard-workbench__card--' + card.tone}
+              href={card.href}
+              key={card.title}
+            >
+              <span className="dashboard-workbench__title">{card.title}</span>
+              <strong className="dashboard-workbench__count">
+                {card.count === null ? '—' : card.count}
+              </strong>
+              <span className="dashboard-workbench__description">
+                {card.count === 0 ? card.emptyDescription : card.description}
+              </span>
+              <span className="dashboard-workbench__action">{card.actionLabel}</span>
+            </Link>
+          ))}
+        </div>
+        <div className="dashboard-workbench__recent">
+          <div className="dashboard-workbench__recent-header">
+            <h3>Ad management</h3>
+            <Link className="dashboard-workbench__browse" href={adsPath}>
+              Browse all
+            </Link>
+          </div>
+          <p>Create or pause a slot in Ad Units — changes go live with the next site rebuild.</p>
+        </div>
+      </section>
+    )
+  }
 
   const userDoc = editor
     ? null

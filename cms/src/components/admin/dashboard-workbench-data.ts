@@ -14,7 +14,7 @@ export interface WorkbenchCard {
   count: number | null
   description: string
   href: string
-  tone: 'info' | 'success' | 'warning'
+  tone: 'info' | 'success' | 'warning' | 'danger'
   title: string
 }
 
