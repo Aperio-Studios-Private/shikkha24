@@ -277,6 +277,32 @@ export async function DashboardWorkbench() {
           Start writing
         </Link>
       </section>
+      {/* D1 — publishing-flow explainer: one line, no new data, teaches the loop. */}
+      <section className="dashboard-flow" aria-label="How publishing works (প্রকাশনার ধাপ)">
+        <ol className="dashboard-flow__steps">
+          <li>
+            <span aria-hidden>✍️</span> Draft (খসড়া)
+          </li>
+          <li aria-hidden className="dashboard-flow__arrow">
+            →
+          </li>
+          <li>
+            <span aria-hidden>🔍</span> Review (পর্যালোচনা)
+          </li>
+          <li aria-hidden className="dashboard-flow__arrow">
+            →
+          </li>
+          <li>
+            <span aria-hidden>✅</span> Publish (প্রকাশ)
+          </li>
+          <li aria-hidden className="dashboard-flow__arrow">
+            →
+          </li>
+          <li>
+            <span aria-hidden>🌐</span> Site rebuild ≤5 min (সাইট হালনাগাদ)
+          </li>
+        </ol>
+      </section>
       <section
         aria-labelledby="dashboard-workbench-title"
         className="dashboard-workbench dashboard-workbench--modern"

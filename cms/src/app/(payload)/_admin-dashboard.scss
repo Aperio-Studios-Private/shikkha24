@@ -86,6 +86,37 @@
     outline-offset: 2px;
   }
 
+  /* D1 — publishing flow: a quiet one-line map of the newsroom loop. */
+  .dashboard-flow {
+    padding: var(--shikkha-space-3) var(--shikkha-space-4);
+    border: 1px solid var(--shikkha-border);
+    border-radius: var(--shikkha-radius-m);
+    background-color: var(--shikkha-neutral-50);
+  }
+
+  .dashboard-flow__steps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--shikkha-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--shikkha-ink-muted);
+    font-size: var(--shikkha-text-body-sm);
+    line-height: var(--shikkha-lh-body);
+  }
+
+  .dashboard-flow__steps li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--shikkha-space-1);
+  }
+
+  .dashboard-flow__arrow {
+    color: var(--shikkha-neutral-400);
+  }
+
   .dashboard-workbench {
     padding: var(--shikkha-space-5);
     border: 1px solid var(--shikkha-border);
