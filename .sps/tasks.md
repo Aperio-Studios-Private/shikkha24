@@ -3658,10 +3658,21 @@ decided strip shows Approved + Rejected chips; card titles 16px, chips 12px; no 
 at 1280×800 and 390×844; lint/typecheck/build pass. C4–C6 (recent work, quick-draft re-skin,
 decided polish) remain queued.
 
-### T-91 — 🔴 NEW (2026-10-25 owner): upgrade Next.js past the 16.4.0 security advisory
-Owner pasted the Vercel banner: "Next.js 16.4.0 is affected by a known security vulnerability",
-suggested `next upgrade --agent=security`. Findings below, **no code change without owner
-approval** (dependency rule; Payload compat; the production redeploy reality).
+### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
+Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
+Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
+GHSA-673q-mjm6-r5xr (CRITICAL unauthenticated RCE in App Router `use cache` functions returning
+typed arrays) and GHSA-p3m5-59mp-jv5r (HIGH DoS in App Router Server Actions, range
+`>=16.0.0 <= 16.4.0`). Exposure audit: zero `use cache` in `cms/src`, zero in
+`@payloadcms/next` dist, zero in `payload` dist — no reachable exploit shape found, but the
+advisory says upgrade regardless. Payload 3.90.2 peer range `>=16.3.3 <17.0.0` accepts any 16.x.
+**Pin: 16.4.3** (latest public 16.4.x patch — minimal-risk line, superset of 16.4.1; exact pin per
+dependency rule). Chose surgical pin over the `next upgrade` codemod (rule: surgical scope; the
+codemod targets `latest`). Verification on 16.4.3: typecheck ✅ lint ✅ production build ✅;
+smoke on :3001 — `/admin/login` 200, empty login POST 400, GET login 405 ✅. ⚠️ **Production
+cms.shikkha24.com still runs 16.4.0** — the patch reaches production only at the next CMS redeploy
+(T-31 Codespace cycle, owner-scheduled). Note: the owner's dev server on :3000 must be restarted to
+run 16.4.3 locally.
 
 ### T-90
 
