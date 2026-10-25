@@ -3564,6 +3564,14 @@ and zero diffs on Create/Duplicate/Delete inside the opened document menu. No ho
 1280×800 or 390×844; Impeccable detector returns `[]`; CMS lint/typecheck/build pass. The broader
 Payload hover-property inventory remains open, but the redesigned action family is verified.
 
+**Owner working method (2026-10-25, explicit instruction):** finish T-89 in strictly small chunks — one
+chunk at a time, never bulk work; after each chunk the owner checks locally and gives approval before the
+next chunk starts. The push/deploy hold stays in force the whole time. Remaining ledger: (1) reporter-banner
+consolidation (C1c7 tail), (2) collection-grid/empty-state follow-up (C1c7 tail), (3) broader Payload
+hover-property inventory, (4) C2b workflow explainer if absent, (5) C3a–C3c task-based navigation groups,
+(6) C4a/C4b article editor guide, (7) C5a/C5b media guide, (8) C6a/C6b reporter workspace polish,
+(9) C7a–C7c field help for the 12 low-guidance collections, (10) C8a/C8b final QA.
+
 ### T-90 — 🔵 QUEUED (2026-10-19 22:05 +06:00): optional bilingual admin UI + Bangla Academy copy review
 
 Owner approved adding the capability after the current CMS redesign queue. Scope is **not** to make
