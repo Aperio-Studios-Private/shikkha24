@@ -3624,6 +3624,31 @@ card descriptions 14px, recent items 16px, status chips 12px, collections label 
 14px/48px mobile, list "Create new" 14px/44px — identical across roles and breakpoints, zero
 horizontal overflow at 1280×800 and 390×844. Temp accounts + scratch probe deleted same-session (T-77).
 
+**Owner verdicts (2026-10-25 17:44):** Chunk A ✅; Chunk B ✅ — "dashboard and sidebar is perfect".
+**Owner reorder:** the /admin/reporter page is next (ahead of S1/S2/D1–D4, which stay queued after it).
+
+**Chunk C — reporter workspace redesign (learn-first, owner directive: understand the use case BEFORE
+redesigning). Use case learned from code and docs:** field reporters file from phones; their daily
+question is "what do I owe, and by when?" The loop is assigned → accepted → inProgress → filed →
+approved/rejected, plus quick-draft filing (title/excerpt/category/body → draft; it can never publish;
+the byline always comes from the session). The desk views the same page for the whole board. Hard
+constraints: session-scoped queries stay `overrideAccess: false`; no write endpoints are added;
+English-first with Bengali helpers. **Current-state facts (read-only probe, 2026-10-25):** 0
+assignments locally (the empty state IS the product a new reporter sees), 20 articles, no reporter
+account locally — verification uses the throwaway-account pattern (T-77). **Weak spots found:** all
+inline styles off the scale (0.875rem = ~11.4px real at Payload's 13px root), a Tailwind-blue button
+and dead `dark:` classes in a light-only admin, status/priority as plain text (no chips), no
+overdue urgency, active and decided assignments in one undifferentiated list, and no after-filing
+feedback loop (a reporter's recent articles exist in data but render nowhere). **Proposed redesign
+(small chunks, on the approved scale):** (C1) header + counts summary strip; (C2) overdue callout;
+(C3) active assignment cards with semantic status/priority chips, relative Dhaka deadlines, muted
+briefs; (C4) quieter "filed & decided" strip (last 5); (C5) "My recent work" — newest 5 own articles
+with review-status chips (closes the file-and-forget loop); (C6) Quick Draft re-skinned into a
+system card (labels/help/chips/48px submit on tokens, success/danger message chips); all styles move
+to a new `_admin-reporter.scss` — the page becomes the pattern for external-surface scale use.
+Deliberately out of scope: accept/decline quick actions (would need a new write endpoint — a
+separate owner decision). **Status: PROPOSED to owner, awaiting approval before code.**
+
 ### T-90 — 🔵 QUEUED (2026-10-19 22:05 +06:00): optional bilingual admin UI + Bangla Academy copy review
 
 Owner approved adding the capability after the current CMS redesign queue. Scope is **not** to make
