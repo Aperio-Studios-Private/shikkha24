@@ -94,6 +94,34 @@
   background-color: var(--shikkha-success-emphasis-hover);
 }
 
+/*
+ * E2 — every popup-button variant must look pressable.
+ *
+ * Payload renders the split control's chevron as `popup-button--background`,
+ * which none of the rules above matched, so it measured transparent / 0px
+ * border / 0px radius: an invisible button beside a bright green one. This
+ * catch-all gives any unmatched variant the same affordance as the rest.
+ */
+.popup-button:not([class*='popup-button--']) {
+  min-height: var(--shikkha-control-strong);
+  border: 1px solid var(--shikkha-border);
+  border-radius: var(--shikkha-radius-s);
+  background-color: var(--shikkha-surface);
+  color: var(--shikkha-ink);
+}
+
+.popup-button.popup-button--background:not(.btn--disabled) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--shikkha-control-strong);
+  min-height: var(--shikkha-control-strong);
+  border: 1px solid var(--shikkha-success-emphasis-hover);
+  border-radius: var(--shikkha-radius-s);
+  background-color: var(--shikkha-success-emphasis-hover);
+  color: var(--shikkha-success-on-emphasis);
+}
+
 #action-unpublish:not(.btn--disabled),
 #action-unpublish-locale:not(.btn--disabled) {
   border-color: var(--shikkha-warning-emphasis-hover);
