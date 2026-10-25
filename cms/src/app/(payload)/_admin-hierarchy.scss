@@ -204,31 +204,6 @@
     font-weight: 700;
   }
 
-  .reporter-quicklink {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 20px;
-    border: 1px solid var(--shikkha-border);
-    border-radius: 14px;
-    background-color: var(--shikkha-surface);
-  }
-
-  .reporter-quicklink h2 {
-    margin: 0;
-    font-size: 20px;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
-  }
-
-  .reporter-quicklink p {
-    margin: 6px 0 0;
-    color: var(--shikkha-ink-muted);
-    font-size: 13px;
-    line-height: 1.5;
-  }
-
   .collections__card-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -253,10 +228,4 @@
     background-color: var(--shikkha-surface);
   }
 
-  @media (max-width: 768px) {
-    .reporter-quicklink {
-      align-items: stretch;
-      flex-direction: column;
-    }
-  }
 }

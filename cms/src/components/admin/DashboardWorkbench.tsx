@@ -19,6 +19,11 @@ import {
 
 /**
  * Task-first dashboard cards before Payload's collection overview.
+ *
+ * Reporters also get a "My Work" row inside this section (T-89 C1c7
+ * consolidation): it carries the dashboard-body entry to /admin/reporter that
+ * the retired standalone banner used to provide, now shown only to the role it
+ * serves instead of every signed-in user.
  */
 export async function DashboardWorkbench() {
   const headers = await getHeaders()
@@ -295,6 +300,20 @@ export async function DashboardWorkbench() {
             </Link>
           ))}
         </div>
+        {!editor && (
+          <div className="dashboard-workbench__mywork">
+            <div>
+              <h3>🗂️ My Work (প্রতিবেদকের কাজ)</h3>
+              <p>
+                See your assignments and submit a quick draft (আপনার কাজের তালিকা দেখুন এবং দ্রুত সংবাদ জমা
+                দিন)।
+              </p>
+            </div>
+            <Link className="dashboard-workbench__mywork-action" href="/admin/reporter">
+              Open My Work
+            </Link>
+          </div>
+        )}
         <div className="dashboard-workbench__recent">
           <div className="dashboard-workbench__recent-header">
             <h3>Recent work</h3>

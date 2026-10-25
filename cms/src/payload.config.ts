@@ -215,19 +215,15 @@ export default buildConfig({
       /*
        * ⚠️ A view nothing links to is a view nobody finds. The dashboard lists
        * 33 collections and neither `assignments` nor this workspace would be
-       * discoverable from it, so it gets two entry points: the conventional nav
-       * slot, and a card in the dashboard body.
-       *
-       * The card exists because the nav slot's output did not appear in the
-       * server-rendered HTML — the dashboard body does, so at least one entry
-       * point is verifiable rather than assumed.
+       * discoverable from it, so it gets two entry points: the nav slot below,
+       * and the reporter-only "My Work" row the workbench renders into the
+       * server-rendered dashboard body. (T-89 C1c7 consolidation: the standalone
+       * dashboard card was retired once the nav slot was verified live, removing
+       * duplicate entry points for editors and ad managers.)
        */
       beforeNavLinks: ['/components/admin/DashboardNavLink#DashboardNavLink'],
       afterNavLinks: ['/components/admin/ReporterNavLink#ReporterNavLink'],
-      beforeDashboard: [
-        '/components/admin/DashboardWorkbench#DashboardWorkbench',
-        '/components/admin/ReporterDashboardLink#ReporterDashboardLink',
-      ],
+      beforeDashboard: ['/components/admin/DashboardWorkbench#DashboardWorkbench'],
     },
   },
 

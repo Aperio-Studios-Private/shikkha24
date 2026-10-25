@@ -3572,6 +3572,18 @@ hover-property inventory, (4) C2b workflow explainer if absent, (5) C3a–C3c ta
 (6) C4a/C4b article editor guide, (7) C5a/C5b media guide, (8) C6a/C6b reporter workspace polish,
 (9) C7a–C7c field help for the 12 low-guidance collections, (10) C8a/C8b final QA.
 
+**C1c7 reporter-banner consolidation completed locally (not pushed/deployed) — first chunk under the
+new method, AWAITING OWNER REVIEW.** The standalone `ReporterDashboardLink` dashboard card is retired;
+the dashboard-body entry to `/admin/reporter` now lives inside the workbench as a reporter-only
+"🗂️ My Work" row (bilingual guidance preserved), so editors and ad managers no longer see a duplicate
+entry point. The sidebar "My Work" nav link (verified live in C1c6) stays for every role. Removed the
+registration, the component, and the `.reporter-quicklink` styles; import map regenerated. Evidence:
+CMS typecheck/lint/production build pass; headless-Chrome CDP role check — superAdmin dashboard: no
+My Work row, no old quicklink; reporter dashboard (1280×800 and 390×844): row renders with
+`dashboard-workbench__mywork`, href `/admin/reporter`, zero horizontal overflow. Scratch probe
+`cms/src/verify-tmp-t89-mywork.ts` created the two throwaway accounts (superAdmin + reporter) used
+for the check and was deleted in the same session along with the accounts (T-77 rule).
+
 ### T-90 — 🔵 QUEUED (2026-10-19 22:05 +06:00): optional bilingual admin UI + Bangla Academy copy review
 
 Owner approved adding the capability after the current CMS redesign queue. Scope is **not** to make

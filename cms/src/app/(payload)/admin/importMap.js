@@ -27,7 +27,6 @@ import { BrandIcon as BrandIcon_d0588eb7948ddcaab14f9f6ea2cd1dd7 } from '../../.
 import { BrandLogo as BrandLogo_9bb8ea9971948830b3de812baaa56aec } from '../../../components/admin/BrandLogo'
 import { ReporterNavLink as ReporterNavLink_a2d61f434ac4f4eba5efaab27e9ed1aa } from '../../../components/admin/ReporterNavLink'
 import { DashboardWorkbench as DashboardWorkbench_8dea54aae15c06f2906fd7521eaebe5b } from '../../../components/admin/DashboardWorkbench'
-import { ReporterDashboardLink as ReporterDashboardLink_dbea3dee97738c88cf34703830bb8ff2 } from '../../../components/admin/ReporterDashboardLink'
 import { DashboardNavLink as DashboardNavLink_fc56cb2194b7502b86cb11a3f2f00e19 } from '../../../components/admin/DashboardNavLink'
 import { ReporterWorkspace as ReporterWorkspace_750dabffb1accf259adc437cc5df6b4e } from '../../../components/admin/ReporterWorkspace'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
@@ -63,7 +62,6 @@ export const importMap = {
   "/components/admin/BrandLogo#BrandLogo": BrandLogo_9bb8ea9971948830b3de812baaa56aec,
   "/components/admin/ReporterNavLink#ReporterNavLink": ReporterNavLink_a2d61f434ac4f4eba5efaab27e9ed1aa,
   "/components/admin/DashboardWorkbench#DashboardWorkbench": DashboardWorkbench_8dea54aae15c06f2906fd7521eaebe5b,
-  "/components/admin/ReporterDashboardLink#ReporterDashboardLink": ReporterDashboardLink_dbea3dee97738c88cf34703830bb8ff2,
   "/components/admin/DashboardNavLink#DashboardNavLink": DashboardNavLink_fc56cb2194b7502b86cb11a3f2f00e19,
   "/components/admin/ReporterWorkspace#ReporterWorkspace": ReporterWorkspace_750dabffb1accf259adc437cc5df6b4e,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
