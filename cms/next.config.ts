@@ -53,8 +53,20 @@ const CSP_API =
  * `frame-ancestors`, `object-src` and `base-uri` stay locked down — the admin
  * is credential-handling code and gets no relaxation on those.
  */
-const CSP_ADMIN =
+const CSP_ADMIN_PROD =
   "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; frame-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+
+/*
+ * Dev-only relaxation: React 19 (Turbopack) uses eval() in development for
+ * debugging — callstack reconstruction and the overlay — and loudly complains
+ * when the CSP forbids it. Production React never evals, so production must
+ * never advertise 'unsafe-eval': the string is added only when Next runs in
+ * development. Verified by header probes on both servers after the change.
+ */
+const CSP_ADMIN =
+  process.env.NODE_ENV === 'production'
+    ? CSP_ADMIN_PROD
+    : CSP_ADMIN_PROD.replace("'unsafe-inline'", "'unsafe-inline' 'unsafe-eval'")
 
 const nextConfig: NextConfig = {
   /**

@@ -3685,6 +3685,14 @@ path (MetaConfig extends Next Metadata). Verified on a production build: asset 2
 `/admin/login` head carries exactly `<link rel="icon" href="/brand-icon.svg" type="image/svg+xml"/>`,
 zero payload-favicon residue.
 
+**Dev-console eval() noise — ANSWERED + FIXED (2026-10-25).** Owner asked whether the
+React "eval() is not supported" console error is ignorable. Verdict: not a security issue —
+React evals only in development debug tooling, never in production build. But the spam teaches
+everyone to ignore the console, so it is fixed rather than tolerated: `cms/next.config.ts` now
+adds `'unsafe-eval'` to the admin CSP only when `NODE_ENV !== 'production'`. Verified by header
+probe: production server response has zero `unsafe-eval` (posture unchanged); dev server
+advertises it.
+
 **Chunk D — topbar refresh + global search ✅ SHIPPED LOCALLY (2026-10-25, AWAITING OWNER
 REVIEW).** Owner requests: "fix the topbar, more functional, more nice looking" + "global search is
 a nice approach". Shipped: `TopbarActions` (search ⌘K overlay + New Article + Site, role-aware) and
