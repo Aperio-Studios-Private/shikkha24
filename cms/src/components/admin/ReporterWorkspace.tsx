@@ -142,8 +142,12 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
     <DefaultTemplate {...props} viewType="reporter" visibleEntities={visibleEntities}>
       <div style={{ maxWidth: '46rem', margin: '0 auto', padding: '1rem' }}>
         <header style={{ marginBottom: '1.5rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>My Work (প্রতিবেদকের কাজ)</h1>
-          <p style={{ marginTop: '0.25rem', opacity: 0.75, fontSize: '0.875rem' }}>
+          <h1 style={{ fontSize: 'var(--shikkha-text-heading)', fontWeight: 700 }}>
+            My Work (প্রতিবেদকের কাজ)
+          </h1>
+          <p
+            style={{ marginTop: '0.25rem', opacity: 0.75, fontSize: 'var(--shikkha-text-body-sm)' }}
+          >
             {isEditor
               ? 'Viewing all assignments as desk (ডেস্ক হিসেবে সব কাজ দেখা হচ্ছে)।'
               : 'Your own assignments and quick-draft (আপনার নিজের কাজ ও দ্রুত সংবাদ জমা দেওয়ার জায়গা)।'}
@@ -152,12 +156,18 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
 
         {/* ── আমার কাজ ─────────────────────────────────────────────────────── */}
         <section style={{ marginBottom: '2rem' }}>
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+          <h2
+            style={{
+              fontSize: 'var(--shikkha-text-title)',
+              fontWeight: 600,
+              marginBottom: '0.75rem',
+            }}
+          >
             My Work (আমার কাজ) {assignments.length > 0 && `(${assignments.length})`}
           </h2>
 
           {assignments.length === 0 ? (
-            <p style={{ fontSize: '0.875rem', opacity: 0.75 }}>
+            <p style={{ fontSize: 'var(--shikkha-text-body-sm)', opacity: 0.75 }}>
               Nothing assigned yet. Work from an editor will appear here (এখন কোনো কাজ নেই। সম্পাদক কাজ
               দিলে এখানে দেখা যাবে)।
             </p>
@@ -186,7 +196,7 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
                     <p
                       style={{
                         marginTop: '0.375rem',
-                        fontSize: '0.8125rem',
+                        fontSize: 'var(--shikkha-text-body-sm)',
                         opacity: 0.8,
                         display: 'flex',
                         flexWrap: 'wrap',
@@ -210,7 +220,13 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
                     </p>
 
                     {assignment.brief && (
-                      <p style={{ marginTop: '0.375rem', fontSize: '0.8125rem', opacity: 0.7 }}>
+                      <p
+                        style={{
+                          marginTop: '0.375rem',
+                          fontSize: 'var(--shikkha-text-body-sm)',
+                          opacity: 0.7,
+                        }}
+                      >
                         {assignment.brief}
                       </p>
                     )}
@@ -223,7 +239,13 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
 
         {/* ── দ্রুত সংবাদ ───────────────────────────────────────────────────── */}
         <section>
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+          <h2
+            style={{
+              fontSize: 'var(--shikkha-text-title)',
+              fontWeight: 600,
+              marginBottom: '0.75rem',
+            }}
+          >
             Quick Draft (দ্রুত সংবাদ)
           </h2>
 
@@ -235,7 +257,7 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
              * and the endpoint will not guess one. Better to say so than to show a
              * form that fails on submit.
              */
-            <p style={{ fontSize: '0.875rem', opacity: 0.75 }}>
+            <p style={{ fontSize: 'var(--shikkha-text-body-sm)', opacity: 0.75 }}>
               No author profile is linked to your account, so drafts cannot be submitted. Contact an
               editor (আপনার অ্যাকাউন্টের সাথে কোনো লেখক প্রোফাইল যুক্ত নেই, তাই সংবাদ জমা দেওয়া যাবে না)।
             </p>

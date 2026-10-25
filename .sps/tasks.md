@@ -3596,6 +3596,34 @@ count 34→42px, descriptions 13→14px, actions →14px/36px; My Work row now a
 11→12px chips, 56px rows; collections label 16→17px and card titles 14→15px). Stayed inside the
 semantic token system, no shadows/gradients/motion, mobile 48px targets intact.
 
+**Chunk B — Shikkha Admin Scale (entire-CMS sizing system), this commit, AWAITING OWNER REVIEW.**
+Owner directive (2026-10-25): the per-chunk sizes are "not best practice system used" — build ONE
+system for the whole CMS and apply it everywhere. Researched the canonical scales (Carbon type
+ladder from `packages/type/scss/_scale.scss`, Carbon/Material 8dp spacing, WCAG 2.2 / Apple HIG /
+Material control minima; web_search was down, token sources fetched from GitHub raw) and shipped
+`cms/src/app/(payload)/_admin-scale.scss`: type steps 12/14/16/18/24/28/42px (Carbon steps), line
+heights 1.35/1.5/1.3/1.25 by role, spacing 4/8/12/16/20/24/32/48px, control heights 32 quiet /
+40 default / 44 strong (HIG) / 48 touch, weights 500/600/700 (650/750 stragglers normalized),
+radius-pill/xl added. Applied across the whole admin (dashboard, hierarchy/nav/sidebar, controls,
+actions, reporter-workspace inline styles; login and login-form included): every font-size,
+control height, gap, padding and weight now reads a `var(--shikkha-*)` token — sweep shows only
+content-driven layout min-heights stay literal. **Declared computed changes:** workbench h2 22→24px,
+collections label 17→18, meta text 13→14, status-chip chrome 26→24px (Carbon tag), card titles
+15→16, actions/pills/labels 13→14px, pill 36→40px, My Work CTA 40→44px, .btn label weight 650→600,
+primary action weight 750→700, nav links 36→32px/13→14px (Carbon side-nav). Evidence: lint +
+typecheck + production build pass; CDP verification entry below. **⚠️ The rem-vs-admin-root lesson
+(do not re-learn):** the first tokenisation used rem values and headless-Chrome CDP measured every
+size at 0.8125× (desktop) / 0.75× (mobile) — **Payload's admin root font is ~13px (12px narrow), not
+16px**, so rem tokens silently shrink. Lint/build cannot see it; only rendered measurement can.
+`--shikkha-text-*` is now device-px (root-independent), `.field-description` rides the caption
+step (12px — Carbon helper-text-01, vs its historical ~10.5px), and the same CDP sweep caught one
+accidentally deleted `.dashboard-workbench__description` rule, restored. Final computed evidence
+(owner's dev server, Chrome CDP): greeting 28px, workbench h2 24px, card titles 16px, counts 42px,
+card descriptions 14px, recent items 16px, status chips 12px, collections label 18px, My Work h3
+18px + solid-blue CTA rgb(29,78,216), nav links 14px/32px and group labels 12px/32px desktop →
+14px/48px mobile, list "Create new" 14px/44px — identical across roles and breakpoints, zero
+horizontal overflow at 1280×800 and 390×844. Temp accounts + scratch probe deleted same-session (T-77).
+
 ### T-90 — 🔵 QUEUED (2026-10-19 22:05 +06:00): optional bilingual admin UI + Bangla Academy copy review
 
 Owner approved adding the capability after the current CMS redesign queue. Scope is **not** to make

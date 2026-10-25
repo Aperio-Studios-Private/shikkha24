@@ -1,5 +1,5 @@
 /**
- * T-89 C1b — admin surface hierarchy.
+ * T-89 C1b — admin surface hierarchy. Sizes come from _admin-scale.scss.
  *
  * White navigation, header, cards, and forms sit on a cooler canvas. Borders and
  * typography carry hierarchy without shadows, gradients, or animation.
@@ -49,17 +49,17 @@
   }
 
   .nav-group {
-    margin-bottom: 0.875rem;
+    margin-bottom: var(--shikkha-space-4);
   }
 
   .nav-group__toggle {
     align-items: center;
     justify-content: space-between;
-    min-height: 32px;
-    padding: 0 0.5rem;
+    min-height: var(--shikkha-control-quiet);
+    padding: 0 var(--shikkha-space-2);
     color: var(--shikkha-neutral-0);
-    font-size: 11px;
-    font-weight: 700;
+    font-size: var(--shikkha-text-caption);
+    font-weight: var(--shikkha-weight-bold);
     letter-spacing: 0.06em;
     text-transform: uppercase;
     background-color: var(--shikkha-brand-emphasis-hover);
@@ -76,10 +76,10 @@
   }
 
   .nav__link {
-    min-height: 36px;
+    min-height: var(--shikkha-control-quiet);
     color: var(--shikkha-ink);
-    font-size: 13px;
-    line-height: 1.25;
+    font-size: var(--shikkha-text-body-sm);
+    line-height: var(--shikkha-lh-heading);
     border-bottom: 1px solid var(--shikkha-neutral-100);
   }
 
@@ -104,40 +104,40 @@
     }
 
     .nav-group__toggle {
-      min-height: 48px;
-      font-size: 12px;
+      min-height: var(--shikkha-control-touch);
+      font-size: var(--shikkha-text-body-sm);
     }
 
     .nav__link {
-      min-height: 48px;
-      font-size: 14px;
+      min-height: var(--shikkha-control-touch);
+      font-size: var(--shikkha-text-body-sm);
     }
   }
 
   .template-default label.field-label:not(.unstyled) {
     color: var(--shikkha-ink);
-    font-size: 0.875rem;
-    font-weight: 650;
+    font-size: var(--shikkha-text-body-sm);
+    font-weight: var(--shikkha-weight-semibold);
   }
 
   .template-default .field-description {
     color: var(--shikkha-ink-muted);
-    font-size: 0.8125rem;
+    font-size: var(--shikkha-text-caption);
   }
 
   .template-default .doc-header__title {
-    font-size: 1.75rem;
+    font-size: var(--shikkha-text-page);
   }
 
   .custom-view-description {
     max-width: 72rem;
-    padding: 0.75rem 1rem;
+    padding: var(--shikkha-space-3) var(--shikkha-space-4);
     border: 1px solid var(--shikkha-warning-border);
     border-radius: var(--shikkha-radius-m);
     background-color: var(--shikkha-warning-bg);
     color: var(--shikkha-warning-fg);
-    font-size: 0.8125rem;
-    line-height: 1.5;
+    font-size: var(--shikkha-text-body-sm);
+    line-height: var(--shikkha-lh-body);
   }
 
   .document-fields__edit,
@@ -152,7 +152,7 @@
   .field-type input:not([type='checkbox']):not([type='radio']),
   .field-type textarea,
   .field-type select {
-    min-height: 44px;
+    min-height: var(--shikkha-control-strong);
     border: 1px solid var(--shikkha-border-strong);
     border-radius: var(--shikkha-radius-s);
     background-color: var(--shikkha-surface);
@@ -200,29 +200,29 @@
 
   .card__title {
     color: var(--shikkha-ink);
-    font-size: 15px;
-    font-weight: 700;
+    font-size: var(--shikkha-text-body);
+    font-weight: var(--shikkha-weight-bold);
   }
 
   .collections__card-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 0.625rem;
+    gap: var(--shikkha-space-2);
     list-style: none;
   }
 
   .collections__card-list .card {
     min-height: 3.5rem;
-    padding: 0.75rem 0.875rem;
+    padding: var(--shikkha-space-3) var(--shikkha-space-4);
   }
 
   .collections__card-list .card__title {
-    font-size: 0.9375rem;
-    line-height: 1.35;
+    font-size: var(--shikkha-text-body);
+    line-height: var(--shikkha-lh-caption);
   }
 
   .login__form {
-    padding: 24px;
+    padding: var(--shikkha-space-6);
     border: 1px solid var(--shikkha-border);
     border-radius: var(--shikkha-radius-l);
     background-color: var(--shikkha-surface);

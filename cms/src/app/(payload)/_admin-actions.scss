@@ -1,5 +1,5 @@
 /**
- * T-89 — final action-control system.
+ * T-89 — final action-control system. Sizes come from _admin-scale.scss.
  *
  * Payload injects a second copy of its styles after the custom layer. These
  * unlayered rules win the cascade without `!important`. Colour encodes the
@@ -14,24 +14,24 @@
 }
 
 .doc-controls__wrapper {
-  gap: 16px;
+  gap: var(--shikkha-space-4);
 }
 
 .doc-controls__content {
-  gap: 16px;
+  gap: var(--shikkha-space-4);
 }
 
 .doc-controls__controls {
-  gap: 12px;
+  gap: var(--shikkha-space-3);
 }
 
 .doc-controls__meta {
-  gap: 16px;
+  gap: var(--shikkha-space-4);
 }
 
 .doc-controls__dots {
-  width: 44px;
-  height: 44px;
+  width: var(--shikkha-control-strong);
+  height: var(--shikkha-control-strong);
   border: 1px solid var(--shikkha-border);
   border-radius: var(--shikkha-radius-s);
   background-color: var(--shikkha-surface);
@@ -42,16 +42,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-width: 44px;
-  height: 44px;
-  padding: 0 12px;
+  gap: var(--shikkha-space-2);
+  min-width: var(--shikkha-control-strong);
+  height: var(--shikkha-control-strong);
+  padding: 0 var(--shikkha-space-3);
   border: 1px solid var(--shikkha-info-border);
   border-radius: var(--shikkha-radius-s);
   background-color: var(--shikkha-info-bg);
   color: var(--shikkha-info-fg);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--shikkha-text-body-sm);
+  font-weight: var(--shikkha-weight-bold);
   text-decoration: none;
 }
 
@@ -63,34 +63,34 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  min-width: 32px;
-  min-height: 32px;
+  gap: var(--shikkha-space-1);
+  min-width: var(--shikkha-control-quiet);
+  min-height: var(--shikkha-control-quiet);
   border: 1px solid var(--shikkha-info-border);
-  border-radius: 8px;
+  border-radius: var(--shikkha-radius-s);
   background-color: var(--shikkha-info-bg);
   color: var(--shikkha-info-fg);
 }
 
 .link-edit::after {
   content: "Edit";
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--shikkha-text-caption);
+  font-weight: var(--shikkha-weight-bold);
 }
 
 .btn--style-primary .btn:not(.btn--disabled),
 .btn--style-primary .popup-button {
-  min-height: 44px;
+  min-height: var(--shikkha-control-strong);
   border: 1px solid var(--shikkha-success-emphasis-hover);
   border-radius: var(--shikkha-radius-s);
   background-color: var(--shikkha-success-emphasis);
   color: var(--shikkha-success-on-emphasis);
-  font-size: 13px;
-  font-weight: 750;
+  font-size: var(--shikkha-text-body-sm);
+  font-weight: var(--shikkha-weight-bold);
 }
 
 .btn--style-primary .popup-button {
-  width: 44px;
+  width: var(--shikkha-control-strong);
   background-color: var(--shikkha-success-emphasis-hover);
 }
 
@@ -134,9 +134,9 @@
 
 .popup-button-list {
   display: grid;
-  gap: 4px;
+  gap: var(--shikkha-space-1);
   min-width: 210px;
-  padding: 8px;
+  padding: var(--shikkha-space-2);
   border: 1px solid var(--shikkha-border);
   border-radius: var(--shikkha-radius-m);
   background-color: var(--shikkha-surface);
@@ -145,19 +145,19 @@
 .popup-button-list__button {
   display: flex;
   align-items: center;
-  min-height: 44px;
-  padding: 0 12px;
+  min-height: var(--shikkha-control-strong);
+  padding: 0 var(--shikkha-space-3);
   border: 1px solid transparent;
   border-radius: var(--shikkha-radius-s);
   color: var(--shikkha-ink);
-  font-size: 13px;
-  font-weight: 650;
+  font-size: var(--shikkha-text-body-sm);
+  font-weight: var(--shikkha-weight-semibold);
   text-align: left;
 }
 
 .popup-button-list__button::before {
-  margin-right: 8px;
-  font-size: 14px;
+  margin-right: var(--shikkha-space-2);
+  font-size: var(--shikkha-text-body-sm);
 }
 
 #action-create::before {
@@ -182,7 +182,7 @@
 
 #action-save .btn__label::before {
   content: "🚀";
-  margin-right: 8px;
+  margin-right: var(--shikkha-space-2);
 }
 
 #action-save-draft::before {
@@ -192,87 +192,87 @@
 .delete-document__toggle {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
-  padding: 0 14px;
+  min-height: var(--shikkha-control-strong);
+  padding: 0 var(--shikkha-space-4);
   border-radius: var(--shikkha-radius-s);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--shikkha-text-body-sm);
+  font-weight: var(--shikkha-weight-bold);
 }
 
 .delete-document__toggle::before {
   content: "🗑️";
-  margin-right: 8px;
+  margin-right: var(--shikkha-space-2);
 }
 
 .list-create-new-doc__create-new-button:not(.btn--disabled) {
-  min-height: 44px;
-  padding: 0 16px;
+  min-height: var(--shikkha-control-strong);
+  padding: 0 var(--shikkha-space-4);
   border-radius: var(--shikkha-radius-s);
-  font-size: 13px;
+  font-size: var(--shikkha-text-body-sm);
 }
 
 .list-create-new-doc__create-new-button .btn__label::before {
   content: "➕";
-  margin-right: 8px;
+  margin-right: var(--shikkha-space-2);
 }
 
 .pill {
-  min-height: 36px;
-  padding: 0 12px;
+  min-height: var(--shikkha-control-default);
+  padding: 0 var(--shikkha-space-3);
   border: 1px solid var(--shikkha-border);
   border-radius: var(--shikkha-radius-s);
   background-color: var(--shikkha-neutral-100);
   color: var(--shikkha-ink);
-  font-size: 13px;
-  font-weight: 650;
+  font-size: var(--shikkha-text-body-sm);
+  font-weight: var(--shikkha-weight-semibold);
 }
 
 .pill--has-icon {
-  gap: 6px;
-  padding-right: 8px;
+  gap: var(--shikkha-space-2);
+  padding-right: var(--shikkha-space-2);
 }
 
 .array-field__add-row:not(.btn--disabled) {
-  min-height: 44px;
-  padding: 0 14px;
+  min-height: var(--shikkha-control-strong);
+  padding: 0 var(--shikkha-space-4);
   border: 1px dashed var(--shikkha-info-border);
   border-radius: var(--shikkha-radius-s);
   background-color: var(--shikkha-info-bg);
   color: var(--shikkha-info-fg);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--shikkha-text-body-sm);
+  font-weight: var(--shikkha-weight-bold);
 }
 
 .array-field__add-row .btn__label::before {
   content: "➕";
-  margin-right: 8px;
+  margin-right: var(--shikkha-space-2);
 }
 
 .upload__createNewToggler:not(.btn--disabled),
 .upload__listToggler:not(.btn--disabled) {
-  min-height: 44px;
-  padding: 0 12px;
+  min-height: var(--shikkha-control-strong);
+  padding: 0 var(--shikkha-space-3);
   border: 1px solid var(--shikkha-info-border);
   border-radius: var(--shikkha-radius-s);
   background-color: var(--shikkha-info-bg);
   color: var(--shikkha-info-fg);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--shikkha-text-body-sm);
+  font-weight: var(--shikkha-weight-bold);
 }
 
 .upload__createNewToggler .btn__label::before {
   content: "➕";
-  margin-right: 6px;
+  margin-right: var(--shikkha-space-2);
 }
 
 .upload__listToggler .btn__label::before {
   content: "🗂️";
-  margin-right: 6px;
+  margin-right: var(--shikkha-space-2);
 }
 
 .relationship-add-new__add-button:not(.relationship-add-new__add-button--unstyled) {
-  width: 44px;
-  min-height: 44px;
+  width: var(--shikkha-control-strong);
+  min-height: var(--shikkha-control-strong);
   justify-content: center;
   border-color: var(--shikkha-info-border);
   background-color: var(--shikkha-info-bg);
@@ -280,10 +280,10 @@
 }
 
 .sort-column__button {
-  width: 32px;
-  height: 32px;
+  width: var(--shikkha-control-quiet);
+  height: var(--shikkha-control-quiet);
   border: 1px solid var(--shikkha-border);
-  border-radius: 8px;
+  border-radius: var(--shikkha-radius-s);
   background-color: var(--shikkha-neutral-100);
   color: var(--shikkha-ink);
   opacity: 1;

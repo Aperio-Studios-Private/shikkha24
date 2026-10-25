@@ -1,5 +1,5 @@
 /**
- * T-89 C1b — flat semantic controls.
+ * T-89 C1b — flat semantic controls. Sizes come from _admin-scale.scss.
  *
  * Primary actions commit; secondary and dashed actions navigate or add; subtle
  * actions cancel; delete is danger-colored. Hover preserves resting styles.
@@ -19,13 +19,13 @@
   }
 
   .btn {
-    --btn-font-weight: 650;
+    --btn-font-weight: var(--shikkha-weight-semibold);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-block-size: 44px;
+    min-block-size: var(--shikkha-control-strong);
     vertical-align: middle;
-    padding-inline: 14px;
+    padding-inline: var(--shikkha-space-4);
     border-radius: var(--shikkha-radius-s);
     box-shadow: none;
     transition: none;
@@ -143,7 +143,7 @@
     --btn-border: 1px solid transparent;
     --hover-btn-border: 1px solid var(--shikkha-border);
     color: var(--shikkha-ink-muted);
-    padding-inline: 8px;
+    padding-inline: var(--shikkha-space-2);
   }
 
   .list-create-new-doc__create-new-button:not(.btn--disabled) {
@@ -156,7 +156,7 @@
     background-color: var(--shikkha-success-emphasis);
     border: 1px solid var(--shikkha-success-emphasis-hover);
     color: #fff;
-    font-weight: 650;
+    font-weight: var(--shikkha-weight-semibold);
   }
 
   .btn__icon {
@@ -165,8 +165,8 @@
   }
 
   .delete-document__toggle {
-    min-block-size: 44px;
-    padding-inline: 10px;
+    min-block-size: var(--shikkha-control-strong);
+    padding-inline: var(--shikkha-space-3);
     border: 1px solid var(--shikkha-danger-border);
     border-radius: var(--shikkha-radius-s);
     background-color: var(--shikkha-danger-bg);
@@ -202,7 +202,7 @@
     .field-type input:not([type='checkbox']):not([type='radio']),
     .field-type textarea,
     .field-type select {
-      min-block-size: 48px;
+      min-block-size: var(--shikkha-control-touch);
     }
   }
 }
