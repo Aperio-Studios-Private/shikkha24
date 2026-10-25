@@ -3625,7 +3625,12 @@ card descriptions 14px, recent items 16px, status chips 12px, collections label 
 horizontal overflow at 1280×800 and 390×844. Temp accounts + scratch probe deleted same-session (T-77).
 
 **Owner verdicts (2026-10-25 17:44):** Chunk A ✅; Chunk B ✅ — "dashboard and sidebar is perfect".
-**Owner reorder:** the /admin/reporter page is next (ahead of S1/S2/D1–D4, which stay queued after it).
+**Owner reorder:** the /admin/reporter page is next (ahead of S1/S2/D1–D4, which stay queued after it;
+reporter C1–C3 shipped 2026-10-25). **S1 shipped 2026-10-25:** "My Work" nav link moved from
+afterNavLinks (bottom, after ~34 collections) into beforeNavLinks directly after Dashboard — the two
+personal-task links now sit together at the top. Typecheck/lint/production build green.
+⚠️ Scope discipline (owner 2026-10-25): T-89 is UI/UX polish only — no database/seed work. A
+leftover diagnostic probe (verify-tmp-t89-diag.ts) was caught by lint and removed same-session.
 
 **Chunk C — reporter workspace redesign (learn-first, owner directive: understand the use case BEFORE
 redesigning). Use case learned from code and docs:** field reporters file from phones; their daily

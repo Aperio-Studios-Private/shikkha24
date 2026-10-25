@@ -229,8 +229,15 @@ export default buildConfig({
        * dashboard card was retired once the nav slot was verified live, removing
        * duplicate entry points for editors and ad managers.)
        */
-      beforeNavLinks: ['/components/admin/DashboardNavLink#DashboardNavLink'],
-      afterNavLinks: ['/components/admin/ReporterNavLink#ReporterNavLink'],
+      /*
+       * S1 (owner-approved): the two personal-task links sit together at the
+       * TOP of the sidebar, above ~34 collection links — "Dashboard" then
+       * "My Work", not one at each end of the list.
+       */
+      beforeNavLinks: [
+        '/components/admin/DashboardNavLink#DashboardNavLink',
+        '/components/admin/ReporterNavLink#ReporterNavLink',
+      ],
       beforeDashboard: ['/components/admin/DashboardWorkbench#DashboardWorkbench'],
       /*
        * Topbar live-search cluster — renders in AppHeader's actions row
