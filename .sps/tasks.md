@@ -4589,6 +4589,15 @@ variable transfer-সহ সংরক্ষিত; Actions সীমাহীন
   measured transparent / 0px border / 0px radius. Catch-all + explicit variant rule added. Verified:
   Publish emerald, chevron dark emerald, dots white-bordered, Schedule light green, and menu
   Create (blue) / Duplicate (white) / Delete (red) — all with bg + 1px border + 8px radius.
+- **E4 (tabs + icon affordances):** document tabs (Versions/API) carried
+  `btn--icon-style-without-border`, matched by no rule → 44px tall with no bg/border, reading as
+  plain text. Now bordered surface + active info state. `link-trash` given a 32px danger affordance;
+  20px icon toggles given a 32px hit area + focus outlines without painting boxes.
+- **E5 (top spacing, the real root cause):** Payload sets `.collection-list` `padding-top: 0` and the
+  gutter rule never reached that node, so list headers ("Create New" row) sat flush against the app
+  header. Measured 0 → **32px**. An earlier attempt padded `.template-default__wrap`, which is a grid
+  row containing the app header itself — it pushed the header down 16px instead (traced with
+  `CSS.getMatchedStylesForNode`); reverted and fixed at the correct node.
 - **E3 (consistency):** re-audit across 8 views × 2 widths. Root cause of remaining square buttons:
   Payload's own `--style-radius-s/m/l` were never mapped, so wherever Payload's layer won the
   cascade the shape collapsed. Mapped to our tokens; re-confirmed 8px radius on the article editor
