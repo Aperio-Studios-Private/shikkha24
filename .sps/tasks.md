@@ -3674,6 +3674,29 @@ cms.shikkha24.com still runs 16.4.0** — the patch reaches production only at t
 (T-31 Codespace cycle, owner-scheduled). Note: the owner's dev server on :3000 must be restarted to
 run 16.4.3 locally.
 
+**Working model (owner directive 2026-10-25):** the orchestrator decides and verifies; execution is
+delegated to lower-cost subagents; the orchestrator re-checks every delegated result (read the diff,
+run the gates, measure the render) before it commits. Subagents never self-commit.
+
+**Favicon swap (owner requested 2026-10-25, done same session):** admin tab icon now the
+official 16×16 brand mark — `cms/public/brand-icon.svg` (copied from the approved
+`cms/src/components/admin/brand-icon.svg`) registered through the supported `admin.meta.icons`
+path (MetaConfig extends Next Metadata). Verified on a production build: asset 200 image/svg+xml,
+`/admin/login` head carries exactly `<link rel="icon" href="/brand-icon.svg" type="image/svg+xml"/>`,
+zero payload-favicon residue.
+
+**Chunk D — topbar refresh + global search (owner requested 2026-10-25: "fix the topbar, more
+functional, more nice looking" + "global search is a nice approach").** Decision (orchestrator):
+keep Payload's avatar/StepNav; use the supported `admin.components.header[]` slot (renders in
+AppHeader's actions row, verified in `@payloadcms/ui/dist/elements/AppHeader/index.js`) for a
+`TopbarActions` client component: ⌘K/Ctrl+K global search (articles/assignments/authors, grouped
+results, keyboard nav) backed by a new session-scoped `GET /api/admin-search` endpoint
+(`user` + `overrideAccess: false`, 60-char cap, 5-per-group limit, SQLite `like`), plus role-aware
+quick actions (editorial: ＋ New Article emerald; reporter: Quick Draft; adManager: none beyond
+search-hide) and a 🌐 View-site link. Styles in new `_admin-topbar.scss` on the scale; English-first
+with Bengali helpers; no new dependency, no motion, 40/48px targets. Execution delegated to a
+subagent; orchestrator verifies gates + CDP before commit.
+
 ### T-90
 
 ### T-90 — 🔵 QUEUED (2026-10-19 22:05 +06:00): optional bilingual admin UI + Bangla Academy copy review

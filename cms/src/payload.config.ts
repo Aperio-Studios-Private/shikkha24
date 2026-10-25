@@ -192,6 +192,13 @@ export default buildConfig({
     avatar: 'default',
     meta: {
       titleSuffix: ' — শিক্ষা২৪.কম',
+      /*
+       * Brand favicon for the admin panel (T-89 favicon swap). The tab icon is
+       * the official 16×16 mark already approved for the nav brand; the file is
+       * served statically from cms/public so Payload's merge can reference it by
+       * URL. SVG covers every modern browser; no third-party fetch involved.
+       */
+      icons: { icon: [{ url: '/brand-icon.svg', type: 'image/svg+xml' }] },
     },
     components: {
       graphics: {
