@@ -3584,6 +3584,18 @@ My Work row, no old quicklink; reporter dashboard (1280×800 and 390×844): row 
 `cms/src/verify-tmp-t89-mywork.ts` created the two throwaway accounts (superAdmin + reporter) used
 for the check and was deleted in the same session along with the accounts (T-77 rule).
 
+**Owner feedback on slice #1 (2026-10-25, drives next chunk):** design reads plain and the dashboard
+typography is too small. Owner approved the full recommendation set as the chunk roadmap: S1 (My Work
+nav link moved beside Dashboard), S2 (collapsible workflow nav groups = C3a–C3c), D1 (publishing-flow
+explainer strip = C2b), D2 (collection-grid empty states = C1c10), D3 (ad-manager task card),
+D4 (recent work 3→5). Parked: D5 rebuild-status card (needs a data source), D6 hover-inventory.
+**Chunk A — dashboard typography & visual weight (this commit):** dashboard scale bumped end-to-end
+(greeting 22→26px title/13→15px description/44px CTA; workbench h2 20→22px; card titles 14→16px,
+count 34→42px, descriptions 13→14px, actions →14px/36px; My Work row now an info-tinted surface with
+18px heading, 14px guidance and a solid blue 40px CTA; recent work 14→15px items, 12→13px meta,
+11→12px chips, 56px rows; collections label 16→17px and card titles 14→15px). Stayed inside the
+semantic token system, no shadows/gradients/motion, mobile 48px targets intact.
+
 ### T-90 — 🔵 QUEUED (2026-10-19 22:05 +06:00): optional bilingual admin UI + Bangla Academy copy review
 
 Owner approved adding the capability after the current CMS redesign queue. Scope is **not** to make

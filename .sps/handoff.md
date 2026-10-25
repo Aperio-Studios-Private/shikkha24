@@ -11,6 +11,12 @@ overflow নেই)। Temp probe ও user-গুলো একই সেশন�
 ভিজ্যুয়াল রিভিউ বাকি**, তারপর ledger-এর পরের ছোট চাঙ্ক। লোকাল-অনলি কমিট এখন ~৩৫
 (হোল্ড)।
 
+**Chunk A (typography/visual weight) সম্পন্ন, রিভিউ অপেক্ষায়:** মালিকের মন্তব্য — ড্যাশবোর্ড
+"plain" ও ফন্ট ছোট। ড্যাশবোর্ড জুড়ে স্কেল বাড়ানো হয়েছে (26px greeting title, 22px h2,
+16px card title, 42px count, 14–15px body), My Work row এখন info-tinted surface + solid
+blue 40px CTA। প্রমাণ: CDP computed styles (উপরের মানগুলো লাইভ), overflow নেই, build/lint
+সবুজ। **এরপর অনুমোদিত রোডম্যাপ: S1 → S2 → D1 → D2 → D3 → D4** (tasks.md T-89 দ্রষ্টব্য)।
+
 
 দুটি নির্ধারিত অনুস্মারক চালানো হয়েছে (বিস্তারিত `.sps/tasks.md` ২০২৬-১০-২৫
 এন্ট্রিতে):
