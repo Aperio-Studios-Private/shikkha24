@@ -102,6 +102,72 @@
  * border / 0px radius: an invisible button beside a bright green one. This
  * catch-all gives any unmatched variant the same affordance as the rest.
  */
+/*
+ * E4 — document tabs (Versions / API / similar) carried Payload's
+ * `btn--icon-style-without-border` modifier, which none of our rules matched:
+ * 44px tall with no background and no border — they read as plain text, not as
+ * the switchable tabs they are. Same family as the popup chevron in E2.
+ */
+.doc-tab.btn,
+.btn--icon-style-without-border.btn {
+  border: 1px solid var(--shikkha-border);
+  border-radius: var(--shikkha-radius-s);
+  background-color: var(--shikkha-surface);
+  color: var(--shikkha-ink);
+}
+
+.doc-tab.btn:hover:not(.btn--disabled),
+.btn--icon-style-without-border.btn:hover:not(.btn--disabled) {
+  background-color: var(--shikkha-neutral-100);
+  color: var(--shikkha-ink);
+}
+
+.doc-tab.btn.active,
+.doc-tab.btn[aria-selected='true'] {
+  border-color: var(--shikkha-info-border);
+  background-color: var(--shikkha-info-bg);
+  color: var(--shikkha-info-fg);
+}
+
+/* E4 — the link trash icon inside rich text: invisible at 30px with no chrome. */
+.link-trash {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--shikkha-control-quiet);
+  height: var(--shikkha-control-quiet);
+  border: 1px solid var(--shikkha-danger-border-muted);
+  border-radius: var(--shikkha-radius-s);
+  background-color: var(--shikkha-danger-bg-muted);
+  color: var(--shikkha-danger-fg);
+}
+
+.link-trash:hover {
+  border-color: var(--shikkha-danger-border);
+  background-color: var(--shikkha-danger-bg);
+}
+
+/*
+ * E4 — 20px icon affordances (relationship dropdowns, block menu, date clear)
+ * stay visually quiet by convention, but must still be reachable: give the
+ * hit area a real size without painting a box around them.
+ */
+.dropdown-indicator,
+.add-block-menu,
+.date-time-picker__clear-button {
+  min-width: var(--shikkha-control-quiet);
+  min-height: var(--shikkha-control-quiet);
+}
+
+.dropdown-indicator:focus-visible,
+.add-block-menu:focus-visible,
+.date-time-picker__clear-button:focus-visible,
+.link-trash:focus-visible,
+.doc-tab.btn:focus-visible {
+  outline: 3px solid var(--shikkha-focus);
+  outline-offset: 2px;
+}
+
 .popup-button:not([class*='popup-button--']) {
   min-height: var(--shikkha-control-strong);
   border: 1px solid var(--shikkha-border);

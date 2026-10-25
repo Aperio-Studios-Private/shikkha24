@@ -157,9 +157,33 @@
     padding-block: var(--shikkha-space-4);
   }
 
-  /* The wrap itself starts flush under the header — give the whole page air. */
+  /*
+   * E5 — the page container starts flush under the app header on EVERY view.
+   *
+   * Measured on the articles list before this rule: header bottom 56px,
+   * "Create New" top 56px, .collection padding-top 0 — the list header and its
+   * primary button were touching the top bar. The wrap's gutter is the shared
+   * container for list, editor and global views, so the air belongs here.
+   */
+  /*
+   * ⚠️ The air must go INSIDE the content, never on `.template-default__wrap`:
+   * the app header is a grid row of that same template, so padding there
+   * shifted the header down 16px and the content stayed flush beneath it
+   * (measured: headerTop 16, header bottom 72, list-header top 72).
+   */
   .template-default__wrap > .gutter--left,
   .template-default__wrap > .gutter--right {
+    padding-top: var(--shikkha-space-4);
+  }
+
+  /*
+   * List pages: the collection wrapper owns the top edge and Payload sets its
+   * padding-top to 0, so the list header ("Create New" row) touched the app
+   * header. Traced via CSS.getMatchedStylesForNode — the gutter rule above does
+   * not reach this node.
+   */
+  .collection-list,
+  .collection-list__wrap {
     padding-top: var(--shikkha-space-4);
   }
 
