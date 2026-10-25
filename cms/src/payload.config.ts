@@ -40,6 +40,7 @@ import { Scholarships } from './collections/Scholarships'
 import { StudyAbroadGuides } from './collections/StudyAbroadGuides'
 import { Tags } from './collections/Tags'
 import { Users } from './collections/Users'
+import { adminSearchEndpoint } from './endpoints/admin-search'
 import { citizenSubmitEndpoint } from './endpoints/citizen'
 // NOTE: the comment endpoint is intentionally NOT imported here — it mounts on
 // the Comments collection, not at the API root. See the `endpoints` block below.
@@ -231,6 +232,14 @@ export default buildConfig({
       beforeNavLinks: ['/components/admin/DashboardNavLink#DashboardNavLink'],
       afterNavLinks: ['/components/admin/ReporterNavLink#ReporterNavLink'],
       beforeDashboard: ['/components/admin/DashboardWorkbench#DashboardWorkbench'],
+      /*
+       * Topbar live-search cluster — renders in AppHeader's actions row
+       * (top-right). ⚠️ NOT the `header` slot: that one renders ABOVE the
+       * whole page as a full-width block, which pushed the entire admin chrome
+       * down and flooded the 390px mobile row (2026-10-25 breakage). `actions`
+       * is the slot Payload's own AppHeader consumes (getRouteData.js:70).
+       */
+      actions: ['/components/admin/TopbarActions#TopbarActions'],
     },
   },
 
@@ -291,6 +300,7 @@ export default buildConfig({
     citizenSubmitEndpoint,
     ...pushEndpoints,
     reporterQuickDraftEndpoint,
+    adminSearchEndpoint,
     // S14: on-demand card images. Public read — a card is meant to be scanned by
     // anyone, and draws only what /reporters/:slug already publishes.
     ...cardEndpoints,

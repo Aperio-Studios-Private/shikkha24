@@ -25,6 +25,7 @@ import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0
 import { OptimisedUploadServer as OptimisedUploadServer_a0bc47af830216526c987119453e160e } from '@/components/media/OptimisedUpload'
 import { BrandIcon as BrandIcon_d0588eb7948ddcaab14f9f6ea2cd1dd7 } from '../../../components/admin/BrandIcon'
 import { BrandLogo as BrandLogo_9bb8ea9971948830b3de812baaa56aec } from '../../../components/admin/BrandLogo'
+import { TopbarActions as TopbarActions_05fb75343b9dba528f45441de4b5f680 } from '../../../components/admin/TopbarActions'
 import { ReporterNavLink as ReporterNavLink_a2d61f434ac4f4eba5efaab27e9ed1aa } from '../../../components/admin/ReporterNavLink'
 import { DashboardWorkbench as DashboardWorkbench_8dea54aae15c06f2906fd7521eaebe5b } from '../../../components/admin/DashboardWorkbench'
 import { DashboardNavLink as DashboardNavLink_fc56cb2194b7502b86cb11a3f2f00e19 } from '../../../components/admin/DashboardNavLink'
@@ -60,6 +61,7 @@ export const importMap = {
   "@/components/media/OptimisedUpload#OptimisedUploadServer": OptimisedUploadServer_a0bc47af830216526c987119453e160e,
   "/components/admin/BrandIcon#BrandIcon": BrandIcon_d0588eb7948ddcaab14f9f6ea2cd1dd7,
   "/components/admin/BrandLogo#BrandLogo": BrandLogo_9bb8ea9971948830b3de812baaa56aec,
+  "/components/admin/TopbarActions#TopbarActions": TopbarActions_05fb75343b9dba528f45441de4b5f680,
   "/components/admin/ReporterNavLink#ReporterNavLink": ReporterNavLink_a2d61f434ac4f4eba5efaab27e9ed1aa,
   "/components/admin/DashboardWorkbench#DashboardWorkbench": DashboardWorkbench_8dea54aae15c06f2906fd7521eaebe5b,
   "/components/admin/DashboardNavLink#DashboardNavLink": DashboardNavLink_fc56cb2194b7502b86cb11a3f2f00e19,

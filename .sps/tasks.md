@@ -3685,17 +3685,25 @@ path (MetaConfig extends Next Metadata). Verified on a production build: asset 2
 `/admin/login` head carries exactly `<link rel="icon" href="/brand-icon.svg" type="image/svg+xml"/>`,
 zero payload-favicon residue.
 
-**Chunk D — topbar refresh + global search (owner requested 2026-10-25: "fix the topbar, more
-functional, more nice looking" + "global search is a nice approach").** Decision (orchestrator):
-keep Payload's avatar/StepNav; use the supported `admin.components.header[]` slot (renders in
-AppHeader's actions row, verified in `@payloadcms/ui/dist/elements/AppHeader/index.js`) for a
-`TopbarActions` client component: ⌘K/Ctrl+K global search (articles/assignments/authors, grouped
-results, keyboard nav) backed by a new session-scoped `GET /api/admin-search` endpoint
-(`user` + `overrideAccess: false`, 60-char cap, 5-per-group limit, SQLite `like`), plus role-aware
-quick actions (editorial: ＋ New Article emerald; reporter: Quick Draft; adManager: none beyond
-search-hide) and a 🌐 View-site link. Styles in new `_admin-topbar.scss` on the scale; English-first
-with Bengali helpers; no new dependency, no motion, 40/48px targets. Execution delegated to a
-subagent; orchestrator verifies gates + CDP before commit.
+**Chunk D — topbar refresh + global search ✅ SHIPPED LOCALLY (2026-10-25, AWAITING OWNER
+REVIEW).** Owner requests: "fix the topbar, more functional, more nice looking" + "global search is
+a nice approach". Shipped: `TopbarActions` (search ⌘K overlay + New Article + Site, role-aware) and
+`GET /api/admin-search` (410/403-gated, session-scoped, whitelisted 4-field response). Execution
+was delegated; orchestrator verification caught and fixed the breakage.
+
+**Root causes recorded (they are the recurring class the owner named):**
+1. **Slot contract.** `admin.components.header[]` renders ABOVE the whole page as a full-width
+   block (the "placement broken"); AppHeader's actions row is fed by `admin.components.actions[]`
+   (`getRouteData.js:70`). The first build sat at y:0/1265px wide and pushed all admin chrome down.
+2. **Host-band contract.** The app-header's actions band is 38px desktop / ~42 mobile, single-row
+   — a 568px cluster on a 390px phone (before the fix) cannot survive it. Contract now written in
+   the SCSS: desktop pills ≤32px with English-first short labels; mobile = three measured 36–40px
+   icon buttons (labels/⌘K/dividers/Site hidden, aria-labels kept) with breathing gaps + margins.
+**Verification (orchestrator, CDP, temp users/seeds later deleted):** search overlay opens by ⌘K and
+click; authentic browser fetch returns the seeded result groups; keyboard/Esc paths fine;
+desktop 1280: topbar inside header (y:12, 371px, zero scroll/clip flags); mobile 390: 3 icon
+buttons, cluster ≤336px clean of the avatar, no page overflow; lint/typecheck/production build all
+green. Owner eyeball pending (dev-server refresh).
 
 ### T-90
 
