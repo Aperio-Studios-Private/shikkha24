@@ -4578,3 +4578,5 @@ variable transfer-সহ সংরক্ষিত; Actions সীমাহীন
 
 **স্থিতি:** লোকাল HEAD `6862282`+1 (আজকের IndexNow fallback+docs) — push-হোল্ড
 অটুট (২৯→৩০ কমিট)। লাইভ সাইট অক্ষত (HTTP 200), প্রকাশিত নিবন্ধ ৯।
+
+**C8 — final QA (2026-10-25/26, no code changes needed).** Measured on a production build via headless Chrome: text contrast 5.85–6.37:1 (body/descriptions) and 15.94:1 (nav/chrome) — above WCAG AA; topbar search keyboard-focusable; zero undersized interactive targets at 1280 (the only 0×0 hit on mobile is the intentionally hidden Site link); no horizontal overflow at 1280×900, 390×844 dashboard, or 390×844 reporter page.
