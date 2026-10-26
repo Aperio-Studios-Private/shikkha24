@@ -14,13 +14,15 @@ export interface StatusChip {
   tone: ChipTone
 }
 
-/** Active states are quiet info; decided states carry the outcome colour. */
+/** Active states are quiet info; decided states carry the outcome colour.
+ * R5a — the approved chip carries ✅ to match the dashboard's Approved chip
+ * (same state, same emoji, one vocabulary across the admin). */
 export const STATUS_CHIPS: Record<string, StatusChip> = {
   assigned: { label: 'Assigned', tone: 'info' },
   accepted: { label: 'Accepted', tone: 'info' },
   inProgress: { label: 'In progress', tone: 'info' },
   filed: { label: 'Filed', tone: 'warning' },
-  approved: { label: 'Approved', tone: 'success' },
+  approved: { label: '✅ Approved', tone: 'success' },
   rejected: { label: 'Rejected', tone: 'danger' },
 }
 
