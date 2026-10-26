@@ -170,12 +170,12 @@
 
   .custom-view-description {
     max-width: 72rem;
-    padding: var(--shikkha-space-3) var(--shikkha-space-4);
-    border: 1px solid var(--shikkha-warning-border);
+    padding: var(--shikkha-space-2) var(--shikkha-space-3);
+    border: 1px solid var(--shikkha-warning-border-muted);
     border-radius: var(--shikkha-radius-m);
-    background-color: var(--shikkha-warning-bg);
+    background-color: var(--shikkha-warning-bg-muted);
     color: var(--shikkha-warning-fg);
-    font-size: var(--shikkha-text-body-sm);
+    font-size: var(--shikkha-text-caption);
     line-height: var(--shikkha-lh-body);
   }
 

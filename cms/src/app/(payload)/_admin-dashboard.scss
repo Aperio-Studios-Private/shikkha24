@@ -105,9 +105,9 @@
     display: grid;
     gap: var(--shikkha-space-2);
     padding: var(--shikkha-space-3) var(--shikkha-space-4);
-    border: 1px solid var(--shikkha-group-editorial-border);
+    border: 1px solid var(--shikkha-border);
     border-radius: var(--shikkha-radius-m);
-    background-color: var(--shikkha-group-editorial-bg);
+    background-color: var(--shikkha-surface);
   }
 
   .article-pipeline__steps {
@@ -118,7 +118,7 @@
     margin: 0;
     padding: 0;
     list-style: none;
-    color: var(--shikkha-group-editorial-fg);
+    color: var(--shikkha-ink-muted);
     font-size: var(--shikkha-text-body-sm);
     line-height: var(--shikkha-lh-body);
   }
@@ -147,7 +147,7 @@
 
   .article-pipeline__next {
     margin: 0;
-    color: var(--shikkha-group-editorial-fg);
+    color: var(--shikkha-ink);
     font-size: var(--shikkha-text-body-sm);
     line-height: var(--shikkha-lh-body);
   }
@@ -156,21 +156,40 @@
    * R4 — summary lines folded into the strip (the Status slot replacement was
    * reverted: the default Status is reactive and owns the "Revert to
    * published" action). Muted facts + one danger line for the delete cost.
+   * R5-fix — the strip previously inherited the editorial red for EVERY line,
+   * reading as an error panel; facts are muted ink, only the delete line is
+   * danger red.
    */
   .article-pipeline__facts {
     display: grid;
     gap: var(--shikkha-space-1);
     margin: 0;
     padding: var(--shikkha-space-2) 0 0;
-    border-top: 1px solid var(--shikkha-group-editorial-border);
+    border-top: 1px solid var(--shikkha-border);
     list-style: none;
-    color: var(--shikkha-group-editorial-fg);
+    color: var(--shikkha-ink-muted);
     font-size: var(--shikkha-text-caption);
     line-height: var(--shikkha-lh-body);
   }
 
   .article-pipeline__fact-danger {
     color: var(--shikkha-danger-fg);
+  }
+
+  /*
+   * R5-fix — Payload's tab row is display:inline-flex inside an
+   * overflow-x:auto wrap, so long Bengali tab labels scroll sideways and the
+   * last tab hides behind the edge (measured on the editor). Letting the row
+   * wrap keeps all four tabs visible; the underline indicator follows the
+   * active tab.
+   */
+  .tabs-field__tabs {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .tabs-field__tabs-wrap {
+    overflow-x: visible;
   }
 
   .dashboard-flow__steps {
