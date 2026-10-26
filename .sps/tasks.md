@@ -3827,6 +3827,17 @@ Typecheck/lint/build green; temp account + probes deleted (T-77). **Lesson recor
 registered on `admin.components` may render in MORE views than the one you tested — enumerate every
 consumer of the slot in the installed source before shipping.** R3 now truly complete. Next: R4.
 
+**R3 recheck round 2 (owner asked to re-check again) — 2 more findings, fixed (commit `b04a6a7`):**
+(1) **Create-view mechanics learned:** Payload's create flow POSTs the new document and REDIRECTS to
+its edit URL before rendering — so "create" renders as an edit view with a real id. The `!id` guard
+therefore cleanly separates LIST (static text) from EDIT/CREATE (strip); the earlier live check
+mislabeled the redirected edit view as "create". (2) My list fallback hardcoded a Bengali sentence
+duplicating the config description — replaced with the `description` prop both views already pass
+(single source of truth). Verified live: list shows the config description, redirected create shows
+the strip. Also deleted 2 stray empty articles my probes created in the dev DB, and the temp
+account (T-77). Gates green. **Lesson: verify a view's identity by URL AFTER navigation settles —
+client-side redirects rename the route you think you tested.**
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —

@@ -3698,3 +3698,10 @@ way *after* the billing lock clears, revisit this entry — not before.
   passes it without an id). List now renders static description text; create/edit keep the strip.
 - **Lesson: enumerate every view that consumes a slot before shipping** — the docs describe
   Description as edit-view, but 3.90.2 renders it in list views too.
+
+### 2026-10-26 — T-89 R3 recheck round 2 (commit `b04a6a7`)
+
+- Create flow: POST → redirect to /articles/{id} before render — "create" IS an edit view with an
+  id. The !id guard separates list (static description via the `description` prop, no hardcode)
+  from edit/create (strip). Stray probe-created articles 18/19 deleted from dev DB.
+- Lesson: verify view identity by URL after navigation settles (redirects rename routes).
