@@ -3779,6 +3779,23 @@ through (Media correctly hides videoProvider until videoUrl is set), sidebar sho
 Temp account + probes deleted same-session (T-77). **Owner review next; then R3 (pipeline strip +
 rebuild-expectation copy + prominent Preview).**
 
+**Push-readiness check (2026-10-26, owner: "check again did you make mistakes… is the project ready to push"):**
+Self-audit of the dashboard work found **no new mistakes** — placeholder scan clean, hardcode scan
+clean (hex colors only inside `_admin-tokens.scss`; all component styles read tokens), dashboard
+card hover is correctly flat (no hover change measured via forcePseudoState — consistent with the
+owner's no-motion policy; title-on-tint 5.98–9.45:1 AA), R2 tabs render 4 buttons with the active
+state, zero overflow at 390px. **One real push blocker found and fixed (commit `752e7d0`):** the
+root `pnpm run lint` — the exact CI Lint step — failed with 18 diagnostics (2 format drifts in
+Assignments/Circulars, 16 useTemplate findings in DashboardWorkbench/ReporterWorkspace/
+reporter-workspace-data). All auto-fixed (formatting/template literals only, no logic change;
+typecheck + build verified after). Root lint now exits 0. **CI/deploy status honestly stated:**
+CI is red on the Lighthouse LCP assertion only (documented T-80, blocked on the owner's font
+decision — measured LCP 2.4–2.9s vs the 1.5s gate); Deploy (Cloudflare) fails by its own CI_GATE
+refusing to deploy while CI is red; Backup workflow failures are separate/infra. So: code is
+push-safe (lint/typecheck/build/migrations/importmap/types all green locally, no secrets tracked,
+.env ignored), but a push will still show CI red until T-80 closes. 71 local commits ahead of
+origin; push/deploy hold remains the owner's call.
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —

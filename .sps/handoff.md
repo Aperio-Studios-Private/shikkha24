@@ -3666,3 +3666,12 @@ way *after* the billing lock clears, revisit this entry — not before.
   Conditions work (videoProvider hidden without videoUrl). Current-page nav item is div#nav-{slug}
   (no .active) — covered by R1's audit fix.
 - Temp account + probes deleted same-session (T-77). Gates: typecheck/lint/build green.
+
+### 2026-10-26 — push-readiness check (commit `752e7d0`)
+
+- Owner asked: re-check the dashboard work for mistakes, then is the project ready to push.
+- Self-audit: no new mistakes in R1/R2 work (placeholder/hardcode scans clean; card hover flat by
+  policy, forcePseudoState-verified; tabs fine; no overflow).
+- Fixed the real blocker: root lint (CI Lint step) had 18 diagnostics → all auto-fixed, exit 0 now.
+- Honest CI picture: Lighthouse LCP gate red (T-80, owner-gated) → Deploy refuses via CI_GATE.
+  Push-safe locally; CI stays red until T-80. 71 commits ahead of origin; push is owner's call.
