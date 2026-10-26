@@ -83,16 +83,13 @@ export const Articles: CollectionConfig = {
       // Rendered by renderDocumentSlots (verified in @payloadcms/next 3.90.2):
       // `admin.components.Description` — NOT inside `edit` — replaces the
       // static description in the edit view. Server component; reads
-      // reviewStatus/_status per document.
+      // reviewStatus/_status per document. R4 folded the publish summary
+      // (review chip + live-site line + delete consequence) into this strip.
+      // ⚠️ The Status slot is deliberately NOT replaced: the default Status is
+      // a reactive client component with the "Revert to published" action and
+      // the live changed/draft/published state — a server component would
+      // freeze all of that at render time (R4 self-audit regression, reverted).
       Description: '/components/admin/ArticlePipelineDescription#ArticlePipelineDescription',
-      edit: {
-        // R4 — replaces the default draft/published Status block with a
-        // publish summary: review state, what is live, rebuild expectation,
-        // and the delete consequence (the guardrail line the editor reads
-        // BEFORE opening the delete menu). Status IS inside `edit` per the
-        // installed type (payload 3.90.2 EditConfig) — unlike Description.
-        Status: '/components/admin/ArticleStatus#ArticleStatus',
-      },
     },
   },
   access: {

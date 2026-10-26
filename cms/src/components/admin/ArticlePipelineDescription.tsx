@@ -146,6 +146,30 @@ export async function ArticlePipelineDescription({
         ))}
       </ol>
       <p className="article-pipeline__next">{nextStep(status, isPublished)}</p>
+      {/*
+       * R4 summary lines, folded into the strip after the Status-slot
+       * replacement was reverted (the default Status is a reactive client
+       * component with the "Revert to published" action — a server component
+       * must not displace it). These are the guardrail lines: what is live,
+       * what saving does, and what deleting costs.
+       */}
+      <ul className="article-pipeline__facts">
+        <li>
+          {isPublished
+            ? 'This version is on the live site (এই সংস্করণ সাইটে আছে)।'
+            : 'Not on the live site yet (এখনো সাইটে নেই)।'}
+        </li>
+        <li>
+          {isAutoRebuildConfigured
+            ? 'Saving keeps the site updated automatically (সংরক্ষণ করলেই সাইট হালনাগাদ হয়)।'
+            : 'Auto-rebuild is off — the site needs a manual rebuild (অটো rebuild বন্ধ — ম্যানুয়ালি চালাতে হবে)।'}
+        </li>
+        <li className="article-pipeline__fact-danger">
+          {isPublished
+            ? 'Deleting removes it from the live site (মুছলে সাইট থেকে সরে যাবে)।'
+            : 'Deleting removes the draft and its history (মুছলে খসড়া ও তার ইতিহাস মুছে যাবে)।'}
+        </li>
+      </ul>
     </div>
   )
 }
