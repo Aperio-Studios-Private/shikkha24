@@ -134,7 +134,99 @@
 }
 
 /*
- * ── R5b batch 2: form surfaces across ALL subpages ──
+ * ── R5b batch 3: the bulk-actions bar ──
+ * Owner flag: "2 selected — Select all — Edit Publish Unpublish Delete" was a
+ * flat row of identical gray text links; Delete (destructive) looked exactly
+ * like Edit (safe). Redesign: the bar becomes a surfaced panel; each action
+ * gets its semantic color and a pill shape; the count becomes a real badge.
+ * Selectors verified in the live DOM (.list-selection, buttons carry
+ * .list-selection__button + ids/titles per action).
+ */
+.list-selection {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--shikkha-space-2) var(--shikkha-space-3);
+  padding: var(--shikkha-space-2) var(--shikkha-space-4);
+  border: 1px solid var(--shikkha-border);
+  border-radius: var(--shikkha-radius-m);
+  background-color: var(--shikkha-info-bg-muted);
+}
+
+.list-selection > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--shikkha-control-quiet);
+  padding: 0 var(--shikkha-space-3);
+  border-radius: var(--shikkha-radius-pill);
+  background-color: var(--shikkha-info-emphasis);
+  color: var(--shikkha-info-on-emphasis);
+  font-size: var(--shikkha-text-caption);
+  font-weight: var(--shikkha-weight-bold);
+  white-space: nowrap;
+}
+
+.list-selection > span:nth-child(2),
+.list-selection > span:nth-child(4) {
+  color: var(--shikkha-neutral-400);
+}
+
+.list-selection__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--shikkha-space-2);
+}
+
+/* Base pill for every bulk action. */
+.list-selection__button {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--shikkha-control-quiet);
+  padding: 0 var(--shikkha-space-3);
+  border: 1px solid var(--shikkha-border);
+  border-radius: var(--shikkha-radius-pill);
+  background-color: var(--shikkha-surface);
+  color: var(--shikkha-ink);
+  font-size: var(--shikkha-text-caption);
+  font-weight: var(--shikkha-weight-bold);
+  text-decoration: none;
+}
+
+/* Edit — blue (safe action). */
+.list-selection__button[title='Edit'],
+.edit-many__toggle .list-selection__button {
+  border-color: var(--shikkha-info-border);
+  background-color: var(--shikkha-info-bg);
+  color: var(--shikkha-info-fg);
+}
+
+/* Publish — green. */
+.list-selection__button[title='Publish'] {
+  border-color: var(--shikkha-success-border);
+  background-color: var(--shikkha-success-bg);
+  color: var(--shikkha-success-fg);
+}
+
+/* Unpublish — amber. */
+.list-selection__button[title='Unpublish'] {
+  border-color: var(--shikkha-warning-border);
+  background-color: var(--shikkha-warning-bg);
+  color: var(--shikkha-warning-fg);
+}
+
+/* Delete — red, the loudest, matching the editor's danger system. */
+.list-selection__button[title='Delete'] {
+  border-color: var(--shikkha-danger-border);
+  background-color: var(--shikkha-danger-bg);
+  color: var(--shikkha-danger-fg);
+}
+
+/* Hover: darken the fill, keep text (no-motion policy — color only). */
+.list-selection__button:hover {
+  filter: brightness(0.96);
+}
+
+/* ── R5b batch 2: form surfaces across ALL subpages ──
  * The upload/drag area reads as a bare dashed box; give it a proper panel
  * with breathing room and a friendly hint. Same for the field rhythm: labels
  * and descriptions keep consistent spacing on every form (site settings,
