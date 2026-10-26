@@ -129,6 +129,29 @@
     font-size: var(--shikkha-text-page);
   }
 
+  /*
+   * e2 — Payload's TrashBanner (shown when a document sits in the trash).
+   *
+   * It hardcodes `--base` paddings, has no border and no font-size, so with our
+   * warm warning palette it rendered as a flat cream smear with ~8px padding —
+   * measured on the owner's screenshot: 938×66 with two 17px lines and text
+   * starting 16px from the edge. Rendered on the scale: real padding, a border
+   * and body-sm type, so it reads as a notice instead of a block of colour.
+   */
+  .trash-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--shikkha-space-2);
+    margin-bottom: var(--shikkha-space-4);
+    padding: var(--shikkha-space-3) var(--shikkha-space-4);
+    border: 1px solid var(--shikkha-warning-border);
+    border-radius: var(--shikkha-radius-m);
+    background: var(--shikkha-warning-bg);
+    color: var(--shikkha-warning-fg);
+    font-size: var(--shikkha-text-body-sm);
+    line-height: var(--shikkha-lh-body);
+  }
+
   .custom-view-description {
     max-width: 72rem;
     padding: var(--shikkha-space-3) var(--shikkha-space-4);
