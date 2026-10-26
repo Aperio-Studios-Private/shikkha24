@@ -17,14 +17,17 @@ import type { ReviewStatus } from '../../collections/Articles'
  * Server component: reads the real document with the session user and
  * `overrideAccess: false`, failing soft like the pipeline strip.
  */
-export async function ArticleStatus({
-  id,
-  collectionSlug,
-}: {
-  id?: number | string
-  collectionSlug?: string
-}) {
-  if (!id || collectionSlug !== 'articles') return null
+export async function ArticleStatus({ id }: { id?: number | string }) {
+  /*
+   * ⚠️ No `collectionSlug` prop here: renderDocumentSlots passes Status only
+   * the shared serverProps ({id, i18n, locale, payload, permissions, user}) —
+   * unlike Description, which also receives collectionSlug as a client prop.
+   * Guarding on collectionSlug made this component return null forever (caught
+   * by the R4 live check). The registration lives on Articles alone, so the
+   * slug is implied by the config; the id guard keeps drawer/global contexts
+   * from rendering an empty panel.
+   */
+  if (!id) return null
 
   const headers = await getHeaders()
   const payload = await getPayload({ config })
