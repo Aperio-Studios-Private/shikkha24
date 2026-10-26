@@ -1,0 +1,104 @@
+/**
+ * T-89 R5b — collection list-view polish ("redesign this page").
+ *
+ * The stock table rows read cramped and undifferentiated: every cell has the
+ * same weight, dates wrap onto two lines, and the placeholder text
+ * (<No Headline>) shouts as loud as real titles. This file gives the table
+ * our hierarchy: comfortable row height, ink titles, muted metadata, one-line
+ * dates, and a lighter sort header. Flat tokens only.
+ *
+ * ⚠️ Layer structure (learned the hard way, R5b): Payload's admin CSS is
+ * injected TWICE, and the second copy is UNLAYERED. An unlayered rule beats
+ * ANY layered rule regardless of specificity, so rules that must win over
+ * Payload's own (title link color, date nowrap) live OUTSIDE the @layer
+ * block below — same pattern as _admin-actions.scss. Layout-only rules that
+ * Payload does not contest stay layered.
+ */
+
+@layer payload-default {
+  /* Comfortable rows: 44px minimum touch height, aligned center. */
+  .table tbody td {
+    padding: var(--shikkha-space-3) var(--shikkha-space-3);
+    vertical-align: middle;
+  }
+
+  /* Titles carry the row: bigger, semibold. */
+  .table td.cell-title {
+    font-size: var(--shikkha-text-body);
+    font-weight: var(--shikkha-weight-semibold);
+  }
+
+  /* Metadata cells (category, status, dates) sit quieter than the title. */
+  .table td:not(.cell-title) {
+    color: var(--shikkha-ink-muted);
+    font-size: var(--shikkha-text-body-sm);
+  }
+
+  /*
+   * Payload gives every cell min-width:150px; six columns × 150px + padding
+   * overflowed the content area and produced a horizontal scrollbar that
+   * clipped the date column. Narrow metadata columns shrink; the title keeps
+   * the room.
+   */
+  .table td {
+    min-width: 0;
+  }
+
+  .table td.cell-title {
+    min-width: 220px;
+  }
+
+  /* Sort header row: quiet caption, not a competing headline. */
+  .table th {
+    padding: var(--shikkha-space-2) var(--shikkha-space-3);
+    font-size: var(--shikkha-text-caption);
+    font-weight: var(--shikkha-weight-bold);
+    color: var(--shikkha-ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  /* Row separators instead of card-per-row boxes: calmer scan lines. */
+  .table tbody tr {
+    border-bottom: 1px solid var(--shikkha-neutral-150);
+    background-color: var(--shikkha-surface);
+  }
+
+  .table tbody tr:hover {
+    background-color: var(--shikkha-neutral-50);
+  }
+
+  /* Search field matches the control system height. */
+  .search-filter__input {
+    min-height: var(--shikkha-control-strong);
+  }
+}
+
+/*
+ * ── Unlayered overrides (must beat Payload's unlayered duplicate copy) ──
+ *
+ * These were inside the layer first and lost to the blue `.cell-title a`
+ * rule in Payload's second, unlayered CSS copy — unlayered beats layered at
+ * any specificity. Proven live with a test <style> append: unlayered wins,
+ * layered loses at any specificity.
+ */
+
+/* Titles are ink; hover reveals the info-blue edit affordance. */
+.table td.cell-title a,
+.table tbody td a[href*='/collections/'] {
+  color: var(--shikkha-ink);
+  text-decoration: none;
+}
+
+.table td.cell-title a:hover,
+.table tbody td a[href*='/collections/']:hover {
+  color: var(--shikkha-info-emphasis);
+  text-decoration: underline;
+}
+
+/* Dates never wrap — the two-line date was noise. */
+.table td.cell-publishedAt,
+.table td.cell-publishedAt span {
+  white-space: nowrap;
+}
