@@ -274,6 +274,27 @@
   gap: 0;
 }
 
+/*
+ * E8 — "Per Page: 10" broke into three lines.
+ *
+ * The label `span` inside `.per-page__base-button` measured 45px wide and 60px
+ * tall: 13px text at a 20px line-height, wrapping "Per / Page: / 10" because the
+ * button is an inline-flex box sized to the icon column. Pagination controls name
+ * a single value, so the label must never wrap.
+ */
+.per-page__base-button,
+.per-page__base-button * {
+  white-space: nowrap;
+}
+
+.per-page__base-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--shikkha-space-1);
+  min-height: var(--shikkha-control-quiet);
+  padding: 0 var(--shikkha-space-2);
+}
+
 /* Row title = the edit affordance: keep it link-coloured, not black ink. */
 .cell-title a,
 .table tbody td a[href*='/collections/'] {
