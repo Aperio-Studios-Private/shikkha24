@@ -48,6 +48,7 @@
     "@payloadcms/email-nodemailer": "3.90.2",
     "@payloadcms/next": "3.90.2",
     "@payloadcms/richtext-lexical": "3.90.2",
+    "@payloadcms/storage-r2": "3.90.2",
     "@payloadcms/translations": "3.90.2",
     "@payloadcms/ui": "3.90.2",
     "@swc/helpers": "0.5.23",
