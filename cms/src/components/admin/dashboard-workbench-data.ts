@@ -33,6 +33,19 @@ const REVIEW_LABELS: Record<string, string> = {
   pendingReview: 'Pending review',
 }
 
+/**
+ * R5a — emoji per review state so the dashboard chips read at a glance
+ * (owner decision: emojis on chips, not just sidebar labels). The published
+ * state uses 🌐 to match the pipeline strip's "Live site" stage.
+ */
+const REVIEW_EMOJIS: Record<string, string> = {
+  approved: '✅',
+  changesRequested: '✏️',
+  draft: '✏️',
+  pendingReview: '👀',
+  published: '🌐',
+}
+
 export async function countRequest(
   request: Promise<{ totalDocs?: number }>,
 ): Promise<number | null> {
@@ -56,8 +69,9 @@ export async function listRequest(
 }
 
 export function reviewLabel(doc: WorkbenchDoc): string {
-  if (doc._status === 'published') return 'Published'
-  return REVIEW_LABELS[doc.reviewStatus ?? ''] ?? 'Draft'
+  if (doc._status === 'published') return '🌐 Published'
+  const emoji = REVIEW_EMOJIS[doc.reviewStatus ?? ''] ?? '✏️'
+  return `${emoji} ${REVIEW_LABELS[doc.reviewStatus ?? ''] ?? 'Draft'}`
 }
 
 export function reviewTone(doc: WorkbenchDoc): WorkItem['statusTone'] {

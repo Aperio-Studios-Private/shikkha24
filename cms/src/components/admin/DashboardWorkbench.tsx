@@ -459,9 +459,12 @@ export async function DashboardWorkbench() {
             </Link>
           </div>
           {recent.length === 0 ? (
-            /* D2 — empty state as onboarding: why this surface exists + one action. */
+            /* D2 — empty state as onboarding: why this surface exists + one action.
+               R5a — 🌅 greeting emoji on the empty state, per the emoji decision. */
             <div className="dashboard-empty">
-              <strong>No work yet today (আজ এখনো কিছু নেই)।</strong>
+              <strong>
+                <span aria-hidden>🌅</span> No work yet today (আজ এখনো কিছু নেই)।
+              </strong>
               <span>
                 Articles you write appear here, newest first — start with a draft and it shows up
                 immediately (আপনার লেখা সংবাদ এখানে দেখা যাবে)।
