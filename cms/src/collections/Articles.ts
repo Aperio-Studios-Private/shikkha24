@@ -85,6 +85,14 @@ export const Articles: CollectionConfig = {
       // static description in the edit view. Server component; reads
       // reviewStatus/_status per document.
       Description: '/components/admin/ArticlePipelineDescription#ArticlePipelineDescription',
+      edit: {
+        // R4 — replaces the default draft/published Status block with a
+        // publish summary: review state, what is live, rebuild expectation,
+        // and the delete consequence (the guardrail line the editor reads
+        // BEFORE opening the delete menu). Status IS inside `edit` per the
+        // installed type (payload 3.90.2 EditConfig) — unlike Description.
+        Status: '/components/admin/ArticleStatus#ArticleStatus',
+      },
     },
   },
   access: {

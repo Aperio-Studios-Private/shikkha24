@@ -152,6 +152,67 @@
     line-height: var(--shikkha-lh-body);
   }
 
+  /*
+   * R4 — publish summary (replaces the default Status block on Articles via
+   * the edit Status slot). One chip + three short lines: where the article
+   * stands, what saving does, and what deleting costs. Flat tokens only.
+   */
+  .article-status {
+    display: grid;
+    gap: var(--shikkha-space-2);
+    justify-items: start;
+    padding: var(--shikkha-space-3) var(--shikkha-space-4);
+    border: 1px solid var(--shikkha-border);
+    border-radius: var(--shikkha-radius-m);
+    background-color: var(--shikkha-surface);
+  }
+
+  .article-status__chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--shikkha-control-quiet);
+    padding: 0 var(--shikkha-space-3);
+    border-radius: var(--shikkha-radius-pill);
+    border: 1px solid var(--shikkha-border);
+    background-color: var(--shikkha-neutral-100);
+    color: var(--shikkha-ink);
+    font-size: var(--shikkha-text-caption);
+    font-weight: var(--shikkha-weight-bold);
+  }
+
+  .article-status__chip--success {
+    border-color: var(--shikkha-success-border-muted);
+    background-color: var(--shikkha-success-bg-muted);
+    color: var(--shikkha-success-fg);
+  }
+
+  .article-status__chip--info {
+    border-color: var(--shikkha-info-border-muted);
+    background-color: var(--shikkha-info-bg-muted);
+    color: var(--shikkha-info-fg);
+  }
+
+  .article-status__chip--warning {
+    border-color: var(--shikkha-warning-border-muted);
+    background-color: var(--shikkha-warning-bg-muted);
+    color: var(--shikkha-warning-fg);
+  }
+
+  .article-status__lines {
+    display: grid;
+    gap: var(--shikkha-space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--shikkha-ink-muted);
+    font-size: var(--shikkha-text-caption);
+    line-height: var(--shikkha-lh-body);
+  }
+
+  .article-status__danger {
+    color: var(--shikkha-danger-fg);
+  }
+
   .dashboard-flow__steps {
     display: flex;
     flex-wrap: wrap;
