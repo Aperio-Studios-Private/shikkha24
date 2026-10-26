@@ -3671,6 +3671,53 @@ decided strip shows Approved + Rejected chips; card titles 16px, chips 12px; no 
 at 1280×800 and 390×844; lint/typecheck/build pass. C4–C6 (recent work, quick-draft re-skin,
 decided polish) remain queued.
 
+**T-89 redesign discovery interview (2026-10-26, owner decisions recorded — plan amendment pending
+owner approval, zero code yet):** owner commissioned a "modern, colorful, intuitive, minimal-training"
+pass on the admin via a 3-round interview. Decisions: (1) **extend** the existing T-89 system, not a
+new direction; (2) **"colorful, still flat"** — tinted color welcome, the no-shadows/gradients/motion
+rule stays; (3) all four roles in scope (reporters, section editors, EiC, superAdmin); (4) priority
+surfaces: article editor, dashboard, lists & media, reporter workspace; (5) **one accent color family
+per sidebar group** (8 groups) — tinted group headers, colored active states, matching dashboard card
+accents; (6) emoji reach extended to **chips & dashboard, empty states & help, and all action
+buttons**; (7) English-first chrome + Bengali helper terms on all new guidance (T-38 intact, warmer
+copy); (8) all four friction points confirmed: status confusion, finding things, editor overload,
+fear of breaking; (9) article editor gets **four workflow tabs** (✍️ Content / 🖼️ Media / 🗂️
+Classification / 🚀 Publishing) using Payload **unnamed** tabs — presentational-only, zero DB or
+migration impact (verified against payloadcms.com/docs/v3/fields/tabs); sidebar-positioned fields'
+interaction with tabs to be verified live at implementation; (10) a **pipeline strip** in the editor
+(✍️ Write → 👀 Review → 🚀 Publish → 🔄 Rebuild) with current-stage highlight and a one-line
+what-happens-next; (11) safety nets: delete guardrails (menu-only + warning naming consequences),
+prominent one-click preview (Articles already has `admin.preview`; make the button unmistakable),
+and rebuild-expectation copy on the existing rebuild callout; (12) method unchanged: small chunks,
+owner local review each, push/deploy hold stays.
+
+**Tooling verification (2026-10-26, owner asked):** no Payload skill exists on skills.sh (searched).
+Official `@payloadcms/plugin-mcp` exists (MIT) but it is a **content-access** MCP — it exposes
+collection/global find/create/update/delete tools to AI clients (Claude, Cursor) at `/api/mcp` with
+Bearer API keys; it does not assist admin-UI development. Its peer dependency pins the exact payload
+version (3.92.0 latest; a 3.90.2 build exists matching our pin). **Not installed** — it adds a new
+public API surface (security review needed) and a dependency (rule 8) for a feature (AI-chat content
+management) the owner has not requested. Owner may commission it as a separate task later. Payload
+version reality: project pins 3.90.2, latest stable 3.92.0, 4.0 in beta — no upgrade needed for this
+UI work. v3 docs consulted directly for tabs fields and edit-view component slots
+(`beforeDocumentControls`, `Status`, `PreviewButton`, `editMenuItems`) — the planned implementation
+paths are all supported APIs.
+
+**Proposed chunk plan R1–R9 (extends the 2026-10-25 remaining ledger; each chunk = owner local
+review before the next):**
+- **R1** group color system (tokens → sidebar → dashboard accents) — interview decision 5.
+- **R2** article editor four tabs (absorbs C4a structure) — decision 9.
+- **R3** editor pipeline strip + rebuild-expectation copy + prominent Preview (absorbs C4b, C2b's
+  editor side) — decisions 10, 11b, 11c.
+- **R4** delete guardrails + publish summary — decision 11a.
+- **R5** emoji expansion to chips, empty states, action buttons — decision 6.
+- **R6** dashboard energize: colored group accents, empty states, ad-manager card, recent work 3→5
+  (absorbs C1c7 tail, D2, D3, D4) — decision 4.
+- **R7** lists & media guidance (absorbs C5a/C5b) — decision 4.
+- **R8** reporter workspace C4–C6 (already queued) — decision 4.
+- **R9** field help C7a–C7c + final QA C8a/C8b (contrast, keyboard, mobile, gates) — decision 7.
+Parked unchanged: D5 rebuild-status card (needs a data source), D6/broader hover-property inventory.
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
