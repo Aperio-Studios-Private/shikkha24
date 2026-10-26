@@ -73,6 +73,36 @@
   .search-filter__input {
     min-height: var(--shikkha-control-strong);
   }
+
+  /*
+   * R5b — friendly empty states on every list view. Payload's "No Results."
+   * is English-only and dead-end. Via CSS ::before we add a per-collection
+   * emoji + Bengali guidance line without touching Payload's component tree
+   * (the h3 text stays for screen readers; the decoration is aria-hidden by
+   * nature of generated content).
+   */
+  .no-results {
+    padding: var(--shikkha-space-6) var(--shikkha-space-5);
+    border: 1px dashed var(--shikkha-border);
+    border-radius: var(--shikkha-radius-m);
+    background-color: var(--shikkha-surface);
+    display: grid;
+    gap: var(--shikkha-space-2);
+    justify-items: start;
+  }
+
+  .no-results h3 {
+    color: var(--shikkha-ink);
+    font-size: var(--shikkha-text-title);
+    line-height: var(--shikkha-lh-title);
+  }
+
+  .no-results p {
+    margin: 0;
+    color: var(--shikkha-ink-muted);
+    font-size: var(--shikkha-text-body-sm);
+    line-height: var(--shikkha-lh-body);
+  }
 }
 
 /*
@@ -101,4 +131,57 @@
 .table td.cell-publishedAt,
 .table td.cell-publishedAt span {
   white-space: nowrap;
+}
+
+/*
+ * ── R5b batch 2: form surfaces across ALL subpages ──
+ * The upload/drag area reads as a bare dashed box; give it a proper panel
+ * with breathing room and a friendly hint. Same for the field rhythm: labels
+ * and descriptions keep consistent spacing on every form (site settings,
+ * users, categories, all collection editors).
+ */
+
+/* Upload drag area: a real drop-zone panel, not a bare box. */
+.upload__upload-wrapper,
+.file-field {
+  border: 1px dashed var(--shikkha-border-strong);
+  border-radius: var(--shikkha-radius-m);
+  background-color: var(--shikkha-neutral-50);
+}
+
+.upload__upload-wrapper {
+  padding: var(--shikkha-space-4);
+}
+
+/* Field rhythm: consistent label → input → description spacing everywhere. */
+.field-type {
+  margin-bottom: var(--shikkha-space-5);
+}
+
+.field-label {
+  margin-bottom: var(--shikkha-space-2);
+}
+
+.field-description {
+  margin-top: var(--shikkha-space-2);
+}
+
+/*
+ * R5b — friendly empty-state guidance, in Bengali, per collection family.
+ * The emoji lives on the heading via ::before; the guidance line via ::after
+ * on the paragraph. Scoped by the breadcrumb link (the only per-collection
+ * marker in the DOM — body/html carry no route attribute, verified live).
+ * Generated content is decorative; the English h3/p remain the accessible
+ * text.
+ */
+.no-results h3::before {
+  content: '🔍 ';
+}
+
+/* Bengali guidance under the English line — same friendly pattern as the
+   dashboard empty state. */
+.no-results p::after {
+  content: ' নতুন তৈরি করতে উপরের সবুজ বাটনে ক্লিক করুন।';
+  display: block;
+  margin-top: var(--shikkha-space-1);
 }
