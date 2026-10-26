@@ -4052,6 +4052,21 @@ guesses — Body editor is .field-type.rich-text-lexical .ContentEditable__root 
 .editor-shell), upload area is .field-type.upload (not .upload__upload-wrapper). Stray create-test
 articles + temp account deleted (T-77). Build + lint green.
 
+**R6 — remaining pages + deep audit DONE (2026-10-26, commit `2a44570`), AWAITING OWNER REVIEW.**
+Owner: "redesign all remaining pages one by one, non-stop; use subagents; verify yourself with
+screenshots; then deep audit." Executed: audited 6 additional collection pages (deadlines,
+scholarships, ad-units, newsletter campaigns, live-blogs, polls) via screenshots — the global
+redesigns already covered them (shared list/edit components). Two remaining polish items fixed:
+(1) read-only number fields (newsletter Sent/Deferred/Recipients) styled as readable read-only
+instead of dead gray boxes; (2) per-collection emoji on every list empty state — scoped via
+.collection-list--{slug} (verified live: 🟢 on live-blogs; first :has()-breadcrumb attempt failed
+because list pages render the collection as a dropdown, not a link). **Deep audit: 15 pages
+re-screenshotted, zero overflow, consistent design language.** Temp accounts + probes deleted
+(T-77); lint/build green. **T-89 redesign scope now covers: sidebar, dashboard, list views, empty
+states, bulk bar, editor (tabs/pipeline/status/buttons), mobile cards + fixed action bar, all form
+surfaces, per-collection emojis. Remaining queue: R7 media guidance, R8 reporter C4-C6 (partially
+shipped), final QA.**
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —

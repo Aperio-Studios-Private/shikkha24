@@ -3852,3 +3852,13 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Dev-server stale compiles: diff the SERVED CSS chunk (/_next/static/chunks/*.css) against the
   source when a rule "doesn't apply"; touch files + hit the route to force recompile.
 - Stray create-test articles (24/25) + temp account deleted (T-77).
+
+### 2026-10-26 — T-89 R6 remaining pages + deep audit (commit `2a44570`)
+
+- All 34 collections inherit the global redesigns (shared components). Audited 6 extra collection
+  types via screenshots — consistent.
+- Per-collection empty-state emoji scoped via .collection-list--{slug} (the reliable marker; list
+  pages render the breadcrumb collection as a dropdown, not an <a> — :has() on breadcrumb fails).
+- Read-only number inputs styled readable.
+- Deep audit: 15 pages re-screenshotted, zero overflow. Push/deploy hold: owner lifted for the
+  earlier push; new commits await owner instruction.
