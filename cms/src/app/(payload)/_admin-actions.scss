@@ -176,7 +176,15 @@
   color: var(--shikkha-ink);
 }
 
-.popup-button.popup-button--background:not(.btn--disabled) {
+/*
+ * E9 — the emerald chevron belongs to the Publish split control ONLY.
+ *
+ * This rule was global, so it also painted the pagination chevron next to
+ * "Per Page: 10" emerald — a green button attached to a control that has
+ * nothing to do with publishing. Scope it to the document controls; anything
+ * else falls through to the neutral popup treatment below.
+ */
+.doc-controls .popup-button.popup-button--background:not(.btn--disabled) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -186,6 +194,43 @@
   border-radius: var(--shikkha-radius-s);
   background-color: var(--shikkha-success-emphasis-hover);
   color: var(--shikkha-success-on-emphasis);
+}
+
+/* Any other split control (pagination, filters) stays quiet and neutral. */
+.popup-button.popup-button--background:not(.btn--disabled) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--shikkha-control-quiet);
+  border: 1px solid var(--shikkha-border);
+  border-radius: var(--shikkha-radius-s);
+  background-color: var(--shikkha-surface);
+  color: var(--shikkha-ink-muted);
+}
+
+.popup-button.popup-button--background:not(.btn--disabled):hover {
+  background-color: var(--shikkha-neutral-100);
+  color: var(--shikkha-ink);
+}
+
+/*
+ * Pagination "Per Page: N" — a value picker, so the whole control reads as one
+ * quiet bordered pill instead of a bare label with a detached arrow.
+ */
+.per-page__base-button {
+  border: 1px solid var(--shikkha-border);
+  border-radius: var(--shikkha-radius-s);
+  background-color: var(--shikkha-surface);
+  color: var(--shikkha-ink);
+}
+
+.per-page__base-button:hover {
+  background-color: var(--shikkha-neutral-100);
+}
+
+.per-page__base-button span {
+  font-size: var(--shikkha-text-body-sm);
+  line-height: var(--shikkha-lh-body);
 }
 
 #action-unpublish:not(.btn--disabled),
