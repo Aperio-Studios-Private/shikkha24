@@ -134,7 +134,7 @@
 }
 
 .preview-btn:hover:not(:focus):not(:focus-visible):not(:active) {
-  background-color: var(--shikkha-info-bg) !important;
+  background-color: var(--shikkha-info-bg-muted) !important;
   border-color: var(--shikkha-info-border) !important;
   color: var(--shikkha-info-fg) !important;
 }

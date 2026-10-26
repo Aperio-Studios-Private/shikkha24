@@ -206,15 +206,35 @@
    * overflow-x:auto wrap, so long Bengali tab labels scroll sideways and the
    * last tab hides behind the edge (measured on the editor). Letting the row
    * wrap keeps all four tabs visible; the underline indicator follows the
-   * active tab.
+   * active tab. R9: tabs are compact pills — the wrap reads as intentional
+   * rows, and the active tab keeps its underline + ink weight.
    */
   .tabs-field__tabs {
     display: flex;
     flex-wrap: wrap;
+    gap: var(--shikkha-space-1) var(--shikkha-space-2);
   }
 
   .tabs-field__tabs-wrap {
     overflow-x: visible;
+  }
+
+  .tabs-field__tab-button {
+    padding: var(--shikkha-space-2) var(--shikkha-space-3);
+    border: 1px solid var(--shikkha-border);
+    border-radius: var(--shikkha-radius-pill);
+    background-color: var(--shikkha-surface);
+    color: var(--shikkha-ink-muted);
+    font-size: var(--shikkha-text-body-sm);
+    font-weight: var(--shikkha-weight-semibold);
+    white-space: nowrap;
+  }
+
+  .tabs-field__tab-button--active {
+    border-color: var(--shikkha-group-editorial-emphasis);
+    background-color: var(--shikkha-group-editorial-bg);
+    color: var(--shikkha-group-editorial-fg);
+    font-weight: var(--shikkha-weight-bold);
   }
 
   .dashboard-flow__steps {

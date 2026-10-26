@@ -45,22 +45,24 @@
   gap: var(--shikkha-space-2);
   min-width: var(--shikkha-control-strong);
   height: var(--shikkha-control-strong);
-  /* R5-fix — Payload's controls row gap is base/2 (~4px); the labeled Preview
-     pill visually merged with the green Publish button. A real gap keeps the
-     two actions distinct. */
-  margin-right: var(--shikkha-space-3);
   padding: 0 var(--shikkha-space-3);
   border: 1px solid var(--shikkha-info-border);
   border-radius: var(--shikkha-radius-s);
-  background-color: var(--shikkha-info-bg);
+  background-color: var(--shikkha-surface);
   color: var(--shikkha-info-fg);
   font-size: var(--shikkha-text-body-sm);
   font-weight: var(--shikkha-weight-bold);
   text-decoration: none;
 }
 
+.preview-btn svg {
+  flex-shrink: 0;
+}
+
 .preview-btn::after {
-  content: "Preview";
+  content: 'Preview';
+  /* Keep the label on one line beside the icon. */
+  white-space: nowrap;
 }
 
 .link-edit {

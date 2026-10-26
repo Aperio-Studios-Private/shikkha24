@@ -341,16 +341,22 @@
  * users, categories, all collection editors).
  */
 
-/* Upload drag area: a real drop-zone panel, not a bare box. */
-.upload__upload-wrapper,
-.file-field {
+/* Upload drag area: a real drop-zone panel, not a bare box.
+   (Live DOM: the area carries .field-type.upload — not .upload__upload-wrapper.) */
+.field-type.upload {
   border: 1px dashed var(--shikkha-border-strong);
   border-radius: var(--shikkha-radius-m);
   background-color: var(--shikkha-neutral-50);
+  padding: var(--shikkha-space-4);
 }
 
-.upload__upload-wrapper {
-  padding: var(--shikkha-space-4);
+/* Body editor: a real writing surface (live class: ContentEditable__root). */
+.field-type.rich-text-lexical .ContentEditable__root {
+  min-height: 320px;
+}
+
+.field-type.rich-text-lexical .placeholder {
+  color: var(--shikkha-ink-muted);
 }
 
 /* Field rhythm: consistent label → input → description spacing everywhere. */
@@ -364,6 +370,50 @@
 
 .field-description {
   margin-top: var(--shikkha-space-2);
+}
+
+/*
+ * ── R9 editor polish ──
+ * The Body rich-text editor looked like a one-line input (too short for
+ * writing a news article) with a gray-on-gray placeholder. Give it a real
+ * writing surface. Also: the sidebar Featured-image box was cramped — the
+ * two buttons wrapped into tall narrow blocks; stack them cleanly instead.
+ */
+
+/* Body editor: a real writing surface. */
+.field-type.richText .rich-text-lexical__editor,
+.field-type.richText .editor-shell {
+  min-height: 320px;
+}
+
+.rich-text-lexical__editor .placeholder {
+  color: var(--shikkha-ink-muted);
+}
+
+/* Sidebar Featured-image box: stack the two actions vertically, full-width. */
+.document-fields__sidebar-fields .field-type.upload {
+  display: grid;
+  gap: var(--shikkha-space-2);
+  justify-items: stretch;
+}
+
+.document-fields__sidebar-fields .upload__createNewToggler,
+.document-fields__sidebar-fields .upload__listToggler {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Array "Add" rows: solid dashed buttons, easy to spot and hit. */
+.array-field__add-row {
+  border: 1px dashed var(--shikkha-info-border) !important;
+  border-radius: var(--shikkha-radius-s);
+  background-color: var(--shikkha-info-bg-muted);
+  color: var(--shikkha-info-fg);
+  min-height: var(--shikkha-control-strong);
+}
+
+.array-field__add-row:hover {
+  background-color: var(--shikkha-info-bg);
 }
 
 /*
@@ -384,4 +434,27 @@
   content: ' নতুন তৈরি করতে উপরের সবুজ বাটনে ক্লিক করুন।';
   display: block;
   margin-top: var(--shikkha-space-1);
+}
+
+/*
+ * ── R9 unlayered editor overrides ──
+ * These must beat Payload's UNLAYERED duplicate copy (layered rules lose at
+ * any specificity — see the cascade note at the top of this file).
+ */
+
+/* Preview keeps its full label: the controls row is overflow:auto and was
+   shrinking the labeled pill back to icon-only. */
+.preview-btn {
+  flex-shrink: 0;
+  width: max-content;
+}
+
+.preview-btn::after {
+  content: 'Preview';
+  white-space: nowrap;
+}
+
+/* Body editor: a real writing surface (Payload sets min-height unlayered). */
+.field-type.rich-text-lexical .ContentEditable__root {
+  min-height: 320px;
 }
