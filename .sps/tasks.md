@@ -3909,6 +3909,18 @@ action present (the exact behavior the round-2 revert was protecting). Article r
 draft/draft after; temp account + probes deleted (T-77); tree clean. R4 confirmed complete.
 Next: R5 (emoji expansion to chips / empty states / action buttons).
 
+**R4 recheck round 6 (owner asked again) — 1 real UX bug found and fixed (commit `7a03ced`):**
+the red delete-consequence line rendered for EVERY role, but delete is superAdmin/editorInChief
+only — reporters saw a warning about an action they cannot take. The strip now computes canDelete
+with the same hasRole rule as `deleteArticleOrEditorInChief` and renders the danger line only for
+those roles. (A dryRun Local-API delete was tried first and dropped — no dryRun support in the
+installed types; mirroring the access rule is the honest equivalent.) Verified live with two
+throwaway accounts on the same article: superAdmin sees the line, the owning reporter does not.
+Test setup note: reporter read-scoping (T-60) keys on the AUTHORS profile link, not the users row —
+the reporter correctly got notFound until a linked author profile existed, which re-confirmed the
+security behavior. All test data reverted (author_id, profile, sessions); temps + probes deleted
+(T-77). Gates green. Next: R5a (emoji on dashboard chips + empty state).
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —

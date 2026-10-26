@@ -3751,3 +3751,12 @@ way *after* the billing lock clears, revisit this entry — not before.
   it silently reverted staged regenerations twice. Regenerate + commit without running the script
   in between; the script is for VERIFICATION only, after the commit.
 - All freshness scripts PASS; gates green; tree clean.
+
+### 2026-10-26 — T-89 R4 recheck round 6 (commit `7a03ced`)
+
+- Delete-consequence line is now role-aware (hasRole superAdmin/editorInChief — same rule as the
+  access file); reporters no longer see a warning about an action they cannot take. Verified live
+  with admin + reporter temp accounts on the same article.
+- Local-API delete has NO dryRun support (checked installed types) — role mirroring is the pattern.
+- T-60 reminder: reporter read/update scoping keys on the AUTHORS profile (users.author_profile_id →
+  authors.id → articles.author_id), not the users row.
