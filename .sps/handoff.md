@@ -3800,3 +3800,11 @@ way *after* the billing lock clears, revisit this entry — not before.
   scroll for 6 columns remains (wide-table standard; date-format shortening = separate task).
 - Owner-side viewing tip that resolved the earlier confusion: dev server restart is needed when a
   NEW scss file is added to custom.scss @use list (Turbopack does not hot-add files).
+
+### 2026-10-26 — T-89 R5b part 2: all subpages redesigned (commit `8b17e91`)
+
+- 9 page types audited via screenshots (.sps/t89-audit-*.png); fixed: friendly empty states
+  (emoji + Bengali via ::before/::after on .no-results), upload drop-zone panels, field rhythm.
+- no-results styling lives in _admin-list.scss (unlayered section not needed — Payload does not
+  contest these properties).
+- Already-good surfaces left untouched: doc-header meta, Save row, versions table.

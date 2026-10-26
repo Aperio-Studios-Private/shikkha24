@@ -3980,6 +3980,18 @@ limit: 6-column tables still horizontal-scroll to reach the date column (shorten
 = separate column-config task). Temp account + probes deleted (T-77); build green.
 **Next: R6 (dashboard energize) or owner-directed fixes.**
 
+**R5b part 2 — ALL subpages redesigned (2026-10-26, commit `8b17e91`), AWAITING OWNER REVIEW.**
+Owner: "redesign all subpages — every form, every section; screenshot and refine." Audited 9 page
+types with screenshots (site-settings, media list/create, users list/edit, article versions,
+comments, categories list/create — saved under .sps/t89-audit-*.png). Fixed in batches:
+(1) empty states on every list view → dashed onboarding panel + 🔍 emoji + Bengali guidance line
+(decorative generated content; English h3/p remain accessible text); (2) upload/drag areas → proper
+dashed drop-zone panels (site settings logo/favicon, media create); (3) field rhythm → consistent
+label/input/description spacing via .field-type/.field-label/.field-description. All 9 pages zero
+overflow at 1280px; typecheck/lint/build green; temp account + probes deleted (T-77).
+Audit screenshots also showed what is already good: doc-header meta row, Save row alignment,
+versions table — left untouched (surgical scope).
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
