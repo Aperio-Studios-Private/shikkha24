@@ -3730,3 +3730,14 @@ way *after* the billing lock clears, revisit this entry — not before.
   published): stage + next-line correct in each, including the honest auto-rebuild-off copy.
 - Article reverted to draft/draft; temp account + probes deleted; tree clean; importMap PASS.
 - R3 is state-complete. Next: R4 (delete guardrails + publish summary).
+
+### 2026-10-26 — T-89 R4 publish summary + delete guardrails (commits `9a087e4`, `a2e64cb`)
+
+- Delete was already menu-only + confirm modal + danger-styled (Payload 3.90.2 DocumentControls);
+  modal body is not slottable — verified and documented, not duplicated.
+- New ArticleStatus replaces the default Status via `admin.components.edit.Status`: review chip +
+  live-site line + rebuild line (honest per isAutoRebuildConfigured) + delete-consequence line.
+- Slot contracts: Status is INSIDE edit (TS2353 otherwise) and its serverProps have NO collectionSlug
+  (first live check caught a permanent null). Description is top-level and DOES receive
+  collectionSlug as a client prop.
+- importMap regenerated + committed in the same commit; freshness scripts PASS.

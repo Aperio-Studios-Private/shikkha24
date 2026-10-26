@@ -3867,6 +3867,25 @@ Article reverted to draft/draft after; temp account + probes deleted (T-77); wor
 importMap freshness PASS. R3 is now state-complete: every branch of the strip observed rendering
 with the right copy. Next: R4 (delete guardrails + publish summary).
 
+**R4 — publish summary + delete guardrails SHIPPED LOCALLY (2026-10-26, commits `9a087e4` + `a2e64cb`),
+AWAITING OWNER REVIEW.** Learned from the installed source first, and it changed the plan honestly:
+(1) **Delete is ALREADY menu-only** — DocumentControls renders DeleteDocument inside the 3-dot
+popup with a confirmation modal (about-to-delete naming the title + a permanent-delete checkbox),
+and the toggle is danger-styled from C1c7. There is no config slot to replace the modal body, so
+"rebuilding" it would drift from upstream — verified and documented instead of duplicated.
+(2) The deliverable became the **publish summary**: a custom `ArticleStatus` replacing the default
+Status block via `admin.components.edit.Status` — one review-state chip (draft / in review /
+changes requested / approved) plus three lines: whether this version is on the live site, what
+saving does (honest per `isAutoRebuildConfigured`), and the delete consequence ("deleting removes
+it from the live site" / "removes the draft and its history") — the guardrail line the editor
+reads BEFORE opening the delete menu.
+**Two slot-contract facts caught by gates/live checks:** Status lives INSIDE `edit` (TS2353, unlike
+Description at the top level), and Status's serverProps do NOT include collectionSlug (the first
+live check caught the component returning null forever; guard dropped, slug implied by the
+registration). Contrast ≥6.3:1 AA everywhere; importMap regenerated and committed in the same
+commit (round-3 lesson); freshness scripts PASS. Temp account + probes deleted (T-77).
+**Next: R5 (emoji expansion to chips/empty states/action buttons).**
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
