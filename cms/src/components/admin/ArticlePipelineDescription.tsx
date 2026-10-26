@@ -1,5 +1,6 @@
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
+import config from '../../payload.config'
 import type { ReviewStatus } from '../../collections/Articles'
 
 /**
@@ -73,22 +74,42 @@ export async function ArticlePipelineDescription({
 
   if (id && collectionSlug === 'articles') {
     const headers = await getHeaders()
-    const payload = await getPayload({ config: (await import('../../payload.config')).default })
+    const payload = await getPayload({ config })
     const { user } = await payload.auth({ headers })
     if (user) {
-      const doc = await payload.findByID({
-        collection: 'articles',
-        id,
-        depth: 0,
-        user,
-        overrideAccess: false,
-      })
+      // Fail soft like DashboardWorkbench: a deleted-while-open document or a
+      // query error must degrade to the generic strip, never break the view.
+      const doc = await payload
+        .findByID({
+          collection: 'articles',
+          id,
+          depth: 0,
+          user,
+          overrideAccess: false,
+        })
+        .catch(() => null)
       status = doc?.reviewStatus as ReviewStatus | undefined
       isPublished = doc?._status === 'published'
     }
   }
 
   const stage = currentStage(status, isPublished)
+
+  /*
+   * The Description slot is shared by the LIST view and the EDIT view
+   * (verified in @payloadcms/next 3.90.2: renderListViewSlots passes the same
+   * component with `collectionSlug` but no document id). On the list there is
+   * no document to be "writing", so render the collection's static
+   * description there instead of the strip. The create view also has no id —
+   * it gets the strip in its neutral Write state, which is correct.
+   */
+  if (!id) {
+    return (
+      <div className="custom-view-description">
+        সংবাদের তালিকা। খসড়া → পর্যালোচনা → প্রকাশ — প্রতিটি সংবাদের অবস্থা তালিকায় দেখা যায়।
+      </div>
+    )
+  }
 
   return (
     <div className="article-pipeline" data-stage={stage}>
