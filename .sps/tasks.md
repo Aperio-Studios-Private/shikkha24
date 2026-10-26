@@ -3847,6 +3847,17 @@ generated importMap is part of the change — run `generate:importmap` and stage
 commit; verify with `scripts/verify-payload-importmap.sh` before claiming done.** Also cleaned the
 2 stray articles + temp account from probes. Round-3 state: R3 fully complete and push-safe.
 
+**R3 recheck round 4 (owner asked again) — 2 findings, fixed (commit `2e387ab`):**
+(1) The published-state line hardcoded "the live site updates shortly" — dishonest when
+DEPLOY_WEBHOOK_URL is unset (the rebuild system's own REBUILD_NOTICE distinguishes the two states).
+The strip now reads the new `isAutoRebuildConfigured` export and says "within a few minutes" when
+configured, "auto-rebuild is off — run a rebuild" when not. (2) The description prop was typed
+string-only while Payload allows a localized Record — typed `string | Record` and the list branch
+now joins Record values instead of risking a React object-as-child crash. Gates green; live check:
+list shows the honest rebuild-notice warning (webhook unset locally), edit shows the strip.
+**Lesson: when the codebase already has an honest-state pattern (REBUILD_NOTICE), new UI must read
+the same state, not restate a hopeful assumption.** R3 fully verified again. Next: R4.
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —

@@ -3713,3 +3713,13 @@ way *after* the billing lock clears, revisit this entry — not before.
   now PASS locally.
 - **Rule: adding a component + registration ⇒ run generate:importmap and commit it in the same
   change; run the freshness script before claiming done.**
+
+### 2026-10-26 — T-89 R3 recheck round 4 (commit `2e387ab`)
+
+- Published-state copy now reads `isAutoRebuildConfigured` (new export from lib/rebuild-trigger):
+  webhook set → "within a few minutes"; unset → "auto-rebuild is off — run a rebuild". Matches
+  REBUILD_NOTICE's two states.
+- description prop typed `string | Record<string, string>`; list branch joins Record values
+  (React object-as-child crash guard).
+- Rule: new admin UI must read the same honest-state source as existing notices, not restate
+  assumptions.
