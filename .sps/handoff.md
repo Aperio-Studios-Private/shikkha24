@@ -3690,3 +3690,11 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Live-verified both stages by flipping a real doc's review_status; reverted after.
 - Last-task recheck (owner ask): lint-fix diff line-by-line = format-only; no orphan DB rows;
   harnesses pass (reporter-access, access 39 collections, engagement).
+
+### 2026-10-26 — T-89 R3 self-audit fixes (commit `4d4b33f`)
+
+- Three R3 bugs caught on recheck: missing .catch() on findByID (fail-soft now), dynamic import →
+  static, and the strip leaking to the LIST view (Description slot is shared; renderListViewSlots
+  passes it without an id). List now renders static description text; create/edit keep the strip.
+- **Lesson: enumerate every view that consumes a slot before shipping** — the docs describe
+  Description as edit-view, but 3.90.2 renders it in list views too.

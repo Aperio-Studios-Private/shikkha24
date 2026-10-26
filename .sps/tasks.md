@@ -3815,6 +3815,18 @@ description gone; preview button + label present. Temp account + probes deleted 
 **Remaining R3 scope note:** rebuild-expectation copy is inside the strip's published line; the
 Preview part of R3 was already satisfied by C1c7. Next: R4 (delete guardrails + publish summary).
 
+**R3 self-audit (owner: "check the last task again, fix mistakes, then next task") — 3 issues found
+and fixed (commit `4d4b33f`):** (1) `findByID` had no `.catch()` — a document deleted while open
+would break the edit view; now fails soft to the generic strip (DashboardWorkbench pattern).
+(2) payload.config was dynamically imported; switched to the codebase's static-import convention.
+(3) **The Description slot is shared by the LIST view** — renderListViewSlots passes the same
+component without an id, so the "Writing…" strip leaked onto the Articles list page. Without an id
+the component now renders the collection's static description text; create/edit keep the strip.
+Verified live: LIST = static text + no strip; CREATE/EDIT = strip with Write stage.
+Typecheck/lint/build green; temp account + probes deleted (T-77). **Lesson recorded: a slot
+registered on `admin.components` may render in MORE views than the one you tested — enumerate every
+consumer of the slot in the installed source before shipping.** R3 now truly complete. Next: R4.
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
