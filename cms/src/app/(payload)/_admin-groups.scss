@@ -142,35 +142,52 @@
     }
   }
 
-  [id^='nav-group-Editorial'] .nav__link.active {
+  /*
+   * Two shapes carry "you are here": `.nav__link.active` (the custom
+   * Dashboard/My Work links add the class themselves) and `div.nav__link` —
+   * Payload's Nav renders the CURRENT page's item as a plain div without the
+   * active class (verified in @payloadcms/next 3.90.2 elements/Nav), so the
+   * div form is what tints collection/globals items on their own pages.
+   * Audit finding 2026-10-26: without the div selector the group tints below
+   * were dead CSS for all 34 collection links.
+   */
+  [id^='nav-group-Editorial'] .nav__link.active,
+  [id^='nav-group-Editorial'] div.nav__link {
     @include group-active('editorial');
   }
 
-  [id^='nav-group-Education'] .nav__link.active {
+  [id^='nav-group-Education'] .nav__link.active,
+  [id^='nav-group-Education'] div.nav__link {
     @include group-active('education');
   }
 
-  [id^='nav-group-Media'] .nav__link.active {
+  [id^='nav-group-Media'] .nav__link.active,
+  [id^='nav-group-Media'] div.nav__link {
     @include group-active('media');
   }
 
-  [id^='nav-group-Interactive'] .nav__link.active {
+  [id^='nav-group-Interactive'] .nav__link.active,
+  [id^='nav-group-Interactive'] div.nav__link {
     @include group-active('interactive');
   }
 
-  [id^='nav-group-Readers'] .nav__link.active {
+  [id^='nav-group-Readers'] .nav__link.active,
+  [id^='nav-group-Readers'] div.nav__link {
     @include group-active('readers');
   }
 
-  [id^='nav-group-Advertising'] .nav__link.active {
+  [id^='nav-group-Advertising'] .nav__link.active,
+  [id^='nav-group-Advertising'] div.nav__link {
     @include group-active('advertising');
   }
 
-  [id^='nav-group-Taxonomy'] .nav__link.active {
+  [id^='nav-group-Taxonomy'] .nav__link.active,
+  [id^='nav-group-Taxonomy'] div.nav__link {
     @include group-active('taxonomy');
   }
 
-  [id^='nav-group-Administration'] .nav__link.active {
+  [id^='nav-group-Administration'] .nav__link.active,
+  [id^='nav-group-Administration'] div.nav__link {
     @include group-active('administration');
   }
 
