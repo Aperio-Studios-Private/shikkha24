@@ -108,6 +108,12 @@
     background-color: var(--shikkha-brand);
   }
 
+  /*
+   * R1 — ungrouped links (Dashboard, My Work) keep the brand-red active state
+   * above; links inside a workflow group are recolored by _admin-groups.scss,
+   * whose attribute selectors out-rank these class-only rules.
+   */
+
   @media (max-width: 768px), (pointer: coarse) {
     .template-default {
       overflow-x: clip;

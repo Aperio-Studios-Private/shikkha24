@@ -78,6 +78,77 @@
     --shikkha-danger-emphasis-hover: #b91c1c;
     --shikkha-danger-on-emphasis: #ffffff;
 
+    /*
+     * R1 — one color family per workflow group ("colorful, still flat").
+     *
+     * The sidebar's eight groups each get an accent: a solid emphasis for the
+     * group header bar, a soft tint for active items and dashboard cards, and
+     * a foreground that passes WCAG AA (≥4.5:1) on both the tint and white in
+     * every family — measured, not assumed (2026-10-26):
+     *   editorial 7.30/8.02 · education 7.15/8.72 · media 5.98/7.10
+     *   interactive 4.86/5.47 · readers 4.52/5.18 · advertising 4.58/4.92
+     *   taxonomy 4.60/4.99 · administration 9.45/10.35 (fg on tint / on white)
+     *   white on every emphasis ≥5.18.
+     * Emphasis shades sit on Tailwind 700/800 steps so white text on the solid
+     * header bars passes AA at 14px; the semantic status colors above (success
+     * green, warning amber, danger red) stay reserved for status, not groups.
+     */
+    --shikkha-group-editorial-bg: #fff1f2;
+    --shikkha-group-editorial-fg: #9f1239;
+    --shikkha-group-editorial-border: #fecdd3;
+    --shikkha-group-editorial-emphasis: #be123c;
+    --shikkha-group-editorial-emphasis-hover: #9f1239;
+    --shikkha-group-editorial-on-emphasis: #ffffff;
+
+    --shikkha-group-education-bg: #dbeafe;
+    --shikkha-group-education-fg: #1e40af;
+    --shikkha-group-education-border: #bfdbfe;
+    --shikkha-group-education-emphasis: #1d4ed8;
+    --shikkha-group-education-emphasis-hover: #1e40af;
+    --shikkha-group-education-on-emphasis: #ffffff;
+
+    --shikkha-group-media-bg: #ede9fe;
+    --shikkha-group-media-fg: #6d28d9;
+    --shikkha-group-media-border: #ddd6fe;
+    --shikkha-group-media-emphasis: #7c3aed;
+    --shikkha-group-media-emphasis-hover: #6d28d9;
+    --shikkha-group-media-on-emphasis: #ffffff;
+
+    --shikkha-group-interactive-bg: #ccfbf1;
+    --shikkha-group-interactive-fg: #0f766e;
+    --shikkha-group-interactive-border: #99f6e4;
+    --shikkha-group-interactive-emphasis: #0f766e;
+    --shikkha-group-interactive-emphasis-hover: #115e59;
+    --shikkha-group-interactive-on-emphasis: #ffffff;
+
+    --shikkha-group-readers-bg: #ffedd5;
+    --shikkha-group-readers-fg: #c2410c;
+    --shikkha-group-readers-border: #fed7aa;
+    --shikkha-group-readers-emphasis: #c2410c;
+    --shikkha-group-readers-emphasis-hover: #9a3412;
+    --shikkha-group-readers-on-emphasis: #ffffff;
+
+    --shikkha-group-advertising-bg: #fef9c3;
+    --shikkha-group-advertising-fg: #854d0e;
+    --shikkha-group-advertising-border: #fde68a;
+    --shikkha-group-advertising-emphasis: #854d0e;
+    --shikkha-group-advertising-emphasis-hover: #713f12;
+    --shikkha-group-advertising-on-emphasis: #ffffff;
+
+    --shikkha-group-taxonomy-bg: #ecfccb;
+    --shikkha-group-taxonomy-fg: #3f6212;
+    --shikkha-group-taxonomy-border: #d9f99d;
+    --shikkha-group-taxonomy-emphasis: #3f6212;
+    --shikkha-group-taxonomy-emphasis-hover: #365314;
+    --shikkha-group-taxonomy-on-emphasis: #ffffff;
+
+    --shikkha-group-administration-bg: #f1f5f9;
+    --shikkha-group-administration-fg: #334155;
+    --shikkha-group-administration-border: #e2e8f0;
+    --shikkha-group-administration-emphasis: #475569;
+    --shikkha-group-administration-emphasis-hover: #334155;
+    --shikkha-group-administration-on-emphasis: #ffffff;
+
     --shikkha-neutral-0: #ffffff;
     --shikkha-neutral-50: #f8fafc;
     --shikkha-neutral-100: #f1f5f9;

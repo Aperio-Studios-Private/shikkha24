@@ -70,10 +70,6 @@
   box-shadow: none !important;
 }
 
-.nav a.nav__link.active:hover:not(:focus):not(:focus-visible):not(:active) {
-  background-color: var(--shikkha-brand-bg) !important;
-}
-
 .btn:not(.btn--disabled):hover:not(:focus):not(:focus-visible):not(:active) {
   background-color: var(--bg-color, transparent) !important;
   color: var(--color, currentColor) !important;
@@ -212,17 +208,53 @@
   opacity: 1 !important;
 }
 
-.nav-group__toggle:hover:not(:focus):not(:focus-visible):not(:active) {
+/*
+ * R1 — generic toggle hover pin, for toggles WITHOUT a colored group bar.
+ * The eight colored bars (ids nav-group-Editorial … nav-group-Administration)
+ * own their text color in every state via _admin-groups.scss — on a solid
+ * dark bar, hover may darken the background but never the text (the first
+ * cut let this pin paint ink on a dark bar: invisible, owner-reported
+ * 2026-10-26). The :not() chain excludes every colored group id.
+ */
+.nav-group:not([id^='nav-group-Editorial'])
+  .nav-group__toggle:hover:not(:focus):not(:focus-visible):not(:active),
+.nav-group:not([id^='nav-group-Education'])
+  .nav-group__toggle:hover:not(:focus):not(:focus-visible):not(:active),
+.nav-group:not([id^='nav-group-Media'])
+  .nav-group__toggle:hover:not(:focus):not(:focus-visible):not(:active),
+.nav-group:not([id^='nav-group-Interactive'])
+  .nav-group__toggle:hover:not(:focus):not(:focus-visible):not(:active),
+.nav-group:not([id^='nav-group-Readers'])
+  .nav-group__toggle:hover:not(:focus):not(:focus-visible):not(:active),
+.nav-group:not([id^='nav-group-Advertising'])
+  .nav-group__toggle:hover:not(:focus):not(:focus-visible):not(:active),
+.nav-group:not([id^='nav-group-Taxonomy'])
+  .nav-group__toggle:hover:not(:focus):not(:focus-visible):not(:active),
+.nav-group:not([id^='nav-group-Administration'])
+  .nav-group__toggle:hover:not(:focus):not(:focus-visible):not(:active) {
   color: var(--shikkha-ink) !important;
   background-color: var(--shikkha-neutral-100) !important;
   border-color: transparent !important;
   box-shadow: none !important;
 }
 
-.nav-group__toggle:hover:not(:focus):not(:focus-visible):not(:active) .stroke {
+.nav-group:not([id^='nav-group-Editorial']):not([id^='nav-group-Education']):not([id^='nav-group-Media']):not([id^='nav-group-Interactive']):not([id^='nav-group-Readers']):not([id^='nav-group-Advertising']):not([id^='nav-group-Taxonomy']):not([id^='nav-group-Administration'])
+  .nav-group__toggle:hover:not(:focus):not(:focus-visible):not(:active)
+  .stroke {
   border-color: var(--shikkha-neutral-150) !important;
   box-shadow: none !important;
   stroke: currentColor !important;
+}
+
+/*
+ * Active nav links keep their tint on hover. The tint comes from the group
+ * tree (--shikkha-active-link-bg, set per group in _admin-groups.scss) so
+ * each group's active item hovers in its own family; ungrouped links
+ * (Dashboard, My Work) fall back to the brand tint.
+ */
+.nav a.nav__link.active:hover:not(:focus):not(:focus-visible):not(:active) {
+  background-color: var(--shikkha-active-link-bg, var(--shikkha-brand-bg)) !important;
+  color: var(--shikkha-active-link-fg, var(--shikkha-brand-fg)) !important;
 }
 
 .insert-paragraph-at-end:hover,

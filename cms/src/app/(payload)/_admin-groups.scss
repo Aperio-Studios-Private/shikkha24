@@ -1,0 +1,245 @@
+/**
+ * T-89 R1 — per-group accent colors ("colorful, still flat").
+ *
+ * Each sidebar workflow group carries its own color family from
+ * _admin-tokens.scss (`--shikkha-group-*`). Hooks are structural, not
+ * content-based:
+ *
+ * - Sidebar: Payload's NavGroup renders `id="nav-group-{label}"` on the group
+ *   wrapper (verified in @payloadcms/ui/dist/elements/NavGroup), so
+ *   `[id^='nav-group-Editorial']` selects the group regardless of translation
+ *   or emoji changes. Labels carry the English name in every locale.
+ * - Dashboard: CollectionCards renders each card with `id="card-{slug}"`
+ *   (verified in @payloadcms/ui/dist/widgets/CollectionCards), so each
+ *   collection's card inherits its group's family by slug.
+ *
+ * Flat only: solid fills, tints, and borders. No shadows, gradients, or
+ * transitions (the no-motion policy in _admin-motion.scss still governs).
+ */
+
+@layer payload-default {
+  /*
+   * ── Sidebar: solid emphasis header bar per group ────────────────────────
+   *
+   * ⚠️ Text is pinned to `on-emphasis` in EVERY state — rest, hover, focus,
+   * focus-visible, active. The first cut guarded white with :not(:focus)
+   * guards copied from the light-surface hover neutralizers; on dark bars
+   * that let Payload's native hover (color: --theme-elevation-1000) and the
+   * hierarchy base (ink-muted) paint dark text on a dark bar — invisible
+   * (owner-reported 2026-10-26). A colored bar never changes text color;
+   * only its background darkens. The chevron (.stroke) follows currentColor
+   * for the same reason — Payload's native stroke is a light gray that
+   * washes out on solid fills.
+   */
+  @mixin group-header($family) {
+    background-color: var(--shikkha-group-#{$family}-emphasis);
+    color: var(--shikkha-group-#{$family}-on-emphasis);
+
+    .stroke {
+      stroke: currentColor;
+    }
+
+    &:hover,
+    &:focus,
+    &:focus-visible,
+    &:active {
+      background-color: var(--shikkha-group-#{$family}-emphasis-hover);
+      color: var(--shikkha-group-#{$family}-on-emphasis);
+
+      .stroke {
+        stroke: currentColor;
+      }
+    }
+  }
+
+  [id^='nav-group-Editorial'] .nav-group__toggle {
+    @include group-header('editorial');
+  }
+
+  [id^='nav-group-Education'] .nav-group__toggle {
+    @include group-header('education');
+  }
+
+  [id^='nav-group-Media'] .nav-group__toggle {
+    @include group-header('media');
+  }
+
+  [id^='nav-group-Interactive'] .nav-group__toggle {
+    @include group-header('interactive');
+  }
+
+  [id^='nav-group-Readers'] .nav-group__toggle {
+    @include group-header('readers');
+  }
+
+  [id^='nav-group-Advertising'] .nav-group__toggle {
+    @include group-header('advertising');
+  }
+
+  [id^='nav-group-Taxonomy'] .nav-group__toggle {
+    @include group-header('taxonomy');
+  }
+
+  [id^='nav-group-Administration'] .nav-group__toggle {
+    @include group-header('administration');
+  }
+
+  /*
+   * Active nav links keep their group tint on hover: each group publishes its
+   * tint + foreground as --shikkha-active-link-bg / -fg (inherited down the
+   * tree), and the hover neutralizer in _admin-hover.scss pins those instead
+   * of hardcoded brand values. Dashboard/My Work sit outside any group and
+   * fall back to the brand pair via var() defaults.
+   */
+  [id^='nav-group-Editorial'] {
+    --shikkha-active-link-bg: var(--shikkha-group-editorial-bg);
+    --shikkha-active-link-fg: var(--shikkha-group-editorial-fg);
+  }
+
+  [id^='nav-group-Education'] {
+    --shikkha-active-link-bg: var(--shikkha-group-education-bg);
+    --shikkha-active-link-fg: var(--shikkha-group-education-fg);
+  }
+
+  [id^='nav-group-Media'] {
+    --shikkha-active-link-bg: var(--shikkha-group-media-bg);
+    --shikkha-active-link-fg: var(--shikkha-group-media-fg);
+  }
+
+  [id^='nav-group-Interactive'] {
+    --shikkha-active-link-bg: var(--shikkha-group-interactive-bg);
+    --shikkha-active-link-fg: var(--shikkha-group-interactive-fg);
+  }
+
+  [id^='nav-group-Readers'] {
+    --shikkha-active-link-bg: var(--shikkha-group-readers-bg);
+    --shikkha-active-link-fg: var(--shikkha-group-readers-fg);
+  }
+
+  [id^='nav-group-Advertising'] {
+    --shikkha-active-link-bg: var(--shikkha-group-advertising-bg);
+    --shikkha-active-link-fg: var(--shikkha-group-advertising-fg);
+  }
+
+  [id^='nav-group-Taxonomy'] {
+    --shikkha-active-link-bg: var(--shikkha-group-taxonomy-bg);
+    --shikkha-active-link-fg: var(--shikkha-group-taxonomy-fg);
+  }
+
+  [id^='nav-group-Administration'] {
+    --shikkha-active-link-bg: var(--shikkha-group-administration-bg);
+    --shikkha-active-link-fg: var(--shikkha-group-administration-fg);
+  }
+
+  /* ── Sidebar: active item tinted with its group's family ───────────────── */
+  @mixin group-active($family) {
+    color: var(--shikkha-group-#{$family}-fg);
+    background-color: var(--shikkha-group-#{$family}-bg);
+
+    .nav__link-indicator {
+      color: var(--shikkha-group-#{$family}-emphasis);
+      background-color: var(--shikkha-group-#{$family}-emphasis);
+    }
+  }
+
+  [id^='nav-group-Editorial'] .nav__link.active {
+    @include group-active('editorial');
+  }
+
+  [id^='nav-group-Education'] .nav__link.active {
+    @include group-active('education');
+  }
+
+  [id^='nav-group-Media'] .nav__link.active {
+    @include group-active('media');
+  }
+
+  [id^='nav-group-Interactive'] .nav__link.active {
+    @include group-active('interactive');
+  }
+
+  [id^='nav-group-Readers'] .nav__link.active {
+    @include group-active('readers');
+  }
+
+  [id^='nav-group-Advertising'] .nav__link.active {
+    @include group-active('advertising');
+  }
+
+  [id^='nav-group-Taxonomy'] .nav__link.active {
+    @include group-active('taxonomy');
+  }
+
+  [id^='nav-group-Administration'] .nav__link.active {
+    @include group-active('administration');
+  }
+
+  /* ── Dashboard: collection cards carry their group's accent ────────────── */
+  @mixin group-card($family) {
+    border-color: var(--shikkha-group-#{$family}-border);
+    background-color: var(--shikkha-group-#{$family}-bg);
+
+    .card__title {
+      color: var(--shikkha-group-#{$family}-fg);
+    }
+  }
+
+  #card-articles,
+  #card-assignments,
+  #card-authors,
+  #card-pages,
+  #card-fact-checks {
+    @include group-card('editorial');
+  }
+
+  #card-scholarships,
+  #card-deadlines,
+  #card-institutions,
+  #card-circulars,
+  #card-result-links,
+  #card-study-abroad-guides,
+  #card-faqs {
+    @include group-card('education');
+  }
+
+  #card-media,
+  #card-photo-galleries,
+  #card-live-streams {
+    @include group-card('media');
+  }
+
+  #card-live-blogs,
+  #card-polls,
+  #card-quizzes {
+    @include group-card('interactive');
+  }
+
+  #card-comments,
+  #card-newsletter-subscribers,
+  #card-newsletter-campaigns,
+  #card-saved-deadlines,
+  #card-bookmarks,
+  #card-citizen-submissions,
+  #card-push-subscriptions,
+  #card-poll-votes,
+  #card-reactions {
+    @include group-card('readers');
+  }
+
+  #card-ad-units {
+    @include group-card('advertising');
+  }
+
+  #card-categories,
+  #card-levels,
+  #card-districts,
+  #card-tags {
+    @include group-card('taxonomy');
+  }
+
+  #card-readers,
+  #card-users,
+  #card-site-settings {
+    @include group-card('administration');
+  }
+}
