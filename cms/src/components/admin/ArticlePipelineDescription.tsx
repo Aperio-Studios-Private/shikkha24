@@ -1,9 +1,9 @@
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
-import config from '../../payload.config'
-import { isAutoRebuildConfigured } from '../../lib/rebuild-trigger'
 import { hasRole } from '../../access/roles'
 import type { ReviewStatus } from '../../collections/Articles'
+import { isAutoRebuildConfigured } from '../../lib/rebuild-trigger'
+import config from '../../payload.config'
 
 /**
  * R3 — the editor's pipeline strip, rendered through Payload's Edit-view
