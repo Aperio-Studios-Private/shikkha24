@@ -3921,6 +3921,14 @@ the reporter correctly got notFound until a linked author profile existed, which
 security behavior. All test data reverted (author_id, profile, sessions); temps + probes deleted
 (T-77). Gates green. Next: R5a (emoji on dashboard chips + empty state).
 
+**R4 recheck round 7 (owner asked again) — no mistakes found; three targeted verifications closed the
+remaining unknowns (ledger-only commit):** (1) no circular-import risk — access/roles.ts imports
+only Payload types; (2) the canDelete=false path renders a clean 2-fact strip (conditional <li>
+renders nothing, no gap); (3) the published+superAdmin combo live-verified: 🌐 Live site stage
+highlighted, factCount 3, delete line reads "removes it from the live site". Article reverted to
+draft/draft; temp account + probes deleted (T-77); tree clean. R4 remains complete.
+Next: R5a (emoji on dashboard status chips + empty state).
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
