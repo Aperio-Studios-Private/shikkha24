@@ -3780,3 +3780,11 @@ way *after* the billing lock clears, revisit this entry — not before.
   overflow. Emoji chips are layout-safe.
 - Setup facts re-confirmed: assignments.assignedTo → authors profile (not users row); approved is a
   decided status (Recently-decided strip, not active list).
+
+### 2026-10-26 — T-89 R5a recheck round 3 (commit `b4ec2bc`)
+
+- changesRequested emoji is now ↩️ (was sharing ✏️ with draft — vocabulary violation). Verified
+  live beside ✏️ Draft chips.
+- OWNER REPORTING RULE: all browser-tool step titles in English (owner cannot read Chinese).
+- Probe note: direct SQL updates do not refresh updated_at — a "recent work" test must touch
+  updated_at or the doc will not appear in the recent list.

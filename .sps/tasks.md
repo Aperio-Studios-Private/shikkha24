@@ -3957,6 +3957,16 @@ data (assignment, author profile, user, sessions) deleted; tree clean.
 **R5a fully verified: desktop chips ✓, mobile chip ✓, cross-surface consistency ✓.
 Next: R5b (list-view empty states + remaining action buttons).**
 
+**R5a recheck round 3 (owner asked again) — I violated my own one-state-one-emoji rule; fixed
+(commit `b4ec2bc`):** the R5a map gave draft AND changesRequested the same ✏️, so a reporter could
+not tell "not started" from "the desk sent this back" without reading the label. changesRequested is
+now ↩️ (sent back). Verified live: "↩️ Changes requested" renders beside "✏️ Draft" chips (first
+attempt tested the wrong document — a direct SQL update does not refresh updated_at, so the doc was
+not in the recent list; re-tested on article 1 with a fresh timestamp). Article reverted; temp +
+probes deleted (T-77); gates green. **Lesson: an emoji map is a vocabulary — dedupe it like copy.**
+**Also fixed this round: my browser-tool step titles were being written in Chinese — all step
+titles to English from now on (owner cannot read Chinese).**
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
