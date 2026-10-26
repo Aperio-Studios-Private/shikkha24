@@ -116,7 +116,7 @@ export async function DashboardWorkbench() {
         <div className="dashboard-workbench__cards">
           {adCards.map((card) => (
             <Link
-              className={'dashboard-workbench__card dashboard-workbench__card--' + card.tone}
+              className={`dashboard-workbench__card dashboard-workbench__card--${card.tone}`}
               href={card.href}
               key={card.title}
             >

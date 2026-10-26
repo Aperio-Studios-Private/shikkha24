@@ -124,7 +124,10 @@ export const Assignments: CollectionConfig = {
       type: 'date',
       index: true,
       label: { en: 'Due', bn: 'সময়সীমা' },
-      admin: { position: 'sidebar', description: 'ঢাকার সময় অনুযায়ী শেষ দিন। পার হলে তালিকায় লাল হয়ে দেখাবে।' },
+      admin: {
+        position: 'sidebar',
+        description: 'ঢাকার সময় অনুযায়ী শেষ দিন। পার হলে তালিকায় লাল হয়ে দেখাবে।',
+      },
       access: { update: editorField },
     },
     {

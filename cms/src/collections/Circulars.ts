@@ -70,7 +70,10 @@ export const Circulars: CollectionConfig = {
       name: 'publishedDate',
       type: 'date',
       label: { en: 'Published date', bn: 'প্রকাশের তারিখ' },
-      admin: { date: { pickerAppearance: 'dayOnly' }, description: 'বিজ্ঞপ্তি পত্রিকায় যেদিন প্রকাশিত হয়েছে।' },
+      admin: {
+        date: { pickerAppearance: 'dayOnly' },
+        description: 'বিজ্ঞপ্তি পত্রিকায় যেদিন প্রকাশিত হয়েছে।',
+      },
     },
     {
       name: 'deadline',

@@ -71,18 +71,18 @@ export interface DeadlineInfo {
 /** Relative deadline copy; beyond two weeks the exact date reads better. */
 export function deadlineInfo(diff: number | null, exact: string | null): DeadlineInfo {
   if (diff === null && exact === null) return { text: 'No deadline (সময়সীমা নেই)', tone: 'muted' }
-  if (diff === null) return { text: 'Deadline ' + (exact ?? '') + ' (সময়সীমা)', tone: 'muted' }
+  if (diff === null) return { text: `Deadline ${exact ?? ''} (সময়সীমা)`, tone: 'muted' }
   if (diff < 0) {
     const days = -diff
     return {
-      text: 'Overdue by ' + days + 'd (সময়সীমা ' + days + ' দিন পেরিয়ে গেছে)',
+      text: `Overdue by ${days}d (সময়সীমা ${days} দিন পেরিয়ে গেছে)`,
       tone: 'danger',
     }
   }
   if (diff === 0) return { text: 'Due today (আজই জমা)', tone: 'warning' }
   if (diff === 1) return { text: 'Due tomorrow (আগামীকাল)', tone: 'warning' }
-  if (diff <= 14) return { text: 'In ' + diff + ' days (আর ' + diff + ' দিন)', tone: 'muted' }
-  return { text: 'Deadline ' + (exact ?? '') + ' (সময়সীমা)', tone: 'muted' }
+  if (diff <= 14) return { text: `In ${diff} days (আর ${diff} দিন)`, tone: 'muted' }
+  return { text: `Deadline ${exact ?? ''} (সময়সীমা)`, tone: 'muted' }
 }
 
 /**
@@ -98,7 +98,7 @@ export function relativeDays(value: string | null | undefined, now: Date = new D
   )
   if (days <= 0) return 'Today (আজ)'
   if (days === 1) return 'Yesterday (গতকাল)'
-  return days + 'd ago (' + days + ' দিন আগে)'
+  return `${days}d ago (${days} দিন আগে)`
 }
 
 export interface AssignableDoc {

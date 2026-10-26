@@ -180,7 +180,7 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
 
         {overdue > 0 && (
           <p className="reporter-overdue" role="alert">
-            ⚠️ {overdue === 1 ? 'One assignment is' : overdue + ' assignments are'} overdue — file it
+            ⚠️ {overdue === 1 ? 'One assignment is' : `${overdue} assignments are`} overdue — file it
             or tell your editor (সময়সীমা পেরিয়ে গেছে — জমা দিন অথবা সম্পাদককে জানান)।
           </p>
         )}
@@ -188,7 +188,7 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
         <section className="reporter-section">
           <h2>
             Active assignments (চলমান অ্যাসাইনমেন্ট)
-            {active.length > 0 ? ' (' + active.length + ')' : ''}
+            {active.length > 0 ? ` (${active.length})` : ''}
           </h2>
 
           {active.length === 0 ? (
@@ -221,24 +221,24 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
                     <div className="reporter-assignment__head">
                       <a
                         className="reporter-assignment__title"
-                        href={'/admin/collections/assignments/' + assignment.id}
+                        href={`/admin/collections/assignments/${assignment.id}`}
                       >
                         {assignment.title ?? 'Untitled (শিরোনামহীন)'}
                       </a>
-                      <span className={'reporter-chip reporter-chip--' + statusChip.tone}>
+                      <span className={`reporter-chip reporter-chip--${statusChip.tone}`}>
                         {statusChip.label}
                       </span>
                     </div>
                     <div className="reporter-assignment__meta">
                       {priorityChip && (
-                        <span className={'reporter-chip reporter-chip--' + priorityChip.tone}>
+                        <span className={`reporter-chip reporter-chip--${priorityChip.tone}`}>
                           {priorityChip.label}
                         </span>
                       )}
                       {due.tone === 'muted' ? (
                         <span>{due.text}</span>
                       ) : (
-                        <span className={'reporter-assignment__due--' + due.tone}>{due.text}</span>
+                        <span className={`reporter-assignment__due--${due.tone}`}>{due.text}</span>
                       )}
                     </div>
                     {assignment.brief && (
@@ -262,14 +262,14 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
                 }
                 return (
                   <li key={assignment.id}>
-                    <a href={'/admin/collections/assignments/' + assignment.id}>
+                    <a href={`/admin/collections/assignments/${assignment.id}`}>
                       {assignment.title ?? 'Untitled (শিরোনামহীন)'}
                     </a>
                     <span className="reporter-decided__meta">
                       <span className="reporter-decided__time">
                         {relativeDays(assignment.updatedAt, now)}
                       </span>
-                      <span className={'reporter-chip reporter-chip--' + statusChip.tone}>
+                      <span className={`reporter-chip reporter-chip--${statusChip.tone}`}>
                         {statusChip.label}
                       </span>
                     </span>
@@ -302,10 +302,10 @@ export async function ReporterWorkspace(props: AdminViewServerProps) {
                       : status
                 return (
                   <li key={article.id}>
-                    <a href={'/admin/collections/articles/' + article.id}>
+                    <a href={`/admin/collections/articles/${article.id}`}>
                       {article.title ?? 'Untitled (শিরোনামহীন)'}
                     </a>
-                    <span className={'reporter-chip reporter-chip--' + tone}>
+                    <span className={`reporter-chip reporter-chip--${tone}`}>
                       {label || 'draft'}
                     </span>
                   </li>
