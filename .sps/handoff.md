@@ -3829,3 +3829,14 @@ way *after* the billing lock clears, revisit this entry — not before.
 - CI on 9c65b03: 39 steps green (Lint, freshness checks, builds, typechecks). ONLY failure =
   Lighthouse LCP (T-80, owner-gated, pre-existing). Deploy refuses via CI gate — live site
   unaffected. Production deployment waits on T-80.
+
+### 2026-10-26 — T-89 R8 mobile editor UX (commit `97a61b5`)
+
+- ≤768px: doc-controls position:fixed bottom (thumb-reach action bar) — the sticky ancestor
+  (.gutter--left) breaks Payload's own sticky on mobile. Form bottom padding matches. Desktop
+  sticky unchanged.
+- Pipeline strip compact on mobile (English-only step labels). Sidebar fields get a
+  "⚙️ Publishing details" section header via .document-fields-sidebar-fields::before.
+- All mobile editor rules UNLAYERED (end of _admin-hierarchy.scss) — layered loses to Payload's
+  unlayered duplicate.
+- Verified: bar pinned at scrollY 1500, Save visible; desktop sticky unchanged; no overflow.

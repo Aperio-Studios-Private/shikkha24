@@ -4021,6 +4021,23 @@ failure is the Lighthouse LCP assertion (T-80, owner-gated font decision, pre-ex
 (safe design; live site unaffected — still serving the last good deploy). The T-89 redesign work is
 now backed up on GitHub; production deployment awaits T-80.
 
+**R8 — mobile editor UX SHIPPED LOCALLY (2026-10-26, commit `97a61b5`), AWAITING OWNER REVIEW.**
+Owner: "redesign the article creation form — colorful, memorable, on mobile very easy to use."
+Audit (desktop + mobile screenshots) found 4 problems, all fixed:
+(1) **Save/Publish scrolled away** — the controls bar sits inside a sticky ancestor
+(.gutter--left), so Payload's sticky never reaches the viewport. Fix: on ≤768px the bar is
+position:fixed at the viewport BOTTOM (thumb reach) with solid surface + safe-area padding; form
+gets matching bottom padding. Verified pinned + Save visible at scrollY 1500; desktop unchanged
+(sticky, verified).
+(2) Pipeline strip consumed ~40% of the phone screen → compact one-line steps, English-only labels
+on mobile.
+(3) Sidebar fields dumped below tabs with no separation → clear "⚙️ Publishing details" section
+header.
+(4) Preview label clipped → flex-shrink 0 + full label.
+All layout rules UNLAYERED at the end of _admin-hierarchy.scss (layered versions lose to Payload's
+unlayered duplicate CSS — lesson from R5b applied). Stray create-test articles removed from dev DB;
+temp account + probes deleted (T-77); build green; lint exit 0.
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
