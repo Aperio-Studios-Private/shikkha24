@@ -4598,6 +4598,13 @@ variable transfer-সহ সংরক্ষিত; Actions সীমাহীন
   header. Measured 0 → **32px**. An earlier attempt padded `.template-default__wrap`, which is a grid
   row containing the app header itself — it pushed the header down 16px instead (traced with
   `CSS.getMatchedStylesForNode`); reverted and fixed at the correct node.
+- **E10 (honesty correction, 2026-10-26):** an earlier summary table of "what each button is
+  now" was written from CSS source and contained **false claims** — the owner caught it. Measured
+  truth: Unpublish and Save-draft do not render in the tested states at all (Unpublish needs a
+  published doc); Delete/Schedule icons measured 16px while Create/Duplicate were 18px. Root cause
+  of both: sizing was applied per **action id**, not per **location**. Now: menu rows 18px, toolbar
+  16px, decided by container. Lesson for future sessions: the button table must be produced by DOM
+  measurement, never from the stylesheet — the same rule as "verify before claiming done".
 - **E3 (consistency):** re-audit across 8 views × 2 widths. Root cause of remaining square buttons:
   Payload's own `--style-radius-s/m/l` were never mapped, so wherever Payload's layer won the
   cascade the shape collapsed. Mapped to our tokens; re-confirmed 8px radius on the article editor
