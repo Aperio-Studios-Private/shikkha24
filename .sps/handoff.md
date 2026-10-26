@@ -3773,3 +3773,10 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Reporter workspace approved chip now ✅ Approved (matches dashboard). Rule: one state = one emoji
   across every admin surface; when adding an emoji to a state, grep for other renderers of the same
   state before shipping.
+
+### 2026-10-26 — T-89 R5a recheck round 2 (no code change)
+
+- Mobile 390px: "✅ Approved" chip renders in the Recently-decided strip with a long title, zero
+  overflow. Emoji chips are layout-safe.
+- Setup facts re-confirmed: assignments.assignedTo → authors profile (not users row); approved is a
+  decided status (Recently-decided strip, not active list).

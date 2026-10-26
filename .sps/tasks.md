@@ -3946,6 +3946,17 @@ live on /admin/reporter with a seeded approved assignment ("✅ Approved"). Temp
 + probes deleted (T-77); gates green. reviewLabel has only one consumer (DashboardWorkbench) — no
 duplicate-emoji risk elsewhere. Next: R5b (list-view empty states + remaining action buttons).
 
+**R5a recheck round 2 (owner asked again) — mobile overflow check on the emoji chip: PASS, no code
+change needed.** Seeded an approved assignment with a deliberately long title for the temp reporter
+and measured at 390px: the "✅ Approved" chip renders in the Recently-decided strip, no horizontal
+overflow (scrollWidth 390 = clientWidth 390). Two test-setup corrections along the way (both
+re-confirming existing security, not bugs): (1) assignments.assignedTo keys on the AUTHORS profile,
+not the users row — a reporter with no authorProfile correctly sees nothing; (2) approved is a
+decided status, so the chip renders in the Recently-decided strip, not the active list. All probe
+data (assignment, author profile, user, sessions) deleted; tree clean.
+**R5a fully verified: desktop chips ✓, mobile chip ✓, cross-surface consistency ✓.
+Next: R5b (list-view empty states + remaining action buttons).**
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
