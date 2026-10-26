@@ -397,14 +397,14 @@
   font-size: 16px;
 }
 
-/* Toolbar action icons match the menu icons (18px menu / 16px inline). */
-#action-save-draft::before,
-[id*='unpublish' i]::before,
-#schedule-publish::before,
-#action-delete::before,
-.delete-document__toggle::before {
-  font-size: 16px;
-}
+/*
+ * Icon sizes are decided by WHERE the icon lives, never by which action it is:
+ *   menu rows  (.popup-button-list__button::before)  -> 18px
+ *   toolbar    (.doc-controls .btn__label::before)   -> 16px
+ * A per-action size list previously shrank Delete and Schedule to 16px while
+ * Create and Duplicate stayed 18px in the same menu — an inconsistency that was
+ * only visible by measuring each icon, not by reading the stylesheet.
+ */
 
 #action-save-draft::before {
   content: "💾";
