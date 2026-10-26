@@ -106,21 +106,312 @@ export const Articles: CollectionConfig = {
     maxPerDoc: 20,
   },
   fields: [
+    /*
+     * T-89 R2 — the editor is grouped into four workflow tabs (owner-approved
+     * discovery decision, 2026-10-26): write → enrich → classify → publish.
+     * Every tab is UNNAMED, which per Payload's tabs-field contract makes the
+     * field presentational-only: data paths are unchanged, so no migration is
+     * needed and `payload-types.ts` must not change. The sidebar keeps the
+     * daily controls (slug, featured image, category, author, review status,
+     * publish date); everything a writer touches per step lives in its tab.
+     * Nothing was deleted, only re-grouped.
+     */
     {
-      name: 'title',
-      type: 'text',
-      required: true,
-      index: true,
-      label: { en: 'Headline', bn: 'শিরোনাম' },
+      type: 'tabs',
+      tabs: [
+        {
+          label: '✍️ Content (লেখা)',
+          description:
+            'Write the story — headline, standfirst, body, takeaways, timeline. (গল্প লিখুন।)',
+          fields: [
+            {
+              name: 'title',
+              type: 'text',
+              required: true,
+              index: true,
+              label: { en: 'Headline', bn: 'শিরোনাম' },
+            },
+            {
+              name: 'titleEn',
+              type: 'text',
+              label: { en: 'Headline (English)', bn: 'শিরোনাম (ইংরেজি)' },
+              admin: {
+                description:
+                  'ঐচ্ছিক। থাকলে এটি থেকেই URL-এর slug তৈরি হবে, নাহলে একটি স্বয়ংক্রিয় slug বসবে।',
+              },
+            },
+            {
+              name: 'excerpt',
+              type: 'textarea',
+              required: true,
+              maxLength: 300,
+              label: { en: 'Standfirst / excerpt', bn: 'সংক্ষিপ্তসার' },
+              admin: { description: 'তালিকা পাতায় ও সার্চ ফলাফলে দেখানো হবে। সর্বোচ্চ ৩০০ অক্ষর।' },
+            },
+            {
+              name: 'body',
+              type: 'richText',
+              label: { en: 'Body', bn: 'মূল লেখা' },
+              // The only field that carries the video block — the article route
+              // (`/:category/:id/:slug`) is the only one whose CSP allows a third-party
+              // frame. See `blocks/editors.ts`.
+              editor: articleBodyEditor,
+            },
+            {
+              name: 'keyTakeaways',
+              type: 'array',
+              maxRows: 6,
+              label: { en: 'Key takeaways', bn: 'মূল বিষয়সমূহ' },
+              admin: { description: 'সংক্ষেপে মূল পয়েন্ট — শিক্ষার্থীদের জন্য দ্রুত পাঠ।' },
+              fields: [
+                {
+                  name: 'point',
+                  type: 'text',
+                  required: true,
+                  label: { en: 'Point', bn: 'পয়েন্ট' },
+                },
+              ],
+            },
+            {
+              name: 'timelineMilestones',
+              type: 'array',
+              label: { en: 'Timeline', bn: 'সময়রেখা' },
+              admin: {
+                description: 'ভর্তি নীতি পরিবর্তন বা পরীক্ষা-কেন্দ্রিক দীর্ঘ ঘটনার সময়রেখা।',
+              },
+              fields: [
+                { name: 'date', type: 'date', required: true, label: { en: 'Date', bn: 'তারিখ' } },
+                {
+                  name: 'title',
+                  type: 'text',
+                  required: true,
+                  label: { en: 'Title', bn: 'শিরোনাম' },
+                },
+                { name: 'detail', type: 'textarea', label: { en: 'Detail', bn: 'বিবরণ' } },
+              ],
+            },
+          ],
+        },
+        {
+          label: '🖼️ Media (ছবি ও ভিডিও)',
+          description: 'Layout, video, and photo-story frames. (লেআউট, ভিডিও ও ছবির গল্প।)',
+          fields: [
+            {
+              name: 'layout',
+              type: 'select',
+              defaultValue: 'standard',
+              index: true,
+              label: { en: 'Layout', bn: 'লেআউট' },
+              options: [
+                { value: 'standard', label: 'Standard (সাধারণ)' },
+                { value: 'photoStory', label: 'Photo Story (ছবির গল্প)' },
+              ],
+              admin: {
+                description:
+                  'ছবির গল্প বেছে নিলে নিচের ছবির তালিকা থেকে পাতা তৈরি হয় — লেখা নয়, ছবিই প্রধান।',
+              },
+            },
+            {
+              name: 'videoProvider',
+              type: 'select',
+              defaultValue: 'youtube',
+              label: { en: 'Video provider', bn: 'ভিডিও সেবাদাতা' },
+              options: [
+                { label: 'YouTube (ইউটিউব)', value: 'youtube' },
+                { label: 'Facebook (ফেসবুক)', value: 'facebook' },
+              ],
+              admin: {
+                // Only meaningful with a video — an editor should not have to read a
+                // provider field that does nothing.
+                condition: (data: Record<string, unknown>) => Boolean(data?.videoUrl),
+              },
+            },
+            {
+              name: 'videoUrl',
+              type: 'text',
+              label: { en: 'Video URL', bn: 'ভিডিও ঠিকানা' },
+              admin: {
+                description:
+                  'ঐচ্ছিক। দিলে সংবাদের উপরে একটি প্লেয়ার বসে — ক্লিক করার আগে কোনো অনুরোধ যায় না। ইউটিউব লিংক বা ফেসবুক ভিডিওর ঠিকানা।',
+              },
+            },
+            {
+              name: 'photoStory',
+              type: 'array',
+              label: { en: 'Photo story frames', bn: 'ছবির গল্পের ফ্রেম' },
+              admin: {
+                description:
+                  'প্রতিটি ছবির ক্যাপশন ও কৃতিত্ব দিন। ছবির বাক্স আগেই সংরক্ষিত থাকে (আসল মাপ থেকে), তাই পাতা লাফায় না।',
+                // Only relevant to the photo-story layout — showing an empty frame list on
+                // every ordinary article is noise an editor has to scroll past.
+                condition: (data: Record<string, unknown>) => data?.layout === 'photoStory',
+              },
+              fields: [
+                {
+                  name: 'image',
+                  type: 'upload',
+                  relationTo: 'media',
+                  required: true,
+                  label: { en: 'Image', bn: 'ছবি' },
+                },
+                {
+                  name: 'caption',
+                  type: 'textarea',
+                  label: { en: 'Caption', bn: 'ক্যাপশন' },
+                  admin: { description: 'ছবির নিচে দেখানো হয়।' },
+                },
+                {
+                  name: 'credit',
+                  type: 'text',
+                  label: { en: 'Credit', bn: 'কৃতিত্ব' },
+                  admin: { description: 'যেমন: সংগৃহীত / শিক্ষা২৪.কম।' },
+                },
+                {
+                  name: 'fullBleed',
+                  type: 'checkbox',
+                  defaultValue: false,
+                  label: { en: 'Full bleed', bn: 'ফুল ব্লিড' },
+                  admin: {
+                    description: 'চালু থাকলে ছবিটি পাতার পুরো প্রস্থ নেয়। বন্ধ থাকলে লেখার প্রস্থেই থাকে।',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          label: '🗂️ Classification (শ্রেণিবিন্যাস)',
+          description:
+            'Where the story belongs — subcategory, level, district, institution, tags. (সংবাদের শ্রেণি।)',
+          fields: [
+            {
+              name: 'subcategory',
+              type: 'relationship',
+              relationTo: 'categories',
+              index: true,
+              label: { en: 'Subcategory', bn: 'উপবিভাগ' },
+              admin: {
+                description: 'ঐচ্ছিক। নির্বাচিত বিভাগের অধীন একটি উপবিভাগ।',
+              },
+            },
+            {
+              name: 'level',
+              type: 'relationship',
+              relationTo: 'levels',
+              hasMany: true,
+              index: true,
+              label: { en: 'Level', bn: 'শ্রেণি' },
+              admin: {
+                description: 'প্রাথমিক · মাধ্যমিক · উচ্চ মাধ্যমিক · স্নাতক · স্নাতকোত্তর',
+              },
+            },
+            {
+              name: 'district',
+              type: 'relationship',
+              relationTo: 'districts',
+              hasMany: true,
+              index: true,
+              label: { en: 'District', bn: 'জেলা' },
+              admin: { description: 'ঐচ্ছিক — স্থানীয় সংবাদের জন্য।' },
+            },
+            /**
+             * The institution this story is about — the **only** entry point for the
+             * university directory's news linkage.
+             *
+             * ⚠️ There is deliberately no second field on `Institutions` listing its
+             * articles. The profile page queries *this* field, so publishing a story is
+             * the whole job: an editor never has to go back and update the institution
+             * record, and the two can never disagree about which stories belong where.
+             *
+             * Optional, because most education stories are not about one institution.
+             */
+            {
+              name: 'university',
+              type: 'relationship',
+              relationTo: 'institutions',
+              index: true,
+              label: { en: 'University / institution', bn: 'বিশ্ববিদ্যালয় / প্রতিষ্ঠান' },
+              admin: {
+                description: 'ঐচ্ছিক। দিলে প্রতিষ্ঠানের পাতায় সংবাদটি স্বয়ংক্রিয়ভাবে যুক্ত হবে।',
+              },
+            },
+            {
+              name: 'tags',
+              type: 'relationship',
+              relationTo: 'tags',
+              hasMany: true,
+              label: { en: 'Tags', bn: 'ট্যাগ' },
+            },
+          ],
+        },
+        {
+          label: '🚀 Publishing (প্রকাশ)',
+          description:
+            'Desk controls — breaking, lead, sponsorship, corrections. (ব্রেকিং, লিড, স্পনসর ও সংশোধনী।)',
+          fields: [
+            {
+              name: 'isBreaking',
+              type: 'checkbox',
+              defaultValue: false,
+              index: true,
+              label: { en: 'Breaking', bn: 'ব্রেকিং' },
+              admin: {
+                description: 'ফলাফল প্রকাশ, ভর্তি বিজ্ঞপ্তি বা পরীক্ষা স্থগিতের জরুরি খবর।',
+              },
+              access: { create: editorInChiefField, update: editorInChiefField },
+            },
+            {
+              name: 'isLead',
+              type: 'checkbox',
+              defaultValue: false,
+              index: true,
+              label: { en: 'Lead story', bn: 'প্রধান সংবাদ' },
+              access: { create: editorInChiefField, update: editorInChiefField },
+            },
+            {
+              name: 'isSponsored',
+              type: 'checkbox',
+              defaultValue: false,
+              index: true,
+              label: { en: 'Sponsored content', bn: 'স্পনসর করা কনটেন্ট' },
+              admin: {
+                description:
+                  'স্পনসর করা লেখা। চালু করলে পাতায় ও কার্ডে "বিজ্ঞাপন" লেবেল বসবে এবং লেখাটি প্রধান সংবাদ বা ব্রেকিং তালিকায় যাবে না — পাঠকের কাছে বিজ্ঞাপনকে সংবাদ হিসেবে দেখানো যাবে না।',
+              },
+            },
+            {
+              name: 'sponsorName',
+              type: 'text',
+              label: { en: 'Sponsor name', bn: 'স্পনসরের নাম' },
+              admin: {
+                description: 'লেবেলে দেখানো হবে — যেমন "বিজ্ঞাপন — পাঠক প্রকাশনী"।',
+                condition: (data) => Boolean(data?.isSponsored),
+              },
+            },
+            {
+              name: 'correctionNotice',
+              type: 'group',
+              label: { en: 'Correction notice', bn: 'সংশোধনী' },
+              fields: [
+                {
+                  name: 'hasCorrection',
+                  type: 'checkbox',
+                  defaultValue: false,
+                  label: { en: 'Corrected', bn: 'সংশোধিত' },
+                },
+                {
+                  name: 'note',
+                  type: 'textarea',
+                  label: { en: 'Correction note', bn: 'সংশোধনের বিবরণ' },
+                  admin: { condition: (_, siblingData) => siblingData?.hasCorrection },
+                },
+              ],
+            },
+          ],
+        },
+      ],
     },
-    {
-      name: 'titleEn',
-      type: 'text',
-      label: { en: 'Headline (English)', bn: 'শিরোনাম (ইংরেজি)' },
-      admin: {
-        description: 'ঐচ্ছিক। থাকলে এটি থেকেই URL-এর slug তৈরি হবে, নাহলে একটি স্বয়ংক্রিয় slug বসবে।',
-      },
-    },
+    // ── Sidebar: the daily controls, unchanged ───────────────────────────────
     {
       name: 'slug',
       type: 'text',
@@ -133,121 +424,11 @@ export const Articles: CollectionConfig = {
       },
     },
     {
-      name: 'excerpt',
-      type: 'textarea',
-      required: true,
-      maxLength: 300,
-      label: { en: 'Standfirst / excerpt', bn: 'সংক্ষিপ্তসার' },
-      admin: { description: 'তালিকা পাতায় ও সার্চ ফলাফলে দেখানো হবে। সর্বোচ্চ ৩০০ অক্ষর।' },
-    },
-    {
       name: 'featuredImage',
       type: 'upload',
       relationTo: 'media',
       label: { en: 'Featured image', bn: 'প্রধান ছবি' },
       admin: { position: 'sidebar' },
-    },
-    {
-      name: 'layout',
-      type: 'select',
-      defaultValue: 'standard',
-      index: true,
-      label: { en: 'Layout', bn: 'লেআউট' },
-      options: [
-        { value: 'standard', label: 'Standard (সাধারণ)' },
-        { value: 'photoStory', label: 'Photo Story (ছবির গল্প)' },
-      ],
-      admin: {
-        position: 'sidebar',
-        description: 'ছবির গল্প বেছে নিলে নিচের ছবির তালিকা থেকে পাতা তৈরি হয় — লেখা নয়, ছবিই প্রধান।',
-      },
-    },
-    {
-      name: 'videoProvider',
-      type: 'select',
-      defaultValue: 'youtube',
-      label: { en: 'Video provider', bn: 'ভিডিও সেবাদাতা' },
-      options: [
-        { label: 'YouTube (ইউটিউব)', value: 'youtube' },
-        { label: 'Facebook (ফেসবুক)', value: 'facebook' },
-      ],
-      admin: {
-        position: 'sidebar',
-        // Only meaningful with a video — an editor should not have to read a
-        // provider field that does nothing.
-        condition: (data: Record<string, unknown>) => Boolean(data?.videoUrl),
-      },
-    },
-    {
-      name: 'videoUrl',
-      type: 'text',
-      label: { en: 'Video URL', bn: 'ভিডিও ঠিকানা' },
-      admin: {
-        position: 'sidebar',
-        description:
-          'ঐচ্ছিক। দিলে সংবাদের উপরে একটি প্লেয়ার বসে — ক্লিক করার আগে কোনো অনুরোধ যায় না। ইউটিউব লিংক বা ফেসবুক ভিডিওর ঠিকানা।',
-      },
-    },
-    {
-      name: 'body',
-      type: 'richText',
-      label: { en: 'Body', bn: 'মূল লেখা' },
-      // The only field that carries the video block — the article route
-      // (`/:category/:id/:slug`) is the only one whose CSP allows a third-party
-      // frame. See `blocks/editors.ts`.
-      editor: articleBodyEditor,
-    },
-    {
-      name: 'photoStory',
-      type: 'array',
-      label: { en: 'Photo story frames', bn: 'ছবির গল্পের ফ্রেম' },
-      admin: {
-        description:
-          'প্রতিটি ছবির ক্যাপশন ও কৃতিত্ব দিন। ছবির বাক্স আগেই সংরক্ষিত থাকে (আসল মাপ থেকে), তাই পাতা লাফায় না।',
-        // Only relevant to the photo-story layout — showing an empty frame list on
-        // every ordinary article is noise an editor has to scroll past.
-        condition: (data: Record<string, unknown>) => data?.layout === 'photoStory',
-      },
-      fields: [
-        {
-          name: 'image',
-          type: 'upload',
-          relationTo: 'media',
-          required: true,
-          label: { en: 'Image', bn: 'ছবি' },
-        },
-        {
-          name: 'caption',
-          type: 'textarea',
-          label: { en: 'Caption', bn: 'ক্যাপশন' },
-          admin: { description: 'ছবির নিচে দেখানো হয়।' },
-        },
-        {
-          name: 'credit',
-          type: 'text',
-          label: { en: 'Credit', bn: 'কৃতিত্ব' },
-          admin: { description: 'যেমন: সংগৃহীত / শিক্ষা২৪.কম।' },
-        },
-        {
-          name: 'fullBleed',
-          type: 'checkbox',
-          defaultValue: false,
-          label: { en: 'Full bleed', bn: 'ফুল ব্লিড' },
-          admin: {
-            description: 'চালু থাকলে ছবিটি পাতার পুরো প্রস্থ নেয়। বন্ধ থাকলে লেখার প্রস্থেই থাকে।',
-          },
-        },
-      ],
-    },
-    {
-      name: 'keyTakeaways',
-      type: 'array',
-      maxRows: 6,
-      label: { en: 'Key takeaways', bn: 'মূল বিষয়সমূহ' },
-      admin: { description: 'সংক্ষেপে মূল পয়েন্ট — শিক্ষার্থীদের জন্য দ্রুত পাঠ।' },
-      fields: [
-        { name: 'point', type: 'text', required: true, label: { en: 'Point', bn: 'পয়েন্ট' } },
-      ],
     },
     {
       name: 'category',
@@ -256,68 +437,6 @@ export const Articles: CollectionConfig = {
       required: true,
       index: true,
       label: { en: 'Category', bn: 'বিভাগ' },
-      admin: { position: 'sidebar' },
-    },
-    {
-      name: 'subcategory',
-      type: 'relationship',
-      relationTo: 'categories',
-      index: true,
-      label: { en: 'Subcategory', bn: 'উপবিভাগ' },
-      admin: {
-        position: 'sidebar',
-        description: 'ঐচ্ছিক। নির্বাচিত বিভাগের অধীন একটি উপবিভাগ।',
-      },
-    },
-    {
-      name: 'level',
-      type: 'relationship',
-      relationTo: 'levels',
-      hasMany: true,
-      index: true,
-      label: { en: 'Level', bn: 'শ্রেণি' },
-      admin: {
-        position: 'sidebar',
-        description: 'প্রাথমিক · মাধ্যমিক · উচ্চ মাধ্যমিক · স্নাতক · স্নাতকোত্তর',
-      },
-    },
-    {
-      name: 'district',
-      type: 'relationship',
-      relationTo: 'districts',
-      hasMany: true,
-      index: true,
-      label: { en: 'District', bn: 'জেলা' },
-      admin: { position: 'sidebar', description: 'ঐচ্ছিক — স্থানীয় সংবাদের জন্য।' },
-    },
-    /**
-     * The institution this story is about — the **only** entry point for the
-     * university directory's news linkage.
-     *
-     * ⚠️ There is deliberately no second field on `Institutions` listing its
-     * articles. The profile page queries *this* field, so publishing a story is
-     * the whole job: an editor never has to go back and update the institution
-     * record, and the two can never disagree about which stories belong where.
-     *
-     * Optional, because most education stories are not about one institution.
-     */
-    {
-      name: 'university',
-      type: 'relationship',
-      relationTo: 'institutions',
-      index: true,
-      label: { en: 'University / institution', bn: 'বিশ্ববিদ্যালয় / প্রতিষ্ঠান' },
-      admin: {
-        position: 'sidebar',
-        description: 'ঐচ্ছিক। দিলে প্রতিষ্ঠানের পাতায় সংবাদটি স্বয়ংক্রিয়ভাবে যুক্ত হবে।',
-      },
-    },
-    {
-      name: 'tags',
-      type: 'relationship',
-      relationTo: 'tags',
-      hasMany: true,
-      label: { en: 'Tags', bn: 'ট্যাগ' },
       admin: { position: 'sidebar' },
     },
     {
@@ -365,49 +484,6 @@ export const Articles: CollectionConfig = {
       },
     },
     {
-      name: 'isBreaking',
-      type: 'checkbox',
-      defaultValue: false,
-      index: true,
-      label: { en: 'Breaking', bn: 'ব্রেকিং' },
-      admin: {
-        position: 'sidebar',
-        description: 'ফলাফল প্রকাশ, ভর্তি বিজ্ঞপ্তি বা পরীক্ষা স্থগিতের জরুরি খবর।',
-      },
-      access: { create: editorInChiefField, update: editorInChiefField },
-    },
-    {
-      name: 'isLead',
-      type: 'checkbox',
-      defaultValue: false,
-      index: true,
-      label: { en: 'Lead story', bn: 'প্রধান সংবাদ' },
-      admin: { position: 'sidebar' },
-      access: { create: editorInChiefField, update: editorInChiefField },
-    },
-    {
-      name: 'isSponsored',
-      type: 'checkbox',
-      defaultValue: false,
-      index: true,
-      label: { en: 'Sponsored content', bn: 'স্পনসর করা কনটেন্ট' },
-      admin: {
-        position: 'sidebar',
-        description:
-          'স্পনসর করা লেখা। চালু করলে পাতায় ও কার্ডে "বিজ্ঞাপন" লেবেল বসবে এবং লেখাটি প্রধান সংবাদ বা ব্রেকিং তালিকায় যাবে না — পাঠকের কাছে বিজ্ঞাপনকে সংবাদ হিসেবে দেখানো যাবে না।',
-      },
-    },
-    {
-      name: 'sponsorName',
-      type: 'text',
-      label: { en: 'Sponsor name', bn: 'স্পনসরের নাম' },
-      admin: {
-        position: 'sidebar',
-        description: 'লেবেলে দেখানো হবে — যেমন "বিজ্ঞাপন — পাঠক প্রকাশনী"।',
-        condition: (data) => Boolean(data?.isSponsored),
-      },
-    },
-    {
       name: 'publishedAt',
       type: 'date',
       index: true,
@@ -420,38 +496,6 @@ export const Articles: CollectionConfig = {
       type: 'number',
       label: { en: 'Reading time (minutes)', bn: 'পাঠের সময় (মিনিট)' },
       admin: { position: 'sidebar', readOnly: true, description: 'স্বয়ংক্রিয়ভাবে হিসাব হয়।' },
-    },
-    {
-      name: 'correctionNotice',
-      type: 'group',
-      label: { en: 'Correction notice', bn: 'সংশোধনী' },
-      fields: [
-        {
-          name: 'hasCorrection',
-          type: 'checkbox',
-          defaultValue: false,
-          label: { en: 'Corrected', bn: 'সংশোধিত' },
-        },
-        {
-          name: 'note',
-          type: 'textarea',
-          label: { en: 'Correction note', bn: 'সংশোধনের বিবরণ' },
-          admin: { condition: (_, siblingData) => siblingData?.hasCorrection },
-        },
-      ],
-    },
-    {
-      name: 'timelineMilestones',
-      type: 'array',
-      label: { en: 'Timeline', bn: 'সময়রেখা' },
-      admin: {
-        description: 'ভর্তি নীতি পরিবর্তন বা পরীক্ষা-কেন্দ্রিক দীর্ঘ ঘটনার সময়রেখা।',
-      },
-      fields: [
-        { name: 'date', type: 'date', required: true, label: { en: 'Date', bn: 'তারিখ' } },
-        { name: 'title', type: 'text', required: true, label: { en: 'Title', bn: 'শিরোনাম' } },
-        { name: 'detail', type: 'textarea', label: { en: 'Detail', bn: 'বিবরণ' } },
-      ],
     },
   ],
   hooks: {

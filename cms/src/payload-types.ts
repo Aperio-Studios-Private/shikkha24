@@ -228,23 +228,9 @@ export interface Article {
    */
   titleEn?: string | null;
   /**
-   * ASCII, lowercase। খালি রাখলে স্বয়ংক্রিয়ভাবে তৈরি হবে।
-   */
-  slug?: string | null;
-  /**
    * তালিকা পাতায় ও সার্চ ফলাফলে দেখানো হবে। সর্বোচ্চ ৩০০ অক্ষর।
    */
   excerpt: string;
-  featuredImage?: (number | null) | Media;
-  /**
-   * ছবির গল্প বেছে নিলে নিচের ছবির তালিকা থেকে পাতা তৈরি হয় — লেখা নয়, ছবিই প্রধান।
-   */
-  layout?: ('standard' | 'photoStory') | null;
-  videoProvider?: ('youtube' | 'facebook') | null;
-  /**
-   * ঐচ্ছিক। দিলে সংবাদের উপরে একটি প্লেয়ার বসে — ক্লিক করার আগে কোনো অনুরোধ যায় না। ইউটিউব লিংক বা ফেসবুক ভিডিওর ঠিকানা।
-   */
-  videoUrl?: string | null;
   body?: {
     root: {
       type: string;
@@ -260,6 +246,35 @@ export interface Article {
     };
     [k: string]: unknown;
   } | null;
+  /**
+   * সংক্ষেপে মূল পয়েন্ট — শিক্ষার্থীদের জন্য দ্রুত পাঠ।
+   */
+  keyTakeaways?:
+    | {
+        point: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * ভর্তি নীতি পরিবর্তন বা পরীক্ষা-কেন্দ্রিক দীর্ঘ ঘটনার সময়রেখা।
+   */
+  timelineMilestones?:
+    | {
+        date: string;
+        title: string;
+        detail?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * ছবির গল্প বেছে নিলে নিচের ছবির তালিকা থেকে পাতা তৈরি হয় — লেখা নয়, ছবিই প্রধান।
+   */
+  layout?: ('standard' | 'photoStory') | null;
+  videoProvider?: ('youtube' | 'facebook') | null;
+  /**
+   * ঐচ্ছিক। দিলে সংবাদের উপরে একটি প্লেয়ার বসে — ক্লিক করার আগে কোনো অনুরোধ যায় না। ইউটিউব লিংক বা ফেসবুক ভিডিওর ঠিকানা।
+   */
+  videoUrl?: string | null;
   /**
    * প্রতিটি ছবির ক্যাপশন ও কৃতিত্ব দিন। ছবির বাক্স আগেই সংরক্ষিত থাকে (আসল মাপ থেকে), তাই পাতা লাফায় না।
    */
@@ -282,16 +297,6 @@ export interface Article {
       }[]
     | null;
   /**
-   * সংক্ষেপে মূল পয়েন্ট — শিক্ষার্থীদের জন্য দ্রুত পাঠ।
-   */
-  keyTakeaways?:
-    | {
-        point: string;
-        id?: string | null;
-      }[]
-    | null;
-  category: number | Category;
-  /**
    * ঐচ্ছিক। নির্বাচিত বিভাগের অধীন একটি উপবিভাগ।
    */
   subcategory?: (number | null) | Category;
@@ -308,15 +313,6 @@ export interface Article {
    */
   university?: (number | null) | Institution;
   tags?: (number | Tag)[] | null;
-  author: number | Author;
-  /**
-   * প্রতিবেদক "পর্যালোচনার অপেক্ষায়" পাঠান; সম্পাদক অনুমোদন করেন।
-   */
-  reviewStatus: 'draft' | 'pendingReview' | 'changesRequested' | 'approved';
-  /**
-   * সম্পাদকের প্রতিক্রিয়া — প্রতিবেদকের কাছে ফেরত পাঠানোর সময়।
-   */
-  reviewNote?: string | null;
   /**
    * ফলাফল প্রকাশ, ভর্তি বিজ্ঞপ্তি বা পরীক্ষা স্থগিতের জরুরি খবর।
    */
@@ -330,26 +326,30 @@ export interface Article {
    * লেবেলে দেখানো হবে — যেমন "বিজ্ঞাপন — পাঠক প্রকাশনী"।
    */
   sponsorName?: string | null;
-  publishedAt?: string | null;
-  /**
-   * স্বয়ংক্রিয়ভাবে হিসাব হয়।
-   */
-  readingTimeMinutes?: number | null;
   correctionNotice?: {
     hasCorrection?: boolean | null;
     note?: string | null;
   };
   /**
-   * ভর্তি নীতি পরিবর্তন বা পরীক্ষা-কেন্দ্রিক দীর্ঘ ঘটনার সময়রেখা।
+   * ASCII, lowercase। খালি রাখলে স্বয়ংক্রিয়ভাবে তৈরি হবে।
    */
-  timelineMilestones?:
-    | {
-        date: string;
-        title: string;
-        detail?: string | null;
-        id?: string | null;
-      }[]
-    | null;
+  slug?: string | null;
+  featuredImage?: (number | null) | Media;
+  category: number | Category;
+  author: number | Author;
+  /**
+   * প্রতিবেদক "পর্যালোচনার অপেক্ষায়" পাঠান; সম্পাদক অনুমোদন করেন।
+   */
+  reviewStatus: 'draft' | 'pendingReview' | 'changesRequested' | 'approved';
+  /**
+   * সম্পাদকের প্রতিক্রিয়া — প্রতিবেদকের কাছে ফেরত পাঠানোর সময়।
+   */
+  reviewNote?: string | null;
+  publishedAt?: string | null;
+  /**
+   * স্বয়ংক্রিয়ভাবে হিসাব হয়।
+   */
+  readingTimeMinutes?: number | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -2083,48 +2083,13 @@ export interface PayloadMigration {
 export interface ArticlesSelect<T extends boolean = true> {
   title?: T;
   titleEn?: T;
-  slug?: T;
   excerpt?: T;
-  featuredImage?: T;
-  layout?: T;
-  videoProvider?: T;
-  videoUrl?: T;
   body?: T;
-  photoStory?:
-    | T
-    | {
-        image?: T;
-        caption?: T;
-        credit?: T;
-        fullBleed?: T;
-        id?: T;
-      };
   keyTakeaways?:
     | T
     | {
         point?: T;
         id?: T;
-      };
-  category?: T;
-  subcategory?: T;
-  level?: T;
-  district?: T;
-  university?: T;
-  tags?: T;
-  author?: T;
-  reviewStatus?: T;
-  reviewNote?: T;
-  isBreaking?: T;
-  isLead?: T;
-  isSponsored?: T;
-  sponsorName?: T;
-  publishedAt?: T;
-  readingTimeMinutes?: T;
-  correctionNotice?:
-    | T
-    | {
-        hasCorrection?: T;
-        note?: T;
       };
   timelineMilestones?:
     | T
@@ -2134,6 +2099,41 @@ export interface ArticlesSelect<T extends boolean = true> {
         detail?: T;
         id?: T;
       };
+  layout?: T;
+  videoProvider?: T;
+  videoUrl?: T;
+  photoStory?:
+    | T
+    | {
+        image?: T;
+        caption?: T;
+        credit?: T;
+        fullBleed?: T;
+        id?: T;
+      };
+  subcategory?: T;
+  level?: T;
+  district?: T;
+  university?: T;
+  tags?: T;
+  isBreaking?: T;
+  isLead?: T;
+  isSponsored?: T;
+  sponsorName?: T;
+  correctionNotice?:
+    | T
+    | {
+        hasCorrection?: T;
+        note?: T;
+      };
+  slug?: T;
+  featuredImage?: T;
+  category?: T;
+  author?: T;
+  reviewStatus?: T;
+  reviewNote?: T;
+  publishedAt?: T;
+  readingTimeMinutes?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
