@@ -3858,6 +3858,15 @@ list shows the honest rebuild-notice warning (webhook unset locally), edit shows
 **Lesson: when the codebase already has an honest-state pattern (REBUILD_NOTICE), new UI must read
 the same state, not restate a hopeful assumption.** R3 fully verified again. Next: R4.
 
+**R3 recheck round 5 (owner asked again) — no code mistakes found this time; gap filled instead:**
+the three states that had NEVER been live-verified (changesRequested, approved, published) were
+cycled on a real document via headless Chrome: changesRequested → 👀 Review + "fix it and resubmit";
+approved → 🚀 Publish + "publish when ready"; published → 🌐 Live site + the honest
+"auto-rebuild is off — run a rebuild" line (correct for a dev env without DEPLOY_WEBHOOK_URL).
+Article reverted to draft/draft after; temp account + probes deleted (T-77); working tree clean;
+importMap freshness PASS. R3 is now state-complete: every branch of the strip observed rendering
+with the right copy. Next: R4 (delete guardrails + publish summary).
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —

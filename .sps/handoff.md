@@ -3723,3 +3723,10 @@ way *after* the billing lock clears, revisit this entry — not before.
   (React object-as-child crash guard).
 - Rule: new admin UI must read the same honest-state source as existing notices, not restate
   assumptions.
+
+### 2026-10-26 — T-89 R3 recheck round 5 (no code changes)
+
+- The 3 never-tested strip states were live-cycled on article 1 (changesRequested → approved →
+  published): stage + next-line correct in each, including the honest auto-rebuild-off copy.
+- Article reverted to draft/draft; temp account + probes deleted; tree clean; importMap PASS.
+- R3 is state-complete. Next: R4 (delete guardrails + publish summary).
