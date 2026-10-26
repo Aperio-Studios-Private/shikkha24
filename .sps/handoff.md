@@ -3870,3 +3870,13 @@ way *after* the billing lock clears, revisit this entry — not before.
 - R2 bucket shikkha24-media created (wrangler, owner account). No data written yet.
 - Backup workflow failure root-caused: host-side cron never installed (owner cPanel steps pending in
   the workflow header) — fetch correctly refuses; code is complete.
+
+### 2026-10-27 — P3 prep: storage-r2 dependency + research (commit `f2a02da`)
+
+- @payloadcms/storage-r2@3.90.2 installed (exact payload-version pin; 3.92.0 would conflict).
+- NOT wired yet: plugin expects a NATIVE R2Bucket binding (bucket.put/get/head/multipart). On Node
+  the official pattern is an S3-backed implementation: @aws-sdk/client-s3, endpoint
+  https://{ACCOUNT_ID}.r2.cloudflarestorage.com, region 'auto', R2 API token creds (Cloudflare docs:
+  developers.cloudflare.com/r2/examples/aws/aws-sdk-js-v3).
+- P3 waits for P2 (database first, per plan order). R2 bucket shikkha24-media exists; custom domain
+  media.shikkha24.com attachment needs zone-id (owner dashboard step, 2 min).

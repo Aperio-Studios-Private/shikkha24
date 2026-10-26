@@ -4082,6 +4082,17 @@ attach. Backup workflow failure root-caused: NOT a code bug — the host-side cr
 installed (owner cPanel setup steps in the workflow header), so fetch correctly refuses with "No
 archive was produced". The backup pipeline is code-complete and waits on owner cPanel steps.
 
+**P3 preparation (2026-10-27, commit `f2a02da`):** @payloadcms/storage-r2@3.90.2 added (exact pin
+matching payload 3.90.2 — the plugin peer-pins the exact version; MIT). NOT wired into
+payload.config.ts yet — deliberate stop: the plugin expects a NATIVE R2Bucket binding
+(bucket.put/get/head/multipart per its types.ts), which on Node requires an S3-backed implementation
+of that interface (Cloudflare's official Node pattern: @aws-sdk/client-s3 with endpoint
+https://{ACCOUNT_ID}.r2.cloudflarestorage.com, region 'auto', R2 API token). That is a substantial
+custom module writing to PRODUCTION media — and P3 (media) must wait for P2 (database) per the
+approved plan's phase order. Done so far in P3: bucket shikkha24-media created (wrangler, verified),
+dependency installed, research complete. Blocked on: P2 (needs owner's Neon account) + the R2
+custom-domain attachment (owner dashboard step or zone-id via API token).
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
