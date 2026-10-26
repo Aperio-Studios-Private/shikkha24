@@ -3967,6 +3967,19 @@ probes deleted (T-77); gates green. **Lesson: an emoji map is a vocabulary — d
 **Also fixed this round: my browser-tool step titles were being written in Chinese — all step
 titles to English from now on (owner cannot read Chinese).**
 
+**R5b — collection list-view redesign SHIPPED LOCALLY (2026-10-26, commit `e8b56dd`), AWAITING OWNER
+REVIEW.** Owner asked to redesign the Articles list page. New `_admin-list.scss`: 44px rows
+(centered), ink semibold titles with hover-blue affordance, muted metadata, uppercase quiet sort
+headers, row separators instead of boxed rows, one-line dates, cell min-width fixed (six columns no
+longer clip). **Cascade lesson (cost three attempts, now recorded):** Payload injects its admin CSS
+TWICE and the second copy is UNLAYERED — unlayered beats ANY layered rule regardless of
+specificity. Rules that must win live OUTSIDE the @layer block (same pattern as _admin-actions).
+Proven live: layered (0,3,4) lost to unlayered (0,2,3); unlayered test rules won instantly.
+Verified live: title ink rgb(21,34,56), dates nowrap 44px rows, no vertical wrap. Known acceptable
+limit: 6-column tables still horizontal-scroll to reach the date column (shortening the date format
+= separate column-config task). Temp account + probes deleted (T-77); build green.
+**Next: R6 (dashboard energize) or owner-directed fixes.**
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —

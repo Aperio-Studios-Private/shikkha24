@@ -3788,3 +3788,15 @@ way *after* the billing lock clears, revisit this entry — not before.
 - OWNER REPORTING RULE: all browser-tool step titles in English (owner cannot read Chinese).
 - Probe note: direct SQL updates do not refresh updated_at — a "recent work" test must touch
   updated_at or the doc will not appear in the recent list.
+
+### 2026-10-26 — T-89 R5b list-view redesign (commit `e8b56dd`)
+
+- New _admin-list.scss (registered in custom.scss after admin-actions): 44px rows, ink titles,
+  muted metadata, uppercase headers, row separators, nowrap dates, cell min-width 0 (title 220px).
+- **Cascade rule for this repo: Payload injects admin CSS twice; the second copy is UNLAYERED and
+  beats any layered rule at any specificity. Rules that must win go OUTSIDE the @layer block
+  (pattern: _admin-actions.scss, _admin-list.scss).**
+- Verified live via CDP: computed title color ink, date nowrap, no vertical date wrap. Horizontal
+  scroll for 6 columns remains (wide-table standard; date-format shortening = separate task).
+- Owner-side viewing tip that resolved the earlier confusion: dev server restart is needed when a
+  NEW scss file is added to custom.scss @use list (Turbopack does not hot-add files).
