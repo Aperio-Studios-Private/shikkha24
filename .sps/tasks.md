@@ -3763,6 +3763,22 @@ Owner approved the sidebar and asked for a self-audit. Two real issues found and
    suspicion was a false alarm — it was the div form; recorded so nobody re-chases it.)
 Temp account + probes deleted same-session (T-77). Build green. Next chunk: R2.
 
+**R2 — four workflow tabs SHIPPED LOCALLY (2026-10-26, commit `8f6c567`), AWAITING OWNER REVIEW.**
+The article editor's main column is now four UNNAMED tabs per the approved mockup: ✍️ Content
+(headline, English headline, standfirst, body, key takeaways, timeline) · 🖼️ Media (layout,
+video provider+URL, photo-story frames) · 🗂️ Classification (subcategory, level, district,
+institution, tags) · 🚀 Publishing (breaking, lead, sponsored+name, correction notice).
+Unnamed tabs are presentational-only (Payload tabs contract), so data paths are unchanged —
+verified by regenerating `payload-types.ts`: the interface member ORDER changed (tabs re-group
+field declarations) but the field SET is identical (programmatically compared, zero added/removed).
+Sidebar keeps the daily controls: slug, featured image, category, author, review status + note,
+publish date, reading time. All field conditions preserved verbatim. Evidence: typecheck + biome
+(file) + production build pass; live headless-Chrome check on /admin/collections/articles/create —
+tabs render as `.tabs-field__tab-button`, Content/Media/Publishing contents confirmed by clicking
+through (Media correctly hides videoProvider until videoUrl is set), sidebar shows all 7 controls.
+Temp account + probes deleted same-session (T-77). **Owner review next; then R3 (pipeline strip +
+rebuild-expectation copy + prominent Preview).**
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —

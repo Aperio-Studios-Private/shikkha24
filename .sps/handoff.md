@@ -3654,3 +3654,15 @@ way *after* the billing lock clears, revisit this entry — not before.
   not a bug.
 - Payload 3.90 Nav contract: current page = div.nav__link#nav-{slug} (no .active, no href);
   other items = a.nav__link#nav-{slug}. Custom beforeNavLinks add .active themselves.
+
+### 2026-10-26 — T-89 R2 four-tab article editor (commit `8f6c567`)
+
+- Articles.ts main-column fields grouped into four unnamed tabs (✍️ Content / 🖼️ Media /
+  🗂️ Classification / 🚀 Publishing); sidebar unchanged (slug, featuredImage, category, author,
+  reviewStatus+note, publishedAt, readingTimeMinutes). Unnamed = presentational-only: no migration.
+- payload-types.ts regen: interface member order only; field set identical (verified by set diff).
+- Live check: tabs render as .tabs-field__tab-button (Payload 3.90 markup: .tabs-field >
+  .tabs-field__tabs-wrap > button.tabs-field__tab-button; content in .tabs-field__content-wrap).
+  Conditions work (videoProvider hidden without videoUrl). Current-page nav item is div#nav-{slug}
+  (no .active) — covered by R1's audit fix.
+- Temp account + probes deleted same-session (T-77). Gates: typecheck/lint/build green.
