@@ -43,6 +43,13 @@ import type { CollectionConfig, GlobalConfig } from 'payload'
 const WEBHOOK_URL = process.env.DEPLOY_WEBHOOK_URL ?? ''
 const WEBHOOK_TOKEN = process.env.DEPLOY_WEBHOOK_TOKEN ?? ''
 
+/**
+ * Whether saves will trigger an automatic rebuild. Exported for admin UI that
+ * must describe the publish outcome honestly (e.g. the R3 editor pipeline
+ * strip): "updates shortly" is only true when this is true.
+ */
+export const isAutoRebuildConfigured = WEBHOOK_URL !== ''
+
 /** Quiet period before a batched rebuild fires. Default 5 minutes (§3 peak). */
 const MIN_INTERVAL_MS = Number(process.env.REBUILD_MIN_INTERVAL_MS ?? 5 * 60 * 1000)
 

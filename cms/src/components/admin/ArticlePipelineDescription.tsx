@@ -1,6 +1,7 @@
 import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
 import config from '../../payload.config'
+import { isAutoRebuildConfigured } from '../../lib/rebuild-trigger'
 import type { ReviewStatus } from '../../collections/Articles'
 
 /**
@@ -46,7 +47,12 @@ function currentStage(status: ReviewStatus | undefined, isPublished: boolean): S
 
 function nextStep(status: ReviewStatus | undefined, isPublished: boolean): string {
   if (isPublished) {
-    return 'Published. The live site updates shortly (সাইট শীঘ্রই হালনাগাদ হবে)।'
+    // Match REBUILD_NOTICE's two states (lib/rebuild-trigger.ts): with the
+    // deploy webhook configured the site rebuilds on its own shortly; without
+    // it a manual rebuild is required — saying "shortly" there would be a lie.
+    return isAutoRebuildConfigured
+      ? 'Published. The live site updates within a few minutes (কয়েক মিনিটের মধ্যে সাইট হালনাগাদ হবে)।'
+      : 'Published. Auto-rebuild is off — run a rebuild to update the site (অটো rebuild বন্ধ — সাইট হালনাগাদ করতে rebuild চালান)।'
   }
   switch (status) {
     case 'pendingReview':
@@ -67,7 +73,7 @@ export async function ArticlePipelineDescription({
 }: {
   id?: number | string
   collectionSlug?: string
-  description?: string
+  description?: string | Record<string, string>
 }) {
   // The create view has no document yet — show the strip with Write highlighted
   // and the generic first step.
@@ -105,11 +111,20 @@ export async function ArticlePipelineDescription({
    * description there (passed through by both views as the `description`
    * prop) instead of the strip. The create flow redirects to the saved
    * document's edit URL before rendering, so every strip rendering has an id.
+   * The prop is typed loosely (Payload allows a localized Record) — anything
+   * that is not a plain string renders through ViewDescription's own
+   * translation path instead of being embedded raw.
    */
   if (!id) {
-    return description ? (
-      <div className="custom-view-description">{description}</div>
-    ) : null
+    if (!description) return null
+    if (typeof description === 'string') {
+      return <div className="custom-view-description">{description}</div>
+    }
+    return (
+      <div className="custom-view-description">
+        {Object.values(description).filter(Boolean).join(' — ')}
+      </div>
+    )
   }
 
   return (
