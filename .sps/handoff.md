@@ -3840,3 +3840,15 @@ way *after* the billing lock clears, revisit this entry — not before.
 - All mobile editor rules UNLAYERED (end of _admin-hierarchy.scss) — layered loses to Payload's
   unlayered duplicate.
 - Verified: bar pinned at scrollY 1500, Save visible; desktop sticky unchanged; no overflow.
+
+### 2026-10-26 — T-89 R9 editor element polish (commit `295e39d`)
+
+- Preview pill (icon+label, flex-shrink 0), tab pills with editorial active tint, Body editor 320px
+  (.field-type.rich-text-lexical .ContentEditable__root), upload drop-zone (.field-type.upload),
+  array add-row dashed info buttons.
+- Real DOM classes: Body editor wrapper = .field-type.rich-text-lexical (NOT .richText); editable =
+  .ContentEditable__root; upload = .field-type.upload. Verify classes in the live DOM before writing
+  selectors.
+- Dev-server stale compiles: diff the SERVED CSS chunk (/_next/static/chunks/*.css) against the
+  source when a rule "doesn't apply"; touch files + hit the route to force recompile.
+- Stray create-test articles (24/25) + temp account deleted (T-77).

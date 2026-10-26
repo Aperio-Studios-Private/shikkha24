@@ -4038,6 +4038,20 @@ All layout rules UNLAYERED at the end of _admin-hierarchy.scss (layered versions
 unlayered duplicate CSS — lesson from R5b applied). Stray create-test articles removed from dev DB;
 temp account + probes deleted (T-77); build green; lint exit 0.
 
+**R9 — editor element polish SHIPPED LOCALLY (2026-10-26, commit `295e39d`), AWAITING OWNER REVIEW.**
+Owner: "check the button, elements, placement, spacing, typography — lots of issues." Full-page
+screenshot audit found five; all fixed + verified in a final screenshot:
+(1) Preview = proper pill (icon + label, 81px, surface bg) beside Publish; hover softened.
+(2) Tabs = compact pills; active tab editorial tint + bold (no more stray underline on wrap).
+(3) Body editor = 320px writing surface. (4) Sidebar Featured-image = dashed drop-zone panel with
+stacked full-width actions. (5) Array Add buttons = dashed info-blue with solid hover.
+**Process lessons:** (a) two dev-server stale-compile round-trips — diagnose by diffing the SERVED
+CSS chunk, not the source file (the dev server had not picked up the new _admin-list.scss until
+restarted; later edits needed page hits to trigger recompile); (b) real DOM class names differ from
+guesses — Body editor is .field-type.rich-text-lexical .ContentEditable__root (not .richText/
+.editor-shell), upload area is .field-type.upload (not .upload__upload-wrapper). Stray create-test
+articles + temp account deleted (T-77). Build + lint green.
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
