@@ -180,6 +180,88 @@
   }
 
   /*
+   * R8 — mobile editor UX. On phones the document controls (Save / Publish /
+   * Preview) sit inside a sticky ancestor (.gutter--left), so Payload's own
+   * sticky never reaches the viewport — the writer must scroll to the top to
+   * save. Fix: pin the controls bar to the viewport BOTTOM (thumb reach) as a
+   * fixed action bar with a solid surface, and give the form bottom padding
+   * so content is never hidden behind it. Desktop is untouched.
+   */
+  @media (max-width: 768px) {
+    .doc-controls {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      top: auto;
+      z-index: 20;
+      background-color: var(--shikkha-surface);
+      border-top: 1px solid var(--shikkha-border);
+      box-shadow: none;
+      padding: var(--shikkha-space-2) var(--shikkha-space-3);
+      padding-bottom: calc(var(--shikkha-space-2) + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Room for the fixed bar (bar ≈ 64px + safe area). */
+    .template-default__wrap > .gutter--left,
+    .template-default__wrap > .gutter--right {
+      padding-bottom: calc(var(--shikkha-space-8) + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* The controls row: Preview / Publish / dots in one thumb-friendly line. */
+    .doc-controls__wrapper {
+      flex-wrap: nowrap;
+      gap: var(--shikkha-space-2);
+    }
+
+    .doc-controls__content {
+      flex: 1;
+      min-width: 0;
+      gap: var(--shikkha-space-2);
+    }
+
+    /* Meta (Status/Last Modified) hides on mobile — the pipeline strip and
+       Status block already carry that information. */
+    .doc-controls__meta {
+      display: none;
+    }
+
+    /* Preview keeps its full label on mobile (it was clipping to "Pre"). */
+    .preview-btn {
+      flex-shrink: 0;
+      padding: 0 var(--shikkha-space-2);
+      margin-right: 0;
+    }
+
+    .preview-btn::after {
+      content: 'Preview';
+    }
+
+    /* Publish button shrinks to fit but keeps its label. */
+    .doc-controls__controls {
+      flex-shrink: 0;
+      gap: var(--shikkha-space-2);
+    }
+
+    /*
+     * Sidebar fields (slug, image, category, author, review) land below the
+     * tabs on mobile with no separation — add a clear section header so the
+     * writer understands these are the publish-details, not more body fields.
+     */
+    .document-fields__sidebar-fields::before {
+      content: '⚙️ Publishing details (প্রকাশের তথ্য)';
+      display: block;
+      margin: var(--shikkha-space-5) 0 var(--shikkha-space-3);
+      padding-bottom: var(--shikkha-space-2);
+      border-bottom: 1px solid var(--shikkha-border);
+      color: var(--shikkha-ink);
+      font-size: var(--shikkha-text-title);
+      font-weight: var(--shikkha-weight-bold);
+      letter-spacing: -0.01em;
+    }
+  }
+
+  /*
    * E1 — header breathing room, stated in device px.
    *
    * These were `1.5rem`/`0.75rem` and therefore rendered at 19.5px/9.75px: the
@@ -305,4 +387,75 @@
     background-color: var(--shikkha-surface);
   }
 
+}
+
+/*
+ * ── R8 unlayered mobile overrides (must beat Payload's unlayered duplicate
+ * copy — layered rules lose to it at any specificity; see _admin-list.scss
+ * for the full explanation) ──
+ */
+@media (max-width: 768px) {
+  /* Save / Publish pinned to the viewport bottom — always within thumb reach. */
+  .doc-controls {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    z-index: 20;
+    background-color: var(--shikkha-surface);
+    border-top: 1px solid var(--shikkha-border);
+    padding: var(--shikkha-space-2) var(--shikkha-space-3);
+    padding-bottom: calc(var(--shikkha-space-2) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Room for the fixed bar so content is never hidden behind it. */
+  .template-default__wrap > .gutter--left,
+  .template-default__wrap > .gutter--right {
+    padding-bottom: calc(var(--shikkha-space-8) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .doc-controls__wrapper {
+    flex-wrap: nowrap;
+    gap: var(--shikkha-space-2);
+  }
+
+  .doc-controls__content {
+    flex: 1;
+    min-width: 0;
+    gap: var(--shikkha-space-2);
+  }
+
+  /* Meta hides on mobile — the strip + Status block carry that information. */
+  .doc-controls__meta {
+    display: none;
+  }
+
+  .preview-btn {
+    flex-shrink: 0;
+    padding: 0 var(--shikkha-space-2);
+    margin-right: 0;
+  }
+
+  .preview-btn::after {
+    content: 'Preview';
+  }
+
+  .doc-controls__controls {
+    flex-shrink: 0;
+    gap: var(--shikkha-space-2);
+  }
+
+  /* Sidebar fields get a clear section header below the tabs. */
+  .document-fields__sidebar-fields::before {
+    content: '⚙️ Publishing details (প্রকাশের তথ্য)';
+    display: block;
+    margin: var(--shikkha-space-5) 0 var(--shikkha-space-3);
+    padding-bottom: var(--shikkha-space-2);
+    border-bottom: 1px solid var(--shikkha-border);
+    color: var(--shikkha-ink);
+    font-size: var(--shikkha-text-title);
+    font-weight: var(--shikkha-weight-bold);
+    letter-spacing: -0.01em;
+  }
 }

@@ -177,6 +177,31 @@
   }
 
   /*
+   * R8 — mobile editor: the strip is compact (steps wrap in one small row,
+   * facts collapse to save screen for the form).
+   */
+  @media (max-width: 768px) {
+    .article-pipeline {
+      padding: var(--shikkha-space-2) var(--shikkha-space-3);
+      gap: var(--shikkha-space-1);
+    }
+
+    .article-pipeline__step {
+      min-height: var(--shikkha-control-quiet);
+      padding: 0 var(--shikkha-space-2);
+      font-size: var(--shikkha-text-caption);
+    }
+
+    .article-pipeline__bn {
+      display: none; /* English-only labels on phones save the space */
+    }
+
+    .article-pipeline__facts {
+      font-size: var(--shikkha-text-caption);
+    }
+  }
+
+  /*
    * R5-fix — Payload's tab row is display:inline-flex inside an
    * overflow-x:auto wrap, so long Bengali tab labels scroll sideways and the
    * last tab hides behind the edge (measured on the editor). Letting the row
