@@ -3705,3 +3705,11 @@ way *after* the billing lock clears, revisit this entry — not before.
   id. The !id guard separates list (static description via the `description` prop, no hardcode)
   from edit/create (strip). Stray probe-created articles 18/19 deleted from dev DB.
 - Lesson: verify view identity by URL after navigation settles (redirects rename routes).
+
+### 2026-10-26 — T-89 R3 recheck round 3 (commit `9c5b837`)
+
+- CRITICAL: R3's regenerated importMap.js was never committed — CI import-map freshness check would
+  fail; slot broken in fresh installs. Committed; verify:payload-importmap + verify:payload-migrations
+  now PASS locally.
+- **Rule: adding a component + registration ⇒ run generate:importmap and commit it in the same
+  change; run the freshness script before claiming done.**

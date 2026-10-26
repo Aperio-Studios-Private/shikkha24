@@ -3838,6 +3838,15 @@ the strip. Also deleted 2 stray empty articles my probes created in the dev DB, 
 account (T-77). Gates green. **Lesson: verify a view's identity by URL AFTER navigation settles —
 client-side redirects rename the route you think you tested.**
 
+**R3 recheck round 3 (same owner instruction, deeper pass) — 1 CRITICAL catch (commit `9c5b837`):**
+the regenerated `importMap.js` was never staged in the R3 commit — HEAD's map lacked the
+ArticlePipelineDescription entry, which would have failed CI's import-map freshness check and
+broken the Description slot in any fresh install/build from git. Committed now; both freshness
+scripts (importmap + migrations) PASS. **Lesson: when a task adds a component + registration, the
+generated importMap is part of the change — run `generate:importmap` and stage it in the SAME
+commit; verify with `scripts/verify-payload-importmap.sh` before claiming done.** Also cleaned the
+2 stray articles + temp account from probes. Round-3 state: R3 fully complete and push-safe.
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
