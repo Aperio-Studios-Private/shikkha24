@@ -3642,3 +3642,15 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Live evidence: 8/8 bars white-on-color AA in rest+focus; 8/8 dashboard cards family-tinted;
   zero horizontal overflow; 8 group ids + card ids confirmed in served HTML.
 - Next: owner reviews R1 locally; then R2 (article editor four workflow tabs).
+
+### 2026-10-26 — T-89 R1 owner-approved + self-audit fixes (commit `fb1d3c8`)
+
+- Owner approved the sidebar. Self-audit found: (1) hover-pin selector union grayed every colored
+  bar on hover — fixed, re-verified with CSS.forcePseudoState (the first hover check had silently
+  never triggered :hover); (2) group active tints never applied to collection links because Payload
+  renders the current page's nav item as div.nav__link without .active — group rules now cover the
+  div form (7.30:1 AA verified on nav-articles).
+- False alarm recorded: "Articles missing from sidebar" was the div form of the current-page item,
+  not a bug.
+- Payload 3.90 Nav contract: current page = div.nav__link#nav-{slug} (no .active, no href);
+  other items = a.nav__link#nav-{slug}. Custom beforeNavLinks add .active themselves.

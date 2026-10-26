@@ -3745,6 +3745,24 @@ created for the check (roles live in the `users_roles` child table in Payload 3.
 sessions after; all probe scripts, temp credentials, and the scratch headless Chrome deleted
 same-session. **Owner visual review next; push/deploy hold unchanged.**
 
+**R1 owner-approved ("the sidebar looks nice") + self-audit (2026-10-26, commits `fb1d3c8`):**
+Owner approved the sidebar and asked for a self-audit. Two real issues found and fixed:
+1. **Hover-pin union bug** — `_admin-hover.scss` used one `:not()` per selector (eight selectors,
+   each excluding a different group), whose union matched EVERY group: the ink/neutral `!important`
+   pin grayed every colored bar on hover. Fixed with a single selector escaping all eight prefixes.
+   First "hover verification" had not actually triggered `:hover` (probe reported `isHover:false`
+   and was misread as pass); re-verified honestly with CDP `CSS.forcePseudoState`: 8/8 bars keep
+   their family on hover, darken to the `-hover` step, text stays white (7.10–10.35:1 AA).
+   **Lesson: a hover claim requires a forced-pseudo-state or real-mouse check, never a rest-state
+   measurement labelled as hover.**
+2. **Group active tints were dead CSS for collection links** — Payload 3.90's Nav renders the
+   CURRENT page's item as `div.nav__link` without the `.active` class (only the custom
+   Dashboard/My Work links set `.active`), so `.nav__link.active` alone never matched any
+   collection link. Group active rules now cover `div.nav__link` too. Verified live: `nav-articles`
+   div gets the rose tint at 7.30:1 AA. (A mid-audit "Articles link missing from the sidebar"
+   suspicion was a false alarm — it was the div form; recorded so nobody re-chases it.)
+Temp account + probes deleted same-session (T-77). Build green. Next chunk: R2.
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
