@@ -75,6 +75,111 @@
   }
 
   /*
+   * ── R5b mobile: table → stacked cards (owner request) ──
+   * On phones the 6-column table hid review status, draft status and date
+   * behind a left-right scroll. At ≤768px each row becomes a card showing
+   * every field at a glance. Labels come from data-label attributes set via
+   * CSS (generated content is decorative; the table semantics stay for
+   * screen readers).
+   */
+  @media (max-width: 768px) {
+    .table {
+      display: block;
+      width: 100%;
+    }
+
+    .table thead {
+      display: none; /* cards carry their own labels */
+    }
+
+    .table tbody {
+      display: grid;
+      gap: var(--shikkha-space-3);
+    }
+
+    .table tbody tr {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: var(--shikkha-space-2) var(--shikkha-space-3);
+      padding: var(--shikkha-space-4);
+      border: 1px solid var(--shikkha-border);
+      border-radius: var(--shikkha-radius-m);
+      background-color: var(--shikkha-surface);
+    }
+
+    .table tbody tr:hover {
+      background-color: var(--shikkha-surface);
+    }
+
+    .table tbody td {
+      display: block;
+      min-width: 0;
+      padding: 0;
+      border-bottom: 0;
+    }
+
+    /* Checkbox column: top-left, spans its row. */
+    .table tbody td.cell-_select {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+      align-self: start;
+      padding-top: var(--shikkha-space-1);
+    }
+
+    /* Title: top, next to the checkbox. */
+    .table td.cell-title {
+      grid-column: 2;
+      grid-row: 1;
+      min-width: 0;
+      padding-left: var(--shikkha-space-2);
+    }
+
+    /* Everything else: full-width labeled rows under the title. */
+    .table tbody td:not(.cell-_select):not(.cell-title) {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--shikkha-space-3);
+      min-width: 0;
+    }
+
+    /*
+     * The date is long ("October 26th 2026, 9:57 PM"); let it wrap onto the
+     * label's line gracefully instead of clipping at the card edge.
+     */
+    .table tbody td:not(.cell-_select):not(.cell-title) > * {
+      min-width: 0;
+    }
+
+    .table td.cell-publishedAt,
+    .table td.cell-publishedAt span {
+      white-space: normal;
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
+
+    .table tbody td:not(.cell-_select):not(.cell-title)::before {
+      color: var(--shikkha-ink-muted);
+      font-size: var(--shikkha-text-caption);
+      font-weight: var(--shikkha-weight-bold);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+
+    .table td.cell-category::before { content: 'Category (বিভাগ)'; }
+    .table td.cell-reviewStatus::before { content: 'Review (পর্যালোচনা)'; }
+    .table td.cell-_status::before { content: 'Status (অবস্থা)'; }
+    .table td.cell-publishedAt::before { content: 'Updated (তারিখ)'; }
+
+    .table td.cell-publishedAt,
+    .table td.cell-publishedAt span {
+      white-space: normal;
+    }
+  }
+
+  /*
    * R5b — friendly empty states on every list view. Payload's "No Results."
    * is English-only and dead-end. Via CSS ::before we add a per-collection
    * emoji + Bengali guidance line without touching Payload's component tree
@@ -127,10 +232,13 @@
   text-decoration: underline;
 }
 
-/* Dates never wrap — the two-line date was noise. */
-.table td.cell-publishedAt,
-.table td.cell-publishedAt span {
-  white-space: nowrap;
+/* Dates never wrap on desktop — the two-line date was noise.
+   (The mobile card layout at ≤768px re-enables wrapping below.) */
+@media (min-width: 769px) {
+  .table td.cell-publishedAt,
+  .table td.cell-publishedAt span {
+    white-space: nowrap;
+  }
 }
 
 /*
