@@ -3616,3 +3616,29 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Verification: no horizontal overflow at 1280×800 or 390×844; Impeccable detector `[]` at both widths;
   CMS lint, typecheck, and production build pass. No push/deploy. The broader Payload hover-property
   inventory remains open.
+
+### 2026-10-26 — T-89 R1 per-group color system (owner interview → first chunk)
+
+- Discovery interview recorded 12 owner decisions in `.sps/tasks.md` (extend T-89, colorful-still-flat,
+  four-tab editor, pipeline strip, guardrails, chunk plan R1–R9). Committed as `36042f2`.
+- Tooling answer for the owner: no Payload skill exists on skills.sh; the official
+  `@payloadcms/plugin-mcp` is a content-access MCP (exposes collections to AI clients at /api/mcp),
+  not an admin-UI helper — not installed (new API surface + dependency, rule 7/8; owner not asked for
+  AI content editing). v3 docs consulted for tabs fields and edit-view slots.
+- **R1 shipped locally (commit `d493a48`):** 8 group color families (tokens), solid sidebar header
+  bars, group-tinted active links, matching dashboard card tints. All AA-measured.
+- **Hover bug (owner report) root cause:** `:not(:focus)`-guarded white text let Payload's native
+  hover and the ink hover pin paint dark-on-dark on colored bars. Fix: colored bars pin
+  `on-emphasis` text in every state; hover pins exclude the 8 colored group ids. Rule for future
+  chunks: on solid color, hover darkens the background only — never the text.
+- **Payload 3.90 facts learned (recorded for future auth work):** `select hasMany` (roles) lives in
+  the `users_roles` child table — the `users.roles` text column from the 20261010 migration is
+  inert legacy; `auth.useSessions` defaults true, so every login writes a `users_sessions` row and
+  the JWT must carry a matching `sid`; cookie auth requires Sec-Fetch-Site/Origin checks
+  (`Authorization: JWT` bypasses them). Temp superAdmin + probes deleted same-session (T-77).
+- Gates: typecheck ✅ production build ✅; `biome check .` fails with 2 pre-existing errors proven
+  on the untouched baseline (Assignments.ts / Circulars.ts formatting, committed in earlier chunks) —
+  biome's include list excludes `cms/src/app/(payload)`, so R1's SCSS is out of lint scope.
+- Live evidence: 8/8 bars white-on-color AA in rest+focus; 8/8 dashboard cards family-tinted;
+  zero horizontal overflow; 8 group ids + card ids confirmed in served HTML.
+- Next: owner reviews R1 locally; then R2 (article editor four workflow tabs).

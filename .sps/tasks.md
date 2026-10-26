@@ -3718,6 +3718,33 @@ review before the next):**
 - **R9** field help C7a–C7c + final QA C8a/C8b (contrast, keyboard, mobile, gates) — decision 7.
 Parked unchanged: D5 rebuild-status card (needs a data source), D6/broader hover-property inventory.
 
+**R1 — group color system SHIPPED LOCALLY (2026-10-26, commit `d493a48`), AWAITING OWNER REVIEW.**
+Implemented the interview decision "one color family per group": eight `--shikkha-group-*` token
+families in `_admin-tokens.scss` (editorial rose, education blue, media violet, interactive teal,
+readers orange, advertising gold, taxonomy lime, administration slate — all Tailwind 300/700/800
+steps, every combination measured ≥4.5:1 WCAG AA with a computed-ratio script, not assumed); new
+`_admin-groups.scss` paints solid emphasis sidebar header bars, group-tinted active nav items
+(via `--shikkha-active-link-bg/-fg` custom properties read by the hover neutralizer), and matching
+dashboard collection-card tints. DOM hooks verified in @payloadcms/ui 3.90.2 source before writing
+CSS: sidebar groups render `id="nav-group-{label}"`, dashboard cards `id="card-{slug}"`.
+**Hover-invisible-text bug (owner-reported mid-chunk, root-caused before fixing):** the first cut
+guarded white header text with `:not(:focus)` guards copied from the light-surface hover
+neutralizers; on dark bars those guards let Payload's native hover (`--theme-elevation-1000`) and
+the `_admin-hover.scss` ink pin (which excluded only Editorial, and tied on specificity elsewhere)
+paint dark text on a dark bar. Lesson recorded: **a solid colored bar never changes its text
+color — only its background darkens; text is pinned to `on-emphasis` in rest/hover/focus/active.**
+The generic toggle-hover pins in `_admin-hover.scss` now exclude all eight colored group ids.
+Evidence (headless Chrome CDP against the owner's dev server, per-state computed styles):
+8/8 group bars white-on-emphasis AA in rest AND focus (6.29/6.70/5.70/5.47/5.18/6.85/7.08/7.58:1);
+8/8 dashboard cards render their family bg/border/title color; zero horizontal overflow;
+typecheck + production build pass. Lint's 2 pre-existing errors (Assignments/Circulars format,
+useTemplate infos) were proven present on the untouched baseline via stash — biome's include list
+excludes `cms/src/app/(payload)` entirely. Verification plumbing followed T-77: temp superAdmin
+created for the check (roles live in the `users_roles` child table in Payload 3.90 — the legacy
+`users.roles` text column is inert; raw SQL INSERT must target the child table), deleted with its
+sessions after; all probe scripts, temp credentials, and the scratch headless Chrome deleted
+same-session. **Owner visual review next; push/deploy hold unchanged.**
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
