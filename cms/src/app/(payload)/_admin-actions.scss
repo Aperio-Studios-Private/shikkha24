@@ -249,9 +249,60 @@
   text-align: left;
 }
 
+/*
+ * E7 — action language: every menu action reads as itself at a glance.
+ *
+ * Icons were the same size as the label text (14px), so 🗑️ Delete and 📄
+ * Duplicate were visually identical to words. Icons now carry the hierarchy
+ * (18px), sit in a fixed slot so labels align, and each action keeps one
+ * dedicated emoji + one semantic colour across the whole admin:
+ *   Publish 🚀 emerald · Unpublish ⏸ amber · Schedule ⏰ light green
+ *   Create ✨ blue · Duplicate 📋 neutral · Delete 🗑 red · Save draft 💾 blue
+ */
 .popup-button-list__button::before {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--shikkha-space-5);
   margin-right: var(--shikkha-space-2);
-  font-size: var(--shikkha-text-body-sm);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.popup-button-list__button {
+  gap: 0;
+}
+
+/* Row title = the edit affordance: keep it link-coloured, not black ink. */
+.cell-title a,
+.table tbody td a[href*='/collections/'] {
+  color: var(--shikkha-info-emphasis);
+  text-decoration-color: color-mix(in srgb, var(--shikkha-info-emphasis) 35%, transparent);
+}
+
+.cell-title a:hover,
+.table tbody td a[href*='/collections/']:hover {
+  color: var(--shikkha-info-emphasis-hover);
+  text-decoration-color: currentColor;
+}
+
+/* Stronger, more legible action fills. */
+.popup-button-list__button:not(:disabled),
+#action-save:not(.btn--disabled) {
+  font-weight: var(--shikkha-weight-semibold);
+}
+
+#action-create:not(.btn--disabled) {
+  border-color: var(--shikkha-info-border);
+  background-color: var(--shikkha-info-bg);
+  color: var(--shikkha-info-fg);
+}
+
+#action-duplicate:not(.btn--disabled) {
+  border-color: var(--shikkha-border-strong);
+  background-color: var(--shikkha-surface);
+  color: var(--shikkha-ink);
 }
 
 #action-create::before {
@@ -259,7 +310,7 @@
 }
 
 #action-duplicate::before {
-  content: "📄";
+  content: "📋";
 }
 
 #action-delete::before {
@@ -277,6 +328,16 @@
 #action-save .btn__label::before {
   content: "🚀";
   margin-right: var(--shikkha-space-2);
+  font-size: 16px;
+}
+
+/* Toolbar action icons match the menu icons (18px menu / 16px inline). */
+#action-save-draft::before,
+[id*='unpublish' i]::before,
+#schedule-publish::before,
+#action-delete::before,
+.delete-document__toggle::before {
+  font-size: 16px;
 }
 
 #action-save-draft::before {
