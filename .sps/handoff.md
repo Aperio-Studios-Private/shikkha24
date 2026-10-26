@@ -3675,3 +3675,18 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Fixed the real blocker: root lint (CI Lint step) had 18 diagnostics → all auto-fixed, exit 0 now.
 - Honest CI picture: Lighthouse LCP gate red (T-80, owner-gated) → Deploy refuses via CI_GATE.
   Push-safe locally; CI stays red until T-80. 71 commits ahead of origin; push is owner's call.
+
+### 2026-10-26 — T-89 R3 pipeline strip (commit `e6a6db2`)
+
+- Edit-view Description slot = `admin.components.Description` (top level), NOT `edit.Description`
+  — TS2353 caught the wrong guess; verified in renderDocumentSlots (reads
+  collectionConfig.admin.components.Description, Fallback ViewDescription renders
+  .custom-view-description).
+- ArticlePipelineDescription: server component, reads reviewStatus/_status with session user +
+  overrideAccess:false; stage mapping draft→Write, pendingReview/changesRequested→Review,
+  approved→Publish, published→Rebuild; create view = generic Write.
+- Contrast lesson: opacity-blended text must be ratio-checked with channel blending (0.72 failed
+  at 4.29:1; 0.8 passes at 5.08:1).
+- Live-verified both stages by flipping a real doc's review_status; reverted after.
+- Last-task recheck (owner ask): lint-fix diff line-by-line = format-only; no orphan DB rows;
+  harnesses pass (reporter-access, access 39 collections, engagement).

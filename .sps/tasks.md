@@ -3796,6 +3796,25 @@ push-safe (lint/typecheck/build/migrations/importmap/types all green locally, no
 .env ignored), but a push will still show CI red until T-80 closes. 71 local commits ahead of
 origin; push/deploy hold remains the owner's call.
 
+**R3 — pipeline strip + rebuild expectation SHIPPED LOCALLY (2026-10-26, commit `e6a6db2`), AWAITING
+OWNER REVIEW.** The article edit view's static description is replaced by `ArticlePipelineDescription`
+(via `admin.components.Description`): ✍️ Write → 👀 Review → 🚀 Publish → 🌐 Live site, with the
+current stage highlighted (solid editorial bar, `aria-current="step"`) and one plain-language
+next-step line driven by reviewStatus/_status — draft "send it for review", pendingReview
+"waiting for an editor", changesRequested "fix it and resubmit", approved "publish when ready",
+published "the live site updates shortly" (honest about rebuild batching). **API correction caught
+by typecheck:** the Description slot is `admin.components.Description`, NOT
+`admin.components.edit.Description` (TS2353; confirmed against renderDocumentSlots in
+@payloadcms/next 3.90.2 — the docs page's `edit.Description` phrasing does not match the installed
+version's type). Preview button already prominent from C1c7 (blue labeled pill) — verified present,
+no change needed. Contrast: strip text 7.30:1 on tint, current step white-on-emphasis 6.29:1, muted
+steps raised 0.72→0.8 opacity after blending math showed 0.72 = 4.29:1 (fail) → 0.8 = 5.08:1 (AA).
+Live evidence: create view shows Write stage + next step; edit view tracks reviewStatus live
+(flipped article 1 draft→pendingReview and back, stage changed Write→Review→Write); static
+description gone; preview button + label present. Temp account + probes deleted (T-77).
+**Remaining R3 scope note:** rebuild-expectation copy is inside the strip's published line; the
+Preview part of R3 was already satisfied by C1c7. Next: R4 (delete guardrails + publish summary).
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
