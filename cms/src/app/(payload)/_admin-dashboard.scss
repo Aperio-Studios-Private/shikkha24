@@ -94,6 +94,64 @@
     background-color: var(--shikkha-neutral-50);
   }
 
+  /*
+   * R3 — the article editor's pipeline strip (replaces the plain
+   * custom-view-description on Articles via the edit Description slot).
+   * Same visual language as .dashboard-flow: quiet strip, one current stage
+   * highlighted with the editorial family, one "what happens next" line.
+   * Flat: color and weight only, no motion.
+   */
+  .article-pipeline {
+    display: grid;
+    gap: var(--shikkha-space-2);
+    padding: var(--shikkha-space-3) var(--shikkha-space-4);
+    border: 1px solid var(--shikkha-group-editorial-border);
+    border-radius: var(--shikkha-radius-m);
+    background-color: var(--shikkha-group-editorial-bg);
+  }
+
+  .article-pipeline__steps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--shikkha-space-1) var(--shikkha-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--shikkha-group-editorial-fg);
+    font-size: var(--shikkha-text-body-sm);
+    line-height: var(--shikkha-lh-body);
+  }
+
+  .article-pipeline__step {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--shikkha-space-1);
+    padding: 0 var(--shikkha-space-2);
+    border-radius: var(--shikkha-radius-pill);
+    min-height: var(--shikkha-control-quiet);
+    /* 0.8 keeps the blended step text ≥4.5:1 on the tint (0.72 measured 4.29). */
+    opacity: 0.8;
+  }
+
+  .article-pipeline__step--current {
+    opacity: 1;
+    background-color: var(--shikkha-group-editorial-emphasis);
+    color: var(--shikkha-group-editorial-on-emphasis);
+    font-weight: var(--shikkha-weight-bold);
+  }
+
+  .article-pipeline__bn {
+    opacity: 0.85;
+  }
+
+  .article-pipeline__next {
+    margin: 0;
+    color: var(--shikkha-group-editorial-fg);
+    font-size: var(--shikkha-text-body-sm);
+    line-height: var(--shikkha-lh-body);
+  }
+
   .dashboard-flow__steps {
     display: flex;
     flex-wrap: wrap;

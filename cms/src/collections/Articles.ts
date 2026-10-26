@@ -73,8 +73,19 @@ export const Articles: CollectionConfig = {
     useAsTitle: 'title',
     group: { en: 'Editorial (সম্পাদকীয়)' },
     defaultColumns: ['title', 'category', 'reviewStatus', '_status', 'publishedAt'],
+    // R3 — the static description is replaced by the pipeline strip component
+    // below (Write → Review → Publish → Live site), which carries the same
+    // orientation plus a stage highlight and the rebuild expectation. Kept as
+    // the fallback for surfaces that do not render the custom component.
     description: 'সংবাদের মূল কনটেন্ট। খসড়া → পর্যালোচনা → প্রকাশ।',
     preview: (doc) => (doc?.slug ? `/article/${doc.slug}` : null),
+    components: {
+      // Rendered by renderDocumentSlots (verified in @payloadcms/next 3.90.2):
+      // `admin.components.Description` — NOT inside `edit` — replaces the
+      // static description in the edit view. Server component; reads
+      // reviewStatus/_status per document.
+      Description: '/components/admin/ArticlePipelineDescription#ArticlePipelineDescription',
+    },
   },
   access: {
     // Anyone can read published articles; editors additionally see drafts.
