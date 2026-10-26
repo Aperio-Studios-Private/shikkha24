@@ -3741,3 +3741,13 @@ way *after* the billing lock clears, revisit this entry — not before.
   (first live check caught a permanent null). Description is top-level and DOES receive
   collectionSlug as a client prop.
 - importMap regenerated + committed in the same commit; freshness scripts PASS.
+
+### 2026-10-26 — T-89 R4 recheck round 2 (commits `fe2cd0d`, `0451319`, `8e48bf1`)
+
+- REGRESSION reverted: the default Status block is a reactive client component (live
+  changed/draft/published state + "Revert to published" action). Server-component replacement froze
+  it. Status slot restored; summary lines folded into the pipeline strip (Description slot).
+- Tooling: verify-payload-importmap.sh has an EXIT TRAP that runs `git checkout --` on the map —
+  it silently reverted staged regenerations twice. Regenerate + commit without running the script
+  in between; the script is for VERIFICATION only, after the commit.
+- All freshness scripts PASS; gates green; tree clean.

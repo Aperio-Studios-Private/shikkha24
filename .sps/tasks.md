@@ -3886,6 +3886,21 @@ registration). Contrast ≥6.3:1 AA everywhere; importMap regenerated and commit
 commit (round-3 lesson); freshness scripts PASS. Temp account + probes deleted (T-77).
 **Next: R5 (emoji expansion to chips/empty states/action buttons).**
 
+**R4 recheck round 2 (owner asked again) — 1 REAL REGRESSION found and reverted (commits `fe2cd0d`,
+`0451319`, `8e48bf1`):** replacing the default Status block was wrong. The default Status is a
+REACTIVE CLIENT component: it live-updates to changed/draft/published and carries the
+"Revert to published" action with its confirm modal — a server-component replacement froze all of
+that at render time. Fix: Status replacement reverted (default fully restored), and the R4 summary
+lines (live-site state, honest rebuild expectation, delete consequence) folded into the pipeline
+strip panel instead — one Description-slot panel, nothing displaced. ArticleStatus.tsx deleted.
+**Import-map saga + tooling lesson:** the freshness script's EXIT TRAP runs `git checkout --` on the
+map, which silently reverted my staged regenerations TWICE (0451319 removed only the component
+file; the map kept the stale entries). Final fix: regenerate and commit with no script run in
+between (8e48bf1). All three freshness scripts PASS; gates green; tree clean.
+**Lessons: (1) never replace a reactive client slot with a server component — enumerate the
+behavior (not just the markup) the default provides; (2) scripts with checkout-traps must not run
+between staging and committing generated files.** R4 now truly complete. Next: R5.
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
