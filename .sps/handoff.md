@@ -3815,3 +3815,10 @@ way *after* the billing lock clears, revisit this entry — not before.
   Unpublish amber / Delete red), hover = brightness filter (no-motion). Selectors keyed on
   .list-selection__button[title='…'] — verified in live DOM.
 - AA: all pairs ≥5.30:1.
+
+### 2026-10-26 — T-89 R5b part 4: mobile cards (commit `bbee490`)
+
+- ≤768px: list rows render as stacked cards (checkbox+title top, labeled field rows below, labels
+  via CSS ::before). Desktop ≥769px unchanged; date nowrap scoped to min-width:769px.
+- Note: the ::before labels match the Articles columns (Category/Review/Status/Updated). Other
+  collections with different columns get unlabeled values (follow-up: per-collection label maps).

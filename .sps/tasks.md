@@ -4000,6 +4000,18 @@ green (6.78:1), Unpublish amber (6.37:1), Delete red (5.30:1) — destructive no
 = brightness filter only (no-motion policy respected). Verified with screenshot (2 rows selected).
 Temp account + probes deleted (T-77). Emoji chip vocabulary unaffected.
 
+**R5b part 4 — mobile list rows → stacked cards (2026-10-26, commit `bbee490`), AWAITING OWNER
+REVIEW.** Owner: on phones the table forced left-right scrolling and hid info. At ≤768px each row
+renders as a stacked card: checkbox + title on top, then labeled full-width rows (Category / Review
+/ Status / Updated, labels via decorative CSS ::before in Bengali+English; table semantics survive
+for screen readers). The long date wraps beside its label instead of clipping. Desktop ≥769px
+unchanged (table-row, thead visible, nowrap dates — the unlayered nowrap rule scoped to
+min-width:769px so it no longer overrides the mobile wrap). Verified live: 390px all fields visible
++ zero overflow; 1280px table intact + zero overflow. Screenshot .sps/t89-mobile-cards.png; temp
+account + probes deleted (T-77). Labels are hardcoded per current Articles columns — if a collection
+has different columns its labels fall back to none (acceptable; per-collection label maps are a
+follow-up if needed).
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
