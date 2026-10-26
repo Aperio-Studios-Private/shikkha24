@@ -4067,6 +4067,21 @@ states, bulk bar, editor (tabs/pipeline/status/buttons), mobile cards + fixed ac
 surfaces, per-collection emojis. Remaining queue: R7 media guidance, R8 reporter C4-C6 (partially
 shipped), final QA.**
 
+**🔴 OWNER DATA RULE (2026-10-27, explicit): "do not push or deploy the local db — the current
+website db must be kept."** The production SQLite database on DianaHost (`~/shikkha24-cms/data/
+payload.db`) is the SOURCE OF TRUTH. Rules going forward: (1) never push/deploy the local dev DB
+anywhere; (2) the P2 SQLite→Neon migration must COPY from PRODUCTION (download prod payload.db via
+the proven cPanel/FTP transport, migrate a COPY of it into Neon, verify counts against prod) — never
+from the local dev database; (3) the local dev DB is disposable test data and is never authoritative;
+(4) all local verification uses throwaway copies. Recorded before any migration work begins.
+
+**R8→P3 progress (same session):** R2 bucket `shikkha24-media` created via wrangler (owner's
+abdullahalmamunmay account — bucket creation is reversible, no data written; plan P3.1 done). P3.2
+(custom domain media.shikkha24.com) pending — zone IS on Cloudflare NS so the custom domain can
+attach. Backup workflow failure root-caused: NOT a code bug — the host-side cron/dump was never
+installed (owner cPanel setup steps in the workflow header), so fetch correctly refuses with "No
+archive was produced". The backup pipeline is code-complete and waits on owner cPanel steps.
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —

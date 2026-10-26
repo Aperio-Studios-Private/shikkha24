@@ -3862,3 +3862,11 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Read-only number inputs styled readable.
 - Deep audit: 15 pages re-screenshotted, zero overflow. Push/deploy hold: owner lifted for the
   earlier push; new commits await owner instruction.
+
+### 2026-10-27 — OWNER DATA RULE + R2 bucket created
+
+- 🔴 Production DB on DianaHost = source of truth. Never push/deploy the local dev DB. P2 migration
+  must COPY from production (download prod payload.db → migrate a copy → verify counts vs prod).
+- R2 bucket shikkha24-media created (wrangler, owner account). No data written yet.
+- Backup workflow failure root-caused: host-side cron never installed (owner cPanel steps pending in
+  the workflow header) — fetch correctly refuses; code is complete.
