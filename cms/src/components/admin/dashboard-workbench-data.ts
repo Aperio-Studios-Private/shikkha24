@@ -36,11 +36,14 @@ const REVIEW_LABELS: Record<string, string> = {
 /**
  * R5a — emoji per review state so the dashboard chips read at a glance
  * (owner decision: emojis on chips, not just sidebar labels). The published
- * state uses 🌐 to match the pipeline strip's "Live site" stage.
+ * state uses 🌐 to match the pipeline strip's "Live site" stage. One state =
+ * one emoji: changesRequested is ↩️ (sent back), distinct from ✏️ draft —
+ * a reporter must tell "not started" from "the desk sent this back" without
+ * reading the label.
  */
 const REVIEW_EMOJIS: Record<string, string> = {
   approved: '✅',
-  changesRequested: '✏️',
+  changesRequested: '↩️',
   draft: '✏️',
   pendingReview: '👀',
   published: '🌐',
