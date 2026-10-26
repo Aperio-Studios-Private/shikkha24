@@ -3901,6 +3901,14 @@ between (8e48bf1). All three freshness scripts PASS; gates green; tree clean.
 behavior (not just the markup) the default provides; (2) scripts with checkout-traps must not run
 between staging and committing generated files.** R4 now truly complete. Next: R5.
 
+**R4 recheck round 3 (owner asked again) — no mistakes found; the round-2 fix verified live end-to-end
+(no ledger/code change needed):** on a real published+approved article the merged strip renders all
+3 summary lines (live-site ✓, honest rebuild line ✓, danger delete line ✓ — exactly 1 danger item),
+AND the restored default Status block is alive: value "Changed" with the "Revert to published"
+action present (the exact behavior the round-2 revert was protecting). Article reverted to
+draft/draft after; temp account + probes deleted (T-77); tree clean. R4 confirmed complete.
+Next: R5 (emoji expansion to chips / empty states / action buttons).
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
