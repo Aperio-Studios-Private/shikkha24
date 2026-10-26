@@ -52,22 +52,32 @@
     margin-bottom: var(--shikkha-space-4);
   }
 
+  /*
+   * E11 — group headers were painted SOLID BRAND RED with white text as their
+   * resting state (measured rgb(184,22,30) on every one of the eight groups).
+   * A section label is orientation, not an action: eight red bars turned the
+   * sidebar into a warning sign. They are now quiet uppercase captions; red
+   * stays reserved for the active nav item and destructive actions.
+   */
   .nav-group__toggle {
     align-items: center;
     justify-content: space-between;
     min-height: var(--shikkha-control-quiet);
     padding: 0 var(--shikkha-space-2);
-    color: var(--shikkha-neutral-0);
+    color: var(--shikkha-ink-muted);
     font-size: var(--shikkha-text-caption);
     font-weight: var(--shikkha-weight-bold);
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    background-color: var(--shikkha-brand-emphasis-hover);
+    background-color: transparent;
+    border: 0;
+    border-radius: var(--shikkha-radius-s);
   }
 
   .nav-group__toggle:hover,
   .nav-group__toggle:focus-visible {
-    color: var(--shikkha-neutral-0);
+    color: var(--shikkha-ink);
+    background-color: var(--shikkha-neutral-100);
   }
 
   .nav-group__toggle:focus-visible {

@@ -213,9 +213,9 @@
 }
 
 .nav-group__toggle:hover:not(:focus):not(:focus-visible):not(:active) {
-  color: var(--shikkha-neutral-0) !important;
-  background-color: var(--shikkha-brand-emphasis-hover) !important;
-  border-color: var(--shikkha-brand-emphasis-hover) !important;
+  color: var(--shikkha-ink) !important;
+  background-color: var(--shikkha-neutral-100) !important;
+  border-color: transparent !important;
   box-shadow: none !important;
 }
 

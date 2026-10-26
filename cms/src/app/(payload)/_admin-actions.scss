@@ -108,18 +108,33 @@
  * 44px tall with no background and no border — they read as plain text, not as
  * the switchable tabs they are. Same family as the popup chevron in E2.
  */
-.doc-tab.btn,
-.btn--icon-style-without-border.btn {
+/*
+ * ⚠️ Scoped to `.doc-tab` on purpose.
+ *
+ * `btn--icon-style-without-border` is ALSO worn by the dashboard's
+ * `.card__click` overlay — the full-size invisible button that makes a
+ * collection card clickable. Styling the bare modifier painted that overlay
+ * solid white, hiding the emoji and title underneath (owner screenshot,
+ * 2026-10-26). Only real document tabs get the bordered treatment.
+ */
+.doc-tab.btn {
   border: 1px solid var(--shikkha-border);
   border-radius: var(--shikkha-radius-s);
   background-color: var(--shikkha-surface);
   color: var(--shikkha-ink);
 }
 
-.doc-tab.btn:hover:not(.btn--disabled),
-.btn--icon-style-without-border.btn:hover:not(.btn--disabled) {
+.doc-tab.btn:hover:not(.btn--disabled) {
   background-color: var(--shikkha-neutral-100);
   color: var(--shikkha-ink);
+}
+
+/* The card overlay must stay invisible — it only carries the click target. */
+.card__click.btn--icon-style-without-border,
+.card .card__click {
+  background-color: transparent;
+  border: 0;
+  color: inherit;
 }
 
 .doc-tab.btn.active,
