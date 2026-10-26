@@ -3767,3 +3767,9 @@ way *after* the billing lock clears, revisit this entry — not before.
   pipeline strip), ✅ approved, 👀 pendingReview, ✏️ draft/changesRequested.
 - Empty state (DashboardWorkbench) greets with decorative 🌅 (aria-hidden).
 - Next slice: R5b — list-view empty states + remaining action buttons.
+
+### 2026-10-26 — T-89 R5a recheck (commit `2686fb3`)
+
+- Reporter workspace approved chip now ✅ Approved (matches dashboard). Rule: one state = one emoji
+  across every admin surface; when adding an emoji to a state, grep for other renderers of the same
+  state before shipping.

@@ -3939,6 +3939,13 @@ non-empty) but the change is a decorative span in the same JSX. Typecheck/lint/b
 account + probes deleted (T-77). **Next: R5b — emoji on list-view empty states + remaining action
 buttons, then R6 (dashboard energize).**
 
+**R5a recheck (owner asked again) — 1 consistency finding fixed (commit `2686fb3`):** the reporter
+workspace's "Approved" chip had no emoji while the dashboard's Approved chip gained ✅ in R5a —
+same state, two renderings. The reporter STATUS_CHIPS approved label now carries ✅ too; verified
+live on /admin/reporter with a seeded approved assignment ("✅ Approved"). Temp assignment/account
++ probes deleted (T-77); gates green. reviewLabel has only one consumer (DashboardWorkbench) — no
+duplicate-emoji risk elsewhere. Next: R5b (list-view empty states + remaining action buttons).
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
