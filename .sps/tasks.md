@@ -3929,6 +3929,16 @@ highlighted, factCount 3, delete line reads "removes it from the live site". Art
 draft/draft; temp account + probes deleted (T-77); tree clean. R4 remains complete.
 Next: R5a (emoji on dashboard status chips + empty state).
 
+**R5a — emoji chips + empty state SHIPPED LOCALLY (2026-10-26, commit `6da5531`), AWAITING OWNER
+REVIEW.** First slice of the approved emoji expansion: dashboard recent-work status chips now carry
+a per-state emoji via `reviewLabel` (🌐 Published, ✅ Approved, 👀 Pending review, ✏️ Draft /
+Changes requested — 🌐 deliberately matches the pipeline strip's Live-site stage), and the
+recent-work empty state greets with a decorative 🌅 (aria-hidden). Verified live: 5 chips render
+"✏️ Draft" on the seeded drafts; the empty state was not reachable on this data (recent work
+non-empty) but the change is a decorative span in the same JSX. Typecheck/lint/build green; temp
+account + probes deleted (T-77). **Next: R5b — emoji on list-view empty states + remaining action
+buttons, then R6 (dashboard energize).**
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —

@@ -3760,3 +3760,10 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Local-API delete has NO dryRun support (checked installed types) — role mirroring is the pattern.
 - T-60 reminder: reporter read/update scoping keys on the AUTHORS profile (users.author_profile_id →
   authors.id → articles.author_id), not the users row.
+
+### 2026-10-26 — T-89 R5a emoji chips + empty state (commit `6da5531`)
+
+- reviewLabel (dashboard-workbench-data.ts) now prefixes per-state emojis: 🌐 published (matches
+  pipeline strip), ✅ approved, 👀 pendingReview, ✏️ draft/changesRequested.
+- Empty state (DashboardWorkbench) greets with decorative 🌅 (aria-hidden).
+- Next slice: R5b — list-view empty states + remaining action buttons.
