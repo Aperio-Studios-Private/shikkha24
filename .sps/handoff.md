@@ -3822,3 +3822,10 @@ way *after* the billing lock clears, revisit this entry — not before.
   via CSS ::before). Desktop ≥769px unchanged; date nowrap scoped to min-width:769px.
 - Note: the ::before labels match the Articles columns (Category/Review/Status/Updated). Other
   collections with different columns get unlabeled values (follow-up: per-collection label maps).
+
+### 2026-10-26 — PUSHED 112 commits (owner instruction)
+
+- 542386b..9c65b03 → origin/main. Last-minute lint fix (import sort, 9c65b03) before push.
+- CI on 9c65b03: 39 steps green (Lint, freshness checks, builds, typechecks). ONLY failure =
+  Lighthouse LCP (T-80, owner-gated, pre-existing). Deploy refuses via CI gate — live site
+  unaffected. Production deployment waits on T-80.

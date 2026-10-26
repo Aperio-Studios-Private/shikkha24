@@ -4012,6 +4012,15 @@ account + probes deleted (T-77). Labels are hardcoded per current Articles colum
 has different columns its labels fall back to none (acceptable; per-collection label maps are a
 follow-up if needed).
 
+**PUSHED (2026-10-26, owner instruction "push the git"):** 112 commits (542386b..9c65b03) →
+origin/main. Pre-push: lint gate fixed (import sort in ArticlePipelineDescription, `9c65b03`),
+typecheck/build/3 freshness scripts all green, tree clean. CI result on 9c65b03: **39 steps green —
+Lint, payload-types/migrations/importmap freshness, both builds, typechecks all PASS. The ONLY
+failure is the Lighthouse LCP assertion (T-80, owner-gated font decision, pre-existing since
+2026-10-19)** — exactly as predicted. Deploy (Cloudflare) refuses via its CI gate while CI is red
+(safe design; live site unaffected — still serving the last good deploy). The T-89 redesign work is
+now backed up on GitHub; production deployment awaits T-80.
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
