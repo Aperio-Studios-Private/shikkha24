@@ -3992,6 +3992,14 @@ overflow at 1280px; typecheck/lint/build green; temp account + probes deleted (T
 Audit screenshots also showed what is already good: doc-header meta row, Save row alignment,
 versions table — left untouched (surgical scope).
 
+**R5b part 3 — bulk-actions bar redesigned (2026-10-26, commit `49bf36a`), AWAITING OWNER REVIEW.**
+Owner flagged the selection bar as too flat. Live-dom dump first (select 2 rows → .list-selection,
+buttons carry .list-selection__button + title attributes), then redesigned: bar = surfaced info-muted
+panel; count = solid blue badge (6.70:1); actions = semantic pills — Edit blue (7.15:1), Publish
+green (6.78:1), Unpublish amber (6.37:1), Delete red (5.30:1) — destructive now unmistakable; hover
+= brightness filter only (no-motion policy respected). Verified with screenshot (2 rows selected).
+Temp account + probes deleted (T-77). Emoji chip vocabulary unaffected.
+
 ### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —

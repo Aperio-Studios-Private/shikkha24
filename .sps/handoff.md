@@ -3808,3 +3808,10 @@ way *after* the billing lock clears, revisit this entry — not before.
 - no-results styling lives in _admin-list.scss (unlayered section not needed — Payload does not
   contest these properties).
 - Already-good surfaces left untouched: doc-header meta, Save row, versions table.
+
+### 2026-10-26 — T-89 R5b part 3: bulk-actions bar (commit `49bf36a`)
+
+- .list-selection redesigned: blue count badge + semantic action pills (Edit blue / Publish green /
+  Unpublish amber / Delete red), hover = brightness filter (no-motion). Selectors keyed on
+  .list-selection__button[title='…'] — verified in live DOM.
+- AA: all pairs ≥5.30:1.
