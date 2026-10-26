@@ -458,3 +458,59 @@
 .field-type.rich-text-lexical .ContentEditable__root {
   min-height: 320px;
 }
+
+/*
+ * ── R6 — read-only number fields (newsletter Sent/Deferred/Recipients
+ * counts) rendered as dead gray boxes. Keep them clearly read-only but
+ * readable: plain surface, ink numerals, no fake input affordance.
+ */
+.field-type.number input:read-only,
+.field-type.number input[readonly] {
+  background-color: var(--shikkha-neutral-50);
+  color: var(--shikkha-ink);
+  border-color: var(--shikkha-border);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * R6 — per-collection emoji on the list-view empty state. The heading gets
+ * the collection's own emoji (matching the sidebar) instead of the generic
+ * 🔍 for every page. Scoped via the breadcrumb's collection link, the only
+ * per-collection marker in the list DOM.
+ */
+.no-results h3::before {
+  content: '🔍 ';
+}
+
+/*
+ * R6 — per-collection emoji on the list-view empty state. The list container
+ * carries the slug as a class (.collection-list--{slug}, verified in the live
+ * DOM) — far cleaner than :has() on the breadcrumb (lists render the
+ * collection as a dropdown, not a link).
+ */
+.no-results h3::before {
+  content: '🔍 ';
+}
+
+.collection-list--media .no-results h3::before { content: '🖼️ '; }
+.collection-list--comments .no-results h3::before { content: '💬 '; }
+.collection-list--users .no-results h3::before { content: '🛡️ '; }
+.collection-list--categories .no-results h3::before { content: '🗂️ '; }
+.collection-list--ad-units .no-results h3::before { content: '🪧 '; }
+.collection-list--live-blogs .no-results h3::before { content: '🟢 '; }
+.collection-list--polls .no-results h3::before { content: '📊 '; }
+.collection-list--newsletter-campaigns .no-results h3::before { content: '📧 '; }
+.collection-list--newsletter-subscribers .no-results h3::before { content: '📬 '; }
+.collection-list--scholarships .no-results h3::before { content: '💰 '; }
+.collection-list--deadlines .no-results h3::before { content: '⏰ '; }
+.collection-list--institutions .no-results h3::before { content: '🏫 '; }
+.collection-list--circulars .no-results h3::before { content: '📢 '; }
+.collection-list--result-links .no-results h3::before { content: '🔗 '; }
+.collection-list--study-abroad-guides .no-results h3::before { content: '🌍 '; }
+.collection-list--faqs .no-results h3::before { content: '❓ '; }
+.collection-list--quizzes .no-results h3::before { content: '🧠 '; }
+.collection-list--pages .no-results h3::before { content: '📄 '; }
+.collection-list--authors .no-results h3::before { content: '✍️ '; }
+.collection-list--assignments .no-results h3::before { content: '📋 '; }
+.collection-list--fact-checks .no-results h3::before { content: '✅ '; }
+.collection-list--articles .no-results h3::before { content: '📰 '; }
