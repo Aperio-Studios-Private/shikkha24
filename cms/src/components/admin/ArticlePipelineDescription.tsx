@@ -63,9 +63,11 @@ function nextStep(status: ReviewStatus | undefined, isPublished: boolean): strin
 export async function ArticlePipelineDescription({
   id,
   collectionSlug,
+  description,
 }: {
   id?: number | string
   collectionSlug?: string
+  description?: string
 }) {
   // The create view has no document yet — show the strip with Write highlighted
   // and the generic first step.
@@ -99,16 +101,15 @@ export async function ArticlePipelineDescription({
    * The Description slot is shared by the LIST view and the EDIT view
    * (verified in @payloadcms/next 3.90.2: renderListViewSlots passes the same
    * component with `collectionSlug` but no document id). On the list there is
-   * no document to be "writing", so render the collection's static
-   * description there instead of the strip. The create view also has no id —
-   * it gets the strip in its neutral Write state, which is correct.
+   * no document to be "writing", so render the collection's own static
+   * description there (passed through by both views as the `description`
+   * prop) instead of the strip. The create flow redirects to the saved
+   * document's edit URL before rendering, so every strip rendering has an id.
    */
   if (!id) {
-    return (
-      <div className="custom-view-description">
-        সংবাদের তালিকা। খসড়া → পর্যালোচনা → প্রকাশ — প্রতিটি সংবাদের অবস্থা তালিকায় দেখা যায়।
-      </div>
-    )
+    return description ? (
+      <div className="custom-view-description">{description}</div>
+    ) : null
   }
 
   return (
