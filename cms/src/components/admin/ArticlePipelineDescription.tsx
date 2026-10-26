@@ -2,6 +2,7 @@ import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
 import config from '../../payload.config'
 import { isAutoRebuildConfigured } from '../../lib/rebuild-trigger'
+import { hasRole } from '../../access/roles'
 import type { ReviewStatus } from '../../collections/Articles'
 
 /**
@@ -79,6 +80,7 @@ export async function ArticlePipelineDescription({
   // and the generic first step.
   let status: ReviewStatus | undefined
   let isPublished = false
+  let canDelete = false
 
   if (id && collectionSlug === 'articles') {
     const headers = await getHeaders()
@@ -98,6 +100,13 @@ export async function ArticlePipelineDescription({
         .catch(() => null)
       status = doc?.reviewStatus as ReviewStatus | undefined
       isPublished = doc?._status === 'published'
+      // The delete-consequence line is only meaningful to roles that can
+      // actually delete (superAdmin/editorInChief — the same rule as
+      // `deleteArticleOrEditorInChief` in access/articles.ts). Showing a red
+      // "deleting removes…" warning to a reporter with no delete button is
+      // noise about an action they cannot take. (A dryRun delete is not
+      // supported by the Local API, so this mirrors the access rule.)
+      canDelete = hasRole(user, 'superAdmin', 'editorInChief')
     }
   }
 
@@ -164,11 +173,13 @@ export async function ArticlePipelineDescription({
             ? 'Saving keeps the site updated automatically (সংরক্ষণ করলেই সাইট হালনাগাদ হয়)।'
             : 'Auto-rebuild is off — the site needs a manual rebuild (অটো rebuild বন্ধ — ম্যানুয়ালি চালাতে হবে)।'}
         </li>
-        <li className="article-pipeline__fact-danger">
-          {isPublished
-            ? 'Deleting removes it from the live site (মুছলে সাইট থেকে সরে যাবে)।'
-            : 'Deleting removes the draft and its history (মুছলে খসড়া ও তার ইতিহাস মুছে যাবে)।'}
-        </li>
+        {canDelete && (
+          <li className="article-pipeline__fact-danger">
+            {isPublished
+              ? 'Deleting removes it from the live site (মুছলে সাইট থেকে সরে যাবে)।'
+              : 'Deleting removes the draft and its history (মুছলে খসড়া ও তার ইতিহাস মুছে যাবে)।'}
+          </li>
+        )}
       </ul>
     </div>
   )
