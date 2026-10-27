@@ -5050,7 +5050,21 @@ variable transfer-সহ সংরক্ষিত; Actions সীমাহীন
   at 1280 and 390. No horizontal overflow on any view. (One 0px reading during E3 was a
   mid-hydration artifact — re-measured after settle.)
 
-**P2 FINAL STATUS — DATA MIGRATION COMPLETE (2026-10-27, later same day), AWAITING OWNER REVIEW.**
+****P3 — MEDIA FILES → R2: COMPLETE (2026-10-27), AWAITING OWNER REVIEW.**
+The prod CMS's /api/media/file/* routes returned 500 (files missing/broken on DianaHost disk —
+confirmed persistent, not transient; the metadata API and admin still work). The media files were
+RECOVERED from the live static site (Cloudflare's /_astro/*.webp optimized copies + the CMS API
+metadata) — 33 files downloaded to .sps/media-recovery/. All 20 media files were uploaded to the
+shikkha24-media R2 bucket via wrangler (OAuth, no S3 creds needed) with prefix-matching for the
+Neon duplicate-upload filenames. Custom domain media.shikkha24.com attached to the bucket (zone-id
+e1f69e09ae7e4d2182aaab0548cfb984 provided by the owner) — ownership + SSL activated, serving
+verified (200, correct content types). Neon media URLs updated to media.shikkha24.com. **The
+frontend now resolves all media from R2 via media.shikkha24.com — DianaHost is no longer in the
+media delivery path.** Remaining: P4 (CMS → Render), P5 (backups), P6 (domain transfer after
+2026-11-11). The R2 S3 API credentials (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY) are
+NOT yet set as env vars — needed when the CMS on Render writes new uploads to R2.
+
+P2 FINAL STATUS — DATA MIGRATION COMPLETE (2026-10-27, later same day), AWAITING OWNER REVIEW.**
 The full data migration ran successfully after four iterative fixes, each caught by verification:
 (1) **Adapter switch** — env-driven postgres/sqlite (committed `20451a2`).
 (2) **Inline spread ternary broke the TS parser** (TS1109 at the closing paren — `...(a?.b() ? {…}

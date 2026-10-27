@@ -3907,3 +3907,13 @@ way *after* the billing lock clears, revisit this entry — not before.
   DATABASE_URI.
 - Temp accounts + probe scripts deleted (T-77). Owner's production DB untouched (source of truth).
 - Remaining: P3 media files → R2, P4 CMS → Render, P5 backups, P6 domain (after 2026-11-11).
+
+### 2026-10-27 — T-18 P3: media files → R2 COMPLETE
+
+- Prod CMS /api/media/file/* returns 500 (files gone from DianaHost disk) — confirmed persistent.
+- Media RECOVERED from the live static site (Cloudflare /_astro/*.webp + CMS API metadata): 33 files.
+- All 20 media files uploaded to R2 shikkha24-media via wrangler OAuth (no S3 creds needed for CLI).
+- Custom domain media.shikkha24.com attached (zone-id from owner); SSL active; serving verified.
+- Neon media URLs now point at media.shikkha24.com. DianaHost out of the media delivery path.
+- Remaining: P4 (CMS → Render), P5 (backups), P6 (domain transfer after 2026-11-11). R2 S3 API
+  credentials needed as env vars when the CMS writes new uploads to R2 (P4 dependency).
