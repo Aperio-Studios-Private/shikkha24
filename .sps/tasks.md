@@ -5332,3 +5332,13 @@ GitHub Advisory Database for each dependency override.
    pipeline strip already states drafts publish first). Verified /article/:slug is a real
    redirect route on the live site (200).
 
+### OWNER-INSTRUCTED SELF-SKILL — recurring-error-guards (2026-10-27)
+
+Owner: "Are you learning from your mistakes? Build a skill for yourself and update it with the
+errors you make most often, along with ways to prevent them." Built at
+~/.zcode/skills/recurring-error-guards/SKILL.md — 10 error classes from this session (curl-vs-
+browser reality, stale-build 'done' claims, fix-before-cite, assumed API shapes, heredoc
+quoting, working-directory drift, non-English reports, deploy races, symptom-vs-mechanism,
+hand-edited generated files), each with its detection signal and the mandatory prevention step.
+Rule: when the same mistake class appears twice, add it there the same day.
+
