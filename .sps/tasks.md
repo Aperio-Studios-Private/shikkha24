@@ -4093,7 +4093,24 @@ approved plan's phase order. Done so far in P3: bucket shikkha24-media created (
 dependency installed, research complete. Blocked on: P2 (needs owner's Neon account) + the R2
 custom-domain attachment (owner dashboard step or zone-id via API token).
 
-### T-91 — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
+**P2 — Neon Postgres wired + schema bootstrapped (2026-10-27, commits `20451a2`, `f2a02da` +
+follow-ups), AWAITING OWNER REVIEW.** Owner created the Neon project (weathered-cell-22329124,
+production branch, AWS ap-southeast-1) and completed `neon login`. Executed per the owner's exact
+steps + the neon/neon-postgres skills: `neon init` (linked; existing neon.ts preserved; .neon +
+.env.local git-ignored), `neon deploy` (Postgres provisioned), `neon env pull` (pooled + direct +
+NEON_BRANCH into .env.local — verified git-ignored before any secret landed). CMS wiring:
+@payloadcms/db-postgres@3.90.2 + pg installed; payload.config.ts now switches adapters on
+DATABASE_URL — postgres:// → Postgres, otherwise the historical SQLite (local dev/CI unaffected).
+**Two mistakes made and fixed honestly:** (1) the inline spread ternary
+`...(a?.b() ? {...} : {...})` inside the object literal produced TS1109 at the closing paren
+(reproduced in a minimal file; extracted to a top-level `dbConfig` const which parses cleanly);
+(2) my first repair pass with a naive python string-replace mangled the file (matched mid-comment)
+— repaired by line-number surgery verified with a brace-depth trace. **End-to-end proven:** the
+committed sqlite migrations cannot run on Postgres ('db.run is not a function', measured) — the
+fresh Neon DB was bootstrapped with POSTGRES_PUSH_SCHEMA=true (one-time opt-in, same pattern as
+PAYLOAD_BOOTSTRAP_SCHEMA), then a local-API probe connected, created and deleted a scratch doc.
+Test rows + bootstrap script + temp accounts deleted (T-77). **NEXT: the data migration itself —
+download the PRODUCTION payload.db (source of truth), copy its rows into Neon, verify counts.** — ✅ PATCHED LOCALLY (2026-10-25): Next.js 16.4.0 → 16.4.3, production redeploy still due
 Owner pasted the Vercel banner and the `next upgrade --agent=security` prompt. Facts (GitHub
 Security Advisory API, no guesses): **two** advisories cover 16.4.0 and both are fixed in **16.4.1** —
 GHSA-673q-mjm6-r5xr (CRITICAL unauthenticated RCE in App Router `use cache` functions returning

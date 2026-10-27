@@ -3880,3 +3880,14 @@ way *after* the billing lock clears, revisit this entry — not before.
   developers.cloudflare.com/r2/examples/aws/aws-sdk-js-v3).
 - P3 waits for P2 (database first, per plan order). R2 bucket shikkha24-media exists; custom domain
   media.shikkha24.com attachment needs zone-id (owner dashboard step, 2 min).
+
+### 2026-10-27 — T-18 P2: Neon Postgres wired + schema bootstrapped (commits `20451a2`, `f2a02da`)
+
+- Owner ran `neon login`; agent ran `neon init` (org-winter-band-83722285 / weathered-cell-22329124 /
+  production) + `neon deploy` + `neon env pull` → .env.local (git-ignored, verified before secrets).
+- payload.config.ts: env-driven db adapter — DATABASE_URL postgres:// → @payloadcms/db-postgres,
+  else sqlite. Top-level dbConfig const (inline spread ternary with optional-chain broke the TS
+  parser: TS1109; extracted const parses cleanly — reproducible).
+- Fresh Neon bootstrap: POSTGRES_PUSH_SCHEMA=true (one-time opt-in) — committed sqlite migrations
+  cannot run on Postgres. End-to-end proven: schema pushed, local-API create/delete round-trip OK.
+- NEXT: data migration from the PRODUCTION sqlite DB (source of truth per owner rule).
