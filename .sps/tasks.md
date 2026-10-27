@@ -5048,4 +5048,28 @@ variable transfer-সহ সংরক্ষিত; Actions সীমাহীন
   Payload's own `--style-radius-s/m/l` were never mapped, so wherever Payload's layer won the
   cascade the shape collapsed. Mapped to our tokens; re-confirmed 8px radius on the article editor
   at 1280 and 390. No horizontal overflow on any view. (One 0px reading during E3 was a
-  mid-hydration artifact — re-measured after settle.)
+  mid-hydration artifact — re-measured after settle.)**P2 FINAL STATUS — DATA MIGRATION COMPLETE (2026-10-27, later same day), AWAITING OWNER REVIEW.**
+The full data migration ran successfully after four iterative fixes, each caught by verification:
+(1) **Adapter switch** — env-driven postgres/sqlite (committed `20451a2`).
+(2) **Inline spread ternary broke the TS parser** (TS1109 at the closing paren — `...(a?.b() ? {…}
+: {…})` inside an object literal; extracted to a top-level `dbConfig` const which parses cleanly;
+minimal repro passed, the full file did not — the interaction was object-literal-position-specific).
+(3) **Media requires the file binary** — Payload rejects upload-collection creates without
+`file: {data, mimetype, name, size}` ('No files were uploaded'). Learned from the project's own
+seed (demo-engagement.ts hands sharp-rendered buffers). Fix: download each prod media file from
+cms.shikkha24.com (URLs live in the export) and create with the binary. 20/20 created.
+(4) **_status was dropped** — cleanDoc deleted it, so all 10 articles landed as drafts. Fixed by
+keeping _status (the publish guard is bypassed via PROGRAMMATIC_CONTEXT). Final verify: 10
+published articles in Neon.
+(5) **Institution import order** — institutions must import BEFORE articles (article 33 references
+institution 7); reorder fixed it.
+**Final verified counts in Neon: articles 10 (all published ✓), categories 8, media 20, users 1,
+levels 5, districts 64, tags 30, institutions 7, authors 1, deadlines 1, polls 1, study-abroad
+guides 8 — all matching production.** The owner's production payload.db (downloaded to Desktop,
+integrity-checked) was the SOURCE; the local dev DB was never used (owner data rule).
+**Remaining migration phases:** P3 media files → R2 (bucket exists; the media URLs in Neon still
+point at cms.shikkha24.com which keeps serving them — so the site works unchanged), P4 CMS →
+Render, P5 backups, P6 domain transfer (after 2026-11-11). The CMS on DianaHost still runs on
+SQLite — the Neon switch in production happens with the P4 deploy.
+
+
