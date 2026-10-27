@@ -5300,3 +5300,35 @@ repo's own measured CI history; overrides: each GHSA's official patched range fr
 Advisory Database API; percent-encoding: RFC 3986 + WHATWG URL (browser decode-then-resolve);
 deploy gate order: the workflow's own documented contract (deploy-cloudflare.yml header).
 
+### FRESH-DEPLOY CMS AUDIT — two admin bugs root-caused + fixed (2026-10-27, commit d79b014)
+
+Method: real browser (in-app Chromium) against the Render admin, logged in via a T-77 throwaway
+superAdmin (t89-audit@, pbkdf2 hash generated with Payload's own generatePasswordSaltHash
+parameters — 600k iterations, sha256, 32-byte key; deleted after the audit). Learn-first
+citations: Payload admin Preview docs (the returned string is used as-is; null hides the
+button), the installed @payloadcms/ui Nav source (context.js / NavWrapper / Root provider),
+@faceless-ui/window-info 3.0.1 source (breakpoints = matchMedia, measured on mount), and the
+GitHub Advisory Database for each dependency override.
+
+1. **Sidebar dead on ≤1440px screens (owner report).** Measured at 1280×720: the whole
+   `<aside class="nav">` carries `inert=""`, group buttons tabIndex:-1, clicks swallowed; SSR
+   HTML renders `nav--nav-open` (correct) and the client flips it. Chain: Payload's admin
+   breakpoints set `l: (max-width: 1440px)` → largeBreak TRUE on every common laptop →
+   NavProvider mount effect `largeBreak === true → setNavOpen(false)` → NavWrapper renders
+   `inert={!navOpen}`. Controlled experiment: fresh load at 1600px opens fine (inert:false,
+   tabIndex:0); at 1280 it inerts. No nav preference row exists in Neon (checked), so this
+   hits every user. The T-89 grid hides the nav toggler at ≥769px → no escape hatch.
+   Verified unfixed upstream in @payloadcms/ui 3.92.0 (latest; tarball inspected).
+   **Fix:** DesktopNavOpener — renderless client component in the existing TopbarActions slot
+   (renders on every admin page inside RootProvider) calling the context's own
+   setNavOpen(true) when smallBreak and midBreak are both false. Mobile/tablet modal
+   behaviour untouched. CSS alone cannot fix it (inert is a browser-level block).
+
+2. **Preview button dead since S1 (owner report).** Articles' admin.preview returned a
+   RELATIVE /article/:slug; Payload uses the string as-is (docs), so it resolved against the
+   ADMIN origin (no such route → dead page) on cms.shikkha24.com AND on Render. The storefront
+   is a static build — drafts do not exist there. **Fix:** return the absolute
+   PUBLIC_SITE_URL /article/:slug for published docs; null for drafts (button hides; the
+   pipeline strip already states drafts publish first). Verified /article/:slug is a real
+   redirect route on the live site (200).
+
