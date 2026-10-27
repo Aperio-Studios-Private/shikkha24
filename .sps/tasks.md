@@ -5048,7 +5048,9 @@ variable transfer-সহ সংরক্ষিত; Actions সীমাহীন
   Payload's own `--style-radius-s/m/l` were never mapped, so wherever Payload's layer won the
   cascade the shape collapsed. Mapped to our tokens; re-confirmed 8px radius on the article editor
   at 1280 and 390. No horizontal overflow on any view. (One 0px reading during E3 was a
-  mid-hydration artifact — re-measured after settle.)**P2 FINAL STATUS — DATA MIGRATION COMPLETE (2026-10-27, later same day), AWAITING OWNER REVIEW.**
+  mid-hydration artifact — re-measured after settle.)
+
+**P2 FINAL STATUS — DATA MIGRATION COMPLETE (2026-10-27, later same day), AWAITING OWNER REVIEW.**
 The full data migration ran successfully after four iterative fixes, each caught by verification:
 (1) **Adapter switch** — env-driven postgres/sqlite (committed `20451a2`).
 (2) **Inline spread ternary broke the TS parser** (TS1109 at the closing paren — `...(a?.b() ? {…}
