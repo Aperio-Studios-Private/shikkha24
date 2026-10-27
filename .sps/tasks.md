@@ -5064,6 +5064,14 @@ media delivery path.** Remaining: P4 (CMS → Render), P5 (backups), P6 (domain 
 2026-11-11). The R2 S3 API credentials (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY) are
 NOT yet set as env vars — needed when the CMS on Render writes new uploads to R2.
 
+**P2 RENDER DEPLOY FIX (2026-10-27, commit `33a987a`):** the owner's Render build failed with
+"DATABASE_URI is not set" — the sqlite branch's requireEnv fired at module load even when
+DATABASE_URL pointed at Postgres. Fixed: requireEnv is now adapter-aware (postgres branch
+validates DATABASE_URL; sqlite branch validates DATABASE_URI). The owner needs to add
+DATABASE_URL + PAYLOAD_SECRET + the public URL vars in Render's Environment tab, then rebuild.
+**Render setup guide given to the owner (Google sign-in recommended to keep hosts spread across
+independent providers).**
+
 P2 FINAL STATUS — DATA MIGRATION COMPLETE (2026-10-27, later same day), AWAITING OWNER REVIEW.**
 The full data migration ran successfully after four iterative fixes, each caught by verification:
 (1) **Adapter switch** — env-driven postgres/sqlite (committed `20451a2`).

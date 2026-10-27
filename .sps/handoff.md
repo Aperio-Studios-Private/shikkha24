@@ -3917,3 +3917,14 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Neon media URLs now point at media.shikkha24.com. DianaHost out of the media delivery path.
 - Remaining: P4 (CMS → Render), P5 (backups), P6 (domain transfer after 2026-11-11). R2 S3 API
   credentials needed as env vars when the CMS writes new uploads to R2 (P4 dependency).
+
+### 2026-10-27 — T-18 P2: Render deploy fix (commit `33a987a`)
+
+- Owner created a Render Web Service (Google sign-in, client's account) but the build failed:
+  the sqlite branch's requireEnv('DATABASE_URI') fired unconditionally at module load.
+- Fixed: requireEnv is adapter-aware — postgres validates DATABASE_URL, sqlite validates
+  DATABASE_URI. Owner needs to add env vars in Render's dashboard (DATABASE_URL, PAYLOAD_SECRET,
+  CMS_URL, PUBLIC_SITE_URL, PUBLIC_MEDIA_BASE_URL, DATABASE_URI as the sqlite fallback path).
+- Render free tier constraints confirmed from official docs: 15-min spin-down (admin-only
+  impact), ephemeral disk (Neon is the database), no SMTP (Brevo HTTP API is the email plan),
+  750 hrs/month (one 24/7 service fits).
