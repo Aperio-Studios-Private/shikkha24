@@ -3891,3 +3891,19 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Fresh Neon bootstrap: POSTGRES_PUSH_SCHEMA=true (one-time opt-in) — committed sqlite migrations
   cannot run on Postgres. End-to-end proven: schema pushed, local-API create/delete round-trip OK.
 - NEXT: data migration from the PRODUCTION sqlite DB (source of truth per owner rule).
+
+### 2026-10-27 — T-18 P2 COMPLETE: data migrated to Neon (commits `20451a2` + follow-ups)
+
+- Env-driven adapter switch shipped (postgres when DATABASE_URL is postgres://, else sqlite).
+- Fresh Neon schema bootstrapped via POSTGRES_PUSH_SCHEMA=true (one-time opt-in).
+- Data migrated from the owner's PRODUCTION payload.db download (integrity-checked): 10 published
+  articles, 8 categories, 20 media, 64 districts, 30 tags, 7 institutions, 1 user/author — all
+  counts verified matching production.
+- Migration mechanics learned: (1) media requires the file binary (download from prod URLs, pass
+  file: {data, mimetype, name, size} — same as the demo seed's sharp pattern); (2) _status must be
+  preserved (cleanDoc kept it; PROGRAMMATIC_CONTEXT bypasses the publish guard); (3) import order =
+  taxonomies + media + institutions BEFORE articles; (4) postgres serial ignores explicit ids —
+  relationships are remapped via old→new idMap; (5) libsql needs the file: scheme prefix on
+  DATABASE_URI.
+- Temp accounts + probe scripts deleted (T-77). Owner's production DB untouched (source of truth).
+- Remaining: P3 media files → R2, P4 CMS → Render, P5 backups, P6 domain (after 2026-11-11).
