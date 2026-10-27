@@ -74,8 +74,25 @@ function collectPages() {
  *   `/foo.txt`  → `dist/foo.txt`          (a real file, e.g. robots.txt)
  */
 function resolveToFile(pathname) {
+  // Astro writes non-ASCII routes to disk as raw UTF-8 (`dist/জাতীয়
+  // বিশ্ববিদ্যালয়/index.html`) but serializes every URL (canonical, JSON-LD,
+  // href) percent-encoded — RFC 3986, and what a browser sends on the wire.
+  // The two name the SAME file: a browser decodes %XX before the filesystem
+  // lookup, so the checker must too, or every Bengali-slug page fails
+  // falsely. decodeURIComponent is tried per candidate; a path with no
+  // escapes decodes to itself, and a malformed escape (rare, hand-written)
+  // throws and falls through to the raw form.
   const clean = pathname.replace(/\/+$/, '')
+  let decoded = clean
+  try {
+    decoded = decodeURIComponent(clean)
+  } catch {
+    // URIError on a malformed escape — the raw form is all we can try.
+  }
   const candidates = [
+    join(DIST, decoded, 'index.html'),
+    join(DIST, `${decoded}.html`),
+    join(DIST, decoded),
     join(DIST, clean, 'index.html'),
     join(DIST, `${clean}.html`),
     join(DIST, clean),
