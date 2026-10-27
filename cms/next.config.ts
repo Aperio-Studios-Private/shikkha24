@@ -52,9 +52,16 @@ const CSP_API =
  *
  * `frame-ancestors`, `object-src` and `base-uri` stay locked down — the admin
  * is credential-handling code and gets no relaxation on those.
+ *
+ * `media.shikkha24.com` (R2, T-18 P3) is named in `img-src`/`media-src`
+ * because media thumbnails no longer share the admin's origin: they load
+ * straight from the bucket. When media lived on the CMS disk, `'self'`
+ * covered them — the same drift the storefront CSP hit a day earlier (its
+ * fix is in `frontend/public/.htaccess` + `frontend/worker/csp.ts`). When a
+ * content origin moves, grep BOTH CSPs.
  */
 const CSP_ADMIN_PROD =
-  "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; frame-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+  "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://media.shikkha24.com; font-src 'self' data:; connect-src 'self'; media-src 'self' blob: https://media.shikkha24.com; frame-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
 
 /*
  * Dev-only relaxation: React 19 (Turbopack) uses eval() in development for
