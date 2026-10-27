@@ -26,11 +26,22 @@
 # match fails **silently** — the page still returns 200, just under the strict
 # policy, and AdSense is blocked with no error anywhere.
 #
-# ⚠️ **`cms.shikkha24.com` is a PLACEHOLDER hostname.** It is the CMS origin AND
-# the media origin (media on DianaHost disk since 2026-09-12). A CSP cannot be
-# templated, so this literal host MUST match the production `PUBLIC_CMS_ORIGIN`
-# and `PUBLIC_MEDIA_BASE_URL` exactly. It is currently a placeholder because the
-# CMS hostname is still pending DNS.
+# ⚠️ **Origin inventory (T-18 P4, 2026-10-27).** Three origins serve content a
+# browser loads, and the CSP names each one literally (a CSP cannot be
+# templated):
+#   • `cms.shikkha24.com`     — the DianaHost CMS. ROLLBACK-ONLY since P4, kept
+#                               in the policy while the rollback path exists.
+#   • `shikkha24-cms-9vai.onrender.com` — the LIVE CMS on Render (Neon). Named
+#                               in `connect-src` for the interactive islands
+#                               (comments, polls, newsletter, bookmarks).
+#   • `media.shikkha24.com`   — the R2 media bucket custom domain (P3). Named
+#                               in `img-src` and `media-src`; every article
+#                               image loads from here since P3. Omitting it
+#                               blocked every image in real browsers while all
+#                               server-side probes returned 200 — CSP is
+#                               enforced by the browser, not by curl.
+# When any of these hosts changes, update BOTH this file and
+# `frontend/worker/csp.ts` byte-identically (verify:cloudflare enforces it).
 #
 # S9 changes, recorded so the diff is not a mystery later:
 #   • `img-src` / `media-src` now name the CMS host, not the retired R2 host —
@@ -166,7 +177,7 @@
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set Permissions-Policy "geolocation=(), camera=(), microphone=(), payment=()"
   Header always set X-Frame-Options "DENY"
-  Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com; font-src 'self'; connect-src 'self' https://cms.shikkha24.com https://api.aladhan.com https://api.open-meteo.com https://ipwho.is; media-src 'self' https://cms.shikkha24.com; frame-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://media.shikkha24.com; font-src 'self'; connect-src 'self' https://cms.shikkha24.com https://shikkha24-cms-9vai.onrender.com https://api.aladhan.com https://api.open-meteo.com https://ipwho.is; media-src 'self' https://cms.shikkha24.com https://media.shikkha24.com; frame-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Relaxed profile — the routes tagged above.
@@ -210,8 +221,8 @@
 # silently widen the other.
 # ─────────────────────────────────────────────────────────────────────────────
 
-  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://api.aladhan.com https://api.open-meteo.com https://ipwho.is https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" env=SHIKKHA24_CSP_RELAXED
-  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://api.aladhan.com https://api.open-meteo.com https://ipwho.is https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.facebook.com https://web.facebook.com https://m.facebook.com https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" env=SHIKKHA24_CSP_ARTICLE
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://shikkha24-cms-9vai.onrender.com https://api.aladhan.com https://api.open-meteo.com https://ipwho.is https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com https://media.shikkha24.com; frame-src https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" env=SHIKKHA24_CSP_RELAXED
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://shikkha24-cms-9vai.onrender.com https://api.aladhan.com https://api.open-meteo.com https://ipwho.is https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com https://media.shikkha24.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.facebook.com https://web.facebook.com https://m.facebook.com https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" env=SHIKKHA24_CSP_ARTICLE
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Media profile (S15) — `/live-tv` ONLY.
@@ -233,7 +244,7 @@
 # asserts both halves (tag *and* consumer) and `pnpm verify:apache` proves it
 # against a real Apache.
 # ─────────────────────────────────────────────────────────────────────────────
-  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://api.aladhan.com https://api.open-meteo.com https://ipwho.is https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.facebook.com https://web.facebook.com https://m.facebook.com https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" env=SHIKKHA24_CSP_MEDIA
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://cms.shikkha24.com https://media.shikkha24.com https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net https://*.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cms.shikkha24.com https://shikkha24-cms-9vai.onrender.com https://api.aladhan.com https://api.open-meteo.com https://ipwho.is https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; media-src 'self' https://cms.shikkha24.com https://media.shikkha24.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.facebook.com https://web.facebook.com https://m.facebook.com https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://googleads.g.doubleclick.net; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests" env=SHIKKHA24_CSP_MEDIA
 
 </IfModule>
 
