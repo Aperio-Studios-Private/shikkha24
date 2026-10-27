@@ -5103,6 +5103,9 @@ had pointed at the proxy layer (app booted, instance RUNNING/ready, zero request
 502 in 0.08s from cloudflare-edge). Next: owner creates the service on the CLIENT's Render
 account; env-var recipe (6 vars) re-applied there; PUBLIC_CMS_ORIGIN must then match the NEW
 onrender.com URL.
+**Correction (same day):** shahiddesignhouse@gmail.com is the OWNER's own account (SHAHIDUL
+ISLAM), not the client's — the deletion above still stands (owner wanted the service off his
+personal account and onto the client's Render account).
 
 
 P2 FINAL STATUS — DATA MIGRATION COMPLETE (2026-10-27, later same day), AWAITING OWNER REVIEW.**
