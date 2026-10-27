@@ -5106,6 +5106,15 @@ onrender.com URL.
 **Correction (same day):** shahiddesignhouse@gmail.com is the OWNER's own account (SHAHIDUL
 ISLAM), not the client's — the deletion above still stands (owner wanted the service off his
 personal account and onto the client's Render account).
+**P2 CLIENT-ACCOUNT SERVICE CREATED (2026-10-27):** owner logged the CLI in with the client's
+Render account (Abdullah al Mamun, abdullahalmamunmay@gmail.com, workspace
+tea-dbg70u2jnfac73ff8bc0) via device code. Service created via POST /v1/services (learned the
+schema from api-docs first): srv-dbg75b0m7kps73bk0okg, name shikkha24-cms, repo
+Aperio-Studios-Private/shikkha24@main, node runtime, build `cd cms && pnpm install && pnpm build`,
+start `cd cms && node .next/standalone/cms/server.js`, plan free, region singapore,
+autoDeployTrigger commit. URL: **https://shikkha24-cms-9vai.onrender.com** (plain name still
+reserved on Render). All 6 env vars set via PUT env-vars — PUBLIC_CMS_ORIGIN matches the NEW
+URL. Deploys: creation deploy + a second one to pick up the 6th var.
 
 
 P2 FINAL STATUS — DATA MIGRATION COMPLETE (2026-10-27, later same day), AWAITING OWNER REVIEW.**
