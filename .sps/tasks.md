@@ -5342,3 +5342,22 @@ quoting, working-directory drift, non-English reports, deploy races, symptom-vs-
 hand-edited generated files), each with its detection signal and the mandatory prevention step.
 Rule: when the same mistake class appears twice, add it there the same day.
 
+### FRESH-DEPLOY AUDIT — both fixes VERIFIED LIVE in a real browser (2026-10-27, commits d79b014/3ec300a)
+
+First attempt of the sidebar fix DID NOT WORK live (verified in the browser, not assumed):
+the aside stayed inert through two deploys. Root cause of the failure: React runs child effects
+BEFORE parent effects — DesktopNavOpener's setNavOpen(true) lost the race against
+NavProvider's own mount effect (which closes the nav on ≤1440px). **Fix: defer with
+setTimeout(0)** so the open lands after the provider's close in the same task queue. Proven
+locally first (fresh build at 1280×720: inert=false, tabIndex=0, sidebar click navigated),
+then deployed and re-verified LIVE at 1280×720: sidebar click → Articles list (screenshot).
+
+Preview button verified end-to-end: the editor's Preview link now carries
+https://shikkha24.com/article/admission-policy-2027; clicking opened a new browser tab that
+landed on https://shikkha24.com/admission/10/admission-policy-2027 (the canonical redirect)
+with the correct article title.
+
+Also verified in the same pass: the honest rebuild banner renders on the Articles list
+(DEPLOY_WEBHOOK_URL unset → 'auto-rebuild off — run a rebuild', matching the watcher-only
+publish path until the owner's GitHub PAT lands).
+
