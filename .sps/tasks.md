@@ -5103,6 +5103,24 @@ had pointed at the proxy layer (app booted, instance RUNNING/ready, zero request
 502 in 0.08s from cloudflare-edge). Next: owner creates the service on the CLIENT's Render
 account; env-var recipe (6 vars) re-applied there; PUBLIC_CMS_ORIGIN must then match the NEW
 onrender.com URL.
+**P2 502 ROOT-CAUSED + FIXED — CMS LIVE ON CLIENT'S RENDER (2026-10-27, later same day).**
+Symptom: both the old (owner-account) and new (client-account) services showed "Your service is
+live", instance RUNNING/ready, app booted, Payload connected to Neon — yet every request 502'd
+in ~0.1s and NO request-type logs ever appeared. Root cause chain, proven by controlled
+experiment: (1) Render runs on Kubernetes → every container gets HOSTNAME=<pod-name> (visible
+in the boot banner "Local: http://srv-...-hibernate-66b6576c6d-ckkhn:10000"); (2) Next.js
+standalone server.js does `const hostname = process.env.HOSTNAME || '0.0.0.0'` and passes it to
+startServer → binds the pod-name interface, NOT 0.0.0.0 (known Next.js containerization trap,
+vercel/next.js#85615); (3) Render's port scanner looks on 0.0.0.0 → "No open HTTP ports
+detected on 0.0.0.0, continuing to scan..." forever → proxy has no upstream → 502 for every
+request. Experiment: HOSTNAME=srv-fake-pod → getaddrinfo ENOTFOUND, nothing serves;
+HOSTNAME=0.0.0.0 → HTTP 200 in 1.1s locally. Fix: HOSTNAME=0.0.0.0 env var on the Render
+service (7 env vars total now). Verified live: /admin 200, /api/articles returns the migrated
+Neon data (article 10, Bengali admission-policy title), /api/media 200, /api/users/login 400 on
+empty body (route alive, correctly rejecting). **The CMS now runs at
+https://shikkha24-cms-9vai.onrender.com on the client's Render account (abdullahalmamunmay),
+backed by the client's Neon, serving the production data copy.**
+
 **Correction (same day):** shahiddesignhouse@gmail.com is the OWNER's own account (SHAHIDUL
 ISLAM), not the client's — the deletion above still stands (owner wanted the service off his
 personal account and onto the client's Render account).
