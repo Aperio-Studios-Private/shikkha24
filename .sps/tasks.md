@@ -5230,3 +5230,24 @@ target stays <1.5 s (rule 9); T-80 remains OPEN as the typography/critical-path 
 Updated: lighthouserc.json, docs/performance-budget.md §8.2/§8.3, verify-lighthouse.sh header,
 ci.yml comments (both). Commit 9681d12.
 
+### AUDIT GATE FIX — 5 new high advisories cleared (2026-10-27, commit c886d68)
+
+With the LCP gate relaxed, CI moved past Lighthouse and hit the NEXT latent blocker: the
+Dependency audit step (docs/security.md §9 policy — high/critical fail the build). Five new
+high advisories, same 'new advisories, unchanged graph' pattern as 2026-09-30. Each verified
+against the installed tree before acting (learn-then-fix):
+
+- **Overridden (patched release within the consumer's major):** body-parser 1.20.8→1.20.9
+  (GHSA-27r3-jxmh-p828, LHCI/express, CI-only); undici 7.29.0→7.30.1 (GHSA-xjj6-f33q-929c,
+  the PAYLOAD RUNTIME copy — boot-proven: standalone CMS serves 10 articles from Neon on
+  7.30.1); undici 8.10.2→8.12.2 (same GHSA, Astro/unifont, build-time); undici 7.29.1→7.30.1
+  (same GHSA — miniflare hard-pins 7.29.1, local-dev only).
+- **Ignored with written reasoning (fix is a MAJOR violating the consumer's range; both proven
+  absent from production):** zod@3.25.76 (GHSA-mrhx-c7xc-m3w5 — chromium-bidi pins ^3.24.1;
+  validates CDP messages from the CI-local Chrome); happy-dom@20.14.3 (GHSA-834v-8h66-3h79 —
+  @lexical/headless pins ^20.9.0; happy-dom sits only behind the ./dom subpath export; grep of
+  the built standalone CMS bundle = ZERO references; the vulnerable headless HTML-import path
+  is unused in this app).
+- Audit result: 5 high (1 unignored) → 0 unignored. Lint + CMS typecheck green. This unblocks
+  the LAST red step of CI.
+
