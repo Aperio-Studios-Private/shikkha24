@@ -5071,6 +5071,14 @@ validates DATABASE_URL; sqlite branch validates DATABASE_URI). The owner needs t
 DATABASE_URL + PAYLOAD_SECRET + the public URL vars in Render's Environment tab, then rebuild.
 **Render setup guide given to the owner (Google sign-in recommended to keep hosts spread across
 independent providers).**
+**P2 RENDER DEPLOY — SECOND LOG (2026-10-27):** build + TypeScript now PASS on Render; the
+adapter-aware requireEnv fix worked. New runtime failure: `cannot connect to SQLite:
+Unable to open connection to ./data/payload.db: 14` — Render has no DATABASE_URL, so the config
+fell back to the SQLite branch using the DATABASE_URI the owner set from the earlier guide.
+Diagnosis is certain because the boot got PAST both requireEnv calls (PAYLOAD_SECRET and
+DATABASE_URI validated at module load before any DB connect), so both are set; only DATABASE_URL
+is missing. Fix is dashboard-only: add DATABASE_URL (Neon POOLED string), delete DATABASE_URI.
+
 
 P2 FINAL STATUS — DATA MIGRATION COMPLETE (2026-10-27, later same day), AWAITING OWNER REVIEW.**
 The full data migration ran successfully after four iterative fixes, each caught by verification:
