@@ -5361,3 +5361,36 @@ Also verified in the same pass: the honest rebuild banner renders on the Article
 (DEPLOY_WEBHOOK_URL unset → 'auto-rebuild off — run a rebuild', matching the watcher-only
 publish path until the owner's GitHub PAT lands).
 
+### LOGO/FAVICON BROKEN — root cause + data-loss confirmed + card-grid views (2026-10-27 evening)
+
+**Logo/favicon (owner report):** the live site's favicon URL pointed at
+cms.shikkha24.com/api/media/file/Logo Favicon.svg → 500. Chain: the owner uploaded a new logo +
+favicon via the Render admin at 13:45 → files landed on Render's EPHEMERAL disk → the redeploys
+at 14:00/14:03/14:20 wiped that disk (Render log: 'File Logo Favicon.svg for collection media
+is missing on the disk') → the site-settings rows now reference dead media. **The uploads are
+unrecoverable server-side; the owner must re-upload once R2 wiring lands.** Immediately
+restored the site by pointing site-settings at the working recovered assets on R2 (logo id 4
+shikkha24-logo-2.svg, favicon id 3 shikkha24-favicon-2.svg) via a T-77 temp admin (created +
+deleted in one script); rebuild dispatched and verified: favicon + logo now 200 from R2 on the
+live site. This is exactly the data-loss risk the platform audit predicted — R2 upload wiring
+(storage-r2 + creds) is now the top infrastructure priority.
+
+**Card-grid asset views (owner request: 'thumbnail largely, card based instead of row style'):**
+- Learned first: Payload custom-views docs (views.list { Component }), the installed
+  ListViewServerProps type (NO initPageResult — that's for standalone page views; a list view
+  renders inside the template), ListControls/Pagination props, IListQueryContext (data =
+  PaginatedDocs), useConfig().getEntityConfig for the client collection config.
+- MediaCardGrid (client): ListControls (search/filters; columns+sort off — meaningless in a
+  grid) + responsive 4:3 thumbnail cards + Pagination, all reading the same useListQuery state.
+- MediaListServerView (server): passes ListViewServerProps through; renders inside the admin
+  template.
+- Wired on media + photo-galleries.
+- Two lessons hit and fixed: (1) views.list must be the OBJECT form { Component: path } — the
+  generator reads views.list.Component (iterateCollections.js:44); the string shorthand is
+  invisible to it. (2) a REGISTERED component importing the @payloadcms/ui barrel crashes
+  generate:importmap under Node 26 (barrel → EditUpload → react-image-crop .css →
+  ERR_UNKNOWN_FILE_EXTENSION) — bisected via stash to prove it was my chain, resolved by the
+  string-path registration form which the scanner records without executing the module graph.
+- Lint clean, TS clean, CMS build green. Browser verification of the deployed grid is the
+  remaining step of this task.
+
