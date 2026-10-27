@@ -5174,3 +5174,44 @@ Render, P5 backups, P6 domain transfer (after 2026-11-11). The CMS on DianaHost 
 SQLite — the Neon switch in production happens with the P4 deploy.
 
 
+
+
+---
+
+## T-18 P4 — OPTION A WIRED (2026-10-27, evening), AWAITING OWNER DECISION ON T-80 TO GO LIVE
+
+**Owner approved Option A** (storefront build reads the Render CMS; DianaHost untouched as
+rollback). Executed after a full data-safety check:
+
+1. **Re-sync check — NO data loss either way.** DianaHost's latest edit anywhere is
+   2026-10-26T08:38 (yesterday); the only newer change is the owner's own edit on the Render
+   admin today (article "সরকারি স্কুলে ভর্তির নীতিমালা-২০২৭..." → isBreaking+isLead true,
+   updatedAt 2026-10-27T10:04). Field-level diff of that article against its DianaHost original
+   showed ONLY: the owner's isBreaking/isLead flags + the expected Postgres ID renumbering
+   (category 6=admission ↔ DH 3=admission; levels [4,5]=secondary,primary ↔ DH [2,1];
+   featuredImage 18 ↔ 10 = same file, dedup-suffixed filename). Content identical.
+2. **GitHub secrets/variables repointed:** CMS_URL + PUBLIC_CMS_ORIGIN secrets →
+   https://shikkha24-cms-9vai.onrender.com; PUBLIC_MEDIA_BASE_URL variable →
+   https://media.shikkha24.com (R2 — DianaHost media files are broken, which is why P3 happened).
+3. **publish-watcher Worker repointed + deployed** (wrangler, OAuth): CMS_ORIGIN → the Render
+   CMS, GITHUB_REPO → Aperio-Studios-Private/shikkha24. GITHUB_TOKEN secret survived
+   (keep_vars). The watcher's poll endpoints were verified publicly readable on Render (200s).
+   The dispatch history proves the watcher path works: it fired on the Oct 26 DianaHost edits
+   (runs at 08:35/08:40 Oct 26) — those deploys failed only because CI was red.
+4. **CI unblocked partially:** the 3 lint errors red since Oct 18 (biome: useTemplate in
+   ArticlePipelineDescription, unused x0 in build-samples.mjs, unused param in astro.config,
+   stale biome-ignore in theme-init.js + 3 format diffs) are FIXED (commit 7476b3d). CI's Lint
+   step is green again. 47 of the last 50 CI runs were red — all on the same two causes.
+5. **BLOCKED on T-80 (owner decision):** the Lighthouse LCP gate (1500 ms) still fails at
+   ~2711 ms (article template; home/latest ~2400/2256). This is the SAME pre-existing T-80
+   issue audited read-only earlier today: serialized round trips + webfont render delay;
+   five causes tested, four disproven; subsetting ceiling measured at only ~15% (T-44 R3);
+   the logo experiment moved nothing. The gate blocks EVERY rebuild — so the owner's changes
+   cannot reach the storefront until this is decided:
+   (a) **Relax the gate to 2500 ms** (Google's own "good" LCP threshold) — honest, matches
+   measured reality, unblocks publishing immediately; T-80 stays open as a perf task, or
+   (b) **Fix LCP to <1500 ms** — typography/critical-path architecture work, its own section
+   per the perf-budget doc ("needs its own section rather than being smuggled into a QA fix").
+6. **DEPLOY_WEBHOOK_URL on Render (instant-publish path + banner flip):** needs a fine-grained
+   GitHub PAT (repo Aperio-Studios-Private/shikkha24, actions:write) from the owner — the
+   watcher alone already rebuilds within 5 minutes, so this is an optimization, not a blocker.
