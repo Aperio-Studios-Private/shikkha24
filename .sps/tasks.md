@@ -5215,3 +5215,18 @@ rollback). Executed after a full data-safety check:
 6. **DEPLOY_WEBHOOK_URL on Render (instant-publish path + banner flip):** needs a fine-grained
    GitHub PAT (repo Aperio-Studios-Private/shikkha24, actions:write) from the owner — the
    watcher alone already rebuilds within 5 minutes, so this is an optimization, not a blocker.
+
+### T-81 AMENDMENT — LCP gate relaxed 1500→3000 ms (2026-10-27, owner decision "relax")
+
+The 1.5 s gate blocked every storefront rebuild via CI_GATE; with Option A wired the owner's
+published changes could not reach the site, so the gate became the critical path. Owner chose
+relax over fix. **Correction made honestly: 2.5 s (Google's good-LCP threshold) was tried first
+and rejected by measurement — CI's own LCP history is 2257–2939 ms across the three gated
+templates (Oct 3 baseline + Oct 27 run), so 2.5 s would have stayed red.** The gate now holds
+3.0 s: above every recorded CI measurement, still failing real regressions, self-test intact.
+Local M-series Mac measures higher still (home/latest pass at 3000; article 3232 ms, perf 0.92 —
+consistent with known local-vs-CI CPU differences; CI is the calibrated environment). Plan
+target stays <1.5 s (rule 9); T-80 remains OPEN as the typography/critical-path work.
+Updated: lighthouserc.json, docs/performance-budget.md §8.2/§8.3, verify-lighthouse.sh header,
+ci.yml comments (both). Commit 9681d12.
+
