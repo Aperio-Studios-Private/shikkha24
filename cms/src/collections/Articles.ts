@@ -78,7 +78,18 @@ export const Articles: CollectionConfig = {
     // orientation plus a stage highlight and the rebuild expectation. Kept as
     // the fallback for surfaces that do not render the custom component.
     description: 'সংবাদের মূল কনটেন্ট। খসড়া → পর্যালোচনা → প্রকাশ।',
-    preview: (doc) => (doc?.slug ? `/article/${doc.slug}` : null),
+    // Payload uses the returned string as-is (docs: "an absolute URL or a
+    // relative path") — a relative `/article/…` resolves against the ADMIN
+    // origin, where no such route exists, so the button has opened a dead
+    // page since S1. Return the absolute storefront URL instead. The storefront
+    // is a static build: only PUBLISHED articles exist there, so the button
+    // hides for drafts (docs: returning null hides it) — the pipeline strip
+    // above already tells the editor a draft goes live only after publishing.
+    preview: (doc) => {
+      if (!doc?.slug || doc._status !== 'published') return null
+      const site = process.env.PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://shikkha24.com'
+      return `${site}/article/${doc.slug}`
+    },
     components: {
       // Rendered by renderDocumentSlots (verified in @payloadcms/next 3.90.2):
       // `admin.components.Description` — NOT inside `edit` — replaces the

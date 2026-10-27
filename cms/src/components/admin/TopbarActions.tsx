@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
-
+import { DesktopNavOpener } from './DesktopNavOpener'
 import { TopbarSearch } from './TopbarSearch'
 
 /**
@@ -78,6 +78,14 @@ export function TopbarActions() {
 
   return (
     <div className="topbar-actions">
+      {/*
+       * Renderless: opens the sidebar on desktop widths. Payload's
+       * NavProvider closes+inerts it on every ≤1440px screen (upstream bug,
+       * unfixed in 3.92.0) and the T-89 grid hides the manual toggler, so
+       * without this the sidebar is unusable on common laptops. See
+       * DesktopNavOpener.tsx for the measured evidence.
+       */}
+      <DesktopNavOpener />
       <button
         type="button"
         ref={triggerRef}
