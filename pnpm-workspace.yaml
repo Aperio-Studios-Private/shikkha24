@@ -65,7 +65,9 @@ allowBuilds:
 #                     exact vulnerable version so it stops applying by itself
 #                     once upstream moves on.
 overrides:
-  'undici@7.29.0': 7.29.1
+  # 2026-10-27: bumped 7.29.1 → 7.30.1 for GHSA-xjj6-f33q-929c — see the
+  # annotated entry at the bottom of this block.
+  'undici@7.29.0': 7.30.1
   'nodemailer@9.1.1': 10.0.16
   'devalue@5.9.2': 5.9.4
   # Added 2026-10-15 (T-10, Payload 3.90.2 migration) — three dev-tooling
@@ -104,6 +106,39 @@ overrides:
   #   Scoped to the exact vulnerable version so it stops applying by itself when
   #   monaco-editor moves on.
   'dompurify@3.4.8': 3.4.17
+  # Added 2026-10-27 (T-18 P4 Option A, audit gate). Four fixes with published
+  # patched releases — the overrides mechanism applies. Review notes (agent
+  # rule 8 — licence confirmed for each):
+  #
+  #   body-parser 1.20.9 — MIT. Patch release within express's ^1.20.x range
+  #     (via @lhci/cli → express). Clears GHSA-27r3-jxmh-p828 (DoS via trailing
+  #     bytes after a compressed body). Reachable only inside the LHCI CI
+  #     server process, never in production.
+  #
+  #   undici 7.30.1 — MIT. Patch within 7.x; the 2026-09-30 override
+  #     'undici@7.29.0' → 7.29.1 (kept at the TOP of this block) is bumped to
+  #     7.30.1. Clears GHSA-xjj6-f33q-929c (DoS via unhandled rejection) for
+  #     the cms>…>payload>undici instance. That instance IS in the CMS runtime
+  #     (Payload uses undici for fetch internals), which is why this one is an
+  #     override and not an ignore.
+  #
+  #   undici 8.12.2 — MIT. Patch within 8.x for Astro's copy (unifont), same
+  #     advisory. Build-time only: the frontend build runs in CI, the built
+  #     site is static files.
+  #
+  #   zod 3.25.76 → 4.6.7? NO — chromium-bidi@14 (via LHCI → puppeteer-core)
+  #     declares zod ^3.24.1, so 4.x would violate its range; see the
+  #     GHSA-mrhx-c7xc-m3w5 ignore entry below for why that is tolerated.
+  #
+  #   happy-dom 20.14.3 → 21.0.4? NO — @lexical/headless declares ^20.9.0 and
+  #     the patched release is a major bump; see GHSA-834v-8h66-3h79 below.
+  'body-parser@1.20.8': 1.20.9
+  'undici@8.10.2': 8.12.2
+  # miniflare (via frontend>wrangler) pins undici at EXACTLY 7.29.1 — a hard
+  # pin, not a range — so the same GHSA-xjj6-f33q-929c fix needs its own key.
+  # wrangler/miniflare is local-dev tooling (wrangler dev / deploys), never
+  # part of the deployed site; 7.30.1 is a patch within the same major.
+  'undici@7.29.1': 7.30.1
 # ── pnpm audit ────────────────────────────────────────────────────────────────
 # ⚠️ pnpm 11.22 deprecates `auditConfig` in favour of THIS `audit` block; when
 # both are present the old one is ignored with a warning (T-10, 2026-10-15).
@@ -174,3 +209,28 @@ audit:
     # cannot reach it. Delete when extract-zip ships 2.0.2. (T-10, 2026-10-15.)
     - GHSA-jmr9-qjv8-65gv
     - GHSA-7pqw-9j4j-h8q3
+    # Added 2026-10-27 (T-18 P4). Both have patched releases upstream, but the
+    # fix is a MAJOR version that violates the direct consumer's declared range
+    # — an override would be a forced major downgrade/bump against the consumer
+    # (the failure mode the scoped-override note above warns about). Both are
+    # proven unreachable in our production runtime:
+    #
+    #   • `zod@3.25.76` (GHSA-mrhx-c7xc-m3w5, memory exhaustion validating
+    #     oversized collections) — path: @lhci/cli → lighthouse → puppeteer-core
+    #     → chromium-bidi@14 (declares zod ^3.24.1; patched zod is >=4.6.6).
+    #     chromium-bidi validates Chrome DevTools-protocol messages from the
+    #     LOCAL Chrome that LHCI itself launches inside the CI runner. Not
+    #     reader-facing; not shipped; LHCI is a CI-only tool.
+    #
+    #   • `happy-dom@20.14.3` (GHSA-834v-8h66-3h79, unsanitized import alias →
+    #     host code execution; patched >=21.0.4, a major bump against
+    #     @lexical/headless's ^20.9.0) — path: cms → @payloadcms/
+    #     richtext-lexical → @lexical/headless → happy-dom. happy-dom sits ONLY
+    #     behind the `@lexical/headless/dom` subpath export; grep of the built
+    #     standalone CMS bundle (server chunks + traced node_modules) found
+    #     ZERO references — the production CMS never loads it. The vulnerable
+    #     code path is lexical's headless HTML import of untrusted HTML, which
+    #     this app does not use (no HeadlessHtmlImportFeature configured).
+    #     Delete both entries when the consumers move within range.
+    - GHSA-mrhx-c7xc-m3w5
+    - GHSA-834v-8h66-3h79
