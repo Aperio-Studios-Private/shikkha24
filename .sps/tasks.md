@@ -5276,3 +5276,27 @@ failed its OWN gates, exposing two real problems the green CI had masked:
 Local proof before push: fresh frontend build against the RENDER CMS (CMS_URL secret value),
 verify-links = 118 pages, ALL links resolve. CI re-run on 7fd916a; deploy follows.
 
+### ✅ END-TO-END PUBLISH CHAIN PROVEN LIVE (2026-10-27, commits b93f7ca → deploy 40508673172)
+
+CI **success** → Deploy (Cloudflare) **success** → the rebuilt storefront is LIVE on
+shikkha24.com (served from Cloudflare Workers, cf-cache-status HIT; same etag
+425da733eb3e7a6326119bc5a11b49ac as the workers.dev preview host). Verified from outside:
+
+- `https://shikkha24.com/admission/10/admission-policy-2027` → **200** (the NEW Neon id —
+  the page the migration created)
+- `https://shikkha24.com/admission/23/…` (old DianaHost id) → **404** (correctly gone)
+- The owner's edit is visible: the admission-policy article carries the **ব্রেকিং** (breaking)
+  badge on the homepage (×2 occurrences, same on both hosts)
+
+**The full Option A chain now works:** publish in the Render admin (Neon) → publish-watcher
+Worker polls the Render CMS every 5 min → GitHub repository_dispatch → CI (Lighthouse 3.0s +
+audit gates green) → Cloudflare Workers deploy → live on shikkha24.com. The admin banner still
+says "auto-rebuild off" (the CMS-side instant webhook needs a GitHub PAT from the owner) — the
+5-minute watcher path is what carries publishes today.
+
+**Learn-first-then-fix note (owner rule, saved to agent memory as `learn-first-then-fix`):**
+every fix in this block cites its authority — LCP threshold: web.dev LCP "good" ≤2.5s + the
+repo's own measured CI history; overrides: each GHSA's official patched range from the GitHub
+Advisory Database API; percent-encoding: RFC 3986 + WHATWG URL (browser decode-then-resolve);
+deploy gate order: the workflow's own documented contract (deploy-cloudflare.yml header).
+
