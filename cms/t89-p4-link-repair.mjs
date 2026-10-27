@@ -24,11 +24,15 @@
  *
  * Idempotent: re-running finds nothing left to change.
  */
-import { Client } from 'pg'
+
 import fs from 'node:fs'
+import { Client } from 'pg'
 
 const envText = fs.readFileSync('/Volumes/SSD/CODES/NewsPortal/.env.local', 'utf8')
-const neonUrl = envText.match(/^DATABASE_URL=(.*)$/m)[1].trim().replace(/"/g, '')
+const neonUrl = envText
+  .match(/^DATABASE_URL=(.*)$/m)[1]
+  .trim()
+  .replace(/"/g, '')
 
 const ID_MAP = {
   23: 10,
@@ -52,7 +56,10 @@ for (const row of rows) {
     // The storefront route is /:category/:id/:slug — only the id segment is
     // rewritten; the slug part already matches the target article.
     updated = updated.replaceAll(
-      new RegExp(`(/(?:admission|university|scholarship|education-news|jobs-career)/)${oldId}(/)`, 'g'),
+      new RegExp(
+        `(/(?:admission|university|scholarship|education-news|jobs-career)/)${oldId}(/)`,
+        'g',
+      ),
       `$1${newId}$2`,
     )
   }
