@@ -44,6 +44,7 @@
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload"
   },
   "dependencies": {
+    "@payloadcms/db-postgres": "3.90.2",
     "@payloadcms/db-sqlite": "3.90.2",
     "@payloadcms/email-nodemailer": "3.90.2",
     "@payloadcms/next": "3.90.2",
@@ -57,6 +58,7 @@
     "graphql": "16.14.2",
     "next": "16.4.3",
     "payload": "3.90.2",
+    "pg": "^8.23.1",
     "qrcode": "1.5.4",
     "react": "19.2.6",
     "react-dom": "19.2.6",

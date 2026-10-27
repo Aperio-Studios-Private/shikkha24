@@ -1,5 +1,6 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { postgresAdapter } from '@payloadcms/db-postgres'
 import { sqliteAdapter } from '@payloadcms/db-sqlite'
 import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import { enTranslations } from '@payloadcms/translations/languages/en'
@@ -144,6 +145,55 @@ const emailConfig = isMailConfigured()
       transportOptions: smtpTransportOptions,
     })
   : undefined
+
+/**
+ * Database adapter — environment-driven (T-18 migration P2).
+ *
+ * When `DATABASE_URL` points at a Postgres/Neon database (`postgres://` or
+ * `postgresql://`), the CMS runs on `@payloadcms/db-postgres`. Otherwise it
+ * keeps the historical SQLite file, so local development and CI are
+ * unaffected. The Neon credentials live only in git-ignored env files.
+ *
+ * Extracted to a top-level const (not an inline spread ternary): a `...(...)`
+ * spread whose expression contains an optional chain (`?.startsWith`) followed
+ * by a ternary confused the TS parser in object-literal position (TS1109 at
+ * the closing paren, reproducible; a top-level const parses cleanly).
+ *
+ * ⚠️ Both adapters use `push: false` — schema changes go through the
+ * committed Drizzle migrations in `cms/src/migrations/` and nothing else
+ * (full history in the sqlite branch's comments inside `buildConfig`).
+ */
+const dbConfig = process.env.DATABASE_URL?.startsWith('postgres')
+  ? {
+      db: postgresAdapter({
+        pool: {
+          connectionString: process.env.DATABASE_URL,
+        },
+        /*
+         * push: false by default (schema = committed migrations). The one-time
+         * exception: bootstrapping a FRESH empty Neon database, where there is
+         * no migration history yet and the sqlite-flavored migrations in
+         * cms/src/migrations cannot run on Postgres ("db.run is not a function",
+         * measured 2026-10-27). Set POSTGRES_PUSH_SCHEMA=true for exactly one
+         * dev-mode boot to let Drizzle create the schema, then remove it — the
+         * same opt-in pattern as PAYLOAD_BOOTSTRAP_SCHEMA on the sqlite side.
+         */
+        push: process.env.POSTGRES_PUSH_SCHEMA === 'true',
+      }),
+    }
+  : {
+      db: sqliteAdapter({
+        client: {
+          url: requireEnv(
+            'DATABASE_URI',
+            'It is the path to the SQLite file that holds the whole editorial archive.',
+          ),
+        },
+        push: false,
+        prodMigrations:
+          process.env.PAYLOAD_BOOTSTRAP_SCHEMA === 'true' ? migrations : undefined,
+      }),
+    }
 
 /**
  * Payload CMS 3 configuration for Shikkha24.
@@ -459,85 +509,19 @@ export default buildConfig({
     disablePlaygroundInProduction: true,
   },
 
-  db: sqliteAdapter({
-    client: {
-      // An empty URL would leave the adapter pointed at nothing. This file holds
-      // the entire editorial archive, so a silent default is not an option.
-      url: requireEnv(
-        'DATABASE_URI',
-        'It is the path to the SQLite file that holds the whole editorial archive.',
-      ),
-    },
-
-    /**
-     * Schema changes go through `cms/src/migrations/` and nothing else.
-     *
-     * ## Why this is `false` and not simply absent
-     *
-     * `@payloadcms/db-sqlite` creates the schema in exactly one place —
-     * `pushDevSchema` — and it is gated on `process.env.NODE_ENV !==
-     * 'production'` (`dist/connect.js:49`). With no `push` key and no
-     * migrations directory, development and CI got a schema implicitly and
-     * production could never get one at all. That is not theoretical: it
-     * surfaced on DianaHost as `SQLITE_ERROR: no such table: levels`, and it
-     * defeated four separate attempts to work around it (`DB_PUSH` in cPanel,
-     * `npm run seed`, `.bin/payload`, an absolute-`node` binary). Every one of
-     * them was fighting this one line.
-     *
-     * ## Why not leave it unset for development convenience
-     *
-     * An unset `push` lets development auto-create the schema from the config
-     * while production applies the committed migration. Those are two
-     * independent descriptions of the same schema, and they drift: a
-     * developer changes a field, their database updates itself, no migration
-     * is written, every local check passes — and production then applies a
-     * migration that describes the *old* schema. Nothing in that sequence
-     * fails anywhere.
-     *
-     * `push: false` removes the second description. One source of truth, three
-     * environments. The cost is that a developer must run
-     * `pnpm --filter @shikkha24/cms db:migrate` after pulling schema changes,
-     * which is the ordinary Payload contract.
-     *
-     * `scripts/verify-payload-migrations.sh` fails CI if the committed
-     * migrations no longer match the config, so a forgotten `migrate:create`
-     * is caught at review rather than at boot.
-     */
-    push: false,
-
-    /**
-     * One-shot schema bootstrap, off by default.
-     *
-     * `pushDevSchema` is unavailable in production, so an empty production
-     * database normally needs a `payload migrate` run — a terminal command on
-     * the host. That is the wrong dependency for a first deployment: it makes
-     * the schema depend on shell access, which is exactly what DianaHost
-     * restricts (SSH refused; cPanel Terminal is the only shell).
-     *
-     * The adapter has a supported alternative (`dist/connect.js:56`):
-     *
-     *     if (process.env.NODE_ENV === 'production' && this.prodMigrations) {
-     *       await this.migrate({ migrations: this.prodMigrations })
-     *     }
-     *
-     * With `prodMigrations` set, the application builds its own schema while
-     * booting — no terminal, no CLI, no ordering to get wrong. Measured on
-     * 2026-10-03 against an empty database at `NODE_ENV=production`: 74 tables
-     * created on boot; counter-proved with the flag absent, 0 tables.
-     *
-     * ## Why it is gated on an environment variable
-     *
-     * Because it works, it is a footgun. Unset, every future boot would apply
-     * pending migrations with no human present and no backup taken first — the
-     * failure mode `push: false` exists to prevent. So it is opt-in per
-     * deployment: set `PAYLOAD_BOOTSTRAP_SCHEMA=true` in cPanel, restart once,
-     * confirm the tables, then remove it.
-     *
-     * Boot-time migration does not relax anything above. The same committed
-     * migrations run either way; this only chooses *who invokes them*.
-     */
-    prodMigrations: process.env.PAYLOAD_BOOTSTRAP_SCHEMA === 'true' ? migrations : undefined,
-  }),
+  /*
+   * Database adapter — environment-driven (T-18 migration P2).
+   *
+   * When `DATABASE_URL` points at a Postgres/Neon database (`postgres://` or
+   * `postgresql://`), the CMS runs on `@payloadcms/db-postgres`. Otherwise it
+   * keeps the historical SQLite file, so local development and CI are
+   * unaffected. The Neon credentials live only in git-ignored env files.
+   *
+   * ⚠️ The two adapters have different `.push` semantics (see the sqlite
+   * branch below for the full history): on Postgres, schema changes go
+   * through committed Drizzle migrations only — `push: false` there too.
+   */
+  ...dbConfig,
 
   /**
    * Grants `superAdmin` to `PAYLOAD_BOOTSTRAP_ADMIN_EMAIL` on boot.
