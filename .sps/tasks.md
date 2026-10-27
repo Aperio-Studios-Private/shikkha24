@@ -5394,3 +5394,18 @@ live site. This is exactly the data-loss risk the platform audit predicted — R
 - Lint clean, TS clean, CMS build green. Browser verification of the deployed grid is the
   remaining step of this task.
 
+### CARD-GRID VIEWS VERIFIED LIVE + admin CSP second instance (2026-10-27, commit 06715b6)
+
+Render deployed the grid; real-browser verification at 1280×720:
+- Media library: card grid renders (screenshot) — large 4:3 thumbnails, checkerboard behind
+  transparent SVGs, filename + dimensions, ListControls toolbar (search/filters) + Pagination.
+- Photo galleries: card grid renders with the friendly empty state (no galleries exist yet).
+- **8/10 thumbnails loaded after one more fix**: the ADMIN panel's own CSP
+  (cms/next.config.ts CSP_ADMIN_PROD) also named only 'self' for img-src — written when media
+  lived on the CMS disk. Same drift as the storefront CSP, second instance in two days.
+  img-src/media-src now include media.shikkha24.com; the comment records the rule: when a
+  content origin moves, grep BOTH CSPs. The 2 remaining broken thumbnails are the owner's
+  lost 13:45 uploads (dead media rows 21/22) — they resolve once the owner re-uploads after
+  R2 wiring lands.
+- Temp audit account deleted; only the owner's account (id 1) remains in Neon.
+
