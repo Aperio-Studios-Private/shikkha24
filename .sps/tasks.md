@@ -5120,6 +5120,20 @@ Neon data (article 10, Bengali admission-policy title), /api/media 200, /api/use
 empty body (route alive, correctly rejecting). **The CMS now runs at
 https://shikkha24-cms-9vai.onrender.com on the client's Render account (abdullahalmamunmay),
 backed by the client's Neon, serving the production data copy.**
+**P2 STANDALONE-ASSET FIX (2026-10-27, commit 1e364c4):** the owner's browser showed the admin
+unstyled with every /_next/static asset 404ing (MIME 'text/plain' refusals) — Next.js
+`output:'standalone'` does NOT copy `.next/static`, `public/`, the SolaimanLipi ID-card fonts or
+src/migrations into the bundle. The DianaHost deploy workflow documents all four traps
+(deploy.yml "Assemble the standalone deploy bundle"); Render's bare build command had none of
+them. Fix: scripts/assemble-cms-standalone.mjs (mirrors the workflow's checklist, exits
+non-zero listing anything missing), wired into the Render build command after `pnpm build`.
+Verified on the live service: chunk JS → 200 application/javascript, chunk CSS → 200 text/css,
+brand-icon.svg → 200 image/svg+xml, /admin → 200. **Domain question answered: cms.shikkha24.com
+can move to Render as a custom domain (free SSL) — but that is a CUTOVER (the domain currently
+serves the live DianaHost CMS), so it waits for the owner's manual check of the Render admin +
+a re-sync of any post-copy edits + explicit owner approval; DianaHost stays as instant
+rollback.**
+
 
 **Correction (same day):** shahiddesignhouse@gmail.com is the OWNER's own account (SHAHIDUL
 ISLAM), not the client's — the deletion above still stands (owner wanted the service off his
