@@ -83,3 +83,7 @@ Thumbs.db
 # AI cover working files (official copies go to CMS Media)
 editorial/assets-batch-1/
 .neon
+
+# Neon CLI artifacts (generated config + one-off verification scratch)
+neon.ts
+cms/t89-neon-proof.mts
