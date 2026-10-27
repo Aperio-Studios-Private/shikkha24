@@ -26,9 +26,12 @@
 #
 #   - **Perf ≥95 (plan) vs 93–97 measured.** The gate holds ≥90. See
 #     `docs/performance-budget.md` §8.
-#   - **LCP <1.5s (plan) vs ~2.4–2.7s measured.** The gate now asserts 1.5s and
-#     fails honestly. Fonts dominate the remaining gap; T-80 tracks the owner-gated
-#     typography decision and further optimisation work.
+#   - **LCP <1.5s (plan) vs ~2.4–2.9s measured.** The gate held 1.5s and failed
+#     honestly from 2026-10-19 to 2026-10-27, blocking every storefront publish;
+#     on 2026-10-27 the owner chose to relax it. 2.5s (Google's "good" threshold)
+#     was tried first but CI's own history is 2257–2939ms, so the gate holds 3.0s
+#     — above every CI measurement while still failing real regressions. T-80
+#     stays open for the typography/critical-path work toward the 1.5s target.
 #
 # ## Why the thresholds are `error`, not `warn`
 #

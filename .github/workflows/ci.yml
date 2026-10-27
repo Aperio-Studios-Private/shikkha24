@@ -468,10 +468,12 @@ jobs:
         # Thresholds live in `lighthouserc.json` and are derived from a measured
         # baseline, not from the aspirational plan targets — see the script header
         # and `docs/performance-budget.md` §8. Two gaps are recorded rather than
-        # hidden: perf holds ≥90 against a plan target of ≥95, and LCP is NOT
-        # asserted because it measures ~2.7-2.9s against a plan target of <1.5s.
-        # A gate set at the plan target would be permanently red and would get
-        # switched off, which is worse than an honest ceiling.
+        # hidden: perf holds ≥90 against a plan target of ≥95, and LCP holds 3.0s
+        # (owner decision 2026-10-27) against a plan target of <1.5s — the 1.5s
+        # gate was permanently red and blocked all storefront publishing (CI's own
+        # LCP history is 2257–2939ms, so even 2.5s stayed red); T-80 tracks the
+        # work toward 1.5s. A gate set at the plan target would be permanently red
+        # and would get switched off, which is worse than an honest ceiling.
         #
         # ⚠️ The script self-tests that its own assertions can still fail.
         # `lhci` exits 0 when an assertion key matches nothing, so a typo would
@@ -678,10 +680,11 @@ jobs:
       #
       # ⚠️ The page-level budgets are **partly** enforced now, and the gap is
       # deliberate rather than forgotten. Enforced in CI: perf ≥90, a11y ≥90,
-      # SEO ≥90, CLS ≤0.03, payload ≤1.2 MB. Still production-only:
+      # SEO ≥90, CLS ≤0.03, payload ≤1.2 MB, LCP ≤3.0s (owner-relaxed
+      # 2026-10-27; plan target <1.5s, tracked by T-80). Still production-only:
       #
-      #   - **LCP <1.5s** — measures 2.7-2.9s in the lab today. Asserting the plan
-      #     target would be permanently red. See docs/performance-budget.md §8.
+      #   - **LCP <1.5s** — measures 2.7-2.9s in the lab today; the gate holds
+      #     3.0s. See docs/performance-budget.md §8.
       #   - **Perf ≥95** — the plan target; the gate holds ≥90 against a measured
       #     93-98. Closing the gap is optimisation work, not a threshold change.
       #   - **TTFB <200ms** — a hosting property, measured once at S12 on

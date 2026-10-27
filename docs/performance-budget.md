@@ -197,7 +197,7 @@ the article/homepage pair already bounds the range.
 | `categories:seo` | ≥ 90 | — | Added; all templates measure 100. |
 | `cumulative-layout-shift` | ≤ 0.02 | < 0.02 | Matches. T-83 made all nine measured runs 0.0000. |
 | `total-byte-weight` | ≤ 1.2 MB | < 1.2 MB | Matches. Measured 211–317 KB — comfortable. |
-| **LCP** | ≤ 1.5 s | < 1.5 s | Matches. Current code measures ~2.40–2.71s, so the gate now fails honestly. |
+| **LCP** | ≤ 3.0 s | < 1.5 s | Relaxed 2026-10-27 (owner decision "relax", T-18 P4): the 1.5 s gate was red on every commit and blocked all storefront publishing. First set to 2.5 s (Google's "good" threshold), but CI's own measured history is 2257–2939 ms, so 2.5 s would have stayed red — 3.0 s sits above every CI measurement ever recorded while still failing on real regressions. The 1.5 s plan target stays; T-80 remains open as the work to reach it. |
 | **TTFB** | not asserted | < 200 ms | Hosting property; S12 production only. |
 | **INP** | not asserted | < 100 ms | Field-only metric. Lab Lighthouse cannot measure it. |
 | **Data-saver** | not asserted | < 30 KB | Not implemented — known gap, see below. |
@@ -209,7 +209,8 @@ recorded as work, not hidden by lowering a number.
 
 ### 8.3 The LCP gap — the one that needs real work
 
-LCP is 2351–2939 ms against a 1500 ms target. **The bottleneck is FCP
+LCP is 2351–2939 ms against the 1.5 s plan target (the CI gate now holds at
+3.0 s per §8.2 — see the 2026-10-27 relaxation note there). **The bottleneck is FCP
 (1826–2119 ms), not the image.** The LCP element is the hero `<img>`, which is
 already `AVIF` + `fetchpriority="high"` + explicit `width`/`height`. Fonts are
 already `font-display: swap` with the 400 weight preloaded. Render-blocking cost
