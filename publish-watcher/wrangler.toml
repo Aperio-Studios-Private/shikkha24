@@ -22,8 +22,13 @@ keep_vars = true
 crons = ["*/5 * * * *"]
 
 [vars]
-CMS_ORIGIN = "https://cms.shikkha24.com"
-GITHUB_REPO = "SHAHID8142/shikkha24"
+# T-18 P4 Option A (owner-approved 2026-10-27): the CMS moved to Render
+# (shikkha24-cms-9vai.onrender.com, Neon Postgres). The watcher now polls the
+# Render CMS; DianaHost's cms.shikkha24.com is rollback-only. The 5-minute
+# cadence absorbs Render free-tier cold starts (~50 s first probe).
+CMS_ORIGIN = "https://shikkha24-cms-9vai.onrender.com"
+# Repo moved to the org (owner shared it with the client's GitHub account).
+GITHUB_REPO = "Aperio-Studios-Private/shikkha24"
 
 [[kv_namespaces]]
 binding = "PUBLISH_WATCHER"

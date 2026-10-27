@@ -154,7 +154,7 @@ export default defineConfig({
        * Every inline `<script>` in the build remains `application/ld+json` (data,
        * not code), so the CSP is untouched by this change.
        */
-      assetsInlineLimit(filePath, content) {
+      assetsInlineLimit(filePath) {
         if (!filePath.endsWith('.css')) return false
         return true
       },

@@ -133,7 +133,6 @@ async function main() {
     const W = 1200,
       H = 630,
       sq = 630
-    const x0 = Math.round((W - sq) / 2)
     const markPx = 150,
       gap = 44
     const usable = sq - 72 - markPx - gap

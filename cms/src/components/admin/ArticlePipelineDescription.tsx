@@ -142,9 +142,7 @@ export async function ArticlePipelineDescription({
         {STAGES.map((s) => (
           <li
             key={s.key}
-            className={
-              'article-pipeline__step' + (s.key === stage ? ' article-pipeline__step--current' : '')
-            }
+            className={`article-pipeline__step${s.key === stage ? ' article-pipeline__step--current' : ''}`}
             aria-current={s.key === stage ? 'step' : undefined}
           >
             <span aria-hidden className="article-pipeline__emoji">

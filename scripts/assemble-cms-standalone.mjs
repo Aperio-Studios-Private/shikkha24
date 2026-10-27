@@ -67,11 +67,7 @@ if (!existsSync(path.join(bundle, 'server.js'))) {
 }
 
 // 1+4. Browser assets the admin cannot load without.
-copyDir(
-  path.join(root, 'cms', '.next', 'static'),
-  path.join(bundle, '.next', 'static'),
-  'static',
-)
+copyDir(path.join(root, 'cms', '.next', 'static'), path.join(bundle, '.next', 'static'), 'static')
 assertPopulated(path.join(bundle, '.next', 'static'), 'static')
 copyDir(path.join(root, 'cms', 'public'), path.join(bundle, 'public'), 'public')
 

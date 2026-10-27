@@ -194,8 +194,7 @@ const dbConfig = process.env.DATABASE_URL?.startsWith('postgres')
           ),
         },
         push: false,
-        prodMigrations:
-          process.env.PAYLOAD_BOOTSTRAP_SCHEMA === 'true' ? migrations : undefined,
+        prodMigrations: process.env.PAYLOAD_BOOTSTRAP_SCHEMA === 'true' ? migrations : undefined,
       }),
     }
 
