@@ -1,0 +1,113 @@
+/**
+ * Card-grid list views for the media collections (T-89 extension, 2026-10-27
+ * owner request): large thumbnails instead of one narrow table row.
+ *
+ * Uses the T-89 admin tokens so the cards follow the same design system as
+ * the rest of the panel. Contrast: filename ink on surface ≥ AA (same pair
+ * the list rows use). Touch targets: the whole card is the link (≥44px).
+ * The grid keeps Payload's own toolbar (ListControls) and pager (Pagination)
+ * so search/filters/sort/pagination behave exactly as editors expect.
+ */
+
+/* The grid: responsive columns, clamp so a card never gets too small. */
+.media-grid {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--base) * 2);
+  padding: calc(var(--base) * 2) 0;
+}
+
+.media-grid__count {
+  color: var(--shikkha-muted, #667085);
+  font-size: 13px;
+  margin: 0;
+}
+
+.media-grid__cards {
+  display: grid;
+  gap: calc(var(--base) * 2);
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* The card: thumbnail on top, filename below, whole card clickable. */
+.media-grid__card-link {
+  background: var(--shikkha-surface, #fff);
+  border: 1px solid var(--shikkha-border, #e4e7ec);
+  border-radius: 8px;
+  color: inherit;
+  display: block;
+  overflow: hidden;
+  text-decoration: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--shikkha-ink, #101828);
+    box-shadow: 0 1px 3px rgb(16 24 40 / 10%);
+  }
+}
+
+/* Thumbnail: fixed aspect box, image object-fit contained so SVGs and
+   portraits both show whole. Checkerboard behind transparent PNGs/SVGs. */
+.media-grid__thumb {
+  align-items: center;
+  aspect-ratio: 4 / 3;
+  background:
+    linear-gradient(45deg, #f2f4f7 25%, transparent 25%, transparent 75%, #f2f4f7 75%) 0 0 / 16px 16px,
+    linear-gradient(45deg, #f2f4f7 25%, transparent 25%, transparent 75%, #f2f4f7 75%) 8px 8px / 16px 16px,
+    #fff;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.media-grid__img {
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+
+.media-grid__fallback {
+  font-size: 40px;
+  opacity: 0.6;
+}
+
+.media-grid__meta {
+  border-top: 1px solid var(--shikkha-border, #e4e7ec);
+  padding: 8px 12px;
+}
+
+.media-grid__filename {
+  color: var(--shikkha-ink, #101828);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-grid__dims {
+  color: var(--shikkha-muted, #667085);
+  font-size: 12px;
+  margin: 2px 0 0;
+}
+
+/* Empty state — same friendly pattern as the T-89 per-collection empty states. */
+.media-grid__empty {
+  padding: calc(var(--base) * 6) 0;
+  text-align: center;
+}
+
+.media-grid__empty-emoji {
+  font-size: 40px;
+  margin: 0;
+}
+
+.media-grid__empty-title {
+  color: var(--shikkha-muted, #667085);
+  margin: 8px 0 0;
+}

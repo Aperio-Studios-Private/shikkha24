@@ -109,6 +109,15 @@ export const Media: CollectionConfig = {
          */
         Upload: '@/components/media/OptimisedUpload#OptimisedUploadServer',
       },
+      /**
+       * Card grid with large thumbnails instead of the table (owner request,
+       * 2026-10-27). The server view keeps the standard admin chrome; the
+       * client grid reads the live query state via useListQuery, so search,
+       * filters, sort and pagination keep Payload's behaviour.
+       */
+      views: {
+        list: { Component: '/components/admin/MediaListServerView#MediaListServerView' },
+      },
     },
     group: { en: 'Media (মিডিয়া)' },
     /*

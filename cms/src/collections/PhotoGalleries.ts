@@ -17,6 +17,15 @@ export const PhotoGalleries: CollectionConfig = {
     group: { en: 'Media (মিডিয়া)' },
     defaultColumns: ['title', 'slug', 'updatedAt'],
     description: 'ছবির গ্যালারি — প্রতিটি ছবির ক্যাপশনসহ।',
+    /**
+     * Card grid (owner request, 2026-10-27). The gallery card shows its
+     * cover; the grid reuses the same media card view as the media library.
+     */
+    components: {
+      views: {
+        list: { Component: '/components/admin/MediaListServerView#MediaListServerView' },
+      },
+    },
   },
   access: {
     read: anyone,
