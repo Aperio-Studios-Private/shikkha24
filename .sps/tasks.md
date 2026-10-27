@@ -5251,3 +5251,28 @@ against the installed tree before acting (learn-then-fix):
 - Audit result: 5 high (1 unignored) → 0 unignored. Lint + CMS typecheck green. This unblocks
   the LAST red step of CI.
 
+### CI FULLY GREEN + two deploy blockers fixed (2026-10-27, commits 8baf12d/7fd916a)
+
+**CI run 40505114860 = SUCCESS — the first fully green CI since Oct 18.** LCP gate (relaxed to
+3.0s) and Dependency audit (overrides+ignores) both pass. But the Deploy (Cloudflare) run then
+failed its OWN gates, exposing two real problems the green CI had masked:
+
+1. **Old-id links inside lexical bodies.** The Postgres migration renumbered ids and remapped
+   relationship FIELDS, but URLs written INSIDE rich-text JSON are plain text it could not see.
+   The weekly-digest article's body linked 6 articles by OLD DianaHost ids → dead on Neon →
+   6 broken targets in verify-links. Fixed with cms/t89-p4-link-repair.mjs (raw pg, T-77
+   throwaway pattern): rewrites /:category/:oldId/:slug → newId via the slug-verified map
+   (23→10, 24→9, 25→8, 26→7, 27→6, 28→5), and prefixes institution 1's scheme-less website
+   (www.nu.ac.bd → https://www.nu.ac.bd — the template writes it raw into href, so the built
+   page had a same-origin relative link). Applied to Neon directly; verified live via the
+   Render API. Idempotent. (The Bengali slug জাতীয় বিশ্ববিদ্যালয় is left as-is — it is the
+   production identity, present on DianaHost too.)
+2. **The link checker never decoded percent-encoding.** Astro writes non-ASCII routes to disk
+   RAW UTF-8 but serializes every URL (canonical/JSON-LD/href) RFC-3986-encoded — the same
+   file, but the checker compared encoded URL vs raw disk path and failed every Bengali-slug
+   page falsely. Fixed: resolveToFile now tries decodeURIComponent per candidate (browser
+   behaviour; malformed escapes fall through to the raw form).
+
+Local proof before push: fresh frontend build against the RENDER CMS (CMS_URL secret value),
+verify-links = 118 pages, ALL links resolve. CI re-run on 7fd916a; deploy follows.
+
