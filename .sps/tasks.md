@@ -5078,6 +5078,21 @@ fell back to the SQLite branch using the DATABASE_URI the owner set from the ear
 Diagnosis is certain because the boot got PAST both requireEnv calls (PAYLOAD_SECRET and
 DATABASE_URI validated at module load before any DB connect), so both are set; only DATABASE_URL
 is missing. Fix is dashboard-only: add DATABASE_URL (Neon POOLED string), delete DATABASE_URI.
+**P2 RENDER FIX APPLIED VIA API (2026-10-27, owner instructed "install Neon and Render MCP and
+Skill and CLI of them and fix the issues ASAP. Always learn and then start fixing"):** learned
+both CLIs from official docs BEFORE acting. Neon CLI was already authed (project
+weathered-cell-22329124). Installed Render CLI v2.31.0 (brew), `render login` (device code),
+workspace tea-dbg5b2psrm7s73cies60, service srv-dbg5kjkipgvc73ejervg. The CLI cannot manage env
+vars → used the REST API (learned from api-docs.render.com: PUT env-vars REPLACES all). Found
+the owner had already added DATABASE_URL correctly — the 09:09 build simply predated it. Root
+causes fixed this round: (1) **CSRF allowlist gap** — the admin would be served from
+shikkha24-cms.onrender.com, which origins.ts does not know; Payload would silently discard the
+login cookie (the documented logout-no-op/403 failure). Fixed by adding
+PUBLIC_CMS_ORIGIN=https://shikkha24-cms.onrender.com via API (6 vars total, no DATABASE_URI).
+(2) **.nvmrc comment-first** — Render semver-parses the FIRST line (node-version-alias →
+semver.validRange, reproduced locally); moved `24` to line 1, comments after (commit d163e98).
+(3) 16 commits pushed (Render was still on 24c09db, missing the adapter-aware requireEnv fix);
+duplicate API-triggered deploy canceled in favor of the push-triggered one.
 
 
 P2 FINAL STATUS — DATA MIGRATION COMPLETE (2026-10-27, later same day), AWAITING OWNER REVIEW.**
