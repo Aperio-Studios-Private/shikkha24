@@ -167,7 +167,10 @@ const dbConfig = process.env.DATABASE_URL?.startsWith('postgres')
   ? {
       db: postgresAdapter({
         pool: {
-          connectionString: process.env.DATABASE_URL,
+          connectionString: requireEnv(
+            'DATABASE_URL',
+            'It is the Neon Postgres connection string (pooled for runtime).',
+          ),
         },
         /*
          * push: false by default (schema = committed migrations). The one-time
@@ -186,7 +189,8 @@ const dbConfig = process.env.DATABASE_URL?.startsWith('postgres')
         client: {
           url: requireEnv(
             'DATABASE_URI',
-            'It is the path to the SQLite file that holds the whole editorial archive.',
+            'It is the path to the SQLite file that holds the whole editorial archive. ' +
+              'Set DATABASE_URL (postgres://) instead to run on Neon Postgres.',
           ),
         },
         push: false,
