@@ -5093,6 +5093,16 @@ PUBLIC_CMS_ORIGIN=https://shikkha24-cms.onrender.com via API (6 vars total, no D
 semver.validRange, reproduced locally); moved `24` to line 1, comments after (commit d163e98).
 (3) 16 commits pushed (Render was still on 24c09db, missing the adapter-aware requireEnv fix);
 duplicate API-triggered deploy canceled in favor of the push-triggered one.
+**P2 ACCOUNT SWITCH (2026-10-27, owner: logged into Render with the WRONG account —
+shahiddesignhouse@gmail.com; wants ONLY the client's accounts: GitHub client's via org share,
+Neon already client's, Render client's):** full inventory taken first (1 service, 1 project,
+no databases/env-groups/jobs/webhooks/custom domains — nothing else to lose; all data lives on
+Neon + R2, both client's). Deleted service srv-dbg5kjkipgvc73ejervg (204) and project
+prj-dbg5kjajnfac73fbj3n0 (204) via API. The 502 mystery became moot (service gone); evidence
+had pointed at the proxy layer (app booted, instance RUNNING/ready, zero request-type logs,
+502 in 0.08s from cloudflare-edge). Next: owner creates the service on the CLIENT's Render
+account; env-var recipe (6 vars) re-applied there; PUBLIC_CMS_ORIGIN must then match the NEW
+onrender.com URL.
 
 
 P2 FINAL STATUS — DATA MIGRATION COMPLETE (2026-10-27, later same day), AWAITING OWNER REVIEW.**
