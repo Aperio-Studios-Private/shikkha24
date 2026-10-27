@@ -40,9 +40,19 @@ export const DesktopNavOpener: React.FC = () => {
     // Desktop = neither the small (≤768) nor mid (≤1024) breakpoint active.
     // The large breakpoint (≤1440) is exactly the buggy zone, so it must NOT
     // gate this — only true mobile/tablet widths keep the modal behaviour.
-    if (smallBreak === false && midBreak === false) {
-      setNavOpen(true)
-    }
+    //
+    // ⚠️ Deferred past the current commit: React runs child effects BEFORE
+    // parent effects, and NavProvider (our ancestor) closes the nav in its own
+    // mount effect on ≤1440px screens. Calling setNavOpen(true) synchronously
+    // here loses that race — measured live: the sidebar stayed inert through
+    // two deploys until this timeout was added. A macrotask lands after the
+    // provider's effect within the same task queue, so the open wins.
+    const timer = setTimeout(() => {
+      if (smallBreak === false && midBreak === false) {
+        setNavOpen(true)
+      }
+    }, 0)
+    return () => clearTimeout(timer)
   }, [smallBreak, midBreak, setNavOpen])
 
   return null
