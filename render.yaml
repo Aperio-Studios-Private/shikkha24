@@ -55,6 +55,14 @@ services:
         value: https://api.github.com/repos/Aperio-Studios-Private/shikkha24/dispatches
       - key: DEPLOY_WEBHOOK_TOKEN
         sync: false
+      # --- Bengali card rendering (photocard / id-card) ---
+      # Minimal containers ship no /etc/fonts, so Pango cannot instantiate the
+      # Bengali font and cards render codepoint boxes. The bundled fonts.conf
+      # (copied by the assemble script) points fontconfig at the bundle's own
+      # fonts dir; FONTCONFIG_FILE selects it. See
+      # docs/share-card-tofu-investigation.md.
+      - key: FONTCONFIG_FILE
+        value: /opt/render/project/src/cms/.next/standalone/cms/fonts/fonts.conf
       # --- Explicit bind (see startCommand) ---
       - key: HOSTNAME
         value: 0.0.0.0

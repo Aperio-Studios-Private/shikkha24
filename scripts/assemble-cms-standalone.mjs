@@ -71,10 +71,20 @@ copyDir(path.join(root, 'cms', '.next', 'static'), path.join(bundle, '.next', 's
 assertPopulated(path.join(bundle, '.next', 'static'), 'static')
 copyDir(path.join(root, 'cms', 'public'), path.join(bundle, 'public'), 'public')
 
-// 2. The Bengali ID-card font, read at runtime relative to the bundle root.
+// 2. The Bengali ID-card fonts, read at runtime relative to the bundle root.
+//    TTF copies ship alongside the woff2 originals: libvips' text operator
+//    renders through Pango/fontconfig, which instantiates TTF far more
+//    reliably than WOFF2 on minimal containers (Render native runtime has no
+//    /etc/fonts — the tofu-card incident, docs/share-card-tofu-investigation.md).
 copyFiles(
   'assets/fonts/vendor',
-  ['solaimanlipi-400.woff2', 'solaimanlipi-700.woff2'],
+  [
+    'solaimanlipi-400.woff2',
+    'solaimanlipi-700.woff2',
+    'solaimanlipi-400.ttf',
+    'solaimanlipi-700.ttf',
+    'fonts.conf',
+  ],
   path.join(bundle, 'fonts'),
   'fonts',
 )
