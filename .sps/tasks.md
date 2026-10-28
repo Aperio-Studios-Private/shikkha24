@@ -5409,3 +5409,32 @@ Render deployed the grid; real-browser verification at 1280×720:
   R2 wiring lands.
 - Temp audit account deleted; only the owner's account (id 1) remains in Neon.
 
+### CLEAN START EXECUTED — backups verified, all platforms wiped (2026-10-28)
+
+Owner confirmed Level-1 clean start (fresh app credentials; platform logins stay). Executed:
+
+**Backups on the owner's Desktop (all verified):**
+- shikkha24-full-backup-20261028-1153.sql (452 KB, 75 tables, 10 articles)
+- articles-backup-20261028-1152.sql (224 KB)
+- shikkha24-media-backup/ (20 files) + .zip
+- **Restore test PASSED**: full dump restored into a scratch Neon branch — 75 tables, 10
+  articles, 22 media rows (the 769 'errors' were harmless already-exists collisions; a Neon
+  branch copies its parent). Scratch branch deleted.
+
+**Wiped clean:**
+- R2 bucket shikkha24-media DELETED (all 22 objects deleted with --remote first; bucket
+  delete then succeeded). Custom domain media.shikkha24.com died with it — re-attach in Phase 2.
+- Render service srv-dbg75b0m7kps73bk0okg DELETED (204). Zero services remain.
+- GitHub: ALL 10 secrets + 3 variables DELETED (Cloudflare, CMS_URL, CPANEL_*, FTP_*,
+  PUBLIC_*). Zero remain.
+- Workers: shikkha24-publish-watcher + shikkha24-frontend DELETED.
+- Neon: old project weathered-cell-22329124 KEPT for now (only live DB) — deleted after the
+  new project is verified. Scratch restore-test branch already deleted.
+
+**Lessons (added to recurring-error-guards skill):**
+1. wrangler 4.154 r2 object get/delete DEFAULT TO A LOCAL SIMULATOR — origin ops need
+   --remote. The false 'key does not exist' + stale object_count produced a wrong 'origin
+   objects are gone' theory (the CDN was never the only copy).
+2. The local-simulator trap applies to every r2 object command; bucket-level commands hit the
+   real API regardless.
+
