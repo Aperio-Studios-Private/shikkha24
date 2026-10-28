@@ -631,10 +631,11 @@ await withAuthor(async (author) => {
 }
 
 // ── The font must actually be loadable, or every card is tofu ───────────────
+const fontAvailable = await isFontAvailable()
 check(
   'the Bengali font is loadable on this machine',
-  isFontAvailable(),
-  isFontAvailable() ? 'found' : 'missing — cards would render without Bengali',
+  fontAvailable,
+  fontAvailable ? 'found' : 'missing — cards would render without Bengali',
 )
 
 console.log(

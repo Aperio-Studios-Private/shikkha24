@@ -37,13 +37,18 @@ import QRCode from 'qrcode'
 import sharp from 'sharp'
 import { formatBnBd } from './dhaka-date'
 
-/** The font file, relative to the CMS process working directory.
- *  TTF is preferred over the woff2 original: libvips' text operator renders
- *  through Pango/fontconfig, which instantiates TTF far more reliably than
- *  WOFF2 on minimal containers (the tofu-card incident — see
- *  docs/share-card-tofu-investigation.md). */
-const FONT_FILE = 'solaimanlipi-400.ttf'
-const FONT_FILE_700 = 'solaimanlipi-700.ttf'
+/** The card font, relative to the CMS process working directory.
+ *  Noto Serif Bengali replaced SolaimanLipi (owner decision, 2026-10-28):
+ *  SolaimanLipi only shipped as woff2, which Pango/fontconfig on minimal
+ *  containers failed to instantiate (the tofu-card incident — see
+ *  docs/share-card-tofu-investigation.md), and its family lookup broke after
+ *  the woff2→ttf conversion. Noto Serif Bengali ships as native TTF, is the
+ *  Bengali face Linux distributions themselves ship (so container fallbacks
+ *  match), and is actively maintained under the OFL. */
+const FONT_FILE = 'NotoSerifBengali-Regular.ttf'
+const FONT_FILE_700 = 'NotoSerifBengali-Bold.ttf'
+/** The family name Pango must match — must equal the font's internal name. */
+const FONT_FAMILY = 'Noto Serif Bengali'
 
 /**
  * Point fontconfig at the bundle's own fonts directory BEFORE the first
@@ -54,13 +59,53 @@ const FONT_FILE_700 = 'solaimanlipi-700.ttf'
  * is selected with FONTCONFIG_FILE — the documented pattern for fontconfig-
  * less images. Runs once; module scope makes the guard free.
  */
-let fontconfigConfigured = false
-function ensureFontconfig(): void {
-  if (fontconfigConfigured) return
-  fontconfigConfigured = true
-  if (process.env.FONTCONFIG_FILE) return // already provided by the host
-  const bundled = path.resolve(process.cwd(), 'fonts', 'fonts.conf')
-  if (existsSync(bundled)) process.env.FONTCONFIG_FILE = bundled
+let fontconfigReady: Promise<void> | null = null
+
+/**
+ * Point fontconfig at the bundle's own fonts directory and WARM it, before
+ * the first render.
+ *
+ * Two problems, one guard:
+ *
+ * 1. **No fontconfig at all** — minimal containers (Render native runtime)
+ *    ship no /etc/fonts, so Pango cannot instantiate any font and Bengali
+ *    text renders as codepoint boxes even though the font file itself is
+ *    present and `fontPath()` finds it. The bundled fonts.conf declares the
+ *    font dir and a writable cache; FONTCONFIG_FILE selects it.
+ *
+ * 2. **Cache warm-up** — fontconfig builds its glyph cache on first use, and
+ *    on Linux the cache-cold and cache-warm renders differ byte-wise (the
+ *    S14 determinism harness caught exactly that: run A ≠ run B). A discarded
+ *    probe render before the first real one makes every later render
+ *    byte-stable.
+ *
+ * The promise is module-scoped so the warm-up runs at most once per process
+ * and concurrent callers await the same instance.
+ */
+function ensureFontconfig(): Promise<void> {
+  if (fontconfigReady) return fontconfigReady
+  fontconfigReady = (async () => {
+    if (!process.env.FONTCONFIG_FILE) {
+      const bundled = path.resolve(process.cwd(), 'fonts', 'fonts.conf')
+      if (existsSync(bundled)) process.env.FONTCONFIG_FILE = bundled
+    }
+    // Warm-up probe: render a glyph and discard it, so fontconfig's cache is
+    // built before any real card is composed.
+    await sharp({
+      text: {
+        text: '<span foreground="#000000">আ</span>',
+        fontfile: fontFileFor(400) ?? undefined,
+        font: FONT_FAMILY,
+        dpi: 150,
+      },
+    })
+      .png()
+      .toBuffer()
+      .catch(() => {
+        // A failed warm-up leaves behaviour exactly as before the fix.
+      })
+  })()
+  return fontconfigReady
 }
 
 /**
@@ -184,7 +229,7 @@ async function textLayer(
   value: string,
   opts: { size: number; color: string; width: number; weight?: number; maxHeight?: number },
 ): Promise<Buffer> {
-  ensureFontconfig()
+  await ensureFontconfig()
   const file = fontFileFor(opts.weight)
   if (!file) {
     // Fail loudly. The alternative is a photocard that renders glyph indices and
@@ -195,12 +240,12 @@ async function textLayer(
         `The deploy must copy the vendored font into place before the card is rendered.`,
     )
   }
-  const markup = `<span foreground="${opts.color}">${escapeMarkup(value)}</span>`
+  const markup = `<span foreground="${opts.color}" font_family="${FONT_FAMILY}">${escapeMarkup(value)}</span>`
   return sharp({
     text: {
       text: markup,
       fontfile: file,
-      font: `SolaimanLipi ${opts.size}`,
+      font: `${FONT_FAMILY} ${opts.size}`,
       width: opts.width,
       // `undefined` lets sharp size the canvas to the wrapped text, which is what
       // the callers that position by measured height want.
@@ -996,8 +1041,8 @@ export async function composePhotocard(article: PhotocardArticle): Promise<Buffe
 }
 
 /** `true` when the font is loadable — lets the endpoint answer 503 cleanly. */
-export function isFontAvailable(): boolean {
-  ensureFontconfig()
+export async function isFontAvailable(): Promise<boolean> {
+  await ensureFontconfig()
   return fontPath() !== ''
 }
 

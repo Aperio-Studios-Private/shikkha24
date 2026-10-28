@@ -134,7 +134,7 @@ const idCardEndpoint: Endpoint = {
     if (!(await isSharpAvailable())) {
       return json({ error: 'কার্ড তৈরির সুবিধা এই সার্ভারে চালু নেই।' }, 503)
     }
-    if (!isFontAvailable()) {
+    if (!(await isFontAvailable())) {
       return json({ error: 'কার্ড তৈরির ফন্ট পাওয়া যায়নি।' }, 503)
     }
 
@@ -213,7 +213,7 @@ const photocardEndpoint: Endpoint = {
     if (!(await isSharpAvailable())) {
       return json({ error: 'কার্ড তৈরির সুবিধা এই সার্ভারে চালু নেই।' }, 503)
     }
-    if (!isFontAvailable()) {
+    if (!(await isFontAvailable())) {
       return json({ error: 'কার্ড তৈরির ফন্ট পাওয়া যায়নি।' }, 503)
     }
 

@@ -78,13 +78,7 @@ copyDir(path.join(root, 'cms', 'public'), path.join(bundle, 'public'), 'public')
 //    /etc/fonts — the tofu-card incident, docs/share-card-tofu-investigation.md).
 copyFiles(
   'assets/fonts/vendor',
-  [
-    'solaimanlipi-400.woff2',
-    'solaimanlipi-700.woff2',
-    'solaimanlipi-400.ttf',
-    'solaimanlipi-700.ttf',
-    'fonts.conf',
-  ],
+  ['NotoSerifBengali-Regular.ttf', 'NotoSerifBengali-Bold.ttf', 'fonts.conf'],
   path.join(bundle, 'fonts'),
   'fonts',
 )
