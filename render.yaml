@@ -26,7 +26,7 @@ services:
     # Start: bind 0.0.0.0 explicitly — Render's Kubernetes sets HOSTNAME to the
     # pod name, and Next standalone binds to it, which produced the 502.
     startCommand: cd cms && node .next/standalone/cms/server.js
-    healthCheckPath: /api/global/site-settings
+    healthCheckPath: /api/globals/site-settings
     envVars:
       # --- Database (Neon, new project lucky-forest-26905704) ---
       - key: DATABASE_URL            # pooled connection string
@@ -49,6 +49,11 @@ services:
       - key: R2_ACCESS_KEY_ID
         sync: false
       - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      # --- Instant publish webhook (CMS → GitHub dispatch on Publish) ---
+      - key: DEPLOY_WEBHOOK_URL
+        value: https://api.github.com/repos/Aperio-Studios-Private/shikkha24/dispatches
+      - key: DEPLOY_WEBHOOK_TOKEN
         sync: false
       # --- Explicit bind (see startCommand) ---
       - key: HOSTNAME

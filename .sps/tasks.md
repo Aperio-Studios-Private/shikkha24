@@ -5505,3 +5505,17 @@ reaches the site automatically, fresh credentials everywhere.
 - Backups: full + articles dumps and all 20 media files on the owner's Desktop.
 - DianaHost: frozen, DNS cut over; account lapses after 2026-11-11 (owner billing decision).
 
+### ✅ INSTANT PUBLISH WIRED — clean start 100% complete (2026-10-28, final)
+
+- Owner created the fine-grained PAT (shikkha24-publish-webhook, Actions+Contents RW) →
+  verified against the dispatch endpoint (204) → set as DEPLOY_WEBHOOK_URL +
+  DEPLOY_WEBHOOK_TOKEN on the Render CMS; render.yaml updated to match. Redeployed live.
+- **Instant-path test PASSED**: firing the dispatch with the PAT started an Actions deploy
+  immediately, which completed successfully. The CMS banner now shows the correct
+  'Published. The live site updates within a few minutes' state (isAutoRebuildConfigured
+  reads the env server-side).
+- Publish latency now: instant webhook on Publish (debounced 5 min / breaking news
+  immediate) + the 5-min watcher as backup. Both paths proven on the final stack.
+- Old Cloudflare token deleted by the owner (confirmed in the dashboard). Clean start has
+  zero pending items.
+
