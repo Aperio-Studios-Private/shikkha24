@@ -98,30 +98,44 @@ const width = Math.round((markWidth / markHeightAttr) * markHeight)
 ---
 
 <div
-  class:list={['article-placeholder flex flex-col items-center justify-center gap-[6%] bg-white p-[6%]', className]}
+  class:list={['article-placeholder relative flex flex-col items-center justify-center overflow-hidden', className]}
   role="presentation"
-  style="border:1px solid #e4e4e4;border-top:3px solid #DA1C25"
+  style="border:1px solid #e4e4e4;background:linear-gradient(160deg,#fff 0%,#fdf2f2 60%,#fdeaea 100%);border-top:3px solid #DA1C25"
 >
   {
     logoSrc && (
-      <img
-        src={logoSrc}
-        alt=""
-        width={width}
-        height={markHeight}
-        class="h-auto w-auto max-w-[60%] object-contain"
-        style={`max-height:${Math.round(markHeight * 0.9)}px`}
-        decoding="async"
-        loading="lazy"
-      />
+      <>
+        {/* Oversized faint watermark — the depth layer. Absolutely centred,
+            far larger than the plate, at 6% opacity it reads as texture, not
+            as a second logo. */}
+        <img
+          src={logoSrc}
+          alt=""
+          width={width}
+          height={markHeight}
+          class="pointer-events-none absolute left-1/2 top-1/2 w-[85%] -translate-x-1/2 -translate-y-1/2 opacity-[0.06]"
+          aria-hidden="true"
+          loading="lazy"
+        />
+        {/* The readable mark — sized generously at every plate size. */}
+        <img
+          src={logoSrc}
+          alt=""
+          width={width}
+          height={markHeight}
+          class="relative h-auto w-auto max-w-[52%] object-contain drop-shadow-sm"
+          style={`max-height:${Math.round(markHeight * 1.35)}px`}
+          decoding="async"
+          loading="lazy"
+        />
+      </>
     )
   }
 
   {
     logoSrc && showName && (
       <span
-        class="font-headline font-bold whitespace-nowrap text-brand-charcoal wordmark-scale"
-        style={`--mark:${markHeight}`}
+        class="wordmark-scale relative z-10 px-2 text-center font-headline font-bold leading-tight text-brand-charcoal"
         aria-hidden="true"
       >
         {siteName}
@@ -144,13 +158,10 @@ const width = Math.round((markWidth / markHeightAttr) * markHeight)
 
 <style>
   /*
-   * The wordmark tracks the BOX size, not the mark height. The three call
-   * sites pass markHeight 32 (small card), 56 (stacked card) and 96 (article
-   * hero) — a fixed clamp made the large plate's wordmark look lost and the
-   * small one cramped. The plate is an inline-size container, and the
-   * wordmark scales with its width: 18cqw ≈ 18% of the plate width, which
-   * reads cleanly at all three sizes (≈23px small, ≈40px stacked, ≈86px hero
-   * at typical card widths).
+   * The wordmark tracks the plate width via a container query (18cqw,
+   * clamped 10–88px): ≈15px on 96px list cards, ≈60px on stacked cards,
+   * ≈88px on the article hero. The plate opts itself in as an inline-size
+   * container; no JS, no caller changes.
    */
   .article-placeholder {
     container-type: inline-size;
