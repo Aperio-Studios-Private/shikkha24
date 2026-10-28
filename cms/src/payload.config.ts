@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { sqliteAdapter } from '@payloadcms/db-sqlite'
 import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
+import { s3Storage } from '@payloadcms/storage-s3'
 import { enTranslations } from '@payloadcms/translations/languages/en'
 import { buildConfig } from 'payload'
 import { defaultEditor } from './blocks/editors'
@@ -604,5 +605,43 @@ export default buildConfig({
    * is 200 this is a question of when, not whether. See `.sps/tasks.md` T-07 and
    * T-30.
    */
-  plugins: [],
+  plugins: [
+    /**
+     * T-18 clean start (2026-10-28): uploads go to Cloudflare R2 via its S3
+     * API. Per the official storage-adapters doc, `@payloadcms/storage-s3`
+     * pointed at R2's endpoint is the recommended Node setup — the
+     * `@payloadcms/storage-r2` package is Workers-only (it needs a native
+     * bucket binding). The adapter is enabled only when R2 credentials exist,
+     * so local dev without them keeps the on-disk behaviour.
+     *
+     * Two R2 specifics from the doc's warning:
+     * - `disablePayloadAccessControl: true` — files serve from the bucket's
+     *   custom domain (media.shikkha24.com), not through Payload's static
+     *   handler, so the access-control gate would only break serving.
+     * - `generateFileURL` emits the public custom-domain URL, which is what
+     *   the storefront's `mediaUrl()` already expects.
+     */
+    s3Storage({
+      enabled: Boolean(process.env.R2_BUCKET && process.env.R2_ACCESS_KEY_ID),
+      bucket: process.env.R2_BUCKET ?? 'shikkha24-media',
+      collections: {
+        media: {
+          disablePayloadAccessControl: true,
+          generateFileURL: ({ filename, prefix }) => {
+            const key = prefix ? `${prefix}/${filename}` : filename
+            return `${(process.env.PUBLIC_MEDIA_BASE_URL ?? 'https://media.shikkha24.com').replace(/\/$/, '')}/${key}`
+          },
+        },
+      },
+      config: {
+        credentials: {
+          accessKeyId: process.env.R2_ACCESS_KEY_ID ?? '',
+          secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? '',
+        },
+        region: 'auto',
+        endpoint: process.env.R2_ENDPOINT,
+        forcePathStyle: true,
+      },
+    }),
+  ],
 })

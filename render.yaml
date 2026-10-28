@@ -1,0 +1,57 @@
+# Shikkha24 CMS — Render Blueprint (T-18 clean start, 2026-10-28)
+#
+# The CMS service is defined HERE so it is reproducible from the repo: one
+# `render blueprint apply` (or a dashboard "Blueprint" sync) rebuilds it with
+# the same plan, region, commands and env-var NAMES every time.
+#
+# ⚠️ Secret VALUES are not in this file — agent rule 11. Every `sync: false`
+# entry asks for its value at apply time (dashboard prompt / CLI), and the
+# authoritative reference lives in the owner's secure copy
+# (Desktop/SHIKKHA24-ENV-REFERENCE.txt).
+#
+# Docs: render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: shikkha24-cms
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    autoDeployTrigger: commit
+    # Build: install, build the Next standalone bundle, then assemble the four
+    # assets Next does not trace (static, public, fonts, migrations) — see
+    # scripts/assemble-cms-standalone.mjs for why each is needed.
+    buildCommand: cd cms && pnpm install && pnpm build && cd .. && node scripts/assemble-cms-standalone.mjs
+    # Start: bind 0.0.0.0 explicitly — Render's Kubernetes sets HOSTNAME to the
+    # pod name, and Next standalone binds to it, which produced the 502.
+    startCommand: cd cms && node .next/standalone/cms/server.js
+    healthCheckPath: /api/global/site-settings
+    envVars:
+      # --- Database (Neon, new project lucky-forest-26905704) ---
+      - key: DATABASE_URL            # pooled connection string
+        sync: false
+      # --- Secrets ---
+      - key: PAYLOAD_SECRET
+        generateValue: true          # Render generates + stores it
+      # --- Origins ---
+      - key: CMS_URL                 # the CMS's own public origin (cutover target: https://cms.shikkha24.com)
+        sync: false
+      - key: PUBLIC_SITE_URL
+        value: https://shikkha24.com
+      - key: PUBLIC_MEDIA_BASE_URL
+        value: https://media.shikkha24.com
+      # --- R2 (uploads via the S3 API; adapter self-disables when unset) ---
+      - key: R2_BUCKET
+        value: shikkha24-media
+      - key: R2_ENDPOINT
+        value: https://0e2e4a6986f91edabe1dae4945a9b88b.r2.cloudflarestorage.com
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      # --- Explicit bind (see startCommand) ---
+      - key: HOSTNAME
+        value: 0.0.0.0
+      # NO DATABASE_URI: its presence selects the legacy SQLite adapter.
+      # NO POSTGRES_PUSH_SCHEMA: the schema is committed, never pushed.
