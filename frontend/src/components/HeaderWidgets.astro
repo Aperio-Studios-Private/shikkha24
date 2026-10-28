@@ -36,23 +36,28 @@ interface Props {
 const { showWeather = true, showPrayer = true } = Astro.props
 ---
 
-<div class="flex items-center gap-3" id="header-widgets">
+<div class="flex min-w-0 items-center gap-2" id="header-widgets">
   {
     showWeather && (
-      <span class="hidden items-center gap-1 sm:inline-flex">
+      /* Minimal by default (owner request): city + temperature only. The
+         condition text lives in the hover tooltip via title — one line always. */
+      <span class="hidden min-w-0 items-center whitespace-nowrap sm:inline-flex">
         <span class="text-ink-subtle dark:text-dark-ink-muted" aria-hidden="true">
           ·
         </span>
         <button
           type="button"
           id="hw-weather"
-          class="hover:text-brand-red"
+          class="truncate hover:text-brand-red"
           aria-busy="true"
+          title="আবহাওয়া"
         >
           <span class="sr-only">আবহাওয়া:</span>
           <span id="hw-city">—</span>{' '}
-          <span class="font-medium text-ink dark:text-dark-ink" id="hw-temp">—</span>{' '}
-          <span class="text-ink-subtle dark:text-dark-ink-muted" id="hw-cond" />
+          <span class="font-medium text-ink dark:text-dark-ink" id="hw-temp">—</span>
+          {/* Condition text is set by the script but kept invisible — it feeds
+              the hover tooltip (title) instead of occupying ribbon space. */}
+          <span class="sr-only" id="hw-cond" />
         </button>
       </span>
     )
@@ -60,17 +65,21 @@ const { showWeather = true, showPrayer = true } = Astro.props
 
   {
     showPrayer && (
-      <span class="relative hidden items-center gap-1 lg:inline-flex">
+      <span class="relative hidden min-w-0 items-center whitespace-nowrap lg:inline-flex">
         <span class="text-ink-subtle dark:text-dark-ink-muted" aria-hidden="true">
           ·
         </span>
+    {/* Minimal by default (owner request): the NEXT prayer's start time only —
+        no countdown text. The full schedule + Hijri date appear on hover via
+        the panel below (opens on hover AND click for touch readers). */}
     <button
       type="button"
       id="hw-prayer-btn"
       aria-expanded="false"
       aria-controls="hw-prayer-panel"
-      class="hover:text-brand-red"
+      class="truncate hover:text-brand-red"
       aria-busy="true"
+      title="নামাজের সময়সূচি"
     >
       <span id="hw-next-label">নামাজ</span>{' '}
       <span class="font-medium text-ink dark:text-dark-ink" id="hw-next-time">—</span>
@@ -107,12 +116,12 @@ const { showWeather = true, showPrayer = true } = Astro.props
     )
   }
 
-  <span class="hidden items-center gap-1 md:inline-flex">
+  <span class="hidden shrink-0 items-center gap-1 md:inline-flex">
     <span class="text-ink-subtle dark:text-dark-ink-muted" aria-hidden="true">·</span>
     <label for="hw-location" class="sr-only">এলাকা বেছে নিন</label>
     <select
       id="hw-location"
-      class="rounded border border-rule bg-surface px-1.5 py-0.5 text-xs text-ink dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink"
+      class="max-w-28 rounded border border-rule bg-surface px-1.5 py-0.5 text-xs text-ink dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink"
     >
       {CITIES.map((city) => <option value={`${city.lat},${city.lon}`}>{city.labelBn}</option>)}
       <option value="">বর্তমান অবস্থান</option>
@@ -121,7 +130,7 @@ const { showWeather = true, showPrayer = true } = Astro.props
 </div>
 
 <script>
-  import { getNextPrayer, formatCountdown, PRAYER_NAMES } from '../lib/prayer'
+  import { getNextPrayer, PRAYER_NAMES } from '../lib/prayer'
   import { weatherLabel } from '../lib/weather-codes'
   import { formatHijri, HIJRI_OFFSET } from '../lib/hijri'
   import {
@@ -238,24 +247,18 @@ const { showWeather = true, showPrayer = true } = Astro.props
     }
   }
 
-  /** Render the next prayer and keep the countdown ticking. */
-  let countdownTimer: number | undefined
-
+  /** Render the next prayer's START TIME (minimal ribbon, owner request).
+   *  The countdown text is gone from the ribbon; the full schedule lives in
+   *  the hover/click panel. No ticking timer needed any more — the start time
+   *  is static until the next prayer arrives, so one paint per fetch. */
   function renderNextPrayer(times: Record<string, string>, tomorrowFajr?: string) {
     const paint = (next: ReturnType<typeof getNextPrayer>) => {
       if (!next || !nextTimeEl || !nextLabelEl) return
       nextTimeEl.textContent = toBn(next.time)
-      nextLabelEl.textContent = next.isTomorrow
-        ? `${next.label} (আগামীকাল)`
-        : `${next.label} ${formatCountdown(next.minutesUntil, toBn)}`
+      nextLabelEl.textContent = next.isTomorrow ? `${next.label} (আগামীকাল)` : next.label
     }
 
     paint(getNextPrayer(times as never, new Date(), tomorrowFajr))
-
-    window.clearInterval(countdownTimer)
-    countdownTimer = window.setInterval(() => {
-      paint(getNextPrayer(times as never, new Date(), tomorrowFajr))
-    }, 30_000)
   }
 
   /** Fetch prayer times for a point and update both the pill and the panel. */
@@ -331,6 +334,10 @@ const { showWeather = true, showPrayer = true } = Astro.props
 
       const label = weatherLabel(current?.weather_code)
       if (label && condEl) condEl.textContent = label
+      // Minimal ribbon (owner request): the button shows city + temp only;
+      // the full condition surfaces as the browser hover tooltip.
+      const weatherBtn = el('hw-weather')
+      if (weatherBtn && label) weatherBtn.title = `আবহাওয়া: ${label}`
 
       markReady(el('hw-weather'))
     } catch {
@@ -357,6 +364,26 @@ const { showWeather = true, showPrayer = true } = Astro.props
   }
 
   /** Prayer dropdown. */
+  // Hover opens the schedule too — the ribbon shows only the next start
+  // time, so the panel is where the detail lives (owner request: minimal
+  // by default, more on hover). Click still works for touch readers.
+  const openPanel = () => {
+    if (!prayerPanel || !prayerBtn) return
+    prayerPanel.removeAttribute('hidden')
+    prayerBtn.setAttribute('aria-expanded', 'true')
+    if (lastPrayerPoint) void loadHijriOnce(lastPrayerPoint.lat, lastPrayerPoint.lon)
+  }
+  const closePanel = () => {
+    if (!prayerPanel || !prayerBtn) return
+    prayerPanel.setAttribute('hidden', '')
+    prayerBtn.setAttribute('aria-expanded', 'false')
+  }
+  prayerBtn?.addEventListener('mouseenter', openPanel)
+  prayerBtn?.addEventListener('focus', openPanel)
+  prayerBtn?.addEventListener('mouseleave', () => {
+    if (prayerPanel && !prayerPanel.matches(':hover')) closePanel()
+  })
+  prayerPanel?.addEventListener('mouseleave', closePanel)
   prayerBtn?.addEventListener('click', () => {
     if (!prayerPanel) return
     const open = prayerPanel.hasAttribute('hidden')

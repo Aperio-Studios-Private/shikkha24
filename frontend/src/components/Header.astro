@@ -62,42 +62,45 @@ const hijriDate = formatHijriDate(now)
   {/* ── 1. Utility ribbon ───────────────────────────────────────────── */}
   <div class="border-b border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-surface">
     <div class="container-page flex items-center justify-between gap-3 py-1.5">
-      {/* Date + optional widgets */}
-      <div class="flex min-w-0 items-center gap-2 text-xs text-ink-muted dark:text-dark-ink-muted">
-        <time id="masthead-date" datetime={now.toISOString()} class="font-ui whitespace-nowrap">
-          {banglaDate}
-          <span class="hidden text-ink-subtle sm:inline dark:text-dark-ink-muted"> · {gregorianDate}</span>
-          <span class="hidden text-ink-subtle sm:inline dark:text-dark-ink-muted"> · {hijriDate}</span>
+      {/* Date + optional widgets. ROTATING DATE TICKER (owner request): one
+          date visible at a time, each holds ~2s then slides out and the next
+          slides in — Bangla → Gregorian → Hijri, cycling. Progressive
+          disclosure is replaced by rotation, so every date gets its moment
+          without the ribbon ever wrapping. */}
+      <div class="flex min-w-0 items-center gap-2 whitespace-nowrap text-xs text-ink-muted dark:text-dark-ink-muted">
+        <time
+          id="masthead-date"
+          datetime={now.toISOString()}
+          class="font-ui relative inline-block h-5 min-w-64 overflow-hidden align-middle"
+        >
+          <span class="date-ticker block" data-slot="0">{banglaDate}</span>
+          <span class="date-ticker block" data-slot="1" hidden>{gregorianDate}</span>
+          <span class="date-ticker block" data-slot="2" hidden>{hijriDate}</span>
         </time>
 
         {/* Weather, prayer and location. Each renders a neutral placeholder and
             resolves the reader's own location in the browser. */}
-        <div class="hidden sm:block">
+        <div class="hidden min-w-0 sm:block">
           <HeaderWidgets showWeather={showWeather} showPrayer={showPrayer} />
         </div>
       </div>
 
       {/* Reader tools + social links */}
       <div class="flex shrink-0 items-center gap-1 sm:gap-2">
-        {/* Search (icon-only on mobile, expands on focus) */}
-        <form
-          action="/search"
-          method="get"
-          class="relative flex items-center"
-          role="search"
-          aria-label="সাইটে খুঁজুন"
+        {/* Search — single icon button (owner request); clicking opens a
+            lightweight overlay with the full search form. The overlay is a
+            regular /search redirect, so no JS search index is needed. */}
+        <button
+          type="button"
+          id="search-toggle"
+          class="inline-flex h-12 w-12 items-center justify-center rounded-md text-ink-subtle transition-colors hover:bg-surface-raised hover:text-brand-red dark:text-dark-ink-muted dark:hover:bg-dark-raised"
+          aria-label="খবর খুঁজুন"
+          aria-expanded="false"
+          aria-controls="search-overlay"
         >
-          <input
-            type="search"
-            name="q"
-            placeholder="খবর খুঁজুন"
-            class="h-12 w-12 rounded-md border border-transparent bg-transparent pl-12 text-sm text-ink placeholder:text-ink-subtle transition-all focus:w-44 focus:border-rule focus:bg-surface focus:outline-none sm:w-44 sm:pl-12 dark:text-dark-ink dark:focus:border-dark-rule dark:focus:bg-dark-surface"
-            aria-label="খুঁজুন"
-          />
           <svg
-            class="pointer-events-none absolute left-2 text-ink-subtle dark:text-dark-ink-muted"
-            width="16"
-            height="16"
+            width="18"
+            height="18"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -107,7 +110,44 @@ const hijriDate = formatHijriDate(now)
             <circle cx="11" cy="11" r="8"></circle>
             <path d="m21 21-4.3-4.3"></path>
           </svg>
-        </form>
+        </button>
+        <div
+          id="search-overlay"
+          hidden
+          class="absolute inset-x-0 top-full z-50 border-b border-rule bg-surface p-3 shadow-lg dark:border-dark-rule dark:bg-dark-surface"
+        >
+          <form action="/search" method="get" role="search" class="container-page flex items-center gap-2">
+            <input
+              type="search"
+              id="search-overlay-input"
+              name="q"
+              placeholder="খবর খুঁজুন..."
+              autocomplete="off"
+              class="h-10 w-full rounded-md border border-rule bg-surface px-3 text-sm text-ink placeholder:text-ink-subtle focus:border-brand-red focus:outline-none dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink"
+              aria-label="খুঁজুন"
+              role="combobox"
+              aria-expanded="false"
+              aria-controls="search-suggestions"
+            />
+            <button
+              type="submit"
+              class="h-10 shrink-0 rounded-md bg-brand-red px-4 text-sm font-medium text-white hover:opacity-90"
+            >
+              খুঁজুন
+            </button>
+          </form>
+          {/* Live suggestions + recent searches. Populated by the script below:
+              typing queries the same Pagefind index /search uses; with an
+              empty box, the reader's recent searches (localStorage) show. */}
+          <div class="container-page">
+            <ul
+              id="search-suggestions"
+              class="mt-2 hidden overflow-hidden rounded-md border border-rule bg-surface text-sm dark:border-dark-rule dark:bg-dark-surface"
+              role="listbox"
+            >
+            </ul>
+          </div>
+        </div>
 
         {/* Text resizer — hidden on very small screens */}
         <div class="hidden sm:block">
@@ -319,23 +359,149 @@ const hijriDate = formatHijriDate(now)
   // shows the build day forever. Recompute all three calendar lines from the
   // reader's clock in Asia/Dhaka on every view; the prerendered text remains
   // the fallback for no-JS crawlers.
+  //
+  // ROTATING TICKER (owner request): one date visible at a time — each holds
+  // ~2s, slides up out, and the next slides in, cycling Bangla → Gregorian →
+  // Hijri. The three spans are the slots; the recomputed strings replace their
+  // text so a reader who keeps the tab open never sees a stale day.
   import { formatHijriDate } from '../lib/hijri-date'
   import { formatBanglaDate, formatBnBd } from '../lib/bangla-date'
 
   const masthead = document.getElementById('masthead-date');
   if (masthead) {
     const now = new Date();
-    const bangla = formatBanglaDate(now);
-    const gregorian = formatBnBd(now, { year: 'numeric', month: 'long', day: 'numeric' });
-    const hijri = formatHijriDate(now);
     masthead.setAttribute('datetime', now.toISOString());
-    const extraClass = 'hidden text-ink-subtle sm:inline dark:text-dark-ink-muted';
-    const gregorianSpan = document.createElement('span');
-    gregorianSpan.className = extraClass;
-    gregorianSpan.textContent = ` · ${gregorian}`;
-    const hijriSpan = document.createElement('span');
-    hijriSpan.className = extraClass;
-    hijriSpan.textContent = ` · ${hijri}`;
-    masthead.replaceChildren(bangla, gregorianSpan, hijriSpan);
+    const slots = masthead.querySelectorAll('.date-ticker');
+    const texts = [
+      formatBanglaDate(now),
+      formatBnBd(now, { year: 'numeric', month: 'long', day: 'numeric' }),
+      formatHijriDate(now),
+    ];
+    slots.forEach((slot, i) => {
+      slot.textContent = texts[i] ?? '';
+    });
+
+    let current = 0;
+    const HOLD_MS = 2000;
+    setInterval(() => {
+      const outgoing = slots[current];
+      const incoming = slots[(current + 1) % slots.length];
+      outgoing.classList.add('date-ticker--out');
+      window.setTimeout(() => {
+        outgoing.setAttribute('hidden', '');
+        outgoing.classList.remove('date-ticker--out');
+        incoming.classList.add('date-ticker--in');
+        incoming.removeAttribute('hidden');
+        // Force a style flush so the entry transition runs after the reveal.
+        void incoming.offsetWidth;
+        incoming.classList.remove('date-ticker--in');
+        current = (current + 1) % slots.length;
+      }, 220);
+    }, HOLD_MS);
+  }
+</script>
+
+<script>
+  // Search overlay — the ribbon carries one icon button; clicking reveals the
+  // full search form. Escape / outside-click / focus-out all close it.
+  const toggle = document.getElementById('search-toggle');
+  const overlay = document.getElementById('search-overlay');
+  if (toggle && overlay) {
+    const input = overlay.querySelector('input');
+    const setOpen = (open: boolean) => {
+      overlay.toggleAttribute('hidden', !open);
+      toggle.setAttribute('aria-expanded', String(open));
+      if (open) input?.focus();
+    };
+    toggle.addEventListener('click', () => {
+      setOpen(overlay.hasAttribute('hidden'));
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !overlay.hasAttribute('hidden')) setOpen(false);
+    });
+    document.addEventListener('click', (e) => {
+      const target = e.target as Node;
+      if (!overlay.hasAttribute('hidden') && !overlay.contains(target) && !toggle.contains(target)) {
+        setOpen(false);
+      }
+    });
+
+    // ── Interactive suggestions + recent searches (owner request) ──────────
+    // Typing queries the SAME Pagefind index /search uses (loaded lazily on
+    // first open — one small wasm fetch, cached afterwards). An empty box
+    // shows the reader's recent searches from localStorage, each clickable.
+    const RECENT_KEY = 'shikkha24-recent-searches';
+    const list = document.getElementById('search-suggestions');
+
+    const readRecent = (): string[] => {
+      try {
+        const raw = localStorage.getItem(RECENT_KEY);
+        const arr = raw ? (JSON.parse(raw) as unknown) : [];
+        return Array.isArray(arr) ? arr.filter((v): v is string => typeof v === 'string').slice(0, 5) : [];
+      } catch {
+        return [];
+      }
+    };
+
+    const renderRecent = () => {
+      if (!list) return;
+      const recent = readRecent();
+      if (recent.length === 0) {
+        list.setAttribute('hidden', '');
+        return;
+      }
+      list.innerHTML = recent
+        .map(
+          (q) =>
+            `<li><a href="/search?q=${encodeURIComponent(q)}" class="flex items-center gap-2 px-3 py-2 hover:bg-surface-raised dark:hover:bg-dark-raised"><span aria-hidden class="text-ink-subtle dark:text-dark-ink-muted">🕘</span>${q}</a></li>`,
+        )
+        .join('');
+      list.removeAttribute('hidden');
+    };
+
+    const renderSuggestions = async (q: string) => {
+      if (!list) return;
+      if (q.trim().length < 2) {
+        renderRecent();
+        return;
+      }
+      try {
+        const pf = await import(/* @vite-ignore */ `${window.location.origin}/pagefind/pagefind.js`);
+        const search = await pf.debouncedSearch(q, {}, 500);
+        const results = (search?.results ?? []).slice(0, 5);
+        if (results.length === 0) {
+          list.setAttribute('hidden', '');
+          return;
+        }
+        const items = await Promise.all(
+          results.map(async (r: { data: () => Promise<{ url: string; meta: { title: string } }> }) => {
+            const data = await r.data();
+            return `<li><a href="${data.url}" class="flex items-center gap-2 px-3 py-2 hover:bg-surface-raised dark:hover:bg-dark-raised"><span aria-hidden class="text-ink-subtle dark:text-dark-ink-muted">🔍</span>${data.meta.title}</a></li>`;
+          }),
+        );
+        list.innerHTML = items.join('');
+        list.removeAttribute('hidden');
+      } catch {
+        list.setAttribute('hidden', '');
+      }
+    };
+
+    // Save a search as "recent" when the reader submits the form.
+    overlay.querySelector('form')?.addEventListener('submit', () => {
+      const q = (input as HTMLInputElement | null)?.value.trim();
+      if (!q) return;
+      const recent = [q, ...readRecent().filter((r) => r !== q)].slice(0, 5);
+      localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+    });
+
+    let debounceTimer: number | undefined;
+    input?.addEventListener('input', () => {
+      window.clearTimeout(debounceTimer);
+      const q = (input as HTMLInputElement).value;
+      debounceTimer = window.setTimeout(() => void renderSuggestions(q), 200);
+    });
+    toggle.addEventListener('click', () => {
+      if (!overlay.hasAttribute('hidden')) renderRecent();
+    });
   }
 </script>

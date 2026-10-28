@@ -347,3 +347,26 @@
     contain-intrinsic-size: auto 24rem;
   }
 }
+
+/* ── Masthead date ticker (Header.astro) ─────────────────────────────────────
+   One date visible at a time; each slides up out and the next slides in.
+   The <time> box is fixed-height so the ribbon never changes height mid-cycle. */
+.date-ticker {
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+.date-ticker--out {
+  opacity: 0;
+  transform: translateY(-100%);
+}
+.date-ticker--in {
+  opacity: 0;
+  transform: translateY(100%);
+}
+
+/* ── Social icon brand colours (SocialLinks.astro) ───────────────────────────
+   The icon takes its platform's official brand colour on hover. The colour
+   travels as a --brand custom property set inline per link; CSP forbids
+   inline JS handlers, so the hover is pure CSS. */
+.social-brand:hover {
+  color: var(--brand, currentColor);
+}

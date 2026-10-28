@@ -1,66 +1,57 @@
 ---
 /**
- * Text-size resizer for accessibility.
+ * Text-size resizer for accessibility — single cycling button (owner request,
+ * 2026-10-28): one icon, each click cycles স্বাভাবিক (1) → বড় (1.1) → আরও বড়
+ * (1.2) → back to স্বাভাবিক. The button label shows the CURRENT size so the
+ * reader always knows where they are.
  *
- * Sets a `data-text-scale` attribute on `<html>` (1 | 1.1 | 1.2).
- * CSS uses `rem` everywhere, so scaling the root font-size resizes the whole
- * page proportionally. The attribute is read by a rule in global.css.
- *
- * Persisted to localStorage. The initial scale is restored by an inline script
- * in Layout.astro before first paint, preventing a flash-of-wrong-size.
+ * Sets a `data-text-scale` attribute on `<html>` (1 | 1.1 | 1.2) — wait, it
+ * sets the root font-size directly; CSS uses `rem` everywhere, so scaling the
+ * root resizes the whole page proportionally. Persisted to localStorage. The
+ * initial scale is restored by an inline script in Layout.astro before first
+ * paint, preventing a flash-of-wrong-size.
  */
+const SIZES = [
+  { scale: 1, label: 'স্বাভাবিক' },
+  { scale: 1.1, label: 'বড়' },
+  { scale: 1.2, label: 'আরও বড়' },
+] as const
 ---
 
-<div class="inline-flex items-center gap-1" role="group" aria-label="ফন্ট সাইজ">
-  <button
-    type="button"
-    data-scale="1"
-    class="text-resizer-btn inline-flex h-12 w-12 items-center justify-center rounded text-sm font-medium transition-colors hover:bg-surface-raised dark:hover:bg-dark-raised"
-    aria-label="স্বাভাবিক সাইজ"
-    title="স্বাভাবিক সাইজ"
+<button
+  type="button"
+  id="text-resizer-cycle"
+  class="inline-flex h-12 min-w-12 items-center justify-center gap-1 rounded px-2 text-sm font-medium transition-colors hover:bg-surface-raised dark:hover:bg-dark-raised"
+  aria-label="লেখার সাইজ বদলান"
+  title="লেখার সাইজ বদলান"
+>
+  <span aria-hidden class="text-base leading-none">আ</span>
+  <span
+    aria-hidden
+    class="text-resizer-arrow inline-block text-ink-subtle transition-transform dark:text-dark-ink-muted"
   >
-    আ
-  </button>
-  <button
-    type="button"
-    data-scale="1.1"
-    class="text-resizer-btn inline-flex h-12 w-12 items-center justify-center rounded text-base font-medium transition-colors hover:bg-surface-raised dark:hover:bg-dark-raised"
-    aria-label="মাঝারি সাইজ"
-    title="মাঝারি সাইজ"
-  >
-    আ
-  </button>
-  <button
-    type="button"
-    data-scale="1.2"
-    class="text-resizer-btn inline-flex h-12 w-12 items-center justify-center rounded text-lg font-medium transition-colors hover:bg-surface-raised dark:hover:bg-dark-raised"
-    aria-label="বড় সাইজ"
-    title="বড় সাইজ"
-  >
-    আ
-  </button>
-</div>
+    ▾
+  </span>
+  <span class="sr-only" id="text-resizer-status">স্বাভাবিক সাইজ</span>
+</button>
 
 <script>
   (function () {
     const STORAGE_KEY = 'shikkha24-text-scale'
-    const buttons = document.querySelectorAll<HTMLButtonElement>('.text-resizer-btn')
+    const SIZES = [1, 1.1, 1.2] as const
+    const LABELS: Record<string, string> = { '1': 'স্বাভাবিক', '1.1': 'বড়', '1.2': 'আরও বড়' }
+    const btn = document.getElementById('text-resizer-cycle')
+    const status = document.getElementById('text-resizer-status')
 
     function getScale(): number {
       const raw = localStorage.getItem(STORAGE_KEY)
       const n = raw ? parseFloat(raw) : 1
-      return [1, 1.1, 1.2].includes(n) ? n : 1
+      return (SIZES as readonly number[]).includes(n) ? n : 1
     }
 
     function applyScale(scale: number) {
       document.documentElement.style.fontSize = scale === 1 ? '' : `${scale * 100}%`
-      buttons.forEach((btn) => {
-        const active = parseFloat(btn.dataset.scale || '1') === scale
-        btn.classList.toggle('bg-brand-red', active)
-        btn.classList.toggle('text-white', active)
-        btn.classList.toggle('dark:text-white', active)
-        btn.setAttribute('aria-pressed', String(active))
-      })
+      if (status) status.textContent = `${LABELS[String(scale)] ?? ''} সাইজ`
     }
 
     function setScale(scale: number) {
@@ -68,11 +59,11 @@
       applyScale(scale)
     }
 
-    buttons.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const scale = parseFloat(btn.dataset.scale || '1')
-        setScale(scale)
-      })
+    btn?.addEventListener('click', () => {
+      const current = getScale()
+      const idx = SIZES.indexOf(current as (typeof SIZES)[number])
+      const next = SIZES[(idx + 1) % SIZES.length]
+      setScale(next)
     })
 
     // Sync on load.
