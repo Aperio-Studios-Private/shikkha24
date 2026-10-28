@@ -5482,3 +5482,26 @@ via API with the full 11-var env contract. Two update_failed deploys, each root-
   template + Zone DNS Edit) — needed for Actions-driven storefront deploys and the DNS
   cutover. ENV reference file updated with the exact steps.
 
+### ✅ CLEAN START COMPLETE — goal state reached (2026-10-28)
+
+**The owner's goal is met:** site live, CMS at https://cms.shikkha24.com/admin, publishing
+reaches the site automatically, fresh credentials everywhere.
+
+- **Publish test #2 PASSED**: the publish-watcher fired ON ITS OWN (repository_dispatch) and
+  the Actions deploy succeeded — the automatic publish chain works on the final stack.
+- **CUTOVER DONE**: cms.shikkha24.com CNAME → shikkha24-cms-osmg.onrender.com (proxied),
+  Render verified the domain, admin answers 200 on the goal URL serving 10 articles from the
+  new Neon. CMS_URL/PUBLIC_CMS_ORIGIN env + GitHub secrets + watcher CMS_ORIGIN all updated
+  to the goal URL; a clear-cache deploy re-issued the cookie allowlist for it.
+- **Old Neon project weathered-cell-22329124 DELETED** (despite a misleading 'could not
+  reach API' error, the deletion succeeded — only lucky-forest-26905704 remains).
+- Final platform state: Neon = lucky-forest-26905704 (shikkha24-prod, us-west-2) only;
+  Render = shikkha24-cms (srv-dbgph17f3r2c73abo8og, Blueprint-defined in render.yaml) only;
+  R2 = shikkha24-media with media.shikkha24.com attached; Workers = storefront + watcher
+  (fresh deploys); GitHub = 4 secrets + 3 variables, all fresh.
+- Old credentials retired: old Neon password (project deleted), old PAYLOAD_SECRET, old
+  Cloudflare token (owner deletes the 12-day-old 'Edit Cloudflare Workers' token in the
+  dashboard — the only manual remainder), FTP/CPANEL values unused by the new stack.
+- Backups: full + articles dumps and all 20 media files on the owner's Desktop.
+- DianaHost: frozen, DNS cut over; account lapses after 2026-11-11 (owner billing decision).
+
