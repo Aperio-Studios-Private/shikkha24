@@ -5519,3 +5519,17 @@ reaches the site automatically, fresh credentials everywhere.
 - Old Cloudflare token deleted by the owner (confirmed in the dashboard). Clean start has
   zero pending items.
 
+### PUBLIC PAGE FIXES — admin hints removed + social link live (2026-10-28, commit 4a3a973 + deploy)
+
+Owner reported: (1) admin-instruction paragraphs ('add this in Site Settings...') rendering on
+the public /about and /contact pages; (2) the updated Facebook link not appearing on the site.
+
+- **Hints**: empty-state fallbacks in about.astro/contact.astro written for the editor
+  audience leaked to readers. Removed — a public page renders only reader content; absent data
+  means the section renders nothing (the same self-hiding contract as the interactive
+  islands). Verified live: 0 hint occurrences on both pages after deploy.
+- **Facebook**: the URL was in the DB and valid (safeExternalUrl passes https); the live pages
+  predated the owner's social edit (settings updatedAt 09:02 today > last build). The
+  instant-rebuild dispatch shipped it: facebook.com/Shikkha24.com now renders on /contact and
+  the footer. No code change needed for this one — it was build timing, not a bug.
+
