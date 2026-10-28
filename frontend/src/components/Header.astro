@@ -81,9 +81,11 @@ const banglaCalendar = banglaDate.split(',').slice(1).join(',').trim()
             {weekdayBn}, {gregorianDate}
           </span>
           {/* Flip slot: width = the LONGER of the two strings (measured server-
-              side via ch), so the longest Hijri month name never truncates. */}
+              side via ch), so the longest Hijri month name never truncates.
+              MOBILE (owner request): hidden below sm — phones show only the
+              weekday + Gregorian date, no Bangla/Hijri flip. */}
           <span
-            class="relative mx-1 inline-block h-5 overflow-hidden align-middle"
+            class="relative mx-1 hidden h-5 overflow-hidden align-middle sm:inline-block"
             style={`width:${Math.max(banglaDate.length, hijriDate.length)}ch`}
           >
             <span class="date-flip absolute inset-0 block whitespace-nowrap" data-slot="0">{banglaCalendar}</span>
