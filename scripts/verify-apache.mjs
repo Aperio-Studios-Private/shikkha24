@@ -123,10 +123,7 @@ function collectRoutes() {
  * the redirect rules themselves.
  */
 function httpGet(port, path, method = 'GET', opts = {}) {
-  const {
-    forwardedProto = 'https',
-    host = 'shikkha24.com',
-  } = opts
+  const { forwardedProto = 'https', host = 'shikkha24.com' } = opts
   return new Promise((resolve, reject) => {
     // Bengali slugs (e.g. /institutions/জাতীয় বিশ্ববিদ্যালয়/) build as raw
     // directory names; Node's http client refuses an unescaped request path,
@@ -484,8 +481,7 @@ try {
     check(
       'www. over TLS-upstream 301s to the apex, path intact',
       www.status === 301 &&
-        (headerValues(www.rawHeaders, 'location')[0] ?? '') ===
-          'https://shikkha24.com/about/',
+        (headerValues(www.rawHeaders, 'location')[0] ?? '') === 'https://shikkha24.com/about/',
       `status ${www.status}`,
     )
     const apex = await httpGet(port, '/about/')

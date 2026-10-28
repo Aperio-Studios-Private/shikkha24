@@ -39,12 +39,12 @@ import { parse as parseYaml } from 'yaml'
 import { CSP_ARTICLE, CSP_MEDIA, CSP_RELAXED, CSP_STRICT } from '../frontend/worker/csp.ts'
 import { profileForPath } from '../frontend/worker/dispatch.ts'
 import { headersForPath, isPreviewHost } from '../frontend/worker/headers.ts'
+import { resolveRewrite } from '../frontend/worker/index.ts'
 import {
   CANONICAL_HOST,
   needsCanonicalHost,
   staleArticleRedirect,
 } from '../frontend/worker/redirects.ts'
-import { resolveRewrite } from '../frontend/worker/index.ts'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -379,7 +379,10 @@ check(
   staleArticleRedirect('/admission/23/admission-policy-2027/', manifest) ===
     '/admission/10/admission-policy-2027',
 )
-check('unknown slug stays a 404', staleArticleRedirect('/admission/23/no-such-slug', manifest) === null)
+check(
+  'unknown slug stays a 404',
+  staleArticleRedirect('/admission/23/no-such-slug', manifest) === null,
+)
 check('non-article 404s are untouched', staleArticleRedirect('/some/page', manifest) === null)
 check(
   'a slug already at its canonical id never loops',
