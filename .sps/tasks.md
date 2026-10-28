@@ -5649,3 +5649,30 @@ compatible, highly animated, covering EVERYTHING (storefront + CMS), no technica
   content coverage checked against the collection inventory programmatically.
 - Copies: docs/ (repo) + owner's Desktop.
 
+### SEO TASK OPENED (2026-10-28) — GSC added by owner; audit started
+
+Owner added the site to Google Search Console and asked for the SEO report. Evidence gathered
+(live-site probes, learn-first):
+
+**Already in place (strong foundation):** robots.txt (disallows /search + /pagefind, lists 2
+sitemaps) · sitemap.xml (86 URLs incl. all 10 articles) · news-sitemap.xml (Google News) ·
+rss.xml · IndexNow key live · canonical tags correct on articles · OG/Twitter cards with
+absolute URLs · JSON-LD: NewsArticle + NewsMediaOrganization + Person + ImageObject +
+SpeakableSpecification on articles, Organization + WebSite + SearchAction (sitelinks
+searchbox) on homepage · meta descriptions in Bengali · T-21 keyword/competitor research
+committed (docs/seo/keyword-competitor-research.md) · CWV live report 2026-10-16.
+
+**Gaps found (audit):**
+1. NO google-site-verification meta tag on the homepage — GSC verification is either via
+   DNS or NOT completed. Owner added the site to GSC; verification method needs confirming.
+2. Sitemap contains DEMO articles (post-i5fhyg, post-smjggc, post-n2fili, post-ujepgq,
+   post-vkcnas — 5 demo posts from the seed) alongside real ones.
+3. News sitemap only has the 2 newest demo posts — it should carry the real recent articles.
+4. The 12-article reality vs 86-URL sitemap: most sitemap URLs are category/tag/utility
+   pages (correct), but demo-article URLs shouldn't be submitted to Google.
+
+**Plan (draft, awaiting owner go):** (1) confirm GSC verification method + submit both
+sitemaps in GSC; (2) exclude demo articles from sitemap + news-sitemap (filter by author/
+flag or delete demo posts after owner confirms); (3) IndexNow ping on publish (wired via
+the existing key); (4) GSC coverage monitoring after 2 weeks.
+
