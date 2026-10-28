@@ -5533,3 +5533,26 @@ the public /about and /contact pages; (2) the updated Facebook link not appearin
   instant-rebuild dispatch shipped it: facebook.com/Shikkha24.com now renders on /contact and
   the footer. No code change needed for this one — it was build timing, not a bug.
 
+### TOPBAR REDESIGN shipped (2026-10-28, commits 19289a6/9711e96/cef84e4)
+
+Owner requests: single-line topbar, minimal data, resizer as ONE cycling button, search as
+ONE icon with a popup, dates rotating (2s each), brand colours on social icons, interactive
+search with suggestions + recents. All shipped and verified:
+
+- One line at 1280px (ribbon 61px; was wrapping to 83px+): date progressive disclosure
+  (Gregorian xl, Hijri 2xl) + widgets nowrap.
+- Minimal widgets: weather = city + temp (condition → hover tooltip); prayer = next prayer +
+  START TIME (countdown removed; schedule panel opens on hover AND click).
+- Resizer: single cycling button with the scale label in the sr-only status.
+- Search: icon → overlay with live Pagefind suggestions + recent searches (localStorage).
+  Verified on the production build: 5 suggestions for 'ভর্তি' with correct URLs.
+- Date ticker: 2s hold, slide out/in, Bangla → Gregorian → Hijri; the live-update script
+  feeds the ticker slots.
+- Social icons: official brand colours on hover (Facebook #1877F2, YouTube #FF0000,
+  Instagram #E4405F, X #0F1419) via --brand custom property + CSS hover (CSP forbids
+  inline handlers).
+
+Two CI-gate catches during ship (both fixed, both proven locally first): the search overlay
+nested .container-page inside another (build-output rule), and its controls were h-10
+(40px) against the 48px touch-target rule. The gates did exactly their job.
+
