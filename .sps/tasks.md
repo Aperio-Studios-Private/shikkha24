@@ -5618,3 +5618,16 @@ Owner feedback, five items, all shipped and verified live:
 Live verification: all five present in the shipped HTML (flip slots, icons, py-2,
 relative header, cycle button + step badge); site 200.
 
+### ✅ MOBILE DATE FIX shipped (2026-10-28, commit 069652c)
+
+Owner: 'on mobile do not have to show the Bangla and Arabic date — show only
+English date and day name.'
+
+- The flip slot (Bangla calendar ↔ Hijri) is now `hidden sm:inline-block` —
+  below 640px it renders display:none; phones show only the weekday +
+  Gregorian date (`বুধবার, ২৮ অক্টোবর, ২০২৬`), no Bangla/Hijri flip.
+- Desktop (≥640px) keeps the rotation.
+- Verified in the browser at 390px: flip slot display:none, only weekday +
+  Gregorian visible (screenshot). Earlier confusion was a stale tab at desktop
+  width + a pre-deploy load.
+
