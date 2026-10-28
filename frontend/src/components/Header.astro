@@ -58,24 +58,24 @@ const gregorianDate = formatBnBd(now, { year: 'numeric', month: 'long', day: 'nu
 const hijriDate = formatHijriDate(now)
 ---
 
-<header class="border-b border-rule bg-surface dark:border-dark-rule dark:bg-dark-base">
+<header class="relative border-b border-rule bg-surface dark:border-dark-rule dark:bg-dark-base">
   {/* ── 1. Utility ribbon ───────────────────────────────────────────── */}
   <div class="border-b border-rule bg-surface-raised dark:border-dark-rule dark:bg-dark-surface">
-    <div class="container-page flex items-center justify-between gap-3 py-1.5">
-      {/* Date + optional widgets. ROTATING DATE TICKER (owner request): one
-          date visible at a time, each holds ~2s then slides out and the next
-          slides in — Bangla → Gregorian → Hijri, cycling. Progressive
-          disclosure is replaced by rotation, so every date gets its moment
-          without the ribbon ever wrapping. */}
+    <div class="container-page flex items-center justify-between gap-4 py-2">
+      {/* Date + optional widgets. DATE DISPLAY (owner request, 2026-10-28):
+          the Gregorian date stays PERMANENTLY visible; the Bangla and Hijri
+          dates take turns in a flipping slot beside it — one line always. */}
       <div class="flex min-w-0 items-center gap-2 whitespace-nowrap text-xs text-ink-muted dark:text-dark-ink-muted">
         <time
           id="masthead-date"
           datetime={now.toISOString()}
-          class="font-ui relative inline-block h-5 min-w-64 overflow-hidden align-middle"
+          class="font-ui inline-flex h-5 items-center overflow-hidden align-middle"
         >
-          <span class="date-ticker block" data-slot="0">{banglaDate}</span>
-          <span class="date-ticker block" data-slot="1" hidden>{gregorianDate}</span>
-          <span class="date-ticker block" data-slot="2" hidden>{hijriDate}</span>
+          <span class="whitespace-nowrap text-ink dark:text-dark-ink">{gregorianDate}</span>
+          <span class="relative mx-1 inline-block h-5 w-40 overflow-hidden align-middle">
+            <span class="date-flip block" data-slot="0">{banglaDate}</span>
+            <span class="date-flip block" data-slot="1" hidden>{hijriDate}</span>
+          </span>
         </time>
 
         {/* Weather, prayer and location. Each renders a neutral placeholder and
@@ -371,30 +371,26 @@ const hijriDate = formatHijriDate(now)
   if (masthead) {
     const now = new Date();
     masthead.setAttribute('datetime', now.toISOString());
-    const slots = masthead.querySelectorAll('.date-ticker');
-    const texts = [
-      formatBanglaDate(now),
-      formatBnBd(now, { year: 'numeric', month: 'long', day: 'numeric' }),
-      formatHijriDate(now),
-    ];
+    // The Gregorian date is permanent markup; only the flip slot rotates.
+    const slots = masthead.querySelectorAll('.date-flip');
+    const texts = [formatBanglaDate(now), formatHijriDate(now)];
     slots.forEach((slot, i) => {
       slot.textContent = texts[i] ?? '';
     });
 
     let current = 0;
-    const HOLD_MS = 2000;
+    const HOLD_MS = 2500;
     setInterval(() => {
       const outgoing = slots[current];
       const incoming = slots[(current + 1) % slots.length];
-      outgoing.classList.add('date-ticker--out');
+      outgoing.classList.add('date-flip--out');
       window.setTimeout(() => {
         outgoing.setAttribute('hidden', '');
-        outgoing.classList.remove('date-ticker--out');
-        incoming.classList.add('date-ticker--in');
+        outgoing.classList.remove('date-flip--out');
+        incoming.classList.add('date-flip--in');
         incoming.removeAttribute('hidden');
-        // Force a style flush so the entry transition runs after the reveal.
         void incoming.offsetWidth;
-        incoming.classList.remove('date-ticker--in');
+        incoming.classList.remove('date-flip--in');
         current = (current + 1) % slots.length;
       }, 220);
     }, HOLD_MS);

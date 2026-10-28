@@ -21,17 +21,23 @@ const SIZES = [
 <button
   type="button"
   id="text-resizer-cycle"
-  class="inline-flex h-12 min-w-12 items-center justify-center gap-1 rounded px-2 text-sm font-medium transition-colors hover:bg-surface-raised dark:hover:bg-dark-raised"
+  class="inline-flex h-12 items-center justify-center gap-1.5 rounded px-2 transition-colors hover:bg-surface-raised dark:hover:bg-dark-raised"
   aria-label="লেখার সাইজ বদলান"
   title="লেখার সাইজ বদলান"
 >
-  <span aria-hidden class="text-base leading-none">আ</span>
-  <span
-    aria-hidden
-    class="text-resizer-arrow inline-block text-ink-subtle transition-transform dark:text-dark-ink-muted"
-  >
-    ▾
+  {/* FIX 5 (owner request): the old আ▾ read as a language switcher. The new
+      icon says exactly what it does: a big A + small a pair, with a size
+      badge showing the current step (১/২/৩). The A subtly pulses through
+      three sizes on mount so the function demonstrates itself. */}
+  <span aria-hidden class="relative inline-flex h-6 w-7 items-end justify-center overflow-hidden">
+    <span class="text-resizer-a absolute bottom-0 font-headline font-bold leading-none text-ink dark:text-dark-ink" style="font-size:18px">A</span>
+    <span class="absolute bottom-0 right-0 font-headline font-bold leading-none text-ink-subtle dark:text-dark-ink-muted" style="font-size:11px">A</span>
   </span>
+  <span
+    class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-brand-red text-[10px] font-bold leading-none text-white"
+    id="text-resizer-step"
+    aria-hidden
+  >১</span>
   <span class="sr-only" id="text-resizer-status">স্বাভাবিক সাইজ</span>
 </button>
 
@@ -49,9 +55,13 @@ const SIZES = [
       return (SIZES as readonly number[]).includes(n) ? n : 1
     }
 
+    const stepBadge = document.getElementById('text-resizer-step')
+    const STEPS_BN: Record<string, string> = { '1': '১', '1.1': '২', '1.2': '৩' }
+
     function applyScale(scale: number) {
       document.documentElement.style.fontSize = scale === 1 ? '' : `${scale * 100}%`
       if (status) status.textContent = `${LABELS[String(scale)] ?? ''} সাইজ`
+      if (stepBadge) stepBadge.textContent = STEPS_BN[String(scale)] ?? '১'
     }
 
     function setScale(scale: number) {

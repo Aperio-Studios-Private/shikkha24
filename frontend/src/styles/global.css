@@ -351,14 +351,14 @@
 /* ── Masthead date ticker (Header.astro) ─────────────────────────────────────
    One date visible at a time; each slides up out and the next slides in.
    The <time> box is fixed-height so the ribbon never changes height mid-cycle. */
-.date-ticker {
+.date-flip {
   transition: transform 180ms ease, opacity 180ms ease;
 }
-.date-ticker--out {
+.date-flip--out {
   opacity: 0;
   transform: translateY(-100%);
 }
-.date-ticker--in {
+.date-flip--in {
   opacity: 0;
   transform: translateY(100%);
 }

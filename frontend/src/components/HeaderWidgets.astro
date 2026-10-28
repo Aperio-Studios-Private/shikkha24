@@ -48,11 +48,14 @@ const { showWeather = true, showPrayer = true } = Astro.props
         <button
           type="button"
           id="hw-weather"
-          class="truncate hover:text-brand-red"
+          class="inline-flex items-center gap-1 truncate hover:text-brand-red"
           aria-busy="true"
           title="আবহাওয়া"
         >
-          <span class="sr-only">আবহাওয়া:</span>
+          {/* Weather icon — visual recognition (owner request 2026-10-28) */}
+          <svg class="shrink-0 text-amber-500 dark:text-amber-400" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M12 2v2" /><path d="M4.93 4.93l1.41 1.41" /><path d="M20 12h2" /><path d="M19.07 4.93l-1.41 1.41" /><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128" /><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z" />
+          </svg>
           <span id="hw-city">—</span>{' '}
           <span class="font-medium text-ink dark:text-dark-ink" id="hw-temp">—</span>
           {/* Condition text is set by the script but kept invisible — it feeds
@@ -77,10 +80,14 @@ const { showWeather = true, showPrayer = true } = Astro.props
       id="hw-prayer-btn"
       aria-expanded="false"
       aria-controls="hw-prayer-panel"
-      class="truncate hover:text-brand-red"
+      class="inline-flex items-center gap-1 truncate hover:text-brand-red"
       aria-busy="true"
       title="নামাজের সময়সূচি"
     >
+      {/* Prayer icon — crescent moon, visual recognition (owner request) */}
+      <svg class="shrink-0 text-brand-red" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+      </svg>
       <span id="hw-next-label">নামাজ</span>{' '}
       <span class="font-medium text-ink dark:text-dark-ink" id="hw-next-time">—</span>
     </button>
