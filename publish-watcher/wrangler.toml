@@ -26,7 +26,7 @@ crons = ["*/5 * * * *"]
 # (shikkha24-cms-9vai.onrender.com, Neon Postgres). The watcher now polls the
 # Render CMS; DianaHost's cms.shikkha24.com is rollback-only. The 5-minute
 # cadence absorbs Render free-tier cold starts (~50 s first probe).
-CMS_ORIGIN = "https://shikkha24-cms-9vai.onrender.com"
+CMS_ORIGIN = "https://shikkha24-cms-osmg.onrender.com"
 # Repo moved to the org (owner shared it with the client's GitHub account).
 GITHUB_REPO = "Aperio-Studios-Private/shikkha24"
 

@@ -5457,3 +5457,28 @@ via API with the full 11-var env contract. Two update_failed deploys, each root-
    the clean-start baseline; a committed postgres migration set is a follow-up when the team
    next changes schema.
 
+### FRESH STACK LIVE — CMS verified end-to-end including R2 persistence (2026-10-28)
+
+- New Render CMS (srv-dbgph17f3r2c73abo8og, https://shikkha24-cms-osmg.onrender.com) LIVE.
+  Two update_failed deploys root-caused on the way: (1) health-check path typo
+  (/api/global → /api/globals; the ~9.5-min 'slow deploy' was Render polling a 404 to
+  timeout), (2) media._objectkey missing — the storage plugin injects a hidden _objectKey
+  field (plugin-cloud-storage getFields.js:25) so the NEW code's schema expects it; the
+  restored dump predated the adapter. migrate:create refuses postgres migrations after
+  sqlite ones (dialect continuity), so the column was applied directly
+  (ALTER TABLE media ADD COLUMN _objectkey text) and recorded as the clean-start baseline.
+- Full fresh-deploy checklist PASSED in a real browser at 1280×720: login ✓, sidebar
+  interactive ✓, media grid ✓ (8/10 thumbnails; the 2 broken are the dead rows 21/22),
+  **upload→R2 verified**: test.png (id 23) uploaded via REST → object in R2 origin →
+  URL https://media.shikkha24.com/test.png → **survived a full redeploy + disk wipe**.
+  The data-loss problem is solved at the root.
+- Payload REST upload note: data fields go in the `_payload` multipart field, not bare
+  form fields — bare fields are silently dropped and required-field errors follow.
+- Storefront Worker redeployed fresh (v38984c59) — shikkha24.com 200.
+- Publish-watcher redeployed pointed at the osmg CMS (v43a8217a).
+- GitHub secrets/variables partially recreated: CMS_URL, PUBLIC_CMS_ORIGIN (secrets);
+  PUBLIC_MEDIA_BASE_URL, PUBLIC_SITE_URL, AUTO_DEPLOY=live (variables).
+- **BLOCKED on one owner action:** a fresh Cloudflare API token (Edit Cloudflare Workers
+  template + Zone DNS Edit) — needed for Actions-driven storefront deploys and the DNS
+  cutover. ENV reference file updated with the exact steps.
+
