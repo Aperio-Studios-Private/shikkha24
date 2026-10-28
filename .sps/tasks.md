@@ -5438,3 +5438,22 @@ Owner confirmed Level-1 clean start (fresh app credentials; platform logins stay
 2. The local-simulator trap applies to every r2 object command; bucket-level commands hit the
    real API regardless.
 
+### FRESH CMS DEPLOY — two failures root-caused + fixed (2026-10-28)
+
+New Render service srv-dbgph17f3r2c73abo8og (https://shikkha24-cms-osmg.onrender.com), created
+via API with the full 11-var env contract. Two update_failed deploys, each root-caused:
+
+1. **Health-check path typo** (/api/global/... instead of /api/globals/...): Render polled a
+   404 for ~9.5 min then failed — that was the 'deploy taking too much time'. Fixed via
+   PATCH serviceDetails.healthCheckPath (the first PATCH failed because I sent the field at
+   the top level; the docs confirm it nests inside serviceDetails). render.yaml corrected too.
+
+2. **column media._objectkey does not exist**: the storage plugin injects a hidden _objectKey
+   text field into every collection it manages (plugin-cloud-storage getFields.js:25), so the
+   NEW code's schema expects the column — but the new DB was restored from a dump made before
+   the adapter existed. migrate:create refused to generate a postgres migration (all committed
+   migrations are sqlite-dialect; Payload validates dialect continuity). Applied the column
+   directly on the new DB (ALTER TABLE media ADD COLUMN _objectkey text) and recorded it as
+   the clean-start baseline; a committed postgres migration set is a follow-up when the team
+   next changes schema.
+
