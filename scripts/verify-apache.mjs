@@ -112,11 +112,34 @@ function collectRoutes() {
   return routes.sort()
 }
 
-/** One HTTP request, returning the status, the raw header list and the body. */
-function httpGet(port, path, method = 'GET') {
+/**
+ * One HTTP request, returning the status, the raw header list and the body.
+ *
+ * By default the request emulates the production origin condition: TLS was
+ * terminated upstream (`X-Forwarded-Proto: https`) and the host is the
+ * canonical apex — under the canonical-host redirect rules (2026-10-28) any
+ * other combination 301s, which would make every page-level check below
+ * collect redirect bodies instead of pages. `opts` overrides both to exercise
+ * the redirect rules themselves.
+ */
+function httpGet(port, path, method = 'GET', opts = {}) {
+  const {
+    forwardedProto = 'https',
+    host = 'shikkha24.com',
+  } = opts
   return new Promise((resolve, reject) => {
+    // Bengali slugs (e.g. /institutions/জাতীয় বিশ্ববিদ্যালয়/) build as raw
+    // directory names; Node's http client refuses an unescaped request path,
+    // so encode each segment. encodeURI leaves the slashes intact.
+    const encoded = encodeURI(path)
     const req = request(
-      { host: '127.0.0.1', port, path, method, headers: { host: 'shikkha24.test' } },
+      {
+        host: '127.0.0.1',
+        port,
+        path: encoded,
+        method,
+        headers: { host, ...(forwardedProto ? { 'x-forwarded-proto': forwardedProto } : {}) },
+      },
       (res) => {
         let body = ''
         res.setEncoding('utf8')
@@ -380,7 +403,7 @@ const typesConfig = firstExisting([
   '/usr/share/misc/mime.types',
 ])
 
-const conf = `ServerName shikkha24.test
+const conf = `ServerName shikkha24.com
 Listen ${port}
 DefaultRuntimeDir "${scratch}"
 PidFile "${scratch}/httpd.pid"
@@ -434,6 +457,48 @@ try {
   if (!up) {
     console.error(`✗ Apache did not come up on port ${port}.\n${stderr}`)
     process.exit(1)
+  }
+
+  // ── 0. Canonical-host redirect rules (SEO 2026-10-28) ─────────────────────
+  // These requests deliberately break the production-emulating defaults to
+  // hit each condition of the two RewriteRules.
+  {
+    const plainHttp = await httpGet(port, '/about/', 'GET', { forwardedProto: null })
+    check(
+      'plain http:// 301s to the https apex',
+      plainHttp.status === 301 &&
+        (headerValues(plainHttp.rawHeaders, 'location')[0] ?? '').startsWith(
+          'https://shikkha24.com/',
+        ),
+      `status ${plainHttp.status}`,
+    )
+    const forgedProto = await httpGet(port, '/about/', 'GET', {
+      forwardedProto: 'https',
+    })
+    check(
+      'X-Forwarded-Proto: https (TLS terminated upstream) does NOT redirect',
+      forgedProto.status === 200,
+      `status ${forgedProto.status}`,
+    )
+    const www = await httpGet(port, '/about/', 'GET', { host: 'www.shikkha24.com' })
+    check(
+      'www. over TLS-upstream 301s to the apex, path intact',
+      www.status === 301 &&
+        (headerValues(www.rawHeaders, 'location')[0] ?? '') ===
+          'https://shikkha24.com/about/',
+      `status ${www.status}`,
+    )
+    const apex = await httpGet(port, '/about/')
+    check('the canonical host over TLS-upstream serves the page', apex.status === 200)
+    const withQuery = await httpGet(port, '/search?q=হ্যালো/', 'GET', {
+      forwardedProto: null,
+    })
+    const qLoc = headerValues(withQuery.rawHeaders, 'location')[0] ?? ''
+    check(
+      'the query string survives the redirect',
+      withQuery.status === 301 && /q=%E0%A6%B9/.test(qLoc),
+      qLoc.slice(0, 60),
+    )
   }
 
   // ── 1–3. Every built route ────────────────────────────────────────────────

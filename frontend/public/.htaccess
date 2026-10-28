@@ -152,6 +152,34 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
+  # ───────────────────────────────────────────────────────────────────────────
+  # Canonical host (SEO, 2026-10-28): http:// and www. must 301 to the apex.
+  #
+  # GSC listed 12 http:// URLs with impressions — the DianaHost era served
+  # http:// with 200 and www. served the same content as the apex, so Google
+  # held duplicate-protocol/duplicate-host copies. Every canonical tag and
+  # sitemap URL says `https://shikkha24.com`, so the redirect must agree.
+  # The Workers publisher implements the identical rule in
+  # `frontend/worker/redirects.ts` (`needsCanonicalHost`) — the two publishers
+  # are not allowed to disagree, exactly like the CSP profiles.
+  #
+  # Two rules, because "TLS is in effect" has two sources: the native
+  # `%{HTTPS}` connection state, and a proxy/CDN that terminated TLS and
+  # forwarded over HTTP (`X-Forwarded-Proto: https` — client-forgeable, so a
+  # forged header can at worst skip the redirect, never weaken a security
+  # header). Rule 1 catches every non-TLS request; rule 2 catches TLS requests
+  # aimed at a non-canonical host. The query string survives: mod_rewrite
+  # appends it automatically when the substitution carries no `?`.
+  # ───────────────────────────────────────────────────────────────────────────
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^ https://shikkha24.com%{REQUEST_URI} [R=301,L]
+
+  RewriteCond %{HTTPS} =on [OR]
+  RewriteCond %{HTTP:X-Forwarded-Proto} =https
+  RewriteCond %{HTTP_HOST} !^shikkha24\.com$ [NC]
+  RewriteRule ^ https://shikkha24.com%{REQUEST_URI} [R=301,L]
+
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^verify/[^/?#]+/?$ /verify/not-found/index.html [L]

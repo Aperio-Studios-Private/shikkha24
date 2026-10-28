@@ -22,12 +22,18 @@
  *    NOT be rewritten — and the harness here does the same.
  * 3. **Preview-host guard** — `*.workers.dev` responses carry
  *    `X-Robots-Tag: noindex`.
+ * 4. **Canonical-host + stale-URL redirects** — non-canonical scheme/host
+ *    (`http://`, `www.`) 301s to `https://shikkha24.com`, and an article-shaped
+ *    404 whose slug exists in the build-time `redirects.json` manifest 301s to
+ *    its canonical path (the T-18 ID renumber left old-ID URLs indexed — see
+ *    `worker/redirects.ts`). Both run before any asset fetch.
  *
  * Nothing here re-serves or rewrites bodies — the asset's stream passes
  * through untouched, and `ETag`/status survive so revalidation and the
  * platform's caching behave as if the asset were served directly.
  */
 import { headersForPath, isPreviewHost } from './headers.ts'
+import { CANONICAL_HOST, needsCanonicalHost, staleArticleRedirect } from './redirects.ts'
 import { recordTelemetry, type TelemetryBinding } from './telemetry.ts'
 
 /** The assets binding from `wrangler.toml` — the only capability needed. */
@@ -100,9 +106,39 @@ export default {
       return new Response(null, { status, headers })
     }
 
+    // Canonical-host 301 (http→https, www→apex) before anything is served —
+    // the redirect itself must not be cacheable per non-canonical URL.
+    if (needsCanonicalHost(url.protocol, url.host)) {
+      const canonical = new URL(url.pathname + url.search, `https://${CANONICAL_HOST}`)
+      return new Response(null, {
+        status: 301,
+        headers: { Location: canonical.href, 'Cache-Control': 'no-store' },
+      })
+    }
+
     const asset = await env.ASSETS.fetch(request)
     const rewrite = resolveRewrite(url.pathname, asset.status)
-    if (rewrite === null) return withHeaders(asset, url.pathname, url.host)
+    if (rewrite === null) {
+      // A stale-ID article URL (the T-18 renumber) must 301 to its canonical
+      // path, not 404 — GSC already has the old URLs indexed.
+      if (asset.status === 404) {
+        let manifest: Record<string, string> = {}
+        try {
+          const res = await env.ASSETS.fetch(new Request(new URL('/redirects.json', url.origin)))
+          if (res.ok) manifest = (await res.json()) as Record<string, string>
+        } catch {
+          // A missing manifest degrades to today's behaviour: the 404 stands.
+        }
+        const target = staleArticleRedirect(url.pathname, manifest)
+        if (target !== null) {
+          return new Response(null, {
+            status: 301,
+            headers: { Location: new URL(target, url.origin).href },
+          })
+        }
+      }
+      return withHeaders(asset, url.pathname, url.host)
+    }
 
     // Serves `/verify/not-found/index.html` (a built page) with status 200 —
     // deliberately not a redirect, so the reader's scanned URL is the one

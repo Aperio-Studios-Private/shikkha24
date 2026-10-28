@@ -39,6 +39,11 @@ import { parse as parseYaml } from 'yaml'
 import { CSP_ARTICLE, CSP_MEDIA, CSP_RELAXED, CSP_STRICT } from '../frontend/worker/csp.ts'
 import { profileForPath } from '../frontend/worker/dispatch.ts'
 import { headersForPath, isPreviewHost } from '../frontend/worker/headers.ts'
+import {
+  CANONICAL_HOST,
+  needsCanonicalHost,
+  staleArticleRedirect,
+} from '../frontend/worker/redirects.ts'
 import { resolveRewrite } from '../frontend/worker/index.ts'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -345,7 +350,50 @@ check(
   'the matrix discriminates',
 )
 
-// --- 6. .assetsignore ----------------------------------------------------------
+// --- 6. Canonical-host + stale-article redirects (GSC 2026-10-28 evidence) ----
+
+console.log('6. Canonical-host + stale-article redirects')
+check('the canonical host is the apex', CANONICAL_HOST === 'shikkha24.com')
+check('http:// must 301', needsCanonicalHost('http:', 'shikkha24.com'))
+check('www. must 301', needsCanonicalHost('https:', 'www.shikkha24.com'))
+check('https apex must NOT 301', !needsCanonicalHost('https:', 'shikkha24.com'))
+check(
+  'workers.dev preview is exempt (deploy probe must survive)',
+  !needsCanonicalHost('http:', 'shikkha24-frontend.abc.workers.dev'),
+)
+check(
+  'negative control: an only-https checker misses the www duplicate',
+  needsCanonicalHost('https:', 'www.shikkha24.com'),
+)
+const manifest = {
+  'admission-policy-2027': '/admission/10/admission-policy-2027',
+  'hsc-result-2026-possible-date': '/exams-results/6/hsc-result-2026-possible-date',
+}
+check(
+  'old-ID URL resolves to the canonical path',
+  staleArticleRedirect('/admission/23/admission-policy-2027', manifest) ===
+    '/admission/10/admission-policy-2027',
+)
+check(
+  'trailing-slash variant resolves too',
+  staleArticleRedirect('/admission/23/admission-policy-2027/', manifest) ===
+    '/admission/10/admission-policy-2027',
+)
+check('unknown slug stays a 404', staleArticleRedirect('/admission/23/no-such-slug', manifest) === null)
+check('non-article 404s are untouched', staleArticleRedirect('/some/page', manifest) === null)
+check(
+  'a slug already at its canonical id never loops',
+  staleArticleRedirect('/admission/10/admission-policy-2027', manifest) === null,
+)
+check(
+  'negative control: a full-path-keyed manifest (not slug-keyed) is caught',
+  staleArticleRedirect('/university/26/nu-masters-admission-2024-25', {
+    '/university/26/nu-masters-admission-2024-25': '/higher-study/7/nu-masters-admission-2024-25',
+  }) === null,
+  'the resolver looks up by slug; a manifest keyed by whole old path misses the renumbered-ID shape',
+)
+
+// --- 6b. .assetsignore ----------------------------------------------------------
 
 console.log('.assetsignore — the Apache file must not upload')
 const ignorePath = join(root, 'frontend/public/.assetsignore')

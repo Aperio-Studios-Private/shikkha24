@@ -166,7 +166,11 @@ check(
  */
 
 /** Article pages below this with no CMS to compare against = a thin build. */
-const THIN_BUILD_MIN_ARTICLE_PAGES = 9
+// 7 = the real article count after the T-18 clean start deleted the 5 demo
+// posts (2026-10-28). It tracks the live archive, not an aspiration — when the
+// owner publishes more, raise it; the deploy path ignores this floor entirely
+// and compares against the CMS's own count.
+const THIN_BUILD_MIN_ARTICLE_PAGES = 7
 
 /** Milliseconds to wait on the CMS before calling it unreachable. */
 const CMS_PROBE_TIMEOUT_MS = 5000
