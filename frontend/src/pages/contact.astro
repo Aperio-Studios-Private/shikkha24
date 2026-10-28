@@ -59,12 +59,7 @@ const hasContact = Boolean(contact.email || contact.newsEmail || contact.editorE
     </p>
 
     {
-      !hasContact ? (
-        <p class="mt-6 rounded-lg border border-rule bg-surface p-4 text-base leading-relaxed text-ink-muted dark:border-dark-rule dark:bg-dark-surface dark:text-dark-ink-muted">
-          যোগাযোগের তথ্য এখনো যুক্ত করা হয়নি। সাইট সেটিংসে (প্রশাসন → সাইট সেটিংস) ইমেইল, ফোন ও
-          ঠিকানা দিলে তা স্বয়ংক্রিয়ভাবে এই পাতায় প্রদর্শিত হবে।
-        </p>
-      ) : (
+      hasContact && (
         <dl class="mt-6 grid gap-4 sm:grid-cols-2">
           {emails.map((entry) => (
             <div class="rounded-lg border border-rule bg-surface p-4 dark:border-dark-rule dark:bg-dark-surface">
@@ -115,7 +110,7 @@ const hasContact = Boolean(contact.email || contact.newsEmail || contact.editorE
               <li>
                 <a
                   href={url ?? '#'}
-                  class="inline-block rounded-full border border-rule px-4 py-1.5 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
+                  class="inline-block rounded-full border border-rule px-4 py-1.5 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:hover:border-brand-red dark:hover:text-brand-red"
                   rel="noopener noreferrer"
                 >
                   {name}
