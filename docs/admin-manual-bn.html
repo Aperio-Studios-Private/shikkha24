@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>শিক্ষা২৪.কম — অ্যাডমিন ইউজার ম্যানুয়াল</title>
+<meta name="description" content="শিক্ষা২৪.কম ওয়েবসাইট ও CMS-এর সম্পূর্ণ বাংলা অ্যাডমিন ম্যানুয়াল — প্রতিটি ফিচার, দৈনন্দিন কাজ, সমস্যা সমাধান।">
+<style>
+:root{
+  --brand:#da1c25; --brand-dark:#b3131b; --brand-soft:#fdecec;
+  --ink:#16181d; --ink-2:#3d4249; --ink-3:#6b7280;
+  --line:#e5e7eb; --bg:#f6f7f9; --card:#fff;
+  --ok:#0f7b3f; --ok-soft:#e8f6ee; --warn:#b45309; --warn-soft:#fef4e6;
+  --info:#1d4ed8; --info-soft:#eaeffd; --purple:#6d28d9; --purple-soft:#f2ecfd;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Serif Bengali","SolaimanLipi","Noto Sans Bengali","Hind Siliguri",system-ui,sans-serif;font-size:17px;line-height:1.8;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1100px;margin:0 auto;padding:0 18px}
+@media(min-width:1000px){.layout{display:grid;grid-template-columns:250px 1fr;gap:36px;align-items:start}.toc{position:sticky;top:16px;max-height:calc(100vh - 40px);overflow:auto}}
+@media(max-width:999px){.toc{position:static}}
+
+.hero{background:linear-gradient(135deg,#7f0f15 0%,var(--brand) 55%,#ef4444 100%);color:#fff;padding:46px 0 42px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.18),transparent 45%),radial-gradient(circle at 10% 90%,rgba(255,255,255,.10),transparent 40%);pointer-events:none}
+.hero .wrap{position:relative;z-index:1}
+.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);padding:5px 14px;border-radius:999px;font-size:14px;font-weight:600}
+.hero h1{font-size:36px;line-height:1.35;margin:16px 0 10px;font-weight:700}
+.hero p{font-size:18px;max-width:72ch;margin:0;color:rgba(255,255,255,.93)}
+
+.toc{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:0 2px 10px rgba(16,18,29,.05)}
+.toc h2{font-size:17px;margin:0 0 10px;color:var(--brand)}
+.toc a{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;color:var(--ink-2);text-decoration:none;font-size:15.5px;transition:background .15s,color .15s}
+.toc a:hover{background:var(--brand-soft);color:var(--brand)}
+.toc a .ic{width:22px;text-align:center;flex-shrink:0}
+
+section{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:26px 26px 22px;margin:22px 0;box-shadow:0 1px 3px rgba(16,18,29,.04);opacity:0;transform:translateY(18px);transition:opacity .5s ease,transform .5s ease}
+section.in{opacity:1;transform:none}
+section h2{display:flex;align-items:center;gap:11px;font-size:24px;margin:0 0 14px;color:var(--ink);border-bottom:2px solid var(--brand-soft);padding-bottom:10px}
+section h2 .num{background:var(--brand);color:#fff;width:36px;height:36px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+section h3{font-size:18.5px;margin:20px 0 8px;color:var(--brand-dark)}
+section p{margin:8px 0}
+ul.steps{list-style:none;padding:0;margin:10px 0;counter-reset:step}
+ul.steps li{position:relative;padding:8px 0 8px 42px;counter-increment:step}
+ul.steps li::before{content:counter(step);position:absolute;left:0;top:9px;width:28px;height:28px;background:var(--brand-soft);color:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+.tip{border-radius:10px;padding:12px 16px;margin:12px 0;font-size:16px}
+.tip.ok{background:var(--ok-soft);border-left:4px solid var(--ok)}
+.tip.warn{background:var(--warn-soft);border-left:4px solid var(--warn)}
+.tip.info{background:var(--info-soft);border-left:4px solid var(--info)}
+.tip b{display:block;margin-bottom:3px}
+.kbd{background:var(--ink);color:#fff;border-radius:6px;padding:2px 9px;font-size:14px;font-weight:600}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card b{color:var(--brand-dark)}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:15.5px}
+th{background:var(--brand-soft);color:var(--brand-dark);text-align:left;padding:9px 12px}
+td{border-bottom:1px solid var(--line);padding:9px 12px;vertical-align:top}
+@media(max-width:640px){section{padding:20px 16px}.hero h1{font-size:27px}table{font-size:14px}th,td{padding:7px 8px}}
+details{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:0;margin:9px 0;overflow:hidden}
+details summary{cursor:pointer;padding:12px 16px;font-weight:600;list-style:none;display:flex;align-items:center;gap:9px;transition:background .15s}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸";color:var(--brand);transition:transform .2s;font-size:13px}
+details[open] summary::before{transform:rotate(90deg)}
+details summary:hover{background:var(--brand-soft)}
+details .body{padding:2px 16px 14px}
+.top-link{position:fixed;bottom:22px;right:22px;background:var(--brand);color:#fff;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:20px;box-shadow:0 4px 14px rgba(218,28,37,.4);opacity:0;pointer-events:none;transition:opacity .3s;z-index:50}
+.top-link.show{opacity:1;pointer-events:auto}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="wrap">
+    <span class="badge">🎓 অ্যাডমিন ইউজার ম্যানুয়াল</span>
+    <h1>শিক্ষা২৪.কম — সম্পূর্ণ পরিচালনা গাইড</h1>
+    <p>ওয়েবসাইট ও অ্যাডমিন প্যানেলের প্রতিটি ফিচার, দৈনন্দিন কাজের ধারা, এবং আটকে গেলে সমাধান — সবকিছু এক জায়গায়, সহজ বাংলায়।</p>
+  </div>
+</div>
+
+<div class="wrap">
+<div class="layout">
+
+<nav class="toc" aria-label="বিষয়সূচি">
+  <h2>📖 বিষয়সূচি</h2>
+  <a href="#s1"><span class="ic">🔑</span>লগইন ও শুরু</a>
+  <a href="#s2"><span class="ic">🏠</span>অ্যাডমিন প্যানেল চেনা</a>
+  <a href="#s3"><span class="ic">📰</span>সংবাদ প্রকাশ (সম্পূর্ণ)</a>
+  <a href="#s4"><span class="ic">🖼️</span>ছবি ও মিডিয়া</a>
+  <a href="#s5"><span class="ic">🚨</span>ব্রেকিং নিউজ</a>
+  <a href="#s6"><span class="ic">✏️</span>সম্পাদনা ও বাতিল</a>
+  <a href="#s7"><span class="ic">📚</span>শিক্ষা বিভাগের ফিচার</a>
+  <a href="#s8"><span class="ic">⚡</span>লাইভ ব্লগ, পোল, কুইজ</a>
+  <a href="#s9"><span class="ic">💬</span>পাঠক ব্যবস্থাপনা</a>
+  <a href="#s10"><span class="ic">⚙️</span>সাইট সেটিংস</a>
+  <a href="#s11"><span class="ic">🌐</span>ওয়েবসাইটের পাতাসমূহ</a>
+  <a href="#s12"><span class="ic">👥</span>ইউজার ও ভূমিকা</a>
+  <a href="#s13"><span class="ic">📅</span>দৈনন্দিন রুটিন</a>
+  <a href="#s14"><span class="ic">🛠️</span>সমস্যা সমাধান</a>
+  <a href="#s15"><span class="ic">🔒</span>নিরাপত্তা</a>
+  <a href="#s16"><span class="ic">❓</span>প্রশ্ন ও উত্তর</a>
+</nav>
+
+<main>
+
+<!-- 1 -->
+<section id="s1">
+  <h2><span class="num">১</span>🔑 লগইন ও শুরু</h2>
+  <p><b>অ্যাডমিন প্যানেলের ঠিকানা:</b> <span class="kbd">cms.shikkha24.com/admin</span></p>
+  <ul class="steps">
+    <li>ব্রাউজারে উপরের ঠিকানাটি লিখুন।</li>
+    <li>আপনার <b>ইমেইল</b> ও <b>পাসওয়ার্ড</b> দিন।</li>
+    <li><b>Login</b> বোতামে ক্লিক করুন — ড্যাশবোর্ড খুলবে।</li>
+  </ul>
+  <div class="tip warn"><b>পাসওয়ার্ড ভুলে গেলে?</b> লগইন পাতায় <b>Forgot password?</b> লিংকে ক্লিক করুন → আপনার ইমেইল দিন → ইমেইলে পাসওয়ার্ড বদলানোর লিংক আসবে।</div>
+  <div class="tip info"><b>মনে রাখুন:</b> লগইন ২৪ ঘণ্টা পর্যন্ত থাকে। এরপর আবার লগইন করতে হবে। নিরাপত্তার জন্য কাজ শেষে <b>Log out</b> করে রাখুন।</div>
+</section>
+
+<!-- 2 -->
+<section id="s2">
+  <h2><span class="num">২</span>🏠 অ্যাডমিন প্যানেল চেনা</h2>
+  <p>লগইনের পর যা যা দেখবেন:</p>
+  <div class="grid2">
+    <div class="card"><b>📊 ড্যাশবোর্ড</b><p>আজকের কাজ, অপ্রকাশিত সংবাদ, ব্রেকিং নিউজ — সব এক নজরে।</p></div>
+    <div class="card"><b>📚 বাম পাশের মেনু</b><p>সব বিভাগ গ্রুপ করা আছে: সম্পাদকীয়, শিক্ষা, মিডিয়া, ইন্টারঅ্যাকটিভ, পাঠক, বিজ্ঞাপন, ট্যাক্সোনমি, প্রশাসন।</p></div>
+    <div class="card"><b>➕ New Article</b><p>উপরে ডানে — নতুন সংবাদ লেখা শুরু করার বোতাম।</p></div>
+    <div class="card"><b>🌐 Site</b><p>এক ক্লিকে লাইভ ওয়েবসাইট দেখা যায়।</p></div>
+  </div>
+  <h3>উপরের থিন লাইনে যা আছে (বাম থেকে ডানে)</h3>
+  <p><b>তারিখ</b> (বাংলা + ইংরেজি) · <b>ঢাকার তাপমাত্রা</b> · <b>পরবর্তী নামাজের সময়</b> (হোভার করলে সব ওয়াক্ত) · <b>এলাকা বাছাই</b> · <b>🔍 খোঁজ</b> · <b>আ ফন্ট সাইজ</b> · <b>🌙 থিম</b> · <b>সোশ্যাল আইকন</b></p>
+  <div class="tip ok"><b>দ্রুত খোঁজ:</b> উপরের 🔍 আইকনে ক্লিক করুন → লেখা টাইপ করুন → সাথে সাথে সাজেশন দেখাবে। নিচের তীর চিহ্নে ক্লিক করলে পূর্ণ সার্চ পাতায় যাবে।</div>
+</section>
+
+<!-- 3 -->
+<section id="s3">
+  <h2><span class="num">৩</span>📰 সংবাদ প্রকাশ (সম্পূর্ণ নিয়ম)</h2>
+  <h3>নতুন সংবাদ লেখা</h3>
+  <ul class="steps">
+    <li><b>New Article</b> বোতামে ক্লিক করুন।</li>
+    <li><b>Headline</b> — সংবাদের শিরোনাম (বাংলায়)।</li>
+    <li><b>Standfirst / excerpt</b> — ২–৩ লাইনের সারসংক্ষেপ। এটাই গুগল ও সোশ্যাল শেয়ারে দেখায়।</li>
+    <li><b>Body</b> — মূল সংবাদ লিখুন। টুলবার দিয়ে বোল্ড, হেডিং, লিংক ইত্যাদি করা যায়।</li>
+    <li><b>Key takeaways</b> — পাঠকের দ্রুত পড়ার জন্য ৩–৫টি মূল পয়েন্ট।</li>
+    <li><b>Media</b> ট্যাবে গিয়ে <b>Featured image</b> দিন (না দিলে ব্র্যান্ড প্লেট দেখাবে)।</li>
+    <li><b>Classification</b> ট্যাবে <b>Category</b> ও <b>Author</b> বাছুন — এগুলো বাধ্যতামূলক।</li>
+    <li>উপরের ডানে <b>Publish</b> বোতামে ক্লিক করুন।</li>
+  </ul>
+  <div class="tip ok"><b>প্রকাশের পর কী হয়?</b> সাথে সাথেই ওয়েবসাইট নতুন করে তৈরি হওয়া শুরু হয় — সাধারণত <b>৫ মিনিটের মধ্যে</b> সংবাদটি সাইটে দেখা যায়। ব্রেকিং নিউজ হলে আরও দ্রুত।</div>
+  <h3>সংবাদের ৪টি অবস্থা</h3>
+  <table>
+    <tr><th>অবস্থা</th><th>অর্থ</th><th>সাইটে দেখা যায়?</th></tr>
+    <tr><td><b>Draft</b></td><td>লেখা চলছে, প্রকাশিত হয়নি</td><td>না</td></tr>
+    <tr><td><b>Pending review</b></td><td>সম্পাদকের অনুমোদনের অপেক্ষায়</td><td>না</td></tr>
+    <tr><td><b>Approved</b></td><td>অনুমোদিত, প্রকাশের অপেক্ষায়</td><td>না</td></tr>
+    <tr><td><b>Published</b></td><td>লাইভ — সবাই দেখছে</td><td>হ্যাঁ</td></tr>
+  </table>
+  <div class="tip info"><b>ভার্সন (Versions):</b> প্রতিটি সংবাদের সব পরিবর্তন স্বয়ংক্রিয়ভাবে সংরক্ষিত থাকে। ভুল হলে <b>Versions</b> ট্যাব থেকে পুরনো অবস্থায় ফিরে যাওয়া যায়।</div>
+</section>
+
+<!-- 4 -->
+<section id="s4">
+  <h2><span class="num">৪</span>🖼️ ছবি ও মিডিয়া</h2>
+  <h3>ছবি আপলোড</h3>
+  <ul class="steps">
+    <li>বাম মেনু থেকে <b>Media library</b> খুলুন।</li>
+    <li><b>Create new</b> → ছবি বাছুন বা ড্র্যাগ করে ছাড়ুন।</li>
+    <li><b>Alt text</b> অবশ্যই লিখুন (বাংলায় ছবির বিবরণ — গুগল ও স্ক্রিন রিডারের জন্য জরুরি)।</li>
+    <li>Save করুন — ছবি স্বয়ংক্রিয়ভাবে নিরাপদ জায়গায় জমা হবে।</li>
+  </ul>
+  <div class="tip ok"><b>নিয়ম:</b> JPEG/PNG/WebP ছবি, সর্বোচ্চ ১৫ MB। প্রতিদিনের আপলোড সীমা আছে — বেশি ছবি একদিনে দিতে চাইলে ভাগ করে দিন।</div>
+  <h3>মিডিয়া লাইব্রেরি ব্যবহার</h3>
+  <p>সব ছবি <b>বড় কার্ড</b> আকারে দেখানো হয় — থাম্বনেইল, ফাইলের নাম ও মাপসহ। 🔍 দিয়ে খোঁজা যায়, Filters দিয়ে ছাঁকা যায়। ছবিতে ক্লিক করলে বিস্তারিত খুলবে — সেখান থেকে সংবাদে ব্যবহার করা যায়।</div>
+  <h3>সংবাদে ছবি না থাকলে?</h3>
+  <p>উদ্বেগ নেই — সাইট স্বয়ংক্রিয়ভাবে একটি <b>ব্র্যান্ড থাম্বনেইল</b> দেখায় (লোগো + সাইটের নাম, লাল আভাসহ)। পরে ছবি দিলে স্বয়ংক্রিয়ভাবে বদলে যাবে।</div>
+</section>
+
+<!-- 5 -->
+<section id="s5">
+  <h2><span class="num">৫</span>🚨 ব্রেকিং নিউজ</h2>
+  <ul class="steps">
+    <li>সংবাদ লেখা শেষ করে <b>Classification</b> ট্যাবে যান।</li>
+    <li><b>Breaking news</b> চালু করুন (টগল করুন)।</li>
+    <li>Publish করুন — সাইটের উপরে লাল <b>ব্রেকিং</b> স্ট্রিপে সংবাদটি সাথে সাথে চলে আসবে।</li>
+  </ul>
+  <div class="tip warn"><b>সতর্কতা:</b> ব্রেকিং শুধু সত্যিই জরুরি সংবাদের জন্য। সাধারণ সংবাদে ব্রেকিং চালু করবেন না — পাঠকের আস্থা নষ্ট হয়।</div>
+</section>
+
+<!-- 6 -->
+<section id="s6">
+  <h2><span class="num">৬</span>✏️ সম্পাদনা, সংশোধন ও বাতিল</h2>
+  <h3>প্রকাশিত সংবাদ সম্পাদনা</h3>
+  <ul class="steps">
+    <li>Articles তালিকা থেকে সংবাদটি খুলুন।</li>
+    <li>পরিবর্তন করে <b>Publish changes</b> চাপুন — সাইটে সাথে সাথে হালনাগাদ হবে।</li>
+  </ul>
+  <h3>সংবাদ সরিয়ে ফেলা (Unpublish)</h3>
+  <p>সংবাদ খুলে উপরের <b>⋯ (তিন বিন্দু)</b> মেনু → <b>Unpublish</b> — সংবাদটি সাইট থেকে সরে যাবে কিন্তু মুছবে না (Draft হয়ে থাকবে)।</p>
+  <h3>সংবাদ মুছে ফেলা</h3>
+  <p><b>⋯</b> মেনু → <b>Delete</b>। <span style="color:var(--brand)"><b>সাবধান:</b> মুছলে ফেরানো যায় না</span> — নিশ্চিত হয়েই করুন। প্রয়োজন না হলে Delete না করে Unpublish করুন।</p>
+</section>
+
+<!-- 7 -->
+<section id="s7">
+  <h2><span class="num">৭</span>📚 শিক্ষা বিভাগের ফিচার</h2>
+  <details><summary>🎓 Scholarship — বৃত্তি সংবাদ</summary><div class="body"><p>বৃত্তির নাম, শিক্ষাপ্রতিষ্ঠান, শেষ তারিখ, আবেদনের নিয়ম লিখুন। শেষ তারিখ দিলে সাইটের ডেডলাইন পাতায়ও দেখাবে।</p></div></details>
+  <details><summary>📢 Circular — প্রজ্ঞাপন / বিজ্ঞপ্তি</summary><div class="body"><p>সরকারি প্রজ্ঞাপন, বিজ্ঞপ্তি — ছবি/পিডিএফ সংযুক্ত করে প্রকাশ করুন।</p></div></details>
+  <details><summary>⏰ Deadlines & Events — গুরুত্বপূর্ণ তারিখ</summary><div class="body"><p>ফরম পূরণের শেষ তারিখ, পরীক্ষার তারিখ ইত্যাদি। সাইটের ডেডলাইন পাতায় তালিকাভুক্ত হবে।</p></div></details>
+  <details><summary>🏫 Institutions — প্রতিষ্ঠানের প্রোফাইল</summary><div class="body"><p>বিশ্ববিদ্যালয়/স্কুলের নাম, ঠিকানা, ওয়েবসাইট, বিভাগ, ভর্তি তথ্য — বিস্তারিত প্রোফাইল পাতা তৈরি হয়।</p></div></details>
+  <details><summary>🔗 Result links — ফলাফলের লিংক</summary><div class="body"><p>ফলাফল দেখার সরকারি ওয়েবসাইটের লিংক দিন — ফলাফল পাতায় দেখাবে।</p></div></details>
+  <details><summary>🌍 Study-abroad guides — বিদেশে পড়া</summary><div class="body"><p>দেশ, বৃত্তি, ভিসা প্রক্রিয়া — গাইড আকারে প্রকাশ করুন।</p></div></details>
+  <details><summary>❓ FAQs — সাধারণ প্রশ্ন</summary><div class="body"><p>প্রশ্ন ও উত্তর জোড়া করে দিন — FAQ পাতায় দেখাবে।</p></div></details>
+</section>
+
+<!-- 8 -->
+<section id="s8">
+  <h2><span class="num">৮</span>⚡ লাইভ ব্লগ, পোল ও কুইজ</h2>
+  <details><summary>🟢 Live blog — লাইভ আপডেট</summary><div class="body"><p>চলমান ঘটনা (ফলাফল, সভা) ধারাবাহিক আপডেটে দেখান। প্রতিটি এন্ট্রি সময়সহ যোগ করুন — পাঠক রিলোড ছাড়াই নতুন আপডেট দেখতে পাবেন।</p></div></details>
+  <details><summary>📊 Poll — পাঠকের ভোট</summary><div class="body"><p>প্রশ্ন ও ২–৪টি অপশন দিন। পাঠক ভোট দিলে ফলাফল বার চার্টে দেখাবে। একই পাঠক বারবার ভোট দিতে পারবে না (স্বয়ংক্রিয় নিয়ন্ত্রণ আছে)।</p></div></details>
+  <details><summary>🧠 Quiz — কুইজ</summary><div class="body"><p>প্রশ্ন, অপশন ও সঠিক উত্তর দিন — পাঠক স্কোরসহ ফলাফল দেখবে।</p></div></details>
+  <details><summary>🎥 Live stream — সরাসরি সম্প্রচার</summary><div class="body"><p>ইউটিউব/ফেসবুক লাইভের লিংক দিন — হোমপেজে লাইভ ব্যাজসহ দেখাবে। শেষ হলে বন্ধ করে দিন।</p></div></details>
+</section>
+
+<!-- 9 -->
+<section id="s9">
+  <h2><span class="num">৯</span>💬 পাঠক ব্যবস্থাপনা</h2>
+  <details><summary>💬 Comments — মন্তব্য অনুমোদন</summary><div class="body"><p>নতুন মন্তব্য <b>Pending</b> অবস্থায় আসে। পড়ে <b>Publish</b> করলে দেখাবে; আপত্তিকর হলে <b>Delete</b> করুন। কোনো মন্তব্য অনুমোদন ছাড়া সাইটে যায় না।</p></div></details>
+  <details><summary>📨 Citizen submissions — পাঠকের পাঠানো খবর</summary><div class="body"><p>পাঠক খবর/তথ্য পাঠালে এখানে আসে। যাচাই করে সংবাদ বানাতে পারেন।</p></div></details>
+  <details><summary>📬 Newsletter — ইমেইল গ্রাহক ও ক্যাম্পেইন</summary><div class="body"><p><b>Subscribers:</b> নিউজলেটারের গ্রাহক তালিকা। <b>Campaigns:</b> ইমেইল ক্যাম্পেইন তৈরি ও পাঠানো — সাবধানে, নিশ্চিত হয়ে পাঠান।</p></div></details>
+  <details><summary>🔔 Push subscriptions — নোটিফিকেশন</summary><div class="body"><p>কোন পাঠক নোটিফিকেশন চালু রেখেছে তার তালিকা। ব্রেকিং নিউজে নোটিফিকেশন যায়।</p></div></details>
+  <details><summary>🔖 Bookmarks / Saved deadlines — পাঠকের সংরক্ষণ</summary><div class="body"><p>পাঠকেরা নিজের পছন্দের সংবাদ ও ডেডলাইন সেভ করতে পারেন — এগুলোর তথ্য।</p></div></details>
+  <details><summary>👍 Reactions — প্রতিক্রিয়া</summary><div class="body"><p>পাঠকেরা সংবাদে প্রতিক্রিয়া জানালে তার হিসাব।</p></div></details>
+</section>
+
+<!-- 10 -->
+<section id="s10">
+  <h2><span class="num">১০</span>⚙️ সাইট সেটিংস — একবার বদলালে সব জায়গায়</h2>
+  <p>বাম মেনুর নিচে <b>⚙️ Site settings</b> — এখানের পরিবর্তন পুরো সাইটে স্বয়ংক্রিয়ভাবে বসে যায়:</p>
+  <table>
+    <tr><th>সেটিংস</th><th>কোথায় দেখায়</th></tr>
+    <tr><td><b>সাইটের নাম</b></td><td>হেডার, ফুটার, ব্রাউজার ট্যাব, শেয়ার কার্ড</td></tr>
+    <tr><td><b>লোগো ও ফেভিকন</b></td><td>হেডার, ব্রাউজার ট্যাব, ছবি ছাড়া সংবাদের থাম্বনেইল</td></tr>
+    <tr><td><b>যোগাযোগ</b> (ইমেইল, ফোন, ঠিকানা)</td><td>Contact পাতা ও ফুটার</td></tr>
+    <tr><td><b>সোশ্যাল লিংক</b> (ফেসবুক, ইউটিউব...)</td><td>হেডার, ফুটার — অফিসিয়াল রংসহ</td></tr>
+    <tr><td><b>আইনি তথ্য</b> (মালিকানা, টিআইএন, নিবন্ধন)</td><td>About পাতা ও ফুটার</td></tr>
+  </table>
+  <div class="tip ok"><b>মনে রাখুন:</b> সেটিংস বদলানোর পর সাইট স্বয়ংক্রিয়ভাবে নতুন করে তৈরি হবে — কয়েক মিনিট অপেক্ষা করুন।</div>
+</section>
+
+<!-- 11 -->
+<section id="s11">
+  <h2><span class="num">১১</span>🌐 ওয়েবসাইটের পাতাসমূহ (পাঠক যা দেখে)</h2>
+  <div class="grid2">
+    <div class="card"><b>🏠 হোমপেজ</b><p>ব্রেকিং, নতুন সংবাদ, বিভাগভিত্তিক খবর।</p></div>
+    <div class="card"><b>📰 সংবাদ পাতা</b><p>শিরোনাম, ছবি, মূল লেখা, মূল বিষয়, শেয়ার বোতাম।</p></div>
+    <div class="card"><b>🗂️ বিভাগ পাতা</b><p>প্রতিটি বিভাগের (ভর্তি, ফলাফল...) সব সংবাদ।</p></div>
+    <div class="card"><b>🔍 খোঁজ</b><p>যেকোনো শব্দে সংবাদ খোঁজা — সাজেশনসহ।</p></div>
+    <div class="card"><b>📅 ডেডলাইন পাতা</b><p>ফরম, পরীক্ষা, বৃত্তির তারিখ — এক জায়গায়।</p></div>
+    <div class="card"><b>🎓 বৃত্তি / ভর্তি / ফলাফল পাতা</b><p>বিভাগভিত্তিক বিশেষ তালিকা।</p></div>
+    <div class="card"><b>🖼️ গ্যালারি ও ভিডিও</b><p>ছবির গ্যালারি ও লাইভ স্ট্রিম।</p></div>
+    <div class="card"><b>ℹ️ About / Contact / FAQ</b><p>সাইটের তথ্য, যোগাযোগ, প্রশ্নোত্তর।</p></div>
+  </div>
+  <div class="tip info"><b>শেয়ার:</b> প্রতিটি সংবাদের নিচে হোয়াটসঅ্যাপ, ফেসবুক, কপি লিংক বোতাম আছে — পাঠক সরাসরি শেয়ার করতে পারবেন।</div>
+</section>
+
+<!-- 12 -->
+<section id="s12">
+  <h2><span class="num">১২</span>👥 ইউজার ও ভূমিকা</h2>
+  <p>প্রত্যেক কর্মীর আলাদা লগইন ও ভূমিকা থাকে — ভূমিকা অনুযায়ী প্যানেলে ভিন্ন অনুমতি দেখায়:</p>
+  <table>
+    <tr><th>ভূমিকা</th><th>কী করতে পারে</th></tr>
+    <tr><td><b>প্রতিবেদক</b></td><td>সংবাদ লেখা, রিভিউতে পাঠানো (প্রকাশ করতে পারে না)</td></tr>
+    <tr><td><b>বিভাগীয় সম্পাদক</b></td><td>সংবাদ সম্পাদনা ও অনুমোদন</td></tr>
+    <tr><td><b>প্রধান সম্পাদক</b></td><td>সব সম্পাদনা, প্রকাশ, ব্রেকিং চালু</td></tr>
+    <tr><td><b>বিজ্ঞাপন ব্যবস্থাপক</b></td><td>বিজ্ঞাপন স্লট ব্যবস্থাপনা</td></tr>
+    <tr><td><b>সুপার অ্যাডমিন</b></td><td>সবকিছু — ইউজার তৈরি, সেটিংস, মুছে ফেলা</td></tr>
+  </table>
+  <div class="tip warn"><b>নতুন কর্মী যোগ করতে:</b> Users → Create new → নাম, ইমেইল, ভূমিকা দিন। প্রথম লগইনে Forgot password দিয়ে পাসওয়ার্ড সেট হবে। ভূমিকা সাবধানে দিন — সবাইকে Super Admin দেবেন না।</div>
+</section>
+
+<!-- 13 -->
+<section id="s13">
+  <h2><span class="num">১৩</span>📅 দৈনন্দিন রুটিন</h2>
+  <h3>সকালে</h3>
+  <ul class="steps">
+    <li>লগইন করে ড্যাশবোর্ড দেখুন — নতুন মন্তব্য বা পাঠকের খবর আছে কি না।</li>
+    <li>গতকালের প্রকাশিত সংবাদগুলো সাইটে ঠিকভাবে দেখা যাচ্ছে কি না দেখুন (Site বোতাম)।</li>
+    <li>আজকের গুরুত্বপূর্ণ খবর প্রকাশ করুন।</li>
+  </ul>
+  <h3>সারাদিন</h3>
+  <ul class="steps">
+    <li>নতুন সংবাদ লিখে প্রকাশ করুন — ছবি সহ দিতে ভুলবেন না।</li>
+    <li>নতুন মন্তব্য অনুমোদন করুন।</li>
+    <li>ডেডলাইন/বৃত্তির তথ্য হালনাগাদ রাখুন।</li>
+  </ul>
+  <h3>সন্ধ্যায়</h3>
+  <ul class="steps">
+    <li>দিনের সব প্রকাশিত সংবাদ একবার সাইটে দেখে নিন।</li>
+    <li>ব্রেকিং চালু থাকলে প্রয়োজন শেষে বন্ধ করুন।</li>
+    <li>Log out করুন।</li>
+  </ul>
+</section>
+
+<!-- 14 -->
+<section id="s14">
+  <h2><span class="num">১৪</span>🛠️ সমস্যা সমাধান</h2>
+  <details open><summary>❓ প্রকাশ করেছি কিন্তু সাইটে দেখাচ্ছে না</summary><div class="body"><p>১) সংবাদটি <b>Published</b> অবস্থায় আছে কি না দেখুন (Draft হলে Publish চাপুন)। ২) <b>৫–১০ মিনিট</b> অপেক্ষা করুন — সাইট নতুন করে তৈরি হয়। ৩) ব্রাউজারে <b>রিফ্রেশ</b> করুন (Ctrl+Shift+R)। ৪) তাও না দেখালে ডেভেলপারকে জানান।</p></div></details>
+  <details><summary>❓ ছবি আপলোড হচ্ছে না</summary><div class="body"><p>ফাইলটি JPEG/PNG/WebP কি না দেখুন (PDF/Word চলবে না)। সাইজ ১৫ MB-এর নিচে কি না দেখুন। আজকের আপলোড সীমা শেষ হয়ে থাকলে কাল আবার চেষ্টা করুন বা ডেভেলপারকে জানান।</p></div></details>
+  <details><summary>❓ লগইন হচ্ছে না</summary><div class="body"><p>ইমেইলের বানান দেখুন। Forgot password দিয়ে নতুন পাসওয়ার্ড নিন। একাধিকবার ভুল দিলে অ্যাকাউন্ট কিছুক্ষণের জন্য লক হয় — ১৫ মিনিট পর চেষ্টা করুন।</p></div></details>
+  <details><summary>❓ শেয়ার করলে ছবি/শিরোনাম ঠিক দেখাচ্ছে না</summary><div class="body"><p>সোশ্যাল প্ল্যাটফর্ম (ফেসবুক/হোয়াটসঅ্যাপ) পুরনো ছবি কয়েক দিন ধরে ক্যাশে রাখে। নতুন করে দেখতে চাইলে Facebook Sharing Debugger ব্যবহার করুন, বা কয়েক ঘণ্টা পর আবার শেয়ার করুন।</p></div></details>
+  <details><summary>❓ ভুল করে সংবাদ মুছে ফেলেছি</summary><div class="body"><p>Versions-এ আগের অবস্থা থাকে, কিন্তু Delete করলে সংবাদটি পুরোপুরি যায়। এমন হলে <b>সাথে সাথে ডেভেলপারকে জানান</b> — ব্যাকআপ থেকে ফেরানো সম্ভব হতে পারে।</p></div></details>
+  <details><summary>❓ সাইট খুলছে না / খুব ধীর</summary><div class="body"><p>১) ইন্টারনেট সংযোগ দেখুন। ২) অন্য ব্রাউজারে চেষ্টা করুন। ৩) সব পাতায় সমস্যা হলে ডেভেলপারকে জানান — সাধারণত কয়েক মিনিটে ঠিক হয়ে যায়।</p></div></details>
+  <details><summary>❓ ফোনে সাইট ঠিক দেখাচ্ছে না</summary><div class="body"><p>সাইট মোবাইলের জন্য পুরোপুরি বানানো। ব্রাউজার ক্যাশ পরিষ্কার করুন (Settings → Clear browsing data) এবং রিফ্রেশ দিন।</p></div></details>
+</section>
+
+<!-- 15 -->
+<section id="s15">
+  <h2><span class="num">১৫</span>🔒 নিরাপত্তা — খুব জরুরি</h2>
+  <div class="tip warn"><b>পাসওয়ার্ড কখনো শেয়ার করবেন না</b> — এমনকি সহকর্মীকেও। প্রত্যেকের নিজের লগইন থাকবে, কেউ চলে গেলে তার অ্যাকাউন্ট বন্ধ করে দেওয়া হবে।</div>
+  <ul class="steps">
+    <li><b>শক্তিশালী পাসওয়ার্ড</b> ব্যবহার করুন — অন্তত ১২ অক্ষর, বড় হাতের + ছোট + সংখ্যা + চিহ্ন।</li>
+    <li><b>অজানা লিংকে ক্লিক করবেন না</b> — "আপনার পাসওয়ার্ড শেষ হচ্ছে" জাতীয় ইমেইল প্রতারণা হতে পারে। শুধু cms.shikkha24.com থেকেই লগইন করুন।</li>
+    <li><b>পাবলিক কম্পিউটারে</b> লগইন করলে অবশ্যই Log out করে রাখুন।</li>
+    <li><b>সন্দেহজনক কিছু দেখলে</b> (অচেনা লগইন, নিজে না করা পরিবর্তন) সাথে সাথে ডেভেলপারকে জানান।</li>
+  </ul>
+</section>
+
+<!-- 16 -->
+<section id="s16">
+  <h2><span class="num">১৬</span>❓ প্রশ্ন ও উত্তর</h2>
+  <details><summary>সংবাদে ইউটিউব ভিডিও যোগ করব কীভাবে?</summary><div class="body"><p>Body-তে Video block যোগ করুন → ইউটিউব লিংক পেস্ট করুন। ভিডিও সরাসরি এমবেড হবে (CSP অনুমোদিত ডোমেইনেই সীমাবদ্ধ)।</p></div></details>
+  <details><summary>একই সংবাদ দুই বিভাগে দেখাতে চাই?</summary><div class="body"><p>Classification-এ মূল Category একটাই থাকে; Tags ব্যবহার করুন — ট্যাগ পাতায়ও সংবাদটি দেখাবে।</p></div></details>
+  <details><summary>সংবাদের ভেতরে অন্য সংবাদের লিংক দেব কীভাবে?</summary><div class="body"><p>Body-তে শব্দ সিলেক্ট করে 🔗 লিংক বোতাম → URL দিন। ভেতরের লিংক সাইটের নিজের হলে পূর্ণ ঠিকানা দিন (https://shikkha24.com/...)।</p></div></details>
+  <details><summary>পুরনো সংবাদ গুগল থেকে সরাতে চাই?</summary><div class="body"><p>Unpublish করলে সাইট থেকে সরে যাবে; গুগল কয়েকদিনে নিজেই হালনাগাদ করে। জরুরি হলে ডেভেলপারকে জানান।</p></div></details>
+  <details><summary>নিজের পাসওয়ার্ড বদলাব কীভাবে?</summary><div class="body"><p>উপরের ডানে নিজের প্রোফাইল আইকন → Account → নতুন পাসওয়ার্ড দিন।</p></div></details>
+  <details><summary>মোবাইল থেকেও কি অ্যাডমিনে ঢুকতে পারব?</summary><div class="body"><p>হ্যাঁ — যেকোনো ফোন ব্রাউজারে cms.shikkha24.com/admin খুললেই চলবে। প্যানেল মোবাইলের জন্যও বানানো।</p></div></details>
+</section>
+
+</main>
+</div>
+</div>
+
+<a href="#" class="top-link" id="topLink" aria-label="উপরে যান">↑</a>
+
+<script>
+// Reveal on scroll
+const io = new IntersectionObserver((es) => {
+  es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+}, { threshold: 0.06 });
+document.querySelectorAll('section').forEach((s) => io.observe(s));
+
+// Back-to-top
+const tl = document.getElementById('topLink');
+window.addEventListener('scroll', () => {
+  tl.classList.toggle('show', window.scrollY > 500);
+}, { passive: true });
+</script>
+
+</body>
+</html>

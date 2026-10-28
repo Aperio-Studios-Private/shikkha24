@@ -5631,3 +5631,21 @@ English date and day name.'
   Gregorian visible (screenshot). Earlier confusion was a stale tab at desktop
   width + a pre-deploy load.
 
+### ✅ COMPREHENSIVE ADMIN MANUAL (Bangla, HTML) shipped (2026-10-28)
+
+Owner request: complete admin user manual in simple Bangla, HTML format, mobile+desktop
+compatible, highly animated, covering EVERYTHING (storefront + CMS), no technical details.
+
+- docs/admin-manual-bn.html — single self-contained file (40 KB, no external deps,
+  works offline from anywhere).
+- 16 sections: login, panel tour, full article publishing (4 states table), media library,
+  breaking news, edit/unpublish/delete, all 7 education features, live blog/poll/quiz/
+  live stream, all 8 reader-management surfaces, site settings table, storefront pages,
+  5 roles table, daily routine (morning/day/evening), 7 troubleshooting entries, security,
+  FAQ. Every one of the 34 collections' groups covered.
+- Animations: scroll-reveal sections, animated step counters, hover states, details
+  accordions, back-to-top button. Mobile: single column, sticky TOC becomes static.
+- Verified in the browser at 1280px and 390px (screenshots): TOC anchors all resolve,
+  content coverage checked against the collection inventory programmatically.
+- Copies: docs/ (repo) + owner's Desktop.
+
