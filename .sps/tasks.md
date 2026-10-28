@@ -5597,3 +5597,24 @@ Owner: 'improve the design more on all three sizes.'
 - Verified in the browser at hero + small sizes; deployed through the CI-gated
   Actions path (success); live homepage serves the refined plate.
 
+### ✅ TOPBAR UX FIXES shipped (2026-10-28, commit 6c41fbf)
+
+Owner feedback, five items, all shipped and verified live:
+
+1. **Date display**: Gregorian date now PERMANENTLY visible; Bangla + Hijri take turns in
+   a flipping slot beside it (2.5s hold, slide out/in). One line always.
+2. **Icons**: amber sun for weather, brand-red crescent for prayer — recognition without
+   reading.
+3. **Spacing**: ribbon py-1.5→py-2, gaps 3→4 — even rhythm.
+4. **Search bug FIXED + root-caused**: the overlay opened at top:800px OFF-SCREEN — the
+   header lacked position:relative, so the absolutely positioned overlay anchored to the
+   body. Clicks 'did nothing' because the form was below the fold. One class
+   (relative on header) fixed it; verified the overlay now opens directly below the
+   topbar (top:141px, in viewport).
+5. **Resizer icon**: the আ▾ pair read as a language switcher. New icon: big-A + small-a
+   pair with a brand-red step badge (১/২/৩) showing the current size — unmistakably a
+   text-size control.
+
+Live verification: all five present in the shipped HTML (flip slots, icons, py-2,
+relative header, cycle button + step badge); site 200.
+
