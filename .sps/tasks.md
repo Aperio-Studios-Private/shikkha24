@@ -5676,3 +5676,51 @@ sitemaps in GSC; (2) exclude demo articles from sitemap + news-sitemap (filter b
 flag or delete demo posts after owner confirms); (3) IndexNow ping on publish (wired via
 the existing key); (4) GSC coverage monitoring after 2 weeks.
 
+
+### ✅ DEMO ARTICLES DELETED PERMANENTLY (2026-10-28, live-verified)
+
+Owner: "for the demo reports delete them permanent."
+
+- The 5 demo posts (post-vkcnas, post-ujepgq, post-n2fili, post-smjggc,
+  post-i5fhyg — ids 1,2,3,11,12) deleted from the NEW Neon project
+  (lucky-forest-26905704) via a full child-table cascade: reactions (1),
+  articles_photo_story (1), then the articles rows. Earlier attempt had
+  errored on the reactions NOT NULL constraint; version tables use
+  `_parent_id`, not `parent_id`/`article_id` (the first script's skip).
+- Verified in DB: 7 articles remain (weekly-digest + 6 real news, all
+  published), 0 orphan reactions/versions for the deleted ids.
+- Storefront rebuilt via `repository_dispatch: rebuild` (run 40737613429,
+  3m22s success). Live-verified: sitemap.xml and news-sitemap.xml contain
+  ZERO demo slugs; a demo article URL returns 404.
+- Note: ids 11,12 existed only in the NEW Neon — the "10 articles" seen
+  earlier was the OLD project (ep-autumn-silence), which .env.local still
+  points at. Old project deletion is still pending (owner data).
+
+### ✅ CANONICAL-HOST 301 + STALE-ID REDIRECTS shipped (2026-10-28, commit d99f4f1)
+
+GSC evidence (2026-10-28 export): 12 http:// URLs with impressions
+(duplicate-protocol indexing from the DianaHost era — http:// answered 200)
+and 4 old-ID article URLs 404ing (the T-18 renumber moved slugs to new ids,
+e.g. admission-policy-2027: id 23 → 10).
+
+- Canonical host: http:// and www. now 301 to https://shikkha24.com.
+  Workers: `needsCanonicalHost()` in worker/redirects.ts, before any asset
+  fetch, workers.dev previews exempt (deploy probe must survive). Apache
+  parity: two RewriteRules in .htaccess keyed on %{HTTPS} +
+  %{HTTP:X-Forwarded-Proto} (TLS-terminated-upstream traffic must not
+  redirect; query string survives). Learned: `%{X-Forwarded-Proto}` alone
+  expands empty — the `HTTP:` prefix is required for arbitrary headers.
+- Stale-ID articles: build emits `redirects.json` (slug → canonical path,
+  same getAllArticlePaths call as sitemap.xml so they can never disagree);
+  the Worker consults it on article-shaped 404s (`/:cat/:digits/:slug`) and
+  301s to the canonical path. Unknown slug = real 404, no loops.
+- Harness: verify:cloudflare section 6 (12 checks + negative controls,
+  100/100 total); verify:apache +5 redirect checks (plain http, forged
+  X-Forwarded-Proto, www, canonical-apex 200, query-string survival) — run
+  against a real httpd. verify:apache also now URL-encodes route paths
+  (the Bengali-slug institution directory crashed Node's http client).
+- Thin-build floor 9→7 in verify-build-output.mjs: the real article count
+  after the demo deletion; the deploy path is unaffected (it compares
+  against the CMS's own count).
+- ALL GATES GREEN before push: typecheck, lint, build, verify-build-output
+  (48 PASS), verify:apache (all, real httpd), verify:cloudflare (100/100).
