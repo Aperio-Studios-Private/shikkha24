@@ -5585,3 +5585,15 @@ sizes and lost at large ones; proposed design = logo on top, text below.
   wordmark, readable), stacked 382px card (≈60px), article hero 790px (88px).
 - Deployed through the CI-gated Actions path (success); live homepage serves the new plate.
 
+### ✅ PLACEHOLDER REFINEMENT shipped (2026-10-28, commit ca4cdc3)
+
+Owner: 'improve the design more on all three sizes.'
+
+- Soft brand-red gradient plate (white → 6% red) replaces the stark white box.
+- Oversized faint logo watermark (85% width, 6% opacity) adds depth behind the
+  readable mark.
+- Readable logo enlarged at every size (max-height 1.35×, drop shadow).
+- Wordmark keeps the container-query scaling (15/60/88px at the three sizes).
+- Verified in the browser at hero + small sizes; deployed through the CI-gated
+  Actions path (success); live homepage serves the refined plate.
+
