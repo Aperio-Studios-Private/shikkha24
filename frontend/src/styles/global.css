@@ -370,3 +370,11 @@
 .social-brand:hover {
   color: var(--brand, currentColor);
 }
+
+/* Safe-area clearance for the fixed mobile share bar (MobileShareBar) —
+   iPhone home-indicator overlap included. */
+@media (max-width: 639px) {
+  footer[class*="pb-20"] {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+}

@@ -57,7 +57,7 @@ const divisions = [...byDivision.entries()].sort((a, b) => a[0].localeCompare(b[
         type="button"
         data-level-filter=""
         aria-pressed="true"
-        class="level-pill shrink-0 rounded-full border border-brand-red bg-brand-red px-3 py-1.5 text-sm font-medium text-white transition-colors"
+        class="level-pill inline-flex min-h-11 shrink-0 items-center rounded-full border border-brand-red bg-brand-red px-3 py-1.5 text-sm font-medium text-white transition-colors"
       >
         সব স্তর
       </button>
@@ -67,7 +67,7 @@ const divisions = [...byDivision.entries()].sort((a, b) => a[0].localeCompare(b[
             type="button"
             data-level-filter={level.slug}
             aria-pressed="false"
-            class="level-pill shrink-0 rounded-full border border-rule px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
+            class="level-pill inline-flex min-h-11 shrink-0 items-center rounded-full border border-rule px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink dark:hover:border-brand-red dark:hover:text-brand-red"
           >
             {level.nameBn}
           </button>

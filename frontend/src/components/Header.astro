@@ -56,6 +56,12 @@ const now = new Date()
 const banglaDate = formatBanglaDate(now)
 const gregorianDate = formatBnBd(now, { year: 'numeric', month: 'long', day: 'numeric' })
 const hijriDate = formatHijriDate(now)
+// Weekday for the permanent slot — formatBanglaDate begins with it, so reuse
+// the same source instead of a second formatter that could disagree.
+const weekdayBn = banglaDate.split(',')[0] ?? ''
+// The flip slot shows the Bangla CALENDAR date (no weekday — the weekday lives
+// in the permanent slot, so it never repeats).
+const banglaCalendar = banglaDate.split(',').slice(1).join(',').trim()
 ---
 
 <header class="relative border-b border-rule bg-surface dark:border-dark-rule dark:bg-dark-base">
@@ -69,12 +75,19 @@ const hijriDate = formatHijriDate(now)
         <time
           id="masthead-date"
           datetime={now.toISOString()}
-          class="font-ui inline-flex h-5 items-center overflow-hidden align-middle"
+          class="font-ui inline-flex h-5 items-center align-middle"
         >
-          <span class="whitespace-nowrap text-ink dark:text-dark-ink">{gregorianDate}</span>
-          <span class="relative mx-1 inline-block h-5 w-40 overflow-hidden align-middle">
-            <span class="date-flip block" data-slot="0">{banglaDate}</span>
-            <span class="date-flip block" data-slot="1" hidden>{hijriDate}</span>
+          <span class="whitespace-nowrap text-ink dark:text-dark-ink">
+            {weekdayBn}, {gregorianDate}
+          </span>
+          {/* Flip slot: width = the LONGER of the two strings (measured server-
+              side via ch), so the longest Hijri month name never truncates. */}
+          <span
+            class="relative mx-1 inline-block h-5 overflow-hidden align-middle"
+            style={`width:${Math.max(banglaDate.length, hijriDate.length)}ch`}
+          >
+            <span class="date-flip absolute inset-0 block whitespace-nowrap" data-slot="0">{banglaCalendar}</span>
+            <span class="date-flip absolute inset-0 block whitespace-nowrap" data-slot="1" hidden>{hijriDate}</span>
           </span>
         </time>
 
@@ -260,8 +273,21 @@ const hijriDate = formatHijriDate(now)
         </button>
       </div>
 
-      <div class="px-4 py-3">
+      <div class="flex items-center justify-between gap-2 px-4 py-3">
         <TextResizer />
+        {/* Search row in the drawer (mobile audit M3): a drawer user should
+            not have to close the menu to search. Links to /search — simple,
+            works without JS. */}
+        <a
+          href="/search"
+          class="inline-flex min-h-11 items-center gap-2 rounded-md border border-rule px-3 text-sm font-medium text-ink hover:border-brand-red hover:text-brand-red dark:border-dark-rule dark:text-dark-ink"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+          খবর খুঁজুন
+        </a>
       </div>
 
       <ul class="border-t border-rule px-4 py-2 dark:border-dark-rule">
@@ -455,6 +481,24 @@ const hijriDate = formatHijriDate(now)
       list.removeAttribute('hidden');
     };
 
+    // Pagefind is loaded by INJECTING a script tag, not a dynamic import.
+    // Astro's build wraps dynamic imports in its own importModule helper,
+    // which cannot load the post-build /pagefind asset (the production
+    // suggestion regression). A script tag is bundler-invisible and matches
+    // the proven /search pattern.
+    let pagefindPromise: Promise<any> | null = null;
+    const loadPagefind = (): Promise<any> => {
+      if (pagefindPromise) return pagefindPromise;
+      pagefindPromise = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = '/pagefind/pagefind.js';
+        s.onload = () => resolve((window as any).pagefind);
+        s.onerror = () => reject(new Error('pagefind failed to load'));
+        document.head.appendChild(s);
+      });
+      return pagefindPromise;
+    };
+
     const renderSuggestions = async (q: string) => {
       if (!list) return;
       if (q.trim().length < 2) {
@@ -462,7 +506,7 @@ const hijriDate = formatHijriDate(now)
         return;
       }
       try {
-        const pf = await import(/* @vite-ignore */ `${window.location.origin}/pagefind/pagefind.js`);
+        const pf = await loadPagefind();
         const search = await pf.debouncedSearch(q, {}, 500);
         const results = (search?.results ?? []).slice(0, 5);
         if (results.length === 0) {

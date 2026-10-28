@@ -260,10 +260,10 @@ const siteJsonLd = {
     {
       small.length > 0 && (
         <section class="mb-6 border-b border-rule pb-6 dark:border-dark-rule">
-          <ul class="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 lg:grid-cols-5">
+          <ul class="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-3 lg:grid-cols-5">
             {small.map((article) => (
               <li>
-                <a href={articleUrl(article)} class="group block no-underline">
+                <a href={articleUrl(article)} class="group flex min-h-11 items-center border-b border-rule/60 py-2 no-underline sm:min-h-0 sm:border-0 sm:py-0 sm:block">
                   <h3 class="font-headline line-clamp-3 text-sm font-medium text-ink transition-colors group-hover:text-brand-red dark:text-dark-ink dark:group-hover:text-brand-red">
                     {article.title}
                   </h3>
