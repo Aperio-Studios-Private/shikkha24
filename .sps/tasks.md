@@ -5573,3 +5573,15 @@ Bengali** (OFL, actively maintained, native TTF, the Bengali face Linux distros 
   the cached tofu until a cache-busted fetch confirmed the fix.
 - isFontAvailable is now async (awaits the fontconfig warm-up); the verify harness awaited.
 
+### ✅ DEFAULT THUMBNAIL REDESIGN shipped (2026-10-28, commit 3d1e33f)
+
+Owner request: the side-by-side logo+wordmark placeholder was unreadable at small card
+sizes and lost at large ones; proposed design = logo on top, text below.
+
+- Stacked brand plate: logo centred on top, wordmark below, brand-red top rule accent.
+- Wordmark scales with the BOX via a CSS container query (18cqw, clamp 10–88px) — the
+  plate opts itself in as an inline-size container; no JS, no caller changes.
+- Verified at all three call-site sizes in the browser: small 96px list card (≈15px
+  wordmark, readable), stacked 382px card (≈60px), article hero 790px (88px).
+- Deployed through the CI-gated Actions path (success); live homepage serves the new plate.
+
