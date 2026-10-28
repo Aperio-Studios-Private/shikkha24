@@ -116,7 +116,7 @@ const hijriDate = formatHijriDate(now)
           hidden
           class="absolute inset-x-0 top-full z-50 border-b border-rule bg-surface p-3 shadow-lg dark:border-dark-rule dark:bg-dark-surface"
         >
-          <form action="/search" method="get" role="search" class="container-page flex items-center gap-2">
+          <form action="/search" method="get" role="search" class="mx-auto flex max-w-6xl items-center gap-2 px-4">
             <input
               type="search"
               id="search-overlay-input"
@@ -139,7 +139,7 @@ const hijriDate = formatHijriDate(now)
           {/* Live suggestions + recent searches. Populated by the script below:
               typing queries the same Pagefind index /search uses; with an
               empty box, the reader's recent searches (localStorage) show. */}
-          <div class="container-page">
+          <div class="mx-auto max-w-6xl px-4">
             <ul
               id="search-suggestions"
               class="mt-2 hidden overflow-hidden rounded-md border border-rule bg-surface text-sm dark:border-dark-rule dark:bg-dark-surface"
