@@ -5556,3 +5556,20 @@ Two CI-gate catches during ship (both fixed, both proven locally first): the sea
 nested .container-page inside another (build-output rule), and its controls were h-10
 (40px) against the 48px touch-target rule. The gates did exactly their job.
 
+### ✅ TOFU FIXED + FONT ROTATED TO NOTO SERIF BENGALI (2026-10-28, commit d3e78bf)
+
+The fontconfig fix ended the tofu, but Pango then picked a FALLBACK serif face — the
+SolaimanLipi family lookup broke after the woff2→ttf conversion (internal family name no
+longer matched). Owner chose the definitive path: rotate the card font to **Noto Serif
+Bengali** (OFL, actively maintained, native TTF, the Bengali face Linux distros ship).
+
+- NotoSerifBengali Regular + Bold vendored from the official notofonts repo (OFL).
+- id-card.ts: FONT_FILE/FONT_FILE_700 → the Noto ttf files; FONT_FAMILY constant used in
+  both the Pango markup (font_family attribute) and sharp's font option.
+- Assemble ships the two ttf + fonts.conf. Local render: real glyphs, byte-deterministic.
+- Deployed (d3e78bf live on Render). **Verified in the browser: the photocard for article 10
+  renders the full headline, ভর্তি badge, wordmark and date in Noto Serif Bengali.**
+- Cache note: the photocard sends Cache-Control max-age=86400 — the owner's browser showed
+  the cached tofu until a cache-busted fetch confirmed the fix.
+- isFontAvailable is now async (awaits the fontconfig warm-up); the verify harness awaited.
+
