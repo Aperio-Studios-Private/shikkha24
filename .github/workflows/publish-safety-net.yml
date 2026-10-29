@@ -59,7 +59,9 @@ jobs:
       - name: Compare content freshness with last deploy
         env:
           GH_TOKEN: ${{ github.token }}
-          CMS_URL: ${{ vars.CMS_URL }}
+          # CMS_URL is a repo SECRET (it once carried credentials in its value),
+          # not a variable — vars.CMS_URL expands empty and the probe 404s.
+          CMS_URL: ${{ secrets.CMS_URL }}
         run: |
           set -euo pipefail
           cms="${CMS_URL%/}"
