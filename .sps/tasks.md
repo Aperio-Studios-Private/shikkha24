@@ -5758,3 +5758,37 @@ touch no deps) — the exact scenario pnpm-workspace.yaml documents:
   (only behind @lexical/headless/dom; not in the built bundle; feature not
   configured).
 - pnpm audit --audit-level=high passes locally: 5 high, all 5 documented.
+
+### ✅ SEO EXECUTION COMPLETE (2026-10-29) — every agent-side item done + live-verified
+
+Commits: d99f4f1 (redirects) · 6c1f906 (biome) · c782111 (ledger) · f6c6f07
+(audit overrides + slug) · c875de7 (indexnow live-sitemap fix).
+
+- Demo purge: 5 articles + 6 institutions + 8 sa-guides deleted from Neon;
+  sitemap 86 → 67 URLs; all demo URLs 404 live; hub empty states render.
+- Canonical-host: http:// and www. → 301 → https://shikkha24.com (Workers +
+  Apache parity, verified live + in both harnesses).
+- Stale-ID articles: /admission/23/… etc → 301 → canonical path (verified,
+  all 4 GSC-flagged URLs).
+- Institution slug: Bengali-name-with-space → national-university; validate
+  ^[a-z0-9-]+$ added to the field.
+- CI audit gate: graphql-scalars override 2.0.1 (GHSA-x8rm-f576-gq67) +
+  happy-dom ignore (GHSA-c8p4-j97h-3vg8); audit green (5 high, documented).
+- IndexNow: 67 live URLs accepted (HTTP 200); script now prefers the live
+  sitemap over a stale local dist.
+- Old Neon ep-autumn-silence: ALREADY DELETED (verified via neonctl projects
+  list — only lucky-forest-26905704 exists). Root .env.local repointed to
+  ep-winter-tree. DB integrity re-verified: 7 articles / 1 institution /
+  0 sa-guides / 0 orphans.
+
+**OWNER-SIDE REMAINING (needs the GSC dashboard):**
+1. Submit both sitemaps in GSC (sitemap.xml + news-sitemap.xml) — Sitemaps
+   report → enter the filename → Submit.
+2. Confirm the GSC verification method (DNS or HTML file/meta tag). No
+   google-site-verification meta tag is on the homepage; if GSC shows
+   verified, it is DNS-based and nothing to do.
+3. The http:// URLs will drop from the index as Google recrawls the new 301s
+   (days–weeks). Speed it up: URL Inspection → Request indexing on the https
+   versions of the top pages.
+4. Dependabot opened 2 PRs (payload-ecosystem group ×10, wrangler 4.152.0) —
+   owner reviews/merges (push authority is the owner's).
