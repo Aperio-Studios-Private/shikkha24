@@ -40,7 +40,7 @@
  * be inspectable before it is fired.
  */
 
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -66,19 +66,50 @@ function findKey() {
   return key
 }
 
-/** Every `<loc>` in the built sitemap, which is the authoritative URL list. */
-function sitemapUrls(_site) {
-  const xml = readFileSync(path.join(ROOT, 'frontend', 'dist', 'sitemap.xml'), 'utf8')
-  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim())
+/**
+ * Every `<loc>` in the built sitemap, which is the authoritative URL list.
+ *
+ * ⚠️ `dist/sitemap.xml` can be STALE — it describes the last LOCAL build, and
+ * this session proved the failure live: after the demo-content purge the fresh
+ * remote rebuild served 67 URLs while the stale local dist still listed 81
+ * (five demo articles included), and the batch went out with dead URLs. The
+ * dist file is therefore only used when it agrees with the live sitemap's URL
+ * count; otherwise the LIVE sitemap wins. Pass `--force-dist` to skip the
+ * live check (offline use).
+ */
+async function sitemapUrls(site, { forceDist = false } = {}) {
+  const distPath = path.join(ROOT, 'frontend', 'dist', 'sitemap.xml')
+  const distUrls = existsSync(distPath)
+    ? [...readFileSync(distPath, 'utf8').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim())
+    : []
+  if (forceDist || distUrls.length === 0) return distUrls
+
+  try {
+    const res = await fetch(`${site}/sitemap.xml`, { signal: AbortSignal.timeout(10_000) })
+    if (!res.ok) return distUrls
+    const liveUrls = [...(await res.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) =>
+      m[1].trim(),
+    )
+    if (liveUrls.length === distUrls.length) return distUrls
+    console.log(
+      `  ⚠ dist/sitemap.xml (${distUrls.length} URLs) disagrees with the live sitemap ` +
+        `(${liveUrls.length}) — using the LIVE list. Rebuild locally to refresh dist.`,
+    )
+    return liveUrls
+  } catch {
+    // Offline: the dist list is the best available.
+    return distUrls
+  }
 }
 
 const args = process.argv.slice(2)
 const dryRun = args.includes('--dry-run')
+const forceDist = args.includes('--force-dist')
 const explicit = args.filter((a) => !a.startsWith('--'))
 
 const site = (process.env.PUBLIC_SITE_URL || 'https://shikkha24.com').replace(/\/$/, '')
 const key = findKey()
-const urls = explicit.length > 0 ? explicit : sitemapUrls(site)
+const urls = explicit.length > 0 ? explicit : await sitemapUrls(site, { forceDist })
 
 if (urls.length === 0) {
   console.error('No URLs to submit. Build the frontend first (pnpm build:frontend).')
