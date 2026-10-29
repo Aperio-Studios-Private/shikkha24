@@ -112,13 +112,14 @@ const key: Endpoint = {
  * an endpoint URL from the reader; the sweep later dials it, so the allowlist
  * is the SSRF boundary (pentest 2026-10-29, L3).
  */
-const PUSH_ENDPOINT_HOSTS = [
+/** Exported for the verify harness — the harness must subscribe like a real client. */
+export const PUSH_ENDPOINT_HOSTS = [
   'fcm.googleapis.com', // Google/Chrome
   'updates.push.services.mozilla.com', // Firefox
   'web.push.apple.com', // Safari
 ]
 
-function isAllowedPushEndpoint(raw: string): boolean {
+export function isAllowedPushEndpoint(raw: string): boolean {
   try {
     const url = new URL(raw)
     return url.protocol === 'https:' && PUSH_ENDPOINT_HOSTS.includes(url.hostname)

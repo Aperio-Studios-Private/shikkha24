@@ -92,7 +92,7 @@ check('the key endpoint exposes no key', keyBody.publicKey === null)
 
 const inertSubscribe = await post(
   subscribe,
-  { endpoint: 'https://push.example.invalid/1', keys: { p256dh: 'a', auth: 'b' } },
+  { endpoint: 'https://fcm.googleapis.com/fcm/send/verify-1', keys: { p256dh: 'a', auth: 'b' } },
   '10.3.0.2',
 )
 check(
@@ -102,7 +102,7 @@ check(
 )
 
 const inertSend = await sendPush(
-  { endpoint: 'https://push.example.invalid/1', keys: { p256dh: 'a', auth: 'b' } },
+  { endpoint: 'https://fcm.googleapis.com/fcm/send/verify-1', keys: { p256dh: 'a', auth: 'b' } },
   { title: 'x' },
 )
 check('sendPush reports failure rather than throwing', inertSend.status === 'failed')
@@ -122,7 +122,9 @@ resetPushConfig()
 check('isPushConfigured() is true with a generated pair', isPushConfigured() === true)
 
 const stamp = Date.now()
-const endpoint = `https://push.example.invalid/s9-verify-${stamp}`
+// Allowlisted host (pentest L3): subscribe rejects non-provider URLs. The
+// sweep is not invoked here, so nothing is actually dialled.
+const endpoint = `https://fcm.googleapis.com/fcm/send/s9-verify-${stamp}`
 
 const incomplete = await post(subscribe, { endpoint, keys: { p256dh: 'a' } }, '10.3.1.1')
 check(
