@@ -57,6 +57,16 @@ export const INSTITUTION_FIELDS: Field[] = [
             index: true,
             label: { en: 'Slug', bn: 'স্লাগ' },
             admin: { position: 'sidebar', description: 'ASCII, lowercase।' },
+            // The URL contract: this slug becomes /institutions/<slug>, and a
+            // URL segment must survive being shared, sitemapped and pinged.
+            // The seed once put the Bengali name here (with a literal space),
+            // which produced an unshareable URL and an IndexNow 422 — the
+            // sitemap protocol requires percent-encoded URLs. Enforced, not
+            // just described.
+            validate: (value: unknown) =>
+              typeof value === 'string' && /^[a-z0-9-]+$/.test(value)
+                ? true
+                : 'Slug must be lowercase ASCII letters, digits and hyphens only.',
           },
 
           // ── The two axes ─────────────────────────────────────────────────────────

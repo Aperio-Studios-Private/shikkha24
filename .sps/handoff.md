@@ -3949,3 +3949,12 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Owner-side still open: GSC sitemap re-submission + old http URLs will drop
   out as Google recrawls (301s in place); IndexNow ping wiring; old Neon
   project (ep-autumn-silence) deletion — .env.local still points at it.
+
+### 2026-10-29 — institution slug contract enforced + audit gate re-armed
+
+- The one real institution's slug was the Bengali name with a literal space
+  (violating the field's own "ASCII, lowercase" description): unshareable
+  URL, raw non-ASCII <loc> in sitemap.xml, IndexNow 422. Data fixed to
+  `national-university` (GSC showed 0 impressions for the old URL — no
+  redirect needed); slug field now ENFORCES ^[a-z0-9-]+$ via validate.
+- Rebuild dispatched after the audit fix; IndexNow batch follows once live.

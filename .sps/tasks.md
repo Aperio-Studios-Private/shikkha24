@@ -5741,3 +5741,20 @@ demo pages ranking on real brand terms is the worst-case demo leak.
   proper Bengali empty states; the real institution page 200.
 - Routes/sitemap degrade gracefully on empty CMS (catch(() => [])) — build
   cannot fail on an empty collection.
+
+### ✅ CI AUDIT GATE: new upstream advisories handled (2026-10-29)
+
+CI went red between runs on two NEW advisories (graph unchanged, my commits
+touch no deps) — the exact scenario pnpm-workspace.yaml documents:
+
+- graphql-scalars GHSA-x8rm-f576-gq67 (PhoneNumber ReDoS, patched 2.0.1,
+  MIT): scoped override 'graphql-scalars@1.22.2': 2.0.1. Treated as
+  REACHABLE (GraphQL endpoint is live; phone fields flow through scalars),
+  so a real override, not an ignore. CMS typecheck + build verified green
+  on 2.0.1.
+- happy-dom GHSA-c8p4-j97h-3vg8 (SSRF via untrusted-HTML parsing; patched
+  >=20.14.7 which was never published — 20.x ends at 20.14.6): added to the
+  existing documented ignore. Same zero-reference proof as GHSA-834v-8h66-3h79
+  (only behind @lexical/headless/dom; not in the built bundle; feature not
+  configured).
+- pnpm audit --audit-level=high passes locally: 5 high, all 5 documented.

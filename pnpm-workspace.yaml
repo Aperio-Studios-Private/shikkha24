@@ -139,6 +139,18 @@ overrides:
   # wrangler/miniflare is local-dev tooling (wrangler dev / deploys), never
   # part of the deployed site; 7.30.1 is a patch within the same major.
   'undici@7.29.1': 7.30.1
+  # Added 2026-10-29 (SEO-task session, CI gate went red between runs — the
+  # advisory is new, the dependency graph is not). Review notes (agent rule 8):
+  #
+  #   graphql-scalars 2.0.1 — MIT, patch release clearing GHSA-x8rm-f576-gq67
+  #     (PhoneNumber scalar ReDoS). @payloadcms/graphql pins EXACTLY 1.22.2
+  #     (not a range), so the scoped key is required to move it. Reachability:
+  #     GraphQL IS enabled in this Payload app (playground off, endpoint on),
+  #     and institution/contact phone fields flow through scalars — so unlike
+  #     the build-only cases below this one is treated as reachable and must be
+  #     a real override, not an ignore. Scoped to `<=2.0.0`: once Payload's
+  #     range includes a fixed version the key stops matching by itself.
+  'graphql-scalars@1.22.2': 2.0.1
 # ── pnpm audit ────────────────────────────────────────────────────────────────
 # ⚠️ pnpm 11.22 deprecates `auditConfig` in favour of THIS `audit` block; when
 # both are present the old one is ignored with a warning (T-10, 2026-10-15).
@@ -232,5 +244,13 @@ audit:
     #     code path is lexical's headless HTML import of untrusted HTML, which
     #     this app does not use (no HeadlessHtmlImportFeature configured).
     #     Delete both entries when the consumers move within range.
+    #
+    #   • 2026-10-29: `happy-dom@20.14.3` ALSO matches GHSA-c8p4-j97h-3vg8
+    #     (SSRF via iframe/link-stylesheet when parsing untrusted HTML;
+    #     patched >=20.14.7, which was never published — the 20.x line ends at
+    #     20.14.6, so the fix is the same unreachable 21.x major). Same
+    #     package, same zero-reference proof, same non-configured code path:
+    #     this app never asks happy-dom to parse untrusted HTML.
     - GHSA-mrhx-c7xc-m3w5
     - GHSA-834v-8h66-3h79
+    - GHSA-c8p4-j97h-3vg8
