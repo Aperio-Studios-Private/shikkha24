@@ -3928,3 +3928,24 @@ way *after* the billing lock clears, revisit this entry — not before.
 - Render free tier constraints confirmed from official docs: 15-min spin-down (admin-only
   impact), ephemeral disk (Neon is the database), no SMTP (Brevo HTTP API is the email plan),
   750 hrs/month (one 24/7 service fits).
+
+### 2026-10-29 — SEO task: demo content purge + canonical redirects (commits `d99f4f1`, `6c1f906`)
+
+- Demo articles (5), demo institutions (6), demo study-abroad guides (8) all
+  deleted from the NEW Neon (lucky-forest-26905704) with full child cascades.
+  Remaining: 7 articles, 1 institution, 0 sa-guides. Live-verified after
+  rebuild dispatches: sitemap 67 URLs, zero demo slugs, demo pages 404, hub
+  empty states render.
+- Canonical-host 301 shipped in BOTH publishers: worker/redirects.ts
+  (needsCanonicalHost, workers.dev exempt) + .htaccess two-rule RewriteCond
+  set (%{HTTPS} + %{HTTP:X-Forwarded-Proto}; learned: arbitrary headers need
+  the %{HTTP:...} form — bare %{X-Forwarded-Proto} expands empty).
+- Stale-ID article 301s: build emits redirects.json (slug → canonical path,
+  same source as sitemap); Worker consults it on article-shaped 404s. GSC's
+  /admission/23/... now lands on /admission/10/... (verified live, all 4).
+- Harness growth: verify:cloudflare section 6 (100 checks total);
+  verify:apache +5 redirect checks + Bengali-path URL-encoding (institution
+  dir crashed Node http client); thin-build floor 9→7 (real count).
+- Owner-side still open: GSC sitemap re-submission + old http URLs will drop
+  out as Google recrawls (301s in place); IndexNow ping wiring; old Neon
+  project (ep-autumn-silence) deletion — .env.local still points at it.

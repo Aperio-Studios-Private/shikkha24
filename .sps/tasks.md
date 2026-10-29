@@ -5724,3 +5724,20 @@ e.g. admission-policy-2027: id 23 → 10).
   against the CMS's own count).
 - ALL GATES GREEN before push: typecheck, lint, build, verify-build-output
   (48 PASS), verify:apache (all, real httpd), verify:cloudflare (100/100).
+
+### ✅ DEMO INSTITUTIONS + STUDY-ABROAD GUIDES DELETED (2026-10-29, live-verified)
+
+GSC showed demo-bracu/demo-nsu/demo-buet/demo-rich-profile harvesting
+impressions for REAL university-name queries (ব্র্যাক বিশ্ববিদ্যালয় etc.) —
+demo pages ranking on real brand terms is the worst-case demo leak.
+
+- Deleted from NEW Neon: 6 demo institutions (ids 2–7; the real জাতীয়
+  বিশ্ববিদ্যালয় id 1 kept) with their children (admission_info 2, faculties 2,
+  important_links 2, tuition_fees 2, rels 12), and all 8 demo study-abroad
+  guides. No article references any institution (university_id empty on all
+  7). Verified pre-delete: locked-docs 0.
+- Storefront rebuilt (run 40823279459, success). Live-verified: sitemap
+  81 → 67 URLs, ZERO demo slugs; demo pages 404; both hub pages 200 with
+  proper Bengali empty states; the real institution page 200.
+- Routes/sitemap degrade gracefully on empty CMS (catch(() => [])) — build
+  cannot fail on an empty collection.
