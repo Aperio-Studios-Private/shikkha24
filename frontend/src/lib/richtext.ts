@@ -83,7 +83,10 @@ function safeUrl(raw: string | undefined | null): string | null {
   const value = raw.trim()
   if (/^https?:\/\//i.test(value)) return value
   if (/^mailto:/i.test(value)) return value
-  if (/^\/(?!\/)/.test(value)) return value // site-relative, not protocol-relative
+  // Site-relative, not protocol-relative. The backslash check matters: WHATWG
+  // URL parsing treats `\` as `/` in the authority state, so `/\evil.com`
+  // would resolve off-site (pentest 2026-10-29, L5).
+  if (/^\/(?!\/)/.test(value) && !value.includes('\\')) return value
   return null
 }
 

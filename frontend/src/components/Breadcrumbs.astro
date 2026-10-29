@@ -1,4 +1,5 @@
 ---
+import { jsonForScriptTag } from '../lib/json-script'
 /**
  * Breadcrumbs with BreadcrumbList structured data.
  *
@@ -71,4 +72,4 @@ const jsonLd = {
   </ol>
 </nav>
 
-<script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+<script type="application/ld+json" set:html={jsonForScriptTag(jsonLd)} />

@@ -57,8 +57,10 @@ const sections = GROUP_SECTIONS.map((section) => ({
 })).filter((section) => section.faqs.length > 0)
 
 /**
- * FAQPage schema. Built from `getFaqs()` in priority order; `JSON.stringify`
- * does all the escaping and Layout renders it raw via `set:html`.
+ * FAQPage schema. Built from `getFaqs()` in priority order; Layout renders it
+ * via `set:html` — escaped for script context by `jsonForScriptTag`
+ * (`JSON.stringify` alone does NOT escape `<`, which allowed a `</script>`
+ * breakout — pentest 2026-10-29, H1).
  */
 const jsonLd =
   faqs.length >= 2

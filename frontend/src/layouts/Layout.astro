@@ -22,6 +22,7 @@ import MobileShareBar from '../components/MobileShareBar.astro'
 import type { CmsArticle, CmsSiteSettings, CmsCategory, CmsPage } from '../lib/cms'
 import { getBreakingNews } from '../lib/cms'
 import { mediaUrl } from '../lib/media'
+import { jsonForScriptTag } from '../lib/json-script'
 
 interface Props {
   /** Page title — appended after the site name. */
@@ -237,7 +238,7 @@ const breakingArticles = (await getBreakingNews().catch(() => [])).filter(
     {/* ── JSON-LD ─────────────────────────────────────────────────── */}
     {
       jsonLd && (
-        <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+        <script type="application/ld+json" set:html={jsonForScriptTag(jsonLd)} />
       )
     }
 

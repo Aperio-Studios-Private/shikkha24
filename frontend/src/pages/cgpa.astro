@@ -303,19 +303,26 @@ const scaleTables = CGPA_SCALES.map((scale) => ({
      * with a single unnamed term it would just restate the CGPA.
      */
     if (outcome.terms.length > 1) {
-      termsBox.innerHTML =
-        '<ul class="space-y-1 text-sm text-ink dark:text-dark-ink">' +
-        outcome.terms
-          .map(
-            (term) =>
-              `<li>${term.term === '—' ? 'অন্যান্য' : `সেমিস্টার ${term.term}`}: জিপিএ ` +
-              `${toBnDigits(term.gpa.toFixed(2))} <span class="text-xs text-ink-muted dark:text-dark-ink-muted">` +
-              `(${toBnDigits(term.credits.toFixed(2))} ক্রেডিট)</span></li>`,
-          )
-          .join('') +
-        '</ul>'
+      // Built with createElement/textContent (pentest 2026-10-29, L6): the
+      // term label is the reader's own input; other innerHTML uses here
+      // interpolate only code constants.
+      const ul = document.createElement('ul')
+      ul.className = 'space-y-1 text-sm text-ink dark:text-dark-ink'
+      for (const term of outcome.terms) {
+        const li = document.createElement('li')
+        const label = document.createElement('span')
+        label.textContent = term.term === '—' ? 'অন্যান্য' : `সেমিস্টার ${term.term}`
+        li.append(label, `: জিপিএ ${toBnDigits(term.gpa.toFixed(2))} `)
+        const credits = document.createElement('span')
+        credits.className = 'text-xs text-ink-muted dark:text-dark-ink-muted'
+        credits.textContent = `(${toBnDigits(term.credits.toFixed(2))} ক্রেডিট)`
+        li.appendChild(credits)
+        ul.appendChild(li)
+      }
+      termsBox.replaceChildren(ul)
+      termsBox.hidden = false
     } else {
-      termsBox.innerHTML = ''
+      termsBox.replaceChildren()
     }
 
     if (outcome.failedCourses > 0) {

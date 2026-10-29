@@ -1,5 +1,12 @@
 import type { Endpoint, PayloadRequest } from 'payload'
-import { clientIp, isHoneypotFilled, json, readJsonBody, tooManyRequests } from '../lib/http'
+import {
+  clientIp,
+  isHoneypotFilled,
+  json,
+  readJsonBody,
+  requireClientIp,
+  tooManyRequests,
+} from '../lib/http'
 import { rateLimit } from '../lib/rate-limit'
 import {
   emptyCounts,
@@ -47,7 +54,15 @@ const WINDOW_MS = 5 * 60 * 1000
  * The caller's dedupe key. IP + UA, salted and hashed — never stored raw.
  */
 function fingerprintOf(req: PayloadRequest): string {
-  return reactionFingerprint(clientIp(req), req.headers.get('user-agent') ?? '')
+  // No proxy headers = direct-to-origin request. A distinct sentinel per call
+  // means it can never dedupe against (or impersonate) a real reader's fingerprint.
+  const ip = clientIp(req)
+  if (ip === null)
+    return reactionFingerprint(
+      `unproxied-${Date.now()}-${Math.random()}`,
+      req.headers.get('user-agent') ?? '',
+    )
+  return reactionFingerprint(ip, req.headers.get('user-agent') ?? '')
 }
 
 /** `true` when the id names a real, published article. */
@@ -199,7 +214,9 @@ const reactionToggleEndpoint: Endpoint = {
     }
 
     // 2 — rate limit.
-    const limit = rateLimit(`reaction-toggle:${clientIp(req)}`, TOGGLES_PER_WINDOW, WINDOW_MS)
+    const caller = requireClientIp(req)
+    if ('error' in caller) return caller.error
+    const limit = rateLimit(`reaction-toggle:${caller.ip}`, TOGGLES_PER_WINDOW, WINDOW_MS)
     if (!limit.ok) {
       return tooManyRequests(limit.retryAfterSeconds)
     }

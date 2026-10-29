@@ -504,14 +504,20 @@ export default buildConfig({
    * 2. **`docs/security.md` claims this is off. This makes the claim checkable**
    *    at the point a reviewer is already looking.
    *
-   * `disableIntrospectionInProduction` is deliberately left at its default
-   * (false). The REST API already serves this same published content to
-   * anonymous readers, so hiding the GraphQL schema would protect nothing that
-   * is not already public — while breaking the schema explorer editors rely on.
+   *
+   * ⚠️ **GraphQL is disabled entirely (pentest 2026-10-29, H3).** The hand-built
+   * per-IP rate limits on login and forgot-password wrap only the REST routes
+   * (`src/app/(payload)/api/users/{login,forgot-password}/route.ts`). Payload's
+   * GraphQL transport ships the same operations as mutations (`loginUser`,
+   * `forgotPasswordUser`, `unlockUser`) on a separately-mounted route, so
+   * leaving it enabled was an unthrottled door around the documented "5 logins
+   * per IP per minute" bound. Nothing consumes it — `frontend/` calls the REST
+   * API exclusively — and the admin schema explorer is not worth the auth
+   * bypass. `graphql: false` removes the mount. If a future feature genuinely
+   * needs GraphQL, wrap the GraphQL route handler in the same `rateLimit`
+   * helper as the REST login route; never re-enable it for the explorer.
    */
-  graphQL: {
-    disablePlaygroundInProduction: true,
-  },
+  graphQL: { disable: true },
 
   /*
    * Database adapter — environment-driven (T-18 migration P2).

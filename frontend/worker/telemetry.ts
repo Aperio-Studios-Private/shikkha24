@@ -51,6 +51,13 @@ export async function recordTelemetry(
     return false
   }
 
+  // Reject oversized bodies BEFORE parsing (pentest 2026-10-29, M5): the
+  // beacon is ~100 bytes; anything larger is abuse burning isolate memory.
+  const contentLength = Number(request.headers.get('content-length') ?? '0')
+  if (!Number.isFinite(contentLength) || contentLength <= 0 || contentLength > 1024) {
+    return false
+  }
+
   try {
     const payload = parsePayload(await request.json())
     if (!payload) return false

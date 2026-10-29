@@ -1,11 +1,11 @@
 import type { Endpoint, PayloadRequest } from 'payload'
 
 import {
-  clientIp,
   EMAIL_PATTERN,
   isHoneypotFilled,
   json,
   readJsonBody,
+  requireClientIp,
   text,
   tooManyRequests,
 } from '../lib/http'
@@ -77,7 +77,9 @@ export const commentSubmitEndpoint: Endpoint = {
     }
 
     // 2 — rate limit.
-    const limit = rateLimit(`comment-submit:${clientIp(req)}`, COMMENTS_PER_WINDOW, WINDOW_MS)
+    const caller = requireClientIp(req)
+    if ('error' in caller) return caller.error
+    const limit = rateLimit(`comment-submit:${caller.ip}`, COMMENTS_PER_WINDOW, WINDOW_MS)
     if (!limit.ok) {
       return tooManyRequests(limit.retryAfterSeconds)
     }

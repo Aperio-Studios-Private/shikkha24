@@ -110,10 +110,14 @@ export default {
     // the redirect itself must not be cacheable per non-canonical URL.
     if (needsCanonicalHost(url.protocol, url.host)) {
       const canonical = new URL(url.pathname + url.search, `https://${CANONICAL_HOST}`)
-      return new Response(null, {
-        status: 301,
-        headers: { Location: canonical.href, 'Cache-Control': 'no-store' },
-      })
+      // Redirects carry the security headers too (audit 2026-10-29: the 301
+      // branches were the only responses without them) — HSTS on the http
+      // hop matters most, since that response is the attacker's downgrade
+      // window. Cached nowhere.
+      const headers = headersForPath(url.pathname, null)
+      headers['Location'] = canonical.href
+      headers['Cache-Control'] = 'no-store'
+      return new Response(null, { status: 301, headers })
     }
 
     const asset = await env.ASSETS.fetch(request)
@@ -131,10 +135,9 @@ export default {
         }
         const target = staleArticleRedirect(url.pathname, manifest)
         if (target !== null) {
-          return new Response(null, {
-            status: 301,
-            headers: { Location: new URL(target, url.origin).href },
-          })
+          const headers = headersForPath(url.pathname, null)
+          headers['Location'] = new URL(target, url.origin).href
+          return new Response(null, { status: 301, headers })
         }
       }
       return withHeaders(asset, url.pathname, url.host)

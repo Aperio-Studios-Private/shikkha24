@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto'
 import type { Endpoint, PayloadRequest } from 'payload'
 
-import { clientIp } from '../lib/http'
+import { requireClientIp } from '../lib/http'
 import { rateLimit } from '../lib/rate-limit'
 import { requirePayloadSecret } from '../lib/signed-token'
 
@@ -71,7 +71,9 @@ export const pollVoteEndpoint: Endpoint = {
     }
 
     // 2 — rate limit.
-    const ip = clientIp(req)
+    const caller = requireClientIp(req)
+    if ('error' in caller) return caller.error
+    const ip = caller.ip
     const limit = rateLimit(`poll-vote:${ip}`, MAX_ATTEMPTS_PER_MINUTE, 60_000)
     if (!limit.ok) {
       return Response.json(

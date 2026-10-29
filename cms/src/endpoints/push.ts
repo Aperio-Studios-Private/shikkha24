@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'node:crypto'
 import type { Endpoint, PayloadRequest } from 'payload'
 
-import { clientIp, json, readJsonBody, text, tooManyRequests } from '../lib/http'
+import { json, readJsonBody, requireClientIp, text, tooManyRequests } from '../lib/http'
 import { isPushConfigured, sendPush, vapidPublicKey } from '../lib/push'
 import { rateLimit } from '../lib/rate-limit'
 import type { PushSubscription } from '../payload-types'
@@ -107,15 +107,33 @@ const key: Endpoint = {
  * on the same call, because a reader who taps "remind me" has just granted
  * permission and should not have to wait for a second round trip.
  */
+/**
+ * Push services this server will ever contact. The subscribe endpoint accepts
+ * an endpoint URL from the reader; the sweep later dials it, so the allowlist
+ * is the SSRF boundary (pentest 2026-10-29, L3).
+ */
+const PUSH_ENDPOINT_HOSTS = [
+  'fcm.googleapis.com', // Google/Chrome
+  'updates.push.services.mozilla.com', // Firefox
+  'web.push.apple.com', // Safari
+]
+
+function isAllowedPushEndpoint(raw: string): boolean {
+  try {
+    const url = new URL(raw)
+    return url.protocol === 'https:' && PUSH_ENDPOINT_HOSTS.includes(url.hostname)
+  } catch {
+    return false
+  }
+}
+
 const subscribe: Endpoint = {
   path: '/push/subscribe',
   method: 'post',
   handler: async (req: PayloadRequest): Promise<Response> => {
-    const limit = rateLimit(
-      `push-subscribe:${clientIp(req)}`,
-      SUBSCRIBE_ATTEMPTS_PER_MINUTE,
-      60_000,
-    )
+    const caller = requireClientIp(req)
+    if ('error' in caller) return caller.error
+    const limit = rateLimit(`push-subscribe:${caller.ip}`, SUBSCRIBE_ATTEMPTS_PER_MINUTE, 60_000)
     if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds)
 
     if (!isPushConfigured()) {
@@ -130,6 +148,14 @@ const subscribe: Endpoint = {
 
     if (!endpoint || !p256dh || !auth) {
       return json({ error: 'সাবস্ক্রিপশনের তথ্য অসম্পূর্ণ।' }, 400)
+    }
+
+    // ⚠️ Push-service allowlist (pentest 2026-10-29, L3). The endpoint URL is
+    // reader-supplied and the token sweep later makes the server fetch it —
+    // an unvalidated URL is a blind-HTTPS-SSRF handle aimed at whatever host
+    // the caller picks. Only the real web-push providers are accepted.
+    if (!isAllowedPushEndpoint(endpoint)) {
+      return json({ error: 'এই পুশ সার্ভিস সমর্থিত নয়।' }, 422)
     }
 
     const reminderRaw = (body.reminder ?? null) as Record<string, unknown> | null

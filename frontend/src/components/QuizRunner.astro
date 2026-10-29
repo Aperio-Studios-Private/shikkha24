@@ -29,6 +29,7 @@
  * shift. The streak line is rendered empty with a reserved line box rather than
  * being inserted, so filling it in moves nothing.
  */
+import { jsonForScriptTag } from '../lib/json-script'
 import type { CmsQuiz } from '../lib/interactive'
 import { toBnDigits } from '../lib/bangla-date'
 
@@ -59,7 +60,7 @@ const gradingData = questions.map((question) => ({
     </style>
   </noscript>
 
-  <script type="application/json" data-quiz-data set:html={JSON.stringify(gradingData)} />
+  <script type="application/json" data-quiz-data set:html={jsonForScriptTag(gradingData)} />
 
   <div class="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-rule pb-3 dark:border-dark-rule">
     <p class="text-sm font-medium text-ink dark:text-dark-ink" data-quiz-progress>

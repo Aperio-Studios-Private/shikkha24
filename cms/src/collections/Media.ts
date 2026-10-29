@@ -201,6 +201,32 @@ export const Media: CollectionConfig = {
         }
 
         /*
+         * ⚠️ SVG content sniff (pentest 2026-10-29, M4). The client-supplied
+         * mimetype proves nothing — the file header comment above says so, but
+         * only the allowlist enforced anything. An SVG can carry `<script>`,
+         * and when a reader navigates directly to it on media.shikkha24.com
+         * the script runs in the brand's own origin (the storefront CSP does
+         * not follow the file). Reject any SVG whose first bytes contain a
+         * script element or a foreign-object event pattern; brand logos
+         * (the only SVGs this library holds) have no need of either.
+         */
+        if (file.mimetype === 'image/svg+xml') {
+          // Payload's typed File lacks a buffer property, but the busboy File
+          // behind it carries one; read defensively rather than widen the type.
+          const bytes = (file as unknown as { buffer?: Uint8Array }).buffer
+          if (bytes) {
+            const head = Buffer.from(bytes.subarray(0, 4096)).toString('utf8').toLowerCase()
+            if (
+              head.includes('<script') ||
+              /\bon\w+\s*=/.test(head) ||
+              head.includes('javascript:')
+            ) {
+              throw new Error('এই SVG-এ নিরাপত্তা ঝুঁকি আছে (স্ক্রিপ্ট ধরা পড়েছে)। স্ক্রিপ্ট ছাড়া SVG আপলোড করুন।')
+            }
+          }
+        }
+
+        /*
          * The per-day cap. Measured on the **incoming** size, which is also the
          * **stored** size — nothing shrinks the file on the way in (no
          * `formatOptions`; see the `upload` block). This comment used to say
@@ -219,8 +245,11 @@ export const Media: CollectionConfig = {
   },
   upload: {
     mimeTypes: ALLOWED_MIME_TYPES,
-    // SVG is allowed above but is sanitised on delivery by the strict CSP
-    // (`img-src 'self'`) and never served as a top-level document.
+    // SVG is allowed above with a `<script>` content sniff in beforeValidate.
+    // Pentest 2026-10-29 (M4): the storefront CSP does NOT follow the file to
+    // media.shikkha24.com, so a scripted SVG navigated directly would run in
+    // the media origin. The sniff is the server-side control; embedding via
+    // `<img>` (the only way the storefront renders media) never executes it.
     // ⚠️ **Correction (T-70).** The rest of this comment used to explain that
     // "sharp does not rasterise SVG (`canResizeImage` excludes it), so a vector
     // stays vector and no size variants are generated for it". Both halves are

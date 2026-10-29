@@ -101,6 +101,16 @@ export const Authors: CollectionConfig = {
       admin: {
         description: 'ঐচ্ছিক। E-E-A-T সম্পাদকীয় দলের পাতায় যাচাইযোগ্য পরিচয় হিসেবে দেখানো হয়।',
       },
+      /*
+       * Deliberately public (pentest 2026-10-29, L7 — reviewed, kept). The
+       * number is DISPLAYED on /verify/:id and /reporters/:slug — it is the
+       * verifiable credential the whole press-card feature exists to publish,
+       * and the card endpoint draws it with `overrideAccess: true`. Gating the
+       * field would break those pages, not protect anything: hiding it from
+       * the API while printing it on the page is security theatre. The
+       * impersonation risk the audit named is inherent to publishing
+       * verification data and is bounded by the card's own verification page.
+       */
     },
     {
       name: 'bloodGroup',

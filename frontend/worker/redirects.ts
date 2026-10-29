@@ -46,7 +46,16 @@ export function needsCanonicalHost(protocol: string, host: string): boolean {
  */
 export function articleSlugFromStalePath(pathname: string): string | null {
   const m = /^\/([^/]+)\/(\d+)\/([^/?#]+)\/?$/.exec(pathname)
-  return m ? decodeURIComponent(m[3]) : null
+  if (!m) return null
+  // A malformed percent-sequence throws URIError; this runs in the Worker's
+  // fetch handler where a throw becomes a Cloudflare 1101 error page instead
+  // of a 404 (pentest 2026-10-29, L4). An undecodable slug cannot match the
+  // manifest anyway — treat it as "no slug".
+  try {
+    return decodeURIComponent(m[3])
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -61,6 +70,10 @@ export function staleArticleRedirect(
 ): string | null {
   const slug = articleSlugFromStalePath(pathname)
   if (!slug) return null
+  // A `__proto__`/`constructor` slug would read from Object.prototype instead
+  // of the manifest's own keys. Own-property check keeps the manifest the only
+  // source (pentest 2026-10-29, L4 hardening).
+  if (!Object.prototype.hasOwnProperty.call(manifest, slug)) return null
   const target = manifest[slug]
   // Never redirect to the path that is already being requested.
   if (!target || target === pathname.replace(/\/$/, '')) return null

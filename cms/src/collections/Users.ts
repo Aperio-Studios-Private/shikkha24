@@ -5,6 +5,7 @@ import {
   hasRole,
   isSelfIn,
   isSuperAdmin,
+  isSuperAdminOrEditorInChief,
   ROLE_LABELS,
   ROLES,
 } from '../access/roles'
@@ -41,6 +42,15 @@ export const Users: CollectionConfig = {
     maxLoginAttempts: 5,
     lockTime: 10 * 60 * 1000, // 10 minutes
     tokenExpiration: 2 * 60 * 60, // 2 hours
+    // ⚠️ `secure: true` (pentest 2026-10-29, M3). Payload's default is
+    // `secure: false`; without it the staff session cookie can travel over
+    // plain http on a first visit before HSTS is established. The reader
+    // session and OAuth-state cookies already set this — the most valuable
+    // cookie was the only one that didn't.
+    cookies: {
+      secure: true,
+      sameSite: 'Lax',
+    },
   },
   access: {
     // Only Super Admin may list or create accounts.
@@ -57,6 +67,11 @@ export const Users: CollectionConfig = {
     read: isSelfIn('users'),
     update: isSelfIn('users'),
     delete: isSuperAdmin,
+    // ⚠️ `unlock` is gated (pentest 2026-10-29, L1). Payload's default lets any
+    // session of this collection clear any account's lockout — a reporter could
+    // reset the 10-minute lock on an account an attacker is brute-forcing.
+    // Only the two roles that administer accounts may unlock.
+    unlock: isSuperAdminOrEditorInChief,
     // Only Super Admin can reach the admin panel at all.
     admin: ({ req }) =>
       hasRole(req.user, 'superAdmin', 'editorInChief', 'sectionEditor', 'reporter', 'adManager'),

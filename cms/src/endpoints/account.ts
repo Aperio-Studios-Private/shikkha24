@@ -1,6 +1,6 @@
 import type { Endpoint, PayloadRequest, Where } from 'payload'
 
-import { clientIp, isHoneypotFilled, json, readJsonBody, tooManyRequests } from '../lib/http'
+import { isHoneypotFilled, json, readJsonBody, requireClientIp, tooManyRequests } from '../lib/http'
 import { rateLimit } from '../lib/rate-limit'
 import { readerIdFromRequest, readerSessionClearCookie } from '../lib/reader-session'
 
@@ -137,7 +137,9 @@ export const deleteAccountEndpoint: Endpoint = {
     const readerId = readerIdFromRequest(req)
     if (!readerId) return json({ error: 'সাইন ইন করা নেই।' }, 401)
 
-    const limit = rateLimit(`delete-account:${clientIp(req)}`, DELETIONS_PER_WINDOW, WINDOW_MS)
+    const caller = requireClientIp(req)
+    if ('error' in caller) return caller.error
+    const limit = rateLimit(`delete-account:${caller.ip}`, DELETIONS_PER_WINDOW, WINDOW_MS)
     if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds)
 
     const body = await readJsonBody(req)

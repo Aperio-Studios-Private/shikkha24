@@ -95,6 +95,16 @@ jobs:
     name: Fetch + verify the host backup
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # ⚠️ DISABLED (pentest 2026-10-29, H5). This repo is PUBLIC, and this job
+    # uploads the full database dump (reader password hashes, newsletter
+    # subscribers, comments) as a workflow ARTIFACT — downloadable by anyone on
+    # a public repo. It also targets the RETIRED DianaHost SQLite database;
+    # production is Neon Postgres since 2026-10-28, so a "successful" run would
+    # back up the wrong database anyway. The replacement is
+    # `backup-neon.yml`: pg_dump straight into the PRIVATE R2 backup bucket,
+    # never a GitHub artifact. Re-enable nothing here without reading
+    # docs/security-audit-2026-10-29.md H5 first.
+    if: false
 
     steps:
       - uses: actions/checkout@v7

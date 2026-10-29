@@ -474,12 +474,24 @@ const banglaCalendar = banglaDate.split(',').slice(1).join(',').trim()
         list.setAttribute('hidden', '');
         return;
       }
-      list.innerHTML = recent
-        .map(
-          (q) =>
-            `<li><a href="/search?q=${encodeURIComponent(q)}" class="flex items-center gap-2 px-3 py-2 hover:bg-surface-raised dark:hover:bg-dark-raised"><span aria-hidden class="text-ink-subtle dark:text-dark-ink-muted">🕘</span>${q}</a></li>`,
-        )
-        .join('');
+      // Built with createElement/textContent, never innerHTML: the query is
+      // reader input (self-XSS) and the pentest (2026-10-29, M6) requires the
+      // label to be inserted as text, not markup.
+      list.replaceChildren(
+        ...recent.map((q) => {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = '/search?q=' + encodeURIComponent(q);
+          a.className = 'flex items-center gap-2 px-3 py-2 hover:bg-surface-raised dark:hover:bg-dark-raised';
+          const icon = document.createElement('span');
+          icon.setAttribute('aria-hidden', '');
+          icon.className = 'text-ink-subtle dark:text-dark-ink-muted';
+          icon.textContent = '🕘';
+          a.append(icon, q);
+          li.appendChild(a);
+          return li;
+        }),
+      );
       list.removeAttribute('hidden');
     };
 
@@ -515,13 +527,28 @@ const banglaCalendar = banglaDate.split(',').slice(1).join(',').trim()
           list.setAttribute('hidden', '');
           return;
         }
+        // Pentest 2026-10-29 (H2): result titles derive from CMS article
+        // titles — untrusted content. Built with createElement/textContent so
+        // a hostile title can never inject markup through the suggestion list.
         const items = await Promise.all(
           results.map(async (r: { data: () => Promise<{ url: string; meta: { title: string } }> }) => {
             const data = await r.data();
-            return `<li><a href="${data.url}" class="flex items-center gap-2 px-3 py-2 hover:bg-surface-raised dark:hover:bg-dark-raised"><span aria-hidden class="text-ink-subtle dark:text-dark-ink-muted">🔍</span>${data.meta.title}</a></li>`;
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.href = data.url;
+            a.className = 'flex items-center gap-2 px-3 py-2 hover:bg-surface-raised dark:hover:bg-dark-raised';
+            const icon = document.createElement('span');
+            icon.setAttribute('aria-hidden', '');
+            icon.className = 'text-ink-subtle dark:text-dark-ink-muted';
+            icon.textContent = '🔍';
+            const label = document.createElement('span');
+            label.textContent = data.meta.title;
+            a.append(icon, label);
+            li.appendChild(a);
+            return li;
           }),
         );
-        list.innerHTML = items.join('');
+        list.replaceChildren(...items);
         list.removeAttribute('hidden');
       } catch {
         list.setAttribute('hidden', '');

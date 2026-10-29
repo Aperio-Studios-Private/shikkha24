@@ -85,7 +85,12 @@ Until it is run, treat the runtime as **unverified** and keep the compensating c
 - **Enforce access control at the API layer, not just the UI.** Hiding a button is not authorisation.
 - **Strong password policy** + a password manager recommendation for editors.
 - **2FA on every editor account** — *verify whether Payload 3.89 supports TOTP natively; if not, this is an accepted gap that must be recorded, not ignored.*
-- **Login rate limiting and lockout** — the admin login is the single most attacked endpoint.
+- **Login rate limiting and lockout** — the admin login is the single most attacked endpoint. Rate limiting applies to the REST routes; GraphQL is disabled (see above) so there is no second transport to bypass it.
+- **Deliberate trade-offs, recorded so they are decisions rather than drift** (pentest 2026-10-29):
+  - **HSTS `preload`** is committed on storefront and CMS (`max-age=31536000; includeSubDomains; preload`). One-way door: every current and future subdomain must serve HTTPS forever. All three (www, cms, media) do today.
+  - **`script-src 'unsafe-inline'`** on the relaxed/article/media CSP profiles is required by the AdSense loader; the strict profile (listings, utility pages) has none. Editor-content XSS is bounded by the escaping pipeline (see §6), not by CSP.
+  - **`pressCardNo` is public by design** — it is the verifiable credential printed on `/verify/:id` and `/reporters/:slug`; hiding it from the API while printing it on the page would be security theatre.
+  - **The Render origin** (`shikkha24-cms-9vai.onrender.com`) appears in the storefront CSP `connect-src` — harmless recon disclosure; the CMS custom domain is public anyway.
 - **IP restriction on `/admin`** if the editorial team has stable IPs. If not, document the risk and lean on rate limiting.
 - **Reader accounts** are limited to what comments and saved deadlines need. No role escalation paths.
 - **Principle of least privilege** for the cPanel account and the CI deploy user — the deploy user needs file write, not full account control.
@@ -157,7 +162,7 @@ A strict CSP will break AdSense, which needs inline scripts and dynamic script i
 - **Rich text from editors** is higher-trust but still sanitise on render — a compromised editor account should not be able to inject scripts.
 - **CSRF** — Payload handles it for the admin; any custom endpoint (comments, newsletter, contact) needs its own token or origin check.
   - ⚠️ **The admin's own origin must be in `csrf`/`cors`.** Payload *discards the session cookie* when an `Origin` header is present and not listed (`payload/dist/auth/extractJWT.js`), so this is not a "blocked request" — it is an **unauthenticated** request that proceeds normally. The allow-list lives in `cms/src/lib/origins.ts` and must hold `PUBLIC_SITE_URL` **and** `CMS_ORIGIN`. It omitted the second until 2026-10-04, which returned **403 on the media library** (no uploads possible) and made logout a silent no-op, because `@payloadcms/ui`'s `logOut()` catches every error, clears local state and shows a *success* toast while the cookie and server session both survive. **One omission, two unrelated-looking symptoms, neither pointing at the cause.** `pnpm --filter @shikkha24/cms verify:origins` asserts both directions — the admin is accepted, a stranger's origin is still refused — because a check that only asserts acceptance passes on `['*']`.
-- **GraphQL** — disable introspection in production and enforce query depth/complexity limits if it is exposed publicly.
+- **GraphQL** — DISABLED entirely in production (`payload.config.ts` → `graphQL: { disable: true }`, pentest 2026-10-29 H3: its login/forgot-password mutations bypassed the REST per-IP rate limits). If it is ever re-enabled, the GraphQL route handler must first be wrapped in the same `rateLimit` helper as the REST login route.
 - **SQL/NoSQL injection** — use Payload's query layer; never string-concatenate queries.
 
 ---

@@ -3,11 +3,11 @@ import type { Endpoint, PayloadRequest } from 'payload'
 
 import { sendCampaignBatch } from '../lib/campaign'
 import {
-  clientIp,
   EMAIL_PATTERN,
   isHoneypotFilled,
   json,
   readJsonBody,
+  requireClientIp,
   tooManyRequests,
 } from '../lib/http'
 import { isMailConfigured, sendMail } from '../lib/mailer'
@@ -111,12 +111,10 @@ const subscribe: Endpoint = {
       return json({ ok: true })
     }
 
-    // 2 — rate limit.
-    const limit = rateLimit(
-      `newsletter-subscribe:${clientIp(req)}`,
-      SIGNUP_ATTEMPTS_PER_MINUTE,
-      60_000,
-    )
+    // 2 — rate limit. Refuse header-less (direct-to-origin) callers outright.
+    const caller = requireClientIp(req)
+    if ('error' in caller) return caller.error
+    const limit = rateLimit(`newsletter-subscribe:${caller.ip}`, SIGNUP_ATTEMPTS_PER_MINUTE, 60_000)
     if (!limit.ok) {
       return tooManyRequests(limit.retryAfterSeconds)
     }

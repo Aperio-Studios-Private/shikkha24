@@ -1,6 +1,13 @@
 import type { Endpoint, PayloadRequest } from 'payload'
 
-import { clientIp, isHoneypotFilled, json, readJsonBody, text, tooManyRequests } from '../lib/http'
+import {
+  isHoneypotFilled,
+  json,
+  readJsonBody,
+  requireClientIp,
+  text,
+  tooManyRequests,
+} from '../lib/http'
 import { rateLimit } from '../lib/rate-limit'
 import { readerIdFromRequest } from '../lib/reader-session'
 
@@ -239,7 +246,9 @@ const bookmarkSyncEndpoint: Endpoint = {
     // explaining — the client simply keeps its local list.
     if (!readerId) return json({ error: 'সাইন ইন করা নেই।' }, 401)
 
-    const limit = rateLimit(`bookmark-sync:${clientIp(req)}`, SYNCS_PER_WINDOW, WINDOW_MS)
+    const caller = requireClientIp(req)
+    if ('error' in caller) return caller.error
+    const limit = rateLimit(`bookmark-sync:${caller.ip}`, SYNCS_PER_WINDOW, WINDOW_MS)
     if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds)
 
     const body = await readJsonBody(req)
@@ -356,7 +365,9 @@ const bookmarkToggleEndpoint: Endpoint = {
     const readerId = readerOf(req)
     if (!readerId) return json({ error: 'সাইন ইন করা নেই।' }, 401)
 
-    const limit = rateLimit(`bookmark-toggle:${clientIp(req)}`, TOGGLES_PER_WINDOW, WINDOW_MS)
+    const caller = requireClientIp(req)
+    if ('error' in caller) return caller.error
+    const limit = rateLimit(`bookmark-toggle:${caller.ip}`, TOGGLES_PER_WINDOW, WINDOW_MS)
     if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds)
 
     const body = await readJsonBody(req)

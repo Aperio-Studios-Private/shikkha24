@@ -66,7 +66,7 @@ export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
  * the same implementation** — it has a request but not a Payload request, and a
  * second copy of this rule would be a second thing to get wrong.
  */
-export function ipFromHeaders(headers: Headers): string {
+export function ipFromHeaders(headers: Headers): string | null {
   const forwarded = headers.get('x-forwarded-for')
   if (forwarded) {
     // Last non-empty entry wins. Filter first so a trailing comma
@@ -77,12 +77,42 @@ export function ipFromHeaders(headers: Headers): string {
       .filter(Boolean)
     if (hops.length > 0) return hops[hops.length - 1] as string
   }
-  return headers.get('x-real-ip') ?? 'unknown'
+  return headers.get('x-real-ip') ?? null
 }
 
-/** The client IP for a Payload request. */
-export function clientIp(req: PayloadRequest): string {
+/**
+ * The client IP for a Payload request, or `null` when no trusted proxy wrote
+ * one.
+ *
+ * ⚠️ **Null is refused, not bucketed (pentest 2026-10-29, L2).** The old
+ * fallback collapsed every header-less caller into one shared `'unknown'`
+ * rate-limit bucket: a single abusive client could exhaust the collective
+ * allowance and lock out all other header-less callers (and vice versa). On
+ * Render the edge always writes `x-forwarded-for`, so a request with neither
+ * header is one that BYPASSED the proxy — i.e. a direct hit on the Render
+ * origin, exactly the traffic that should not consume a public endpoint at
+ * all. `requireClientIp` turns that into a hard 403; the rate limiter never
+ * sees a shared key.
+ */
+export function clientIp(req: PayloadRequest): string | null {
   return ipFromHeaders(req.headers)
+}
+
+/**
+ * The client IP, or a ready 403 response when no trusted proxy wrote one.
+ *
+ * Every public write endpoint starts with this — a header-less request reached
+ * the CMS origin directly, bypassing the proxy that owns `x-forwarded-for`, and
+ * must not consume the endpoint (or a shared rate-limit bucket) at all.
+ */
+export function requireClientIp(req: PayloadRequest): { ip: string } | { error: Response } {
+  const ip = clientIp(req)
+  if (ip === null) {
+    return {
+      error: json({ error: 'সংযোগ যাচাই করা যায়নি। অনুগ্রহ করে সাইটের মাধ্যমে চেষ্টা করুন।' }, 403),
+    }
+  }
+  return { ip }
 }
 
 /**
