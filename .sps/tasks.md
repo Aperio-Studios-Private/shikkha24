@@ -5828,3 +5828,10 @@ news but those are now gone" + "Site Settings not updating after 20+ min".
 **Final state (all live-verified):** 12 articles (10 real + id 13 new + id 14
 client's draft), settings edit live, news-sitemap leads with the new article,
 sitemap 71 URLs.
+
+### ✅ SAFETY NET PROVEN END-TO-END (2026-10-29 09:56–10:05 UTC)
+
+Two workflow bugs found and fixed on the first runs (probe read vars.CMS_URL
+— a SECRET, not a variable; dispatch needed contents:write). Third run:
+detected drift (content 09:39 > deploy 05:53), dispatched rebuild 09:56:51,
+rebuild completed success. The scheduled cron ('*/10') continues from here.
