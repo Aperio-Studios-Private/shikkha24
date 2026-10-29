@@ -5835,3 +5835,19 @@ Two workflow bugs found and fixed on the first runs (probe read vars.CMS_URL
 — a SECRET, not a variable; dispatch needed contents:write). Third run:
 detected drift (content 09:39 > deploy 05:53), dispatched rebuild 09:56:51,
 rebuild completed success. The scheduled cron ('*/10') continues from here.
+
+### ✅ SECURITY AUDIT COMPLETE (2026-10-29, owner-requested pentest) — report at docs/security-audit-2026-10-29.md
+
+Constraint honored: ZERO writes to production DB; passive GET/HEAD probes only;
+adversarial payloads executed locally against cloned modules.
+Method: 3 parallel review agents (auth/access-control; injection/XSS/SSRF;
+secrets/config/supply-chain) + 22 live probes + local exploit tests.
+
+Headline results: NO critical; NO reader-to-reader vector; NO secret in git history
+(re-verified). 5 HIGH: (H1) JSON-LD </script> breakout — locally reproduced, editor-trust
+boundary; (H2) search suggestions innerHTML unescaped; (H3) GraphQL bypasses login rate
+limit; (H4) rebuild PAT over-scoped (Contents RW; needs Actions-only); (H5) repo is PUBLIC
++ daily DB-backup workflow would publish PII artifacts (currently 0 artifacts — runs fail
+on frozen host; workflow still active). 6 MEDIUM, 12 LOW. richtext pipeline: 12/12 XSS
+payloads neutralized. Remediation plan prioritized P0-P3 in the report.
+P0 owner actions: rotate/re-scope PAT (Actions-only), pause backup-db.yml workflow.
