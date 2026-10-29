@@ -76,7 +76,11 @@ check('an overwritten header is used as-is', ipFromHeaders(headers(REAL)), REAL)
 // refused (403) by `requireClientIp` before any rate bucket is touched.
 check('a trailing comma does not yield an empty string', ipFromHeaders(headers(`${REAL},`)), REAL)
 check('padded entries are trimmed', ipFromHeaders(headers(`  ${FAKE} ,  ${REAL}  `)), REAL)
-check('a header of only commas yields null (refused, not bucketed)', ipFromHeaders(headers(',,')), null)
+check(
+  'a header of only commas yields null (refused, not bucketed)',
+  ipFromHeaders(headers(',,')),
+  null,
+)
 
 // ── Absent headers ───────────────────────────────────────────────────────────
 check(
