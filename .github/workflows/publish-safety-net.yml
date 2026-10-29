@@ -47,6 +47,8 @@ on:
 
 permissions:
   actions: read
+  # Creating a repository_dispatch (the rebuild) needs contents:write.
+  contents: write
 
 concurrency:
   group: publish-safety-net
