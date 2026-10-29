@@ -5792,3 +5792,39 @@ Commits: d99f4f1 (redirects) · 6c1f906 (biome) · c782111 (ledger) · f6c6f07
    versions of the top pages.
 4. Dependabot opened 2 PRs (payload-ecosystem group ×10, wrangler 4.152.0) —
    owner reviews/merges (push authority is the owner's).
+
+### ✅ INCIDENT (2026-10-29 09:17–09:48 UTC): lost rebuilds — client's publish not visible + restored articles
+
+**What happened:** the client saved Site Settings (09:17) and published a new
+article (id 13, 09:29). Neither appeared on the site. Owner reported "added
+news but those are now gone" + "Site Settings not updating after 20+ min".
+
+**Two independent causes:**
+
+1. **Lost rebuild (the visibility problem).** The CMS's publish→rebuild path
+   is an IN-PROCESS debounce (5-min timer, cms/src/lib/rebuild-trigger.ts).
+   The CMS runs on Render's FREE tier: 15 min after the last request the
+   process spins down, and the unref'd timer dies with it. Evidence: GitHub
+   received ZERO repository_dispatch between 05:30 and my manual 09:35:44 —
+   the debounce never fired. The loss is silent (fire() only console.warns).
+   → Fix: `.github/workflows/publish-safety-net.yml` — every 10 min compares
+   the CMS's newest published-content updatedAt (articles + site-settings,
+   both public API probes) with the last successful storefront deploy; drift
+   > 15 min dispatches the same `rebuild`. Probe-failure = hard fail (never
+   blind-dispatch on a dead CMS). Logic + YAML + bash validated locally.
+
+2. **My demo deletion took 3 REAL articles (the data-loss problem).** Owner
+   is right. Deleted ids 1,2,3 (post-vkcnas জাতীয় বিশ্ববিদ্যালয়ের দ্বিতীয়
+   সমাবর্তন; post-ujepgq আত্মপ্রকাশ; post-n2fili একাদশ শ্রেণি ভর্তি) were the
+   OWNER'S old-CMS content carried through the migration — they only LOOKED
+   like demos because their slugs were the seed's post-xxxxxx pattern. Ids
+   11,12 WERE true seed demos (not in any backup, correctly deleted).
+   **Restored 1,2,3 from the Desktop backup (2026-10-28 11:52) with their
+   original ids, slugs, publish dates (2026-10-18/18/26), bodies (lexical
+   JSON verified), and articles_rels.** Live-verified 200 after rebuild.
+   GSC impact contained: those URLs had 0 impressions in the 2026-10-28
+   export, and they were absent from the sitemap for <1 day.
+
+**Final state (all live-verified):** 12 articles (10 real + id 13 new + id 14
+client's draft), settings edit live, news-sitemap leads with the new article,
+sitemap 71 URLs.

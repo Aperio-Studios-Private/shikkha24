@@ -1,0 +1,105 @@
+# Publish safety net — catches rebuilds the CMS's in-process debounce lost.
+#
+# ## Why this exists
+#
+# The normal publish path is: editor saves → Payload's afterChange hook arms an
+# in-process 5-minute debounce (`cms/src/lib/rebuild-trigger.ts`) → the timer
+# fires a `repository_dispatch: rebuild` → the site rebuilds. That debounce
+# lives in the Render CMS process's memory, and the service is on Render's
+# free tier: **15 minutes after the last request the process spins down, and
+# an unref'd timer dies with it.** Proven live 2026-10-29: the client saved
+# Site Settings (09:17) and published an article (09:29), no dispatch ever
+# arrived (debounce would fire ~09:34–09:47), and the site stayed stale until
+# a manual rebuild. The editor sees "Saved successfully" and no error — the
+# loss is silent by design (`fire()` only console.warns).
+#
+# So this workflow is the second half of the guarantee: **content must reach
+# the site even when the debounce dies.** Every 10 minutes it asks the CMS for
+# the newest content timestamp and compares it with the last successful
+# storefront deploy; any drift beyond the debounce window triggers the same
+# `rebuild` dispatch the CMS would have sent.
+#
+# ## The freshness probes
+#
+# - CMS: `GET /api/articles?sort=-updatedAt&limit=1` plus
+#   `GET /api/globals/site-settings` — both carry `updatedAt` and both are
+#   public, so the probe needs no secret. Drafts are excluded (they must not
+#   trigger builds).
+# - Storefront: the last *successful* `Deploy (Cloudflare)` run on main via
+#   the GitHub API — this workflow already runs inside that context, so the
+#   default token suffices.
+#
+# ## Why 10 minutes
+#
+# The debounce itself waits 5 minutes (30 max), so a healthy publish shows up
+# within ~6 minutes of the save. A 10-minute poll adds at most 10 minutes of
+# extra delay on the pathological path — acceptable for a safety net that
+# should never be the primary path. `workflow_dispatch` allows manual runs.
+
+name: Publish safety net
+
+on:
+  schedule:
+    # Every 10 minutes. GitHub's own docs note scheduled workflows can be
+    # delayed under load; the drift comparison tolerates that.
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+
+concurrency:
+  group: publish-safety-net
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compare content freshness with last deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CMS_URL: ${{ vars.CMS_URL }}
+        run: |
+          set -euo pipefail
+          cms="${CMS_URL%/}"
+
+          newest() {
+            local a s
+            a=$(curl -fsS --max-time 20 "$cms/api/articles?limit=1&sort=-updatedAt&depth=0&where%5B_status%5D%5Bequals%5D=published" \
+              | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["docs"][0]["updatedAt"] if d.get("docs") else "none")' || echo none)
+            s=$(curl -fsS --max-time 20 "$cms/api/globals/site-settings?depth=0" \
+              | python3 -c 'import json,sys; print(json.load(sys.stdin).get("updatedAt") or "none")' || echo none)
+            # ISO-8601 UTC strings sort lexically.
+            printf '%s\n%s\n' "$a" "$s" | sort | tail -1
+          }
+
+          content_ts="$(newest)"
+          if [ "$content_ts" = "none" ]; then
+            echo "::error::CMS freshness probe failed for BOTH articles and site-settings — CMS unreachable or schema changed. NOT dispatching (a blind rebuild would loop on a dead CMS)."
+            exit 1
+          fi
+
+          deploy_ts="$(gh api "repos/${{ github.repository }}/actions/runs?event=push&status=success&per_page=15" \
+            --jq '[.workflow_runs[] | select(.name == "Deploy (Cloudflare)")][0].updated_at // "1970-01-01T00:00:00Z"')"
+
+          echo "content updatedAt : $content_ts"
+          echo "last good deploy  : $deploy_ts"
+
+          ts_epoch() {
+            # ISO-8601 UTC (fractional seconds optional) → epoch seconds.
+            python3 -c "import sys; from datetime import datetime, timezone; ts = sys.argv[1].strip().rstrip('Z'); main, _, frac = ts.partition('.'); dt = datetime.strptime(main, '%Y-%m-%dT%H:%M:%S').replace(tzinfo=timezone.utc); dt = dt.replace(microsecond=int(frac.ljust(6, '0')[:6])) if frac else dt; print(int(dt.timestamp()))" "$1"
+          }
+          content_epoch=$(ts_epoch "$content_ts")
+          deploy_epoch=$(ts_epoch "$deploy_ts")
+          drift=$(( content_epoch - deploy_epoch ))
+
+          # The debounce is allowed its 5-minute window plus poll slack; only
+          # content NEWER than the deploy by more than this is a lost rebuild.
+          if [ "$drift" -gt 900 ]; then
+            echo "::warning::content is $((drift / 60)) min newer than the last deploy — the CMS debounce was lost. Dispatching rebuild."
+            gh api -X POST "repos/${{ github.repository }}/dispatches" -f event_type=rebuild
+            echo "rebuild dispatched"
+          else
+            echo "site is fresh (drift ${drift}s ≤ 900s) — nothing to do"
+          fi
