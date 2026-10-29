@@ -5851,3 +5851,35 @@ limit; (H4) rebuild PAT over-scoped (Contents RW; needs Actions-only); (H5) repo
 on frozen host; workflow still active). 6 MEDIUM, 12 LOW. richtext pipeline: 12/12 XSS
 payloads neutralized. Remediation plan prioritized P0-P3 in the report.
 P0 owner actions: rotate/re-scope PAT (Actions-only), pause backup-db.yml workflow.
+
+### ✅ SECURITY REMEDIATION COMPLETE (2026-10-29) — all pentest findings fixed, deployed, live-verified
+
+Commits: 444d05e (main remediation) · 1699a08 (biome) · 1e05f8a (client-IP
+harness null contract) · df196ca (format) · 7c9dc43 (push harness allowlist).
+
+HIGH: H1 jsonForScriptTag at 3 sinks (live-verified: no raw </script> in ld+json)
+· H2+M6 search suggestions → textContent DOM · H3 GraphQL disabled in prod
+(live: POST /api/graphql → 404; login bypass dead) · H5 legacy backup workflow
+disabled; backup-neon.yml ready (pg_dump → private R2, gated on owner secrets).
+MEDIUM: M3 staff cookie Secure · M4 SVG content sniff (bundle-verified; 6
+existing brand SVGs unaffected) · M5 telemetry 1KB cap (live: 2KB → 400,
+normal → 204). LOW: L1 unlock gated · L2 header-less requests refused (all 10
+endpoints; client-IP harness updated to null contract) · L3 push allowlist
+(harness aligned; live probe hits config gate first — by design) · L4 decode
+guard + Object.hasOwn manifest + 301s carry security headers · L5 safeUrl
+backslash (verified: /\evil.com renders as text) · L6 CGPA textContent ·
+L7 pressCardNo documented public-by-design · L8 minimumReleaseAge ON (24h) +
+excludes refreshed · L9 override note (surface removed by H3) · L10/L12
+trade-offs in docs/security.md · L11 hygiene files deleted.
+
+CI hiccup fixed on the way: verify-client-ip.mjs asserted the old 'unknown'
+contract — updated to the null contract; push harness needed an allowlisted host.
+
+**OWNER-ONLY REMAINING (dashboard actions):**
+1. Rotate rebuild PAT: fine-grained, repo shikkha24, Actions RW only (NO
+   Contents write) → update DEPLOY_WEBHOOK_TOKEN on Render → delete the old
+   "Actions+Contents RW" PAT and the watcher's classic repo-scoped PAT.
+2. R2: create bucket shikkha24-backups (private, no domain) + R2 token
+   (Object RW, scoped to that bucket) → GitHub secrets NEON_BACKUP_URL,
+   R2_BACKUP_ACCESS_KEY, R2_BACKUP_SECRET → run "Backup Neon → R2" once.
+3. Watcher: deploy the hardened worker + set TICK_SECRET (M2).
