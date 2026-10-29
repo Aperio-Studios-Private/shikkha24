@@ -70,11 +70,13 @@ check(
 check('an overwritten header is used as-is', ipFromHeaders(headers(REAL)), REAL)
 
 // ── Malformed input must not produce an empty identity ───────────────────────
-// 'unknown' as a bucket key would merge unrelated callers into one, and '' would
-// make every malformed request share a single rate-limit bucket.
+// '' as a bucket key would make every malformed request share a single
+// rate-limit bucket. Since pentest 2026-10-29 (L2) the absent case returns
+// NULL, not 'unknown': a header-less request bypassed the trusted proxy and is
+// refused (403) by `requireClientIp` before any rate bucket is touched.
 check('a trailing comma does not yield an empty string', ipFromHeaders(headers(`${REAL},`)), REAL)
 check('padded entries are trimmed', ipFromHeaders(headers(`  ${FAKE} ,  ${REAL}  `)), REAL)
-check('a header of only commas falls through to unknown', ipFromHeaders(headers(',,')), 'unknown')
+check('a header of only commas yields null (refused, not bucketed)', ipFromHeaders(headers(',,')), null)
 
 // ── Absent headers ───────────────────────────────────────────────────────────
 check(
@@ -82,8 +84,10 @@ check(
   ipFromHeaders(new Headers({ 'x-real-ip': REAL })),
   REAL,
 )
-check('no headers at all yields unknown', ipFromHeaders(headers()), 'unknown')
-check('an empty x-forwarded-for yields unknown', ipFromHeaders(headers('')), 'unknown')
+// L2: null means "no trusted proxy spoke" — requireClientIp turns this into a
+// 403 so direct-to-origin hits can never share (or exhaust) a bucket.
+check('no headers at all yields null', ipFromHeaders(headers()), null)
+check('an empty x-forwarded-for yields null', ipFromHeaders(headers('')), null)
 
 // ── The counter-proof ─────────────────────────────────────────────────────────
 /** The implementation this replaced, kept here only to be caught. */
