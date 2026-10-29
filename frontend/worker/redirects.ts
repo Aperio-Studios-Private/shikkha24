@@ -73,7 +73,7 @@ export function staleArticleRedirect(
   // A `__proto__`/`constructor` slug would read from Object.prototype instead
   // of the manifest's own keys. Own-property check keeps the manifest the only
   // source (pentest 2026-10-29, L4 hardening).
-  if (!Object.prototype.hasOwnProperty.call(manifest, slug)) return null
+  if (!Object.hasOwn(manifest, slug)) return null
   const target = manifest[slug]
   // Never redirect to the path that is already being requested.
   if (!target || target === pathname.replace(/\/$/, '')) return null

@@ -115,7 +115,7 @@ export default {
       // hop matters most, since that response is the attacker's downgrade
       // window. Cached nowhere.
       const headers = headersForPath(url.pathname, null)
-      headers['Location'] = canonical.href
+      headers.Location = canonical.href
       headers['Cache-Control'] = 'no-store'
       return new Response(null, { status: 301, headers })
     }
@@ -136,7 +136,7 @@ export default {
         const target = staleArticleRedirect(url.pathname, manifest)
         if (target !== null) {
           const headers = headersForPath(url.pathname, null)
-          headers['Location'] = new URL(target, url.origin).href
+          headers.Location = new URL(target, url.origin).href
           return new Response(null, { status: 301, headers })
         }
       }
