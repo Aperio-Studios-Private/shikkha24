@@ -5899,3 +5899,17 @@ longer touch the public GitHub repo.
 
 Remaining owner item: Step 1 PAT rotation (Actions-only) — confirm + verify
 publish chain with the new token.
+
+### ✅ PUBLISH CHAIN FULLY RESTORED (2026-10-31) — article 15 live, watcher armed
+
+Owner reported "admin published 4+ hours ago, not visible." Diagnosis: article
+15 (post-1ycfto, published 06:11 UTC) WAS live — page 200, homepage, news
+sitemap. The instant rebuild had been lost to the Render spin-down gap (the
+known H3-adjacent issue), but the publish-safety-net workflow caught it
+(rebuilds 07:59 + 08:10 UTC). Delay was ~2h instead of ≤10 min because the
+watcher's GITHUB_TOKEN had been missing until owner set it today.
+
+NOW FULLY ARMED: watcher /health shows hasToken:true, digest updating — its
+5-min cron is the fast path, publish-safety-net (10-min) is the backstop,
+CMS instant webhook is the express lane when the process is warm. No further
+action needed.
