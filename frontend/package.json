@@ -21,7 +21,7 @@
     "workers:dev": "wrangler dev"
   },
   "dependencies": {
-    "astro": "7.3.8",
+    "astro": "7.4.4",
     "sharp": "0.35.5"
   },
   "devDependencies": {
