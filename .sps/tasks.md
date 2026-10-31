@@ -5883,3 +5883,19 @@ contract — updated to the null contract; push harness needed an allowlisted ho
    (Object RW, scoped to that bucket) → GitHub secrets NEON_BACKUP_URL,
    R2_BACKUP_ACCESS_KEY, R2_BACKUP_SECRET → run "Backup Neon → R2" once.
 3. Watcher: deploy the hardened worker + set TICK_SECRET (M2).
+
+### ✅ BACKUP SYSTEM LIVE (2026-10-31) — first Neon→R2 dump succeeded
+
+Owner completed the dashboard setup: R2 bucket shikkha24-backups (private),
+R2 token (Object RW, bucket-scoped), GitHub secrets R2_BACKUP_ACCESS_KEY +
+R2_BACKUP_SECRET set 10:51 UTC. Watcher secrets (GITHUB_TOKEN + TICK_SECRET)
+confirmed set via owner screenshot (Cloudflare Workers dashboard).
+
+First run (workflow_dispatch 41194518103): pg_dump 390,887 bytes, pg_restore
+toc parsed (994 entries, articles table present), R2 PUT → HTTP 200.
+Stored at s3://shikkha24-backups/backups/2026-10-31/shikkha24-2026-10-31.dump.
+Cron: daily 18:00 UTC (00:00 Dhaka). Pentest H5 fully closed — backups no
+longer touch the public GitHub repo.
+
+Remaining owner item: Step 1 PAT rotation (Actions-only) — confirm + verify
+publish chain with the new token.
