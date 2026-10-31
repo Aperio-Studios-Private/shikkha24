@@ -63,7 +63,7 @@
     "serve:dist": "node scripts/serve-dist.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
+    "@biomejs/biome": "2.6.3",
     "@lhci/cli": "0.15.1",
     "linkedom": "0.18.13",
     "smol-toml": "1.9.1",
